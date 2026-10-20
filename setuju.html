@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persetujuan Permintaan Barang</title>
+<style>
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:15px}
+.top{background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;text-align:center;padding:18px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 18px Georgia,serif;letter-spacing:1.5px}
+.top div{margin-top:4px;font-size:12px;letter-spacing:2px;color:#e3c98f;font-weight:600}
+.wrap{max-width:640px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.row{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.row:last-child{border-bottom:0}
+.row b{flex:0 0 120px;color:#5b7a8c}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+th{background:var(--navy);color:#fff;padding:6px;text-align:left;font-weight:600}
+td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
+.btns{display:flex;gap:10px}
+button{flex:1;font:700 16px "Segoe UI",Roboto,Arial,sans-serif;padding:14px;border:0;border-radius:10px;color:#fff;cursor:pointer}
+button.ok{background:#1b8a3a}button.no{background:#c0392b}button:disabled{opacity:.5}
+.msg{text-align:center;font-size:17px;padding:26px 10px}
+.msg.err{color:#c0392b}.msg.good{color:#1b8a3a}
+.tag{display:inline-block;background:#e8f1f6;color:#0a2a43;border-radius:20px;padding:3px 10px;font-size:13px;font-weight:600}
+@media (prefers-color-scheme:dark){.tag{background:#23333c;color:#e6eef2}}
+</style>
+</head>
+<body>
+<div class="top"><h1>PERSETUJUAN PERMINTAAN BARANG</h1><div>PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="wrap" id="app"><div class="msg">Memuat permintaan...</div></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+var q=new URLSearchParams(location.search),act=q.get("a")==="reject"?"reject":"approve";
+var app=document.getElementById("app");
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function show(msg,cls){app.innerHTML='<div class="card msg '+(cls||"")+'">'+esc(msg)+'</div>';}
+async function api(b){
+  var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});
+  return await r.json();
+}
+function render(r){
+  var d=r.data,aksi=act==="reject"?"TOLAK":"SETUJUI";
+  var rows=d.items.map(function(i,n){return "<tr><td>"+(n+1)+"</td><td>"+(i.kode==="BARU"?"<b style=\"color:#b8760a\">BARU</b> (belum ada kode)":esc(i.kode))+"</td><td>"+esc(i.nama)+"</td><td>"+esc(i.satuan)+"</td><td>"+esc(i.jumlah)+"</td></tr>";}).join("");
+  app.innerHTML=
+   '<div class="card"><span class="tag">'+esc(r.tahap)+'</span>'+
+   '<p style="margin:10px 0 4px">Halo <b>'+esc(r.approver)+'</b>, mohon periksa permintaan berikut.</p>'+
+   '<div class="row"><b>No</b><span>'+esc(d.id)+'</span></div>'+
+   '<div class="row"><b>Dibuat oleh</b><span>'+esc(d.by)+'</span></div>'+
+   '<div class="row"><b>Departemen</b><span>'+esc(d.dept)+'</span></div>'+
+   '<div class="row"><b>Nomor Dokumen</b><span>'+esc(d.doc)+'</span></div>'+
+   '<div class="row"><b>Nomor PPBJ</b><span>'+esc(d.ppbj)+'</span></div>'+
+   '<div class="row"><b>Alasan</b><span>'+esc(d.alasan)+'</span></div></div>'+
+   '<div class="card" style="overflow-x:auto"><table><tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Sat</th><th>Jml</th></tr>'+rows+'</table></div>'+
+   '<div class="btns"><button class="'+(act==="reject"?"no":"ok")+'" id="go">Ya, '+aksi+'</button>'+
+   '<button class="'+(act==="reject"?"ok":"no")+'" id="alt">'+(act==="reject"?"Setujui saja":"Tolak saja")+'</button></div>';
+  document.getElementById("go").onclick=function(){send(act);};
+  document.getElementById("alt").onclick=function(){send(act==="reject"?"approve":"reject");};
+}
+async function send(a){
+  document.querySelectorAll("button").forEach(function(b){b.disabled=true;});
+  try{
+    var r=await api({action:"decide",id:q.get("id"),t:q.get("t"),act:a});
+    show(r.msg||"Selesai.",r.ok?"good":"err");
+  }catch(e){show("Gagal terhubung ke server. Coba lagi.","err");document.querySelectorAll("button").forEach(function(b){b.disabled=false;});}
+}
+(async function(){
+  if(API_URL.indexOf("PASTE_")===0){show("API_URL belum diisi di file setuju.html.","err");return;}
+  if(!q.get("id")||!q.get("t")){show("Link tidak lengkap.","err");return;}
+  try{
+    var r=await api({action:"info",kind:"approve",id:q.get("id"),t:q.get("t")});
+    if(!r.ok){show(r.msg||"Link tidak valid.","err");return;}
+    render(r);
+  }catch(e){show("Gagal terhubung ke server. Periksa internet lalu muat ulang.","err");}
+})();
+</script>
+</body>
+</html>

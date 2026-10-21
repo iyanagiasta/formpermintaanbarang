@@ -549,9 +549,11 @@ function resetForm(){window.__sentNo="";setTimeout(loadNomor,50);
 function loadNomor(){
   if(new URLSearchParams(location.search).get("m")==="cetak")return;
   if(typeof API_URL==="undefined"||String(API_URL).indexOf("PASTE_")===0)return;
+  var el=document.getElementById("doc");
   api({action:"nomor"}).then(function(r){
-    if(r&&r.ok&&r.nomor&&!window.__sentNo)document.getElementById("doc").value=r.nomor;
-  }).catch(function(){});
+    if(r&&r.ok&&r.nomor){if(!window.__sentNo){el.value=r.nomor;el.placeholder="";}}
+    else{el.placeholder="Nomor belum bisa dimuat: "+((r&&r.msg)||"tidak ada respons");}
+  }).catch(function(e){el.placeholder="Nomor belum bisa dimuat: gagal terhubung ke backend";});
 }
 function applyBarang(items,label){
   loadDB(toRows(items.map(function(i){return [i.nama,i.kode,i.satuan];})),label);

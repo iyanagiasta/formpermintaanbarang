@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin Gudang - Pantauan No BPB</title>
+<style>
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.top{background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 17px Georgia,serif;letter-spacing:1.5px}
+.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#e3c98f;font-weight:600}
+.wrap{max-width:1180px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+input.t{width:100%;padding:11px;font:600 15px "Segoe UI",Roboto,Arial,sans-serif;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
+button{font:600 13px "Segoe UI",Roboto,Arial,sans-serif;padding:8px 11px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+button.rm{background:#b8760a}button.sv{background:#1b8a3a}button.gh{background:transparent;color:var(--navy);border:1px solid var(--line)}
+@media (prefers-color-scheme:dark){button.gh{color:var(--ink)}}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.chip{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:6px 12px}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.bar input{flex:1;min-width:150px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
+.sum{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.sum div{flex:1;min-width:130px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+.sum b{display:block;font-size:22px}.sum span{color:var(--mut);font-size:12px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th{background:var(--navy);color:#fff;text-align:left;padding:9px 8px;font-size:12px;letter-spacing:.3px}
+td{border-top:1px solid var(--line);padding:9px 8px;vertical-align:top}
+td small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.bd{display:inline-block;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700}
+.bd.n{background:#e8f1f6;color:#0a2a43}.bd.w{background:#fff3cd;color:#7a5b00}.bd.b{background:#f8d7da;color:#8a1c28}.bd.d{background:#d9f0df;color:#14612b}.bd.r{background:#e6e6e6;color:#444}
+.act{display:flex;flex-direction:column;gap:6px;min-width:150px}
+.ppi{display:flex;gap:5px;margin-top:6px}.ppi input{width:110px;padding:6px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--ink)}
+.msg{text-align:center;padding:22px;color:var(--mut)}
+.err{color:#c0392b}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0a2a43;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}
+#toast.bad{background:#c0392b}
+@media (max-width:820px){
+ table,thead,tbody,tr,td{display:block}thead{display:none}
+ tr{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--card);padding:6px 4px}
+ td{border:0;padding:5px 10px}
+ td[data-l]:before{content:attr(data-l);display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+ .act{flex-direction:row;flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="top"><h1>ADMIN GUDANG</h1><div>PANTAUAN NO BPB - PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="wrap" id="app"></div>
+<div id="toast"></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbzXp_XiGCv7iwzZSnedOZuIi3U58ByDkk4GhSMnckc4vsvEdzAj5xcSimLDexSqrzcs0A/exec";
+var PIN="",MODE="belum",DATA=[],BUSY=false,SEMUA=false;
+var app=document.getElementById("app");
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},4500);}
+async function api(b){
+  b.pin=PIN;
+  var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});
+  return await r.json();
+}
+function loginView(msg){
+  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Masuk sebagai Admin Gudang</b></p>'+
+   '<input class="t" id="pin" type="password" autocomplete="off" placeholder="Kode admin"><div style="height:10px"></div>'+
+   '<button id="go" style="width:100%;padding:11px">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
+  var i=document.getElementById("pin");i.focus();
+  i.onkeydown=function(e){if(e.key==="Enter")login();};
+  document.getElementById("go").onclick=login;
+}
+async function login(){
+  var v=document.getElementById("pin").value.trim();if(!v)return;
+  PIN=v;document.getElementById("go").disabled=true;
+  await load(true);
+}
+async function load(first){
+  try{
+    var r=await api({action:"adminList",semua:SEMUA});
+    if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
+    DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
+    draw(r.now);
+  }catch(e){
+    if(first)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");else toast("Gagal terhubung ke server.",true);
+  }
+}
+function lamaTxt(jam){if(!jam)return "";return jam<24?Math.max(Math.round(jam),1)+" jam":(jam/24).toFixed(1).replace(".",",")+" hari";}
+function statusBd(d){
+  if(d.ditolak)return '<span class="bd r">Ditolak</span>';
+  if(d.selesai)return '<span class="bd d">Siap Diserahkan</span>';
+  var c=d.jam>=48?"b":d.jam>=24?"w":"n";
+  return '<span class="bd '+c+'">'+esc(d.status)+'</span><small>Menunggu: <b>'+esc(d.menunggu?d.menunggu.nama:"-")+'</b> ('+esc(lamaTxt(d.jam))+')</small>';
+}
+function filtered(){
+  var q=(document.getElementById("q")||{value:""}).value.trim().toLowerCase();
+  return DATA.filter(function(d){
+    if(MODE==="setuju"&&!d.menunggu)return false;
+    if(MODE==="ppbj"&&!d.ppbjBelum)return false;
+    if(q){var h=(d.doc+" "+d.id+" "+d.by+" "+d.dept+" "+d.status+" "+(d.menunggu?d.menunggu.nama:"")+" "+d.ppbj).toLowerCase();if(h.indexOf(q)<0)return false;}
+    return true;
+  });
+}
+function draw(now){
+  var nSet=DATA.filter(function(d){return d.menunggu;}).length,nPp=DATA.filter(function(d){return d.ppbjBelum;}).length,nLate=DATA.filter(function(d){return d.menunggu&&d.jam>=24;}).length;
+  var q=(document.getElementById("q")||{}).value||"";
+  app.innerHTML=
+   '<div class="sum"><div><b>'+nSet+'</b><span>Menunggu persetujuan</span></div><div><b>'+nLate+'</b><span>Menunggu 24 jam atau lebih</span></div><div><b>'+nPp+'</b><span>PPBJ belum ada</span></div></div>'+
+   '<div class="bar">'+
+   [["belum","Belum lengkap"],["setuju","Menunggu persetujuan"],["ppbj","PPBJ belum ada"],["semua","Semua"]].map(function(c){var on=(c[0]==="semua"?SEMUA:(!SEMUA&&MODE===c[0]));return '<button class="chip'+(on?" on":"")+'" data-chip="'+c[0]+'">'+c[1]+'</button>';}).join("")+
+   '<input id="q" placeholder="Cari No BPB, pembuat, departemen..." value="'+esc(q)+'"><button class="gh" id="rf">Segarkan</button><button class="gh" id="lo">Keluar</button></div>'+
+   '<div id="tb"></div><p style="color:var(--mut);font-size:12px">Diperbarui: '+esc(now||"")+'. Pengingat otomatis dikirim tiap pagi (persetujuan: menunggu 24 jam atau lebih; PPBJ: sejak hari ke-3).</p>';
+  drawRows();
+  document.getElementById("q").oninput=drawRows;
+  document.getElementById("rf").onclick=function(){load(false);};
+  document.getElementById("lo").onclick=function(){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView("");};
+  app.querySelectorAll("[data-chip]").forEach(function(b){b.onclick=function(){
+    var k=b.getAttribute("data-chip");
+    if(k==="semua"){SEMUA=true;MODE="belum";}else{SEMUA=false;MODE=k;}
+    load(false);
+  };});
+}
+function drawRows(){
+  var rows=filtered(),box=document.getElementById("tb");
+  if(!rows.length){box.innerHTML='<div class="card msg">Tidak ada data untuk ditampilkan.</div>';return;}
+  box.innerHTML='<table><thead><tr><th>No BPB</th><th>Pembuat</th><th>Status</th><th>PPBJ</th><th>Pengingat terakhir</th><th>Aksi</th></tr></thead><tbody>'+rows.map(function(d){
+    var pp=d.ppbjBelum
+      ?'<span class="bd b">BELUM ADA</span><small>sejak '+d.hariKirim+' hari lalu</small><div class="ppi"><input placeholder="No PPBJ" maxlength="60" data-no="'+esc(d.id)+'"><button class="sv" data-act="ppbj" data-id="'+esc(d.id)+'">Simpan</button></div>'
+      :(d.ditolak?'<small>-</small>':'<b>'+esc(d.ppbj)+'</b>'+(SEMUA?'<small><a href="#" data-act="ubah" data-id="'+esc(d.id)+'">ubah</a></small>':''));
+    var last=[];if(d.follow)last.push("Persetujuan: "+esc(d.follow));if(d.pingatPpbj)last.push("PPBJ: "+esc(d.pingatPpbj));
+    var acts="";
+    if(d.menunggu)acts+='<button class="rm" data-act="remind" data-jenis="persetujuan" data-id="'+esc(d.id)+'">Kirim pengingat persetujuan</button>';
+    if(d.ppbjBelum)acts+='<button class="rm" data-act="remind" data-jenis="ppbj" data-id="'+esc(d.id)+'">Kirim pengingat PPBJ</button>';
+    return '<tr><td data-l="No BPB"><b>'+esc(d.doc||d.id)+'</b><small>'+esc(d.kirim)+'</small><small>'+esc(d.barang)+'</small></td>'+
+      '<td data-l="Pembuat">'+esc(d.by)+'<small>'+esc(d.dept)+'</small></td>'+
+      '<td data-l="Status">'+statusBd(d)+'</td><td data-l="PPBJ">'+pp+'</td>'+
+      '<td data-l="Pengingat terakhir"><small style="margin:0">'+(last.join("<br>")||"-")+'</small></td>'+
+      '<td data-l="Aksi"><div class="act">'+(acts||'<small>-</small>')+'</div></td></tr>';
+  }).join("")+'</tbody></table>';
+  box.querySelectorAll("[data-act]").forEach(function(b){b.onclick=function(e){e.preventDefault();onAct(b);};});
+}
+async function onAct(b){
+  if(BUSY)return;
+  var act=b.getAttribute("data-act"),id=b.getAttribute("data-id"),d=DATA.filter(function(x){return x.id===id;})[0]||{},body;
+  if(act==="remind"){
+    var j=b.getAttribute("data-jenis");
+    var kpd=j==="persetujuan"?(d.menunggu?d.menunggu.nama:"approver"):"atasan departemen "+d.dept;
+    if(!confirm("Kirim pengingat "+(j==="persetujuan"?"persetujuan":"PPBJ")+" untuk "+(d.doc||id)+" ke "+kpd+"? Salinan informasi juga dikirim ke Iyan dan Manager Gudang."))return;
+    body={action:"adminRemind",id:id,jenis:j};
+  }else if(act==="ppbj"){
+    var inp=document.querySelector('[data-no="'+id+'"]'),no=inp?inp.value.trim():"";
+    if(!no){toast("Isi Nomor PPBJ dulu.",true);return;}
+    if(!confirm("Simpan Nomor PPBJ "+no+" untuk "+(d.doc||id)+"? Pengingat PPBJ akan berhenti."))return;
+    body={action:"adminPpbj",id:id,no:no};
+  }else if(act==="ubah"){
+    var no2=prompt("Nomor PPBJ baru untuk "+(d.doc||id)+":",d.ppbj||"");
+    if(no2===null||!no2.trim())return;
+    body={action:"adminPpbj",id:id,no:no2.trim(),timpa:true};
+  }else return;
+  BUSY=true;b.disabled=true;
+  try{
+    var r=await api(body);
+    toast(r.msg||(r.ok?"Berhasil.":"Gagal."),!r.ok);
+    if(r.ok)await load(false);
+  }catch(e){toast("Gagal terhubung ke server.",true);}
+  BUSY=false;b.disabled=false;
+}
+(function(){
+  var saved="";try{saved=sessionStorage.getItem("sctk_admin")||"";}catch(e){}
+  if(API_URL.indexOf("PASTE_")===0){app.innerHTML='<div class="card msg err">API_URL belum diisi di file admin.html.</div>';return;}
+  if(saved){PIN=saved;load(true);}else loginView("");
+})();
+</script>
+</body>
+</html>

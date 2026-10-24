@@ -98,7 +98,7 @@ function filtered(){
   return DATA.filter(function(d){
     if(MODE==="setuju"&&!d.menunggu)return false;
     if(MODE==="ppbj"&&!d.ppbjBelum)return false;
-    if(q){var h=(d.doc+" "+d.id+" "+d.by+" "+d.dept+" "+d.status+" "+(d.menunggu?d.menunggu.nama:"")+" "+d.ppbj).toLowerCase();if(h.indexOf(q)<0)return false;}
+    if(q){var h=(d.doc+" "+d.id+" "+d.by+" "+(d.pic||"")+" "+d.dept+" "+d.status+" "+(d.menunggu?d.menunggu.nama:"")+" "+d.ppbj).toLowerCase();if(h.indexOf(q)<0)return false;}
     return true;
   });
 }
@@ -109,7 +109,7 @@ function draw(now){
    '<div class="sum"><div><b>'+nSet+'</b><span>Menunggu persetujuan</span></div><div><b>'+nLate+'</b><span>Menunggu 24 jam atau lebih</span></div><div><b>'+nPp+'</b><span>PPBJ belum ada</span></div></div>'+
    '<div class="bar">'+
    [["belum","Belum lengkap"],["setuju","Menunggu persetujuan"],["ppbj","PPBJ belum ada"],["semua","Semua"]].map(function(c){var on=(c[0]==="semua"?SEMUA:(!SEMUA&&MODE===c[0]));return '<button class="chip'+(on?" on":"")+'" data-chip="'+c[0]+'">'+c[1]+'</button>';}).join("")+
-   '<input id="q" placeholder="Cari No BPB, pembuat, departemen..." value="'+esc(q)+'"><button class="gh" id="rf">Segarkan</button><button class="gh" id="lo">Keluar</button></div>'+
+   '<input id="q" placeholder="Cari No BPB, pemohon, PIC, departemen..." value="'+esc(q)+'"><button class="gh" id="rf">Segarkan</button><button class="gh" id="lo">Keluar</button></div>'+
    '<div id="tb"></div><p style="color:var(--mut);font-size:12px">Diperbarui: '+esc(now||"")+'. Pengingat otomatis dikirim tiap pagi (persetujuan: menunggu 24 jam atau lebih; PPBJ: sejak hari ke-3).</p>';
   drawRows();
   document.getElementById("q").oninput=drawRows;
@@ -124,7 +124,7 @@ function draw(now){
 function drawRows(){
   var rows=filtered(),box=document.getElementById("tb");
   if(!rows.length){box.innerHTML='<div class="card msg">Tidak ada data untuk ditampilkan.</div>';return;}
-  box.innerHTML='<table><thead><tr><th>No BPB</th><th>Pembuat</th><th>Status</th><th>PPBJ</th><th>Pengingat terakhir</th><th>Aksi</th></tr></thead><tbody>'+rows.map(function(d){
+  box.innerHTML='<table><thead><tr><th>No BPB</th><th>Pemohon / PIC</th><th>Status</th><th>PPBJ</th><th>Pengingat terakhir</th><th>Aksi</th></tr></thead><tbody>'+rows.map(function(d){
     var pp=d.ppbjBelum
       ?'<span class="bd b">BELUM ADA</span><small>sejak '+d.hariKirim+' hari lalu</small><div class="ppi"><input placeholder="No PPBJ" maxlength="60" data-no="'+esc(d.id)+'"><button class="sv" data-act="ppbj" data-id="'+esc(d.id)+'">Simpan</button></div>'
       :(d.ditolak?'<small>-</small>':'<b>'+esc(d.ppbj)+'</b>'+(SEMUA?'<small><a href="#" data-act="ubah" data-id="'+esc(d.id)+'">ubah</a></small>':''));
@@ -133,7 +133,7 @@ function drawRows(){
     if(d.menunggu)acts+='<button class="rm" data-act="remind" data-jenis="persetujuan" data-id="'+esc(d.id)+'">Kirim pengingat persetujuan</button>';
     if(d.ppbjBelum)acts+='<button class="rm" data-act="remind" data-jenis="ppbj" data-id="'+esc(d.id)+'">Kirim pengingat PPBJ</button>';
     return '<tr><td data-l="No BPB"><b>'+esc(d.doc||d.id)+'</b><small>'+esc(d.kirim)+'</small><small>'+esc(d.barang)+'</small></td>'+
-      '<td data-l="Pembuat">'+esc(d.by)+'<small>'+esc(d.dept)+'</small></td>'+
+      '<td data-l="Pemohon">'+esc(d.by)+'<small>'+esc(d.dept)+'</small>'+(d.pic?'<small>PIC: <b>'+esc(d.pic)+'</b></small>':"")+'</td>'+
       '<td data-l="Status">'+statusBd(d)+'</td><td data-l="PPBJ">'+pp+'</td>'+
       '<td data-l="Pengingat terakhir"><small style="margin:0">'+(last.join("<br>")||"-")+'</small></td>'+
       '<td data-l="Aksi"><div class="act">'+(acts||'<small>-</small>')+'</div></td></tr>';
@@ -145,8 +145,8 @@ async function onAct(b){
   var act=b.getAttribute("data-act"),id=b.getAttribute("data-id"),d=DATA.filter(function(x){return x.id===id;})[0]||{},body;
   if(act==="remind"){
     var j=b.getAttribute("data-jenis");
-    var kpd=j==="persetujuan"?(d.menunggu?d.menunggu.nama:"approver"):"atasan departemen "+d.dept;
-    if(!confirm("Kirim pengingat "+(j==="persetujuan"?"persetujuan":"PPBJ")+" untuk "+(d.doc||id)+" ke "+kpd+"? Salinan informasi juga dikirim ke Iyan dan Manager Gudang."))return;
+    var kpd=j==="persetujuan"?(d.menunggu?d.menunggu.nama:"approver"):"peminta (bila email diisi, jika tidak ke atasan departemen "+d.dept+")";
+    if(!confirm("Kirim pengingat "+(j==="persetujuan"?"persetujuan":"PPBJ")+" untuk "+(d.doc||id)+" ke "+kpd+(j==="persetujuan"?". Salinan informasi juga dikirim ke Iyan dan Manager Gudang.":", CC atasan dan Gudang.")))return;
     body={action:"adminRemind",id:id,jenis:j};
   }else if(act==="ppbj"){
     var inp=document.querySelector('[data-no="'+id+'"]'),no=inp?inp.value.trim():"";

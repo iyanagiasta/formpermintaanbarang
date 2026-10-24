@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<title>Cek Kebutuhan Proyek - Gudang SCTK</title>
+<style>
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--beli:#fde8e8;--belit:#8a1c28}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--beli:#3a1d22;--belit:#f2b8bf}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.top{background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 18px Georgia,serif;letter-spacing:1.5px}.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#e3c98f;font-weight:600}
+.wrap{max-width:1150px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+input.t,select,input[type=text]{padding:9px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+input.t{width:100%;font:600 16px "Segoe UI",Roboto,Arial,sans-serif;padding:12px}
+button{font:600 13px "Segoe UI",Roboto,Arial,sans-serif;padding:9px 13px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer}
+button:disabled{opacity:.5;cursor:default}button.gh{background:transparent;color:var(--navy);border:1px solid var(--line)}button.sv{background:#1b8a3a}button.gold{background:var(--gold)}
+@media (prefers-color-scheme:dark){button.gh{color:var(--ink)}}
+.fr{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.note{color:var(--mut);font-size:12px}.err{color:#c0392b}.msg{text-align:center;padding:22px;color:var(--mut)}
+.blk{border-left:4px solid var(--gold)}
+.blk h3{margin:0 0 6px;font-size:14px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.tabs button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:20px}.tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.sum{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}.sum div{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+.sum b{display:block;font-size:20px}.sum span{color:var(--mut);font-size:12px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line)}
+th{background:var(--navy);color:#fff;text-align:left;padding:8px;font-size:12px;white-space:nowrap}td{border-top:1px solid var(--line);padding:8px;vertical-align:top}
+td small{display:block;color:var(--mut);font-size:11px}.nm{text-align:right;white-space:nowrap}
+tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
+.tag{display:inline-block;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700}.tag.w{background:#fff3cd;color:#7a5b00}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0a2a43;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:#c0392b}
+</style>
+</head>
+<body>
+<div class="top"><h1>CEK KEBUTUHAN PROYEK</h1><div>RAB: PAKAI STOK ATAU BELI</div></div>
+<div class="wrap" id="app"></div><div id="toast"></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbzXp_XiGCv7iwzZSnedOZuIi3U58ByDkk4GhSMnckc4vsvEdzAj5xcSimLDexSqrzcs0A/exec";
+var KODE="",PROY=[],BL=[],HAS=null,TAB=0,BUSY=false,app=document.getElementById("app");
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},5000);}
+function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
+function rp(n){return n==null?"":"Rp "+Math.round(n).toLocaleString("id-ID");}
+async function api(b){b.kode=KODE;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+function loginView(msg){
+  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Kode akses pegawai</b></p><input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode pegawai"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
+  var i=document.getElementById("kd");i.focus();i.onkeydown=function(e){if(e.key==="Enter")masuk();};document.getElementById("go").onclick=masuk;
+}
+async function masuk(){
+  var v=document.getElementById("kd").value.trim();if(!v)return;KODE=v;document.getElementById("go").disabled=true;
+  try{var r=await api({action:"proyek"});if(!r.ok){KODE="";loginView(r.msg||"Kode salah.");return;}PROY=r.data||[];try{localStorage.setItem("sctk_kode",KODE)}catch(e){}start();}
+  catch(e){KODE="";loginView("Gagal terhubung ke server.");}
+}
+function start(){if(!BL.length)BL.push(baru());HAS=null;gambarForm();}
+function baru(){return {ppbj:"",nama:"",rows:[],file:""};}
+/* ---------- input ---------- */
+function gambarForm(){
+  var opt='<option value="">(RAB baru / belum terdaftar)</option>'+PROY.map(function(p){return '<option value="'+esc(p.ppbj)+'">'+esc(p.ppbj)+' - '+esc(p.ket)+'</option>';}).join("");
+  app.innerHTML='<div class="card"><b>Langkah 1. Siapkan proyek</b><div class="note">Satu blok per proyek. Urutan blok = prioritas stok: proyek paling atas mendapat stok lebih dulu. Excel berisi kolom <b>Kode Barang</b>, Nama Barang (opsional), dan <b>Qty</b>. <a href="#" id="contoh">Unduh contoh Excel</a></div></div>'+
+   BL.map(function(b,i){
+     return '<div class="card blk"><h3>Proyek '+(i+1)+'</h3><div class="fr"><select data-p="'+i+'">'+opt+'</select><input type="text" data-n="'+i+'" placeholder="Nama proyek" value="'+esc(b.nama)+'" style="flex:1;min-width:180px"></div>'+
+      '<div class="fr"><input type="file" data-f="'+i+'" accept=".xlsx,.xls,.csv"><span class="note" id="fi'+i+'">'+(b.rows.length?esc(b.file)+': '+b.rows.length+' baris':'Belum ada file')+'</span></div>'+
+      '<div class="fr"><button class="gh" data-up="'+i+'"'+(i?'':' disabled')+'>&uarr; Naik</button><button class="gh" data-dn="'+i+'"'+(i<BL.length-1?'':' disabled')+'>&darr; Turun</button><button class="gh" data-rm="'+i+'"'+(BL.length>1?'':' disabled')+'>Hapus</button></div></div>';
+   }).join("")+
+   '<div class="fr"><button class="gh" id="tmb"'+(BL.length>=8?" disabled":"")+'>+ Tambah proyek</button><button class="gold" id="hit">Hitung kebutuhan</button></div>';
+  BL.forEach(function(b,i){app.querySelector('[data-p="'+i+'"]').value=b.ppbj;});
+  app.querySelectorAll("[data-p]").forEach(function(s){s.onchange=function(){var i=Number(s.getAttribute("data-p"));BL[i].ppbj=s.value;var p=PROY.filter(function(x){return x.ppbj===s.value;})[0];if(p&&!BL[i].nama){BL[i].nama=p.ket||p.ppbj;app.querySelector('[data-n="'+i+'"]').value=BL[i].nama;}};});
+  app.querySelectorAll("[data-n]").forEach(function(s){s.oninput=function(){BL[Number(s.getAttribute("data-n"))].nama=s.value;};});
+  app.querySelectorAll("[data-f]").forEach(function(f){f.onchange=function(){var i=Number(f.getAttribute("data-f"));if(f.files[0])bacaFile(f.files[0],i);};});
+  app.querySelectorAll("[data-up]").forEach(function(b){b.onclick=function(){var i=Number(b.getAttribute("data-up"));var t=BL[i];BL[i]=BL[i-1];BL[i-1]=t;gambarForm();};});
+  app.querySelectorAll("[data-dn]").forEach(function(b){b.onclick=function(){var i=Number(b.getAttribute("data-dn"));var t=BL[i];BL[i]=BL[i+1];BL[i+1]=t;gambarForm();};});
+  app.querySelectorAll("[data-rm]").forEach(function(b){b.onclick=function(){BL.splice(Number(b.getAttribute("data-rm")),1);gambarForm();};});
+  document.getElementById("tmb").onclick=function(){BL.push(baru());gambarForm();};
+  document.getElementById("hit").onclick=hitung;
+  document.getElementById("contoh").onclick=function(e){e.preventDefault();unduhContoh();};
+}
+function bacaFile(file,i){
+  if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
+  var fr=new FileReader();
+  fr.onload=function(ev){
+    try{
+      var wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"}),a=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:"",raw:false});
+      var o=ambil(a);if(o.err){toast(o.err,true);return;}
+      BL[i].rows=o.rows;BL[i].file=file.name;document.getElementById("fi"+i).textContent=file.name+": "+o.rows.length+" baris"+(o.adaJudul?"":" (tanpa judul kolom: A=Kode, B=Nama, C=Qty)");
+    }catch(e){toast("File tidak bisa dibaca. Gunakan .xlsx atau .csv.",true);}
+  };
+  fr.readAsArrayBuffer(file);
+}
+function ambil(a){
+  var hi=-1,m={};
+  for(var i=0;i<Math.min(a.length,10);i++){
+    var t={};a[i].forEach(function(x,j){x=String(x).toLowerCase().trim();
+      if(t.kode==null&&/kode/.test(x))t.kode=j;else if(t.nama==null&&/nama|uraian|deskripsi|barang/.test(x))t.nama=j;else if(t.satuan==null&&/satuan|unit|uom/.test(x))t.satuan=j;else if(t.qty==null&&/qty|jumlah|kebutuhan|volume|kuantitas|butuh/.test(x))t.qty=j;});
+    if(t.kode!=null){hi=i;m=t;break;}
+  }
+  if(hi<0)m={kode:0,nama:1,qty:2};
+  if(m.qty==null)return {err:"Kolom Qty tidak ditemukan. Beri judul kolom 'Qty' atau 'Jumlah'."};
+  var rows=[];
+  for(var r=hi+1;r<a.length;r++){var x=a[r],k=String(x[m.kode]==null?"":x[m.kode]).trim();if(!k)continue;
+    rows.push({kode:k,nama:m.nama!=null?String(x[m.nama]||"").trim():"",satuan:m.satuan!=null?String(x[m.satuan]||"").trim():"",qty:x[m.qty]});}
+  if(!rows.length)return {err:"Tidak ada baris data di file."};
+  return {rows:rows,adaJudul:hi>=0};
+}
+function unduhContoh(){
+  var csv="﻿Kode Barang,Nama Barang,Qty\r\nK1,Pipa PVC 3 inch,10\r\nK2,Oli Mesin,4\r\n";
+  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="contoh-kebutuhan-proyek.csv";document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+}
+/* ---------- hitung & tampil ---------- */
+function payload(){return BL.filter(function(b){return b.rows.length;}).map(function(b,i){return {nama:b.nama||("Proyek "+(i+1)),ppbj:b.ppbj,rows:b.rows};});}
+async function hitung(){
+  if(BUSY)return;var p=payload();if(!p.length){toast("Unggah Excel kebutuhan minimal untuk satu proyek.",true);return;}
+  BUSY=true;var b=document.getElementById("hit");b.disabled=true;b.textContent="Menghitung...";
+  try{var r=await api({action:"kebutuhan",proyek:p});if(!r.ok){toast(r.msg||"Gagal menghitung.",true);}else{HAS=r;HAS.input=p;TAB=0;tampil();}}
+  catch(e){toast("Gagal terhubung ke server.",true);}
+  BUSY=false;b.disabled=false;b.textContent="Hitung kebutuhan";
+}
+function tampil(){
+  var r=HAS,box=document.getElementById("hasil");
+  if(!box){box=document.createElement("div");box.id="hasil";app.appendChild(box);}
+  var tabs=['Gabungan'].concat(r.proyek.map(function(p){return p.nama;}));
+  var cur=TAB===0?{rows:r.gabungan.rows,total:r.gabungan.total}:r.proyek[TAB-1];
+  var t=cur.total;
+  box.innerHTML='<h2 style="font-size:15px;margin:18px 0 0">Hasil perhitungan</h2><div class="note">Stok yang dipakai: '+esc(r.oto.join(" lalu "))+', dikurangi alokasi proyek lain dan permintaan yang sedang berjalan. Harga hanya muncul untuk bagian yang diambil dari stok; barang BELI tidak diberi harga.</div>'+
+   '<div class="tabs">'+tabs.map(function(n,i){return '<button class="'+(i===TAB?"on":"")+'" data-t="'+i+'">'+esc(n)+'</button>';}).join("")+'</div>'+
+   '<div class="sum"><div><b>'+t.barang+'</b><span>Jenis barang</span></div><div><b>'+rp(t.nilaiStok)+'</b><span>Nilai pemakaian stok (bukan total RAB)</span></div><div><b>'+t.adaBeli+'</b><span>Barang yang perlu BELI</span></div>'+(t.tanpaHarga?'<div><b>'+t.tanpaHarga+'</b><span>Barang stok tanpa harga</span></div>':'')+(t.tidakDikenal?'<div><b>'+t.tidakDikenal+'</b><span>Kode tidak dikenal</span></div>':'')+'</div>'+
+   '<div class="fr"><button class="sv" id="xl">Unduh Excel</button>'+(TAB>0&&r.proyek[TAB-1].ppbj?'<button class="gold" id="alk">Simpan sebagai alokasi (admin)</button>':'')+'</div>'+
+   '<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Butuh</th>'+r.oto.map(function(n){return '<th class="nm">Pakai '+esc(n)+'</th>';}).join("")+'<th class="nm">BELI</th><th class="nm">Harga satuan</th><th class="nm">Subtotal (stok)</th><th>Catatan</th></tr></thead><tbody>'+
+   cur.rows.map(function(x){return '<tr class="'+(x.beli>0?"beli":"")+'"><td><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+(TAB===0&&x.perProyek?' · '+x.perProyek.map(function(q,i){return q?esc(r.proyek[i].nama)+' '+fmtN(q):"";}).filter(Boolean).join(", "):'')+'</small></td><td class="nm">'+fmtN(x.butuh)+'</td>'+
+     x.ambil.map(function(a){return '<td class="nm">'+(a?fmtN(a):'-')+'</td>';}).join("")+'<td class="nm b">'+(x.beli>0?fmtN(x.beli):'-')+'</td><td class="nm">'+rp(x.harga)+'</td><td class="nm">'+rp(x.subtotal)+'</td><td><small>'+esc(x.cat)+'</small></td></tr>';}).join("")+'</tbody></table></div>';
+  box.querySelectorAll("[data-t]").forEach(function(b){b.onclick=function(){TAB=Number(b.getAttribute("data-t"));tampil();};});
+  document.getElementById("xl").onclick=unduhExcel;
+  var al=document.getElementById("alk");if(al)al.onclick=simpanAlokasi;
+  if(!box.dataset.s){box.dataset.s=1;box.scrollIntoView({behavior:"smooth"});}
+}
+function simpanAlokasi(){
+  var idx=TAB-1,p=HAS.proyek[idx],pin="";try{pin=sessionStorage.getItem("sctk_admin")||"";}catch(e){}
+  if(!pin){pin=prompt("Kode admin:");if(!pin)return;pin=pin.trim();}
+  if(!confirm("Ikat stok untuk proyek "+p.ppbj+" sesuai hasil ini? Alokasi lama proyek ini diganti. Barang BELI tidak diikat."))return;
+  var b=document.getElementById("alk");b.disabled=true;
+  fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"adminAlokasiSimpan",pin:pin,index:idx,proyek:HAS.input})}).then(function(r){return r.json();}).then(function(r){
+    toast(r.msg||(r.ok?"Tersimpan.":"Gagal."),!r.ok);if(r.ok){try{sessionStorage.setItem("sctk_admin",pin)}catch(e){}}else{try{sessionStorage.removeItem("sctk_admin")}catch(e){}}b.disabled=false;
+  }).catch(function(){toast("Gagal terhubung ke server.",true);b.disabled=false;});
+}
+function unduhExcel(){
+  if(typeof XLSX==="undefined"){toast("Pembuat Excel belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
+  var r=HAS,wb=XLSX.utils.book_new(),oto=r.oto;
+  function head(){return ["Kode","Nama Barang","Satuan","Butuh"].concat(oto.map(function(n){return "Pakai "+n;})).concat(["BELI","Harga Satuan (stok)","Subtotal (stok)","Catatan"]);}
+  function baris(x){return [x.kode,x.nama,x.satuan||"",x.butuh].concat(x.ambil).concat([x.beli,x.harga==null?"":x.harga,x.subtotal==null?"":x.subtotal,x.cat||""]);}
+  var ring=[["Cek Kebutuhan Proyek"],["Tanggal",new Date().toLocaleDateString("id-ID")],["Stok dipakai urut",oto.join(" > ")],[],["Proyek","Jenis barang","Nilai pemakaian stok (BUKAN total RAB)","Barang perlu BELI","Barang stok tanpa harga"]];
+  r.proyek.forEach(function(p){ring.push([p.nama+(p.ppbj?" ("+p.ppbj+")":""),p.total.barang,p.total.nilaiStok,p.total.adaBeli,p.total.tanpaHarga]);});
+  ring.push(["GABUNGAN",r.gabungan.total.barang,r.gabungan.total.nilaiStok,r.gabungan.total.adaBeli,r.gabungan.total.tanpaHarga]);
+  ring.push([],["Catatan: barang BELI tidak diberi harga; harga dan subtotal hanya untuk bagian yang diambil dari stok."]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ring),"Ringkasan");
+  var gh=head();gh.splice(4+oto.length+0,0);
+  var gab=[["Kode","Nama Barang","Satuan","Butuh"].concat(oto.map(function(n){return "Pakai "+n;})).concat(["BELI","Harga Satuan (stok)","Subtotal (stok)","Catatan"]).concat(r.proyek.map(function(p){return "Butuh: "+p.nama;}))];
+  r.gabungan.rows.forEach(function(x){gab.push(baris(x).concat(x.perProyek));});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(gab),"Gabungan");
+  r.proyek.forEach(function(p,i){var a=[head()];p.rows.forEach(function(x){a.push(baris(x));});XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),String(i+1)+" "+p.nama.replace(/[\[\]:*?\/\\]/g," ").slice(0,26));});
+  XLSX.writeFile(wb,"kebutuhan-proyek-"+new Date().toISOString().slice(0,10)+".xlsx");
+}
+(function(){
+  if(API_URL.indexOf("PASTE_")===0){app.innerHTML='<div class="card msg err">API_URL belum diisi.</div>';return;}
+  var k="";try{k=localStorage.getItem("sctk_kode")||"";}catch(e){}
+  if(k){KODE=k;api({action:"proyek"}).then(function(r){if(r.ok){PROY=r.data||[];start();}else{KODE="";loginView("");}}).catch(function(){KODE="";loginView("");});}
+  else loginView("");
+})();
+</script>
+</body>
+</html>

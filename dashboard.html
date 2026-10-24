@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Dashboard Gudang - SCTK</title>
+<style>
+:root{--navy:#0a2a43;--navy2:#0f6f93;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#d5dee4;--mut:#5b7a8c;--ic:#0a3a5c;--icbg:#e8f1f6}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--ic:#9fd3ea;--icbg:#22333d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.top{background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;border-bottom:4px solid var(--gold)}
+.top .in{max-width:1100px;margin:0 auto;padding:22px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top h1{margin:0;font:700 20px Georgia,serif;letter-spacing:1.5px}
+.top small{display:block;margin-top:5px;font-size:11px;letter-spacing:2px;color:#e3c98f;font-weight:600}
+.who{display:flex;gap:8px;align-items:center;font-size:12px;color:#cfe3ee}
+button{font:600 13px "Segoe UI",Roboto,Arial,sans-serif;padding:9px 14px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer}
+button.gh{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)}
+button.gold{background:var(--gold)}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 16px 40px}
+h2{font:700 12px "Segoe UI",Roboto,Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin:22px 0 10px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.stat{display:block;text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-left:4px solid var(--navy2);border-radius:12px;padding:14px}
+.stat b{display:block;font-size:30px;line-height:1.1}.stat span{color:var(--mut);font-size:12px}
+.stat.w{border-left-color:#d08a00}.stat.b{border-left-color:#c0392b}.stat.ok{border-left-color:#1b8a3a}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.tile{display:flex;gap:14px;align-items:flex-start;text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;transition:transform .12s,box-shadow .12s,border-color .12s}
+.tile:hover,.tile:focus-visible{transform:translateY(-2px);box-shadow:0 8px 20px rgba(10,42,67,.12);border-color:var(--gold);outline:none}
+.ico{flex:none;width:46px;height:46px;border-radius:12px;background:var(--icbg);color:var(--ic);display:grid;place-items:center}
+.ico svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tile b{display:block;font-size:15px}.tile small{display:block;margin-top:3px;color:var(--mut);font-size:12px;line-height:1.35}
+.badge{display:inline-block;margin-top:6px;font-size:10px;font-weight:700;letter-spacing:1px;color:#7a5b00;background:#fff3cd;border-radius:20px;padding:2px 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:400px;margin:36px auto}
+input.t{width:100%;padding:12px;font:600 16px "Segoe UI",Roboto,Arial,sans-serif;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
+.err{color:#c0392b;margin:10px 0 0}.msg{color:var(--mut);text-align:center;padding:24px}
+@media (prefers-reduced-motion:reduce){.tile{transition:none}}
+</style>
+</head>
+<body>
+<div class="top"><div class="in"><div><h1>DASHBOARD GUDANG</h1><small>PT SARANA CATUR TIRTA KELOLA</small></div><div class="who" id="who"></div></div></div>
+<div class="wrap" id="app"></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbzXp_XiGCv7iwzZSnedOZuIi3U58ByDkk4GhSMnckc4vsvEdzAj5xcSimLDexSqrzcs0A/exec";
+var KODE="",PIN="",app=document.getElementById("app"),who=document.getElementById("who");
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+var ICON={
+ form:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
+ cari:'<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/>',
+ kebutuhan:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 12l2 2 4-4"/>',
+ pantau:'<path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/>',
+ serah:'<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+ stok:'<path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="M3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5"/>',
+ proyek:'<path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-5h6v5M9 11h.01M15 11h.01"/>',
+ mutasi:'<path d="M7 7h12l-3-3M17 17H5l3 3"/>',
+ opname:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17"/>',
+ link:'<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'
+};
+function ikon(k){return '<span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true">'+(ICON[k]||ICON.link)+'</svg></span>';}
+async function api(b){
+  b.kode=KODE;if(PIN)b.pin=PIN;
+  var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});
+  return await r.json();
+}
+function loginView(msg){
+  who.innerHTML="";
+  app.innerHTML='<div class="card"><p style="margin-top:0"><b>Masuk dengan kode pegawai</b></p><input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode pegawai"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button><p class="err" id="lerr">'+esc(msg||"")+'</p></div>';
+  var i=document.getElementById("kd");i.focus();i.onkeydown=function(e){if(e.key==="Enter")masuk();};document.getElementById("go").onclick=masuk;
+}
+async function masuk(){
+  var v=document.getElementById("kd").value.trim();if(!v)return;
+  KODE=v;document.getElementById("go").disabled=true;
+  await muat(true);
+}
+function keluar(){KODE="";PIN="";try{localStorage.removeItem("sctk_kode");sessionStorage.removeItem("sctk_admin")}catch(e){}loginView("");}
+async function muat(first){
+  try{
+    var r=await api({action:"menu"});
+    if(!r.ok&&PIN&&/admin/i.test(r.msg||"")){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}r=await api({action:"menu"});}
+    if(!r.ok){KODE="";if(!first)try{localStorage.removeItem("sctk_kode")}catch(e){}loginView(r.msg||"Kode salah.");return;}
+    try{localStorage.setItem("sctk_kode",KODE)}catch(e){}
+    tampil(r);
+  }catch(e){if(first||!app.innerHTML)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");}
+}
+function tampil(r){
+  who.innerHTML=(r.admin?'<span>Mode admin</span>':'<button class="gh" id="adm">Masuk admin</button>')+'<button class="gh" id="lo">Keluar</button>';
+  document.getElementById("lo").onclick=keluar;
+  var ab=document.getElementById("adm");if(ab)ab.onclick=function(){var p=prompt("Kode admin:");if(p){PIN=p.trim();muat(false).then(function(){if(!/Mode admin/.test(who.innerHTML)){PIN="";}else{try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}}});}};
+  var h="";
+  if(r.admin&&r.ringkas){
+    var s=r.ringkas;
+    h+='<h2>Ringkasan</h2><div class="stats">'+
+     stat(s.menunggu,"Menunggu persetujuan",s.menunggu>0?"w":"ok","admin.html#pantau")+
+     stat(s.siapSerah,"Siap diserahkan",s.siapSerah>0?"w":"ok","admin.html#serah")+
+     stat(s.ppbjBelum,"PPBJ belum diisi",s.ppbjBelum>0?"b":"ok","admin.html#pantau")+
+     stat(s.opname||0,"Selisih opname menunggu",(s.opname||0)>0?"w":"ok","admin.html#opname")+
+     stat(s.proyekAktif,"Proyek mengikat stok","","admin.html#proyek")+
+     stat(s.stokHabis,"Barang stok bebas habis",s.stokHabis>0?"w":"ok","admin.html#stok")+'</div>';
+  }
+  var um=r.data.filter(function(m){return m.untuk!=="Admin";}),ad=r.data.filter(function(m){return m.untuk==="Admin";});
+  h+='<h2>Menu</h2>'+grid(um);
+  if(ad.length)h+='<h2>Admin Gudang</h2>'+grid(ad);
+  if(!um.length&&!ad.length)h+='<div class="msg">Belum ada menu. Isi sheet Menu di Google Spreadsheet.</div>';
+  app.innerHTML=h;
+}
+function stat(n,l,c,href){return '<a class="stat '+c+'" href="'+href+'"><b>'+esc(n)+'</b><span>'+esc(l)+'</span></a>';}
+function grid(a){
+  return '<div class="grid">'+a.map(function(m){
+    var ext=/^https?:/i.test(m.link);
+    return '<a class="tile" href="'+esc(m.link)+'"'+(ext?' target="_blank" rel="noopener"':'')+'>'+ikon(m.ikon)+'<div><b>'+esc(m.judul)+'</b><small>'+esc(m.ket)+'</small>'+(m.untuk==="Admin"?'<span class="badge">ADMIN</span>':'')+'</div></a>';
+  }).join("")+'</div>';
+}
+(function(){
+  if(API_URL.indexOf("PASTE_")===0){app.innerHTML='<div class="msg err">API_URL belum diisi.</div>';return;}
+  var k="",p="";try{k=localStorage.getItem("sctk_kode")||"";p=sessionStorage.getItem("sctk_admin")||"";}catch(e){}
+  if(k){KODE=k;PIN=p;muat(true);}else loginView("");
+})();
+</script>
+</body>
+</html>

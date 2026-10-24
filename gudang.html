@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Cari Barang - Gudang SCTK</title>
+<style>
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.top{background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 17px Georgia,serif;letter-spacing:1.5px}
+.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#e3c98f;font-weight:600}
+.wrap{max-width:900px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+input.t{width:100%;padding:12px;font:600 16px "Segoe UI",Roboto,Arial,sans-serif;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
+button{font:600 13px "Segoe UI",Roboto,Arial,sans-serif;padding:10px 14px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer}
+button.gh{background:transparent;color:var(--navy);border:1px solid var(--line)}
+@media (prefers-color-scheme:dark){button.gh{color:var(--ink)}}
+.msg{text-align:center;padding:22px;color:var(--mut)}.err{color:#c0392b}
+.it b.n{font-size:15px}.it small{color:var(--mut)}
+.q{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 6px}
+.q div{flex:1;min-width:90px;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
+.q span{display:block;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}.q b{font-size:20px}
+.bd{display:inline-block;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700}
+.bd.a{background:#d9f0df;color:#14612b}.bd.s{background:#fff3cd;color:#7a5b00}.bd.b{background:#f8d7da;color:#8a1c28}
+.al{margin:6px 0 0;padding:8px 10px;background:#fff8e6;border-left:3px solid var(--gold);border-radius:6px;font-size:13px;color:#4a3a10}
+@media (prefers-color-scheme:dark){.al{background:#2a2412;color:#e8d9a8}}
+.bar{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px;color:var(--mut);font-size:12px}
+</style>
+</head>
+<body>
+<div class="top"><h1>CARI BARANG</h1><div>GUDANG - PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="wrap" id="app"></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbzXp_XiGCv7iwzZSnedOZuIi3U58ByDkk4GhSMnckc4vsvEdzAj5xcSimLDexSqrzcs0A/exec";
+var KODE="",TAB="cari",SUMB=["Bekas","Moka","Accurate"],OTO=["Moka","Accurate"],app=document.getElementById("app"),seq=0,tm;
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function fmtQ(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
+async function api(b){
+  b.kode=KODE;
+  var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});
+  return await r.json();
+}
+function loginView(msg){
+  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Kode akses pegawai</b></p>'+
+   '<input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode pegawai"><div style="height:10px"></div>'+
+   '<button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
+  var i=document.getElementById("kd");i.focus();
+  i.onkeydown=function(e){if(e.key==="Enter")masuk();};
+  document.getElementById("go").onclick=masuk;
+}
+async function masuk(){
+  var v=document.getElementById("kd").value.trim();if(!v)return;
+  KODE=v;document.getElementById("go").disabled=true;
+  try{
+    var r=await api({action:"cari",q:"aa"});
+    if(!r.ok){KODE="";loginView(r.msg||"Kode salah.");return;}
+    SUMB=r.sumber||SUMB;try{localStorage.setItem("sctk_kode",KODE)}catch(e){}
+    home();
+  }catch(e){KODE="";loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");}
+}
+function keluar(){KODE="";try{localStorage.removeItem("sctk_kode")}catch(e){}loginView("");}
+function home(){
+  app.innerHTML='<div class="card"><input class="t" id="q" placeholder="Ketik nama atau kode barang (min. 2 huruf)..." autocomplete="off"></div>'+
+   '<div class="bar"><span id="cnt">Cari barang untuk melihat stok per sumber dan statusnya.</span><button class="gh" id="lo">Keluar</button></div><div id="res"></div>';
+  var q=document.getElementById("q");q.focus();
+  q.oninput=function(){clearTimeout(tm);tm=setTimeout(cari,350);};
+  document.getElementById("lo").onclick=keluar;
+}
+async function cari(){
+  var q=document.getElementById("q").value.trim(),res=document.getElementById("res"),cnt=document.getElementById("cnt"),my=++seq;
+  if(q.length<2){res.innerHTML="";cnt.textContent="Cari barang untuk melihat stok per sumber dan statusnya.";return;}
+  cnt.textContent="Mencari...";
+  try{
+    var r=await api({action:"cari",q:q});
+    if(my!==seq)return;
+    if(!r.ok){if(/kode/i.test(r.msg||"")&&!/Ketik/.test(r.msg||"")){keluar();loginView(r.msg);return;}cnt.textContent=r.msg||"Gagal.";res.innerHTML="";return;}
+    SUMB=r.sumber||SUMB;if(r.otomatis&&r.otomatis.length)OTO=r.otomatis;
+    cnt.textContent=r.total>r.data.length?"Menampilkan "+r.data.length+" dari "+r.total+" barang. Persempit pencarian.":r.total+" barang ditemukan.";
+    res.innerHTML=r.data.length?r.data.map(kartu).join(""):'<div class="card msg">Barang tidak ditemukan.</div>';
+  }catch(e){if(my===seq)cnt.textContent="Gagal terhubung ke server.";}
+}
+function kartu(d){
+  var tc=d.tercadang||0,st=d.total<=0?'<span class="bd b">Stok kosong</span>':d.bebas<=0?'<span class="bd b">'+(d.alokTotal>0?'Semua teralokasi proyek':tc>0?'Sedang diminta (diproses)':'Tidak ada stok bebas')+'</span>':(d.alokTotal>0||tc>0)?'<span class="bd s">Sebagian terpakai</span>':'<span class="bd a">Bebas dipakai</span>';
+  var al=(d.alok||[]).length?'<div class="al"><b>Dialokasikan ke proyek:</b><br>'+d.alok.map(function(a){return esc(a.ppbj)+(a.ket?" - "+esc(a.ket):"")+": <b>"+fmtQ(a.qty)+"</b> "+esc(d.satuan||"")+(a.status==="Ditunda Sebentar"?" (ditunda sebentar)":"");}).join("<br>")+'</div>':"";
+  var urut=OTO.concat(SUMB.filter(function(x){return OTO.indexOf(x)<0;}));
+  var pr=tc>0?'<div class="al">Sedang diminta dan belum diserahkan: <b>'+fmtQ(tc)+'</b> '+esc(d.satuan||"")+'</div>':"";
+  return '<div class="card it"><b class="n">'+esc(d.nama)+'</b> '+st+'<br><small>'+esc(d.kode)+' · '+esc(d.satuan||"")+'</small>'+
+   '<div class="q">'+urut.map(function(s){return '<div><span>'+esc(s)+(OTO.indexOf(s)<0?' (manual)':'')+'</span><b>'+fmtQ(d.q[SUMB.indexOf(s)])+'</b></div>';}).join("")+'<div><span>Total</span><b>'+fmtQ(d.total)+'</b></div><div><span>Bebas*</span><b>'+fmtQ(d.bebas)+'</b></div></div>'+al+pr+'<small>*Bebas = '+esc(OTO.join(' + '))+' dikurangi alokasi proyek dan permintaan yang sedang berjalan.</small></div>';
+}
+(function(){
+  if(API_URL.indexOf("PASTE_")===0){app.innerHTML='<div class="card msg err">API_URL belum diisi.</div>';return;}
+  var k="";try{k=localStorage.getItem("sctk_kode")||""}catch(e){}
+  if(k){KODE=k;api({action:"cari",q:"aa"}).then(function(r){if(r.ok){SUMB=r.sumber||SUMB;home();}else{KODE="";loginView("");}}).catch(function(){KODE="";loginView("");});}
+  else loginView("");
+})();
+</script>
+</body>
+</html>

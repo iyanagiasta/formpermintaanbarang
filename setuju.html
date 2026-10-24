@@ -17,6 +17,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Robot
 .row{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}
 .row:last-child{border-bottom:0}
 .row b{flex:0 0 120px;color:#5b7a8c}
+.row span{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.note{background:#fff7e0;border-left:4px solid #b8975a;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:14px;color:#3b2f10;white-space:pre-wrap;overflow-wrap:anywhere}
+@media (prefers-color-scheme:dark){.note{background:#3a3220;color:#f2e6c4}}
+textarea{width:100%;min-height:80px;max-height:300px;resize:vertical;font:15px "Segoe UI",Roboto,Arial,sans-serif;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);overflow-wrap:anywhere}
+.cnt{font-size:12px;color:#5b7a8c;text-align:right;margin:2px 0 12px}
 table{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
 th{background:var(--navy);color:#fff;padding:6px;text-align:left;font-weight:600}
 td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
@@ -44,26 +49,31 @@ async function api(b){
 }
 function render(r){
   var d=r.data,aksi=act==="reject"?"TOLAK":"SETUJUI";
+  var cat=(d.cat||[]).map(function(x){return "\n\n"+esc(x.peran+(x.nama?" ("+x.nama+(x.waktu?", "+x.waktu:"")+")":"")+": "+x.teks);}).join("");
   var rows=d.items.map(function(i,n){return "<tr><td>"+(n+1)+"</td><td>"+(i.kode==="BARU"?"<b style=\"color:#b8760a\">BARU</b> (belum ada kode)":esc(i.kode))+"</td><td>"+esc(i.nama)+"</td><td>"+esc(i.satuan)+"</td><td>"+esc(i.jumlah)+"</td></tr>";}).join("");
   app.innerHTML=
    '<div class="card"><span class="tag">'+esc(r.tahap)+'</span>'+
    '<p style="margin:10px 0 4px">Halo <b>'+esc(r.approver)+'</b>, mohon periksa permintaan berikut.</p>'+
    '<div class="row"><b>No</b><span>'+esc(d.id)+'</span></div>'+
-   '<div class="row"><b>Dibuat oleh</b><span>'+esc(d.by)+'</span></div>'+
+   '<div class="row"><b>Pemohon</b><span><strong>'+esc(d.by)+'</strong>'+(d.email?' ('+esc(d.email)+')':"")+'</span></div>'+
+   (d.pic&&d.pic.nama?'<div class="row"><b>PIC</b><span>'+esc(d.pic.nama)+'</span></div>':"")+
    '<div class="row"><b>Departemen</b><span>'+esc(d.dept)+'</span></div>'+
    '<div class="row"><b>Nomor Dokumen</b><span>'+esc(d.doc)+'</span></div>'+
    '<div class="row"><b>Nomor PPBJ</b><span>'+esc(d.ppbj)+'</span></div>'+
-   '<div class="row"><b>Alasan</b><span>'+esc(d.alasan)+'</span></div></div>'+
+   '<div class="row"><b>Alasan</b><span>'+esc(d.alasan)+'</span></div>'+
+   (cat?'<div class="note"><b>Catatan</b>'+cat+'</div>':"")+'</div>'+
    '<div class="card" style="overflow-x:auto"><table><tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Sat</th><th>Jml</th></tr>'+rows+'</table></div>'+
+   '<div class="card"><label for="cat"><b>Catatan Anda</b> (opsional)</label><textarea id="cat" maxlength="1000" placeholder="'+(act==="reject"?"Alasan penolakan atau informasi untuk pihak berikutnya":"Informasi tambahan untuk pihak berikutnya")+'"></textarea><div class="cnt" id="cnt">0 / 1000</div>'+
    '<div class="btns"><button class="'+(act==="reject"?"no":"ok")+'" id="go">Ya, '+aksi+'</button>'+
-   '<button class="'+(act==="reject"?"ok":"no")+'" id="alt">'+(act==="reject"?"Setujui saja":"Tolak saja")+'</button></div>';
+   '<button class="'+(act==="reject"?"ok":"no")+'" id="alt">'+(act==="reject"?"Setujui saja":"Tolak saja")+'</button></div></div>';
+  var ta=document.getElementById("cat");ta.oninput=function(){document.getElementById("cnt").textContent=ta.value.length+" / 1000";};
   document.getElementById("go").onclick=function(){send(act);};
   document.getElementById("alt").onclick=function(){send(act==="reject"?"approve":"reject");};
 }
 async function send(a){
   document.querySelectorAll("button").forEach(function(b){b.disabled=true;});
   try{
-    var r=await api({action:"decide",id:q.get("id"),t:q.get("t"),act:a});
+    var cEl=document.getElementById("cat"),r=await api({action:"decide",id:q.get("id"),t:q.get("t"),act:a,cat:cEl?cEl.value:""});
     show(r.msg||"Selesai.",r.ok?"good":"err");
   }catch(e){show("Gagal terhubung ke server. Coba lagi.","err");document.querySelectorAll("button").forEach(function(b){b.disabled=false;});}
 }

@@ -47,6 +47,12 @@ td.c{text-align:center}td.c input{text-align:center}
 .reason{margin-top:2.2mm}
 .reason label{display:block;font-size:7pt;font-weight:700;color:var(--navy);margin-bottom:.4mm}
 .reason textarea{display:block;width:100%;border:.3mm solid #9fb8c6;border-radius:1mm;font:inherit;height:8mm;min-height:8mm;overflow:hidden;overflow-wrap:anywhere;word-break:break-word;white-space:pre-wrap;line-height:1.3;resize:none;padding:1mm 1.8mm;background:var(--pale);color:#0d1f2d;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.stinfo{font-size:6.6pt;line-height:1.25;padding:.5mm 1.2mm;color:#1f3a4d}
+.stinfo .z{opacity:.4}.stinfo .stw{color:#b8760a;font-weight:600}.stinfo .stbad{display:block;color:#b3261e;font-weight:700}.stinfo .stok{display:block;color:#1b8a3a;font-weight:600}
+td.stk{background:#f7fbfd!important}
+#pegbar{background:var(--bar);border-bottom:1px solid var(--line);padding:8px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+#pegbar input{font:inherit;font-size:13px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--bar-ink);width:150px}
+#pegbar .ok{color:#1b8a3a;font-weight:600}#pegbar .bad{color:#b3261e;font-weight:600}
 .cnt{font-size:6.5pt;color:#5b6b75;text-align:right;margin-top:.3mm}
 .sign{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-top:auto;padding-top:2.5mm}
 .box{border:.3mm solid var(--navy);border-radius:1.2mm;overflow:hidden;text-align:center}
@@ -94,6 +100,11 @@ html,body{background:#fff}
   <button class="btn" onclick="window.print()">Cetak</button>
 </div>
 
+<div id="pegbar" class="nop">
+  <span id="pegtxt">Pegawai: masukkan kode untuk melihat stok barang dan daftar proyek.</span>
+  <span id="pegform"><input id="pegkode" type="password" autocomplete="off" placeholder="Kode pegawai"> <button class="btn" id="pegok" type="button">Buka</button></span>
+  <span id="pegmsg"></span>
+</div>
 <div class="wrap">
 <div class="sheet" id="sheet">
   <div class="head">
@@ -112,11 +123,11 @@ html,body{background:#fff}
     <div class="f nop"><label>Email Pemohon (opsional, untuk notifikasi)</label><input id="email" type="email" autocomplete="off"></div>
   </div>
   <table>
-    <colgroup><col style="width:9mm"><col style="width:34mm"><col><col style="width:24mm"><col style="width:20mm"><col class="nop" style="width:8mm"></colgroup>
-    <thead><tr><th>No</th><th>Kode Barang</th><th>Nama Barang</th><th>Satuan</th><th>Jumlah</th><th class="nop"></th></tr></thead>
+    <colgroup><col style="width:9mm"><col style="width:30mm"><col><col style="width:20mm"><col style="width:17mm"><col class="nop" style="width:50mm"><col class="nop" style="width:8mm"></colgroup>
+    <thead><tr><th>No</th><th>Kode Barang</th><th>Nama Barang</th><th>Satuan</th><th>Jumlah</th><th class="nop">Stok / sumber</th><th class="nop"></th></tr></thead>
     <tbody id="rows"></tbody>
   </table>
-  <div class="reason"><label>Alasan Permintaan</label><textarea id="alasan" maxlength="1000"></textarea><div class="cnt nop" id="cnt_alasan"></div></div>
+  <div class="reason"><label>Alasan Permintaan <span class="nop" id="proyhint" style="font-weight:400;color:#5b6b75;display:none">(pilih proyek dari daftar, atau ketik manual)</span></label><textarea id="alasan" maxlength="1000"></textarea><div class="cnt nop" id="cnt_alasan"></div></div>
   <div class="reason" id="catbox"><label id="catlabel">Catatan untuk PIC, Atasan dan Gudang (opsional)</label><textarea id="cat" maxlength="1000"></textarea><div class="cnt nop" id="cnt_cat"></div></div>
   <div class="sign">
     <div class="box"><div class="role">User Peminta (PIC)</div><div class="ttd"><span class="st"></span></div><div class="nm"><span>Nama</span><input id="peminta" autocomplete="off" readonly tabindex="-1"></div></div>
@@ -156,11 +167,16 @@ function addRow(){
   '<td><input class="nama" autocomplete="off"></td>'+
   '<td class="c"><input class="sat" readonly tabindex="-1"></td>'+
   '<td class="c"><input class="jml" inputmode="decimal"></td>'+
+  '<td class="nop stk"><div class="stinfo"></div></td>'+
   '<td class="nop"><button class="del" title="Hapus baris" onclick="delRow(this)">×</button></td>';
   tb.appendChild(tr);
   tr.querySelector(".nama").addEventListener("input",function(){lookup(tr);});
   tr.querySelector(".nama").addEventListener("change",function(){lookup(tr);});
-  combo(tr.querySelector(".nama"),itemOpts,function(){lookup(tr);});
+  combo(tr.querySelector(".nama"),itemOpts,function(){lookup(tr);renderStok(tr);});
+  tr.querySelector(".nama").addEventListener("input",function(){renderStok(tr);});
+  tr.querySelector(".nama").addEventListener("change",function(){renderStok(tr);});
+  tr.querySelector(".jml").addEventListener("input",function(){renderStok(tr);});
+  renderStok(tr);
   number();
 }
 function delRow(b){b.closest("tr").remove();number();}
@@ -298,6 +314,78 @@ function itemOpts(q){
   return out.slice(0,200);
 }
 
+/* ===== Stok & proyek (Fase 1): tampil bila kode pegawai benar ===== */
+var STOK={},URUTAN=["Bekas","Moka","Accurate"],OTO=["Moka","Accurate"],SUMB=["Bekas","Moka","Accurate"],PROYEK=[],KODEPEG="";
+function fmtQ(n){return String(Math.round(n*100)/100).replace(".",",");}
+function stokDari(kode){return STOK[String(kode||"").trim().toUpperCase()]||[0,0,0,0];}
+/** Bagi permintaan sesuai urutan sumber (default Bekas, Moka, Accurate); dibatasi stok bebas. */
+function splitStok(kode,qty){
+  var s=stokDari(kode),tot=s[0]+s[1]+s[2],bebas=s.length>3?s[3]:tot,cap=Math.min(qty,bebas),take=[];
+  OTO.forEach(function(nm){var av=s[SUMB.indexOf(nm)]||0,t=Math.min(av,cap);if(t>0){take.push({s:nm,q:t});cap-=t;}});
+  return {take:take,kurang:Math.max(0,qty-Math.min(qty,bebas)),tot:tot,bebas:bebas,s:s};
+}
+function renderStok(tr){
+  var box=tr.querySelector(".stinfo");if(!box)return;
+  if(!KODEPEG){box.innerHTML="";return;}
+  var nama=tr.querySelector(".nama").value.trim();if(!nama){box.innerHTML="";return;}
+  var kode=tr.querySelector(".kode").value.trim();
+  if(!kode){box.innerHTML='<span class="stw">Barang baru: belum ada di database stok</span>';return;}
+  var r=splitStok(kode,0),q=Number(String(tr.querySelector(".jml").value).replace(",","."))||0;
+  var tampil=OTO.concat(SUMB.filter(function(nm){return OTO.indexOf(nm)<0;})),line=tampil.map(function(nm){var v=r.s[SUMB.indexOf(nm)]||0;return '<span class="'+(v>0?"":"z")+'">'+nm+(OTO.indexOf(nm)<0?" (manual)":"")+" "+fmtQ(v)+"</span>";}).join(" · ");
+  var extra="";
+  if(q>0){
+    var x=splitStok(kode,q);
+    if(x.kurang>0){var bk=SUMB.indexOf("Bekas")>=0&&OTO.indexOf("Bekas")<0?(x.s[SUMB.indexOf("Bekas")]||0):0;extra='<span class="stbad">Stok kurang: bebas '+fmtQ(x.bebas)+', diminta '+fmtQ(q)+(bk>0?" (Bekas "+fmtQ(bk)+" dipilih manual oleh gudang)":"")+'</span>';}
+    else extra='<span class="stok">Ambil: '+x.take.map(function(t){return t.s+" "+fmtQ(t.q);}).join(" + ")+'</span>';
+  }else if(r.bebas<OTO.reduce(function(a,nm){return a+(r.s[SUMB.indexOf(nm)]||0);},0)){extra='<span class="stw">Bebas '+fmtQ(r.bebas)+' (sisanya untuk proyek lain / permintaan berjalan)</span>';}
+  box.innerHTML=line+extra;
+}
+function renderAllStok(){document.querySelectorAll("#rows tr").forEach(renderStok);}
+function pegUI(ok,msg){
+  document.getElementById("pegtxt").innerHTML=ok?'<span class="ok">Stok dan proyek aktif.</span> <a href="#" id="peglo">Keluar</a>':"Pegawai: masukkan kode untuk melihat stok barang dan daftar proyek.";
+  document.getElementById("pegform").style.display=ok?"none":"";
+  var m=document.getElementById("pegmsg");m.className=ok?"ok":"bad";m.textContent=msg||"";
+  document.getElementById("proyhint").style.display=(ok&&PROYEK.length)?"":"none";
+  var lo=document.getElementById("peglo");if(lo)lo.onclick=function(e){e.preventDefault();pegKeluar();};
+}
+function pegKeluar(){KODEPEG="";STOK={};PROYEK=[];try{localStorage.removeItem("sctk_kode");}catch(e){}pegUI(false,"");renderAllStok();}
+var _ppbjStok="";
+async function muatStokProyek(){
+  // stok bebas dihitung ulang untuk Nomor PPBJ yang dipilih: proyek boleh memakai alokasinya sendiri
+  if(!KODEPEG)return;
+  var pp=document.getElementById("ppbj").value.trim();
+  if(pp===_ppbjStok)return;_ppbjStok=pp;
+  try{var r=await api({action:"stok",kode:KODEPEG,ppbj:pp});if(r&&r.ok){STOK=r.data||{};renderAllStok();}}catch(e){}
+}
+async function pegMasuk(kode,silent){
+  try{
+    var r=await api({action:"stok",kode:kode,ppbj:document.getElementById("ppbj").value.trim()});_ppbjStok=document.getElementById("ppbj").value.trim();
+    if(!r||!r.ok){if(!silent)pegUI(false,(r&&r.msg)||"Kode tidak diterima.");else try{localStorage.removeItem("sctk_kode");}catch(e){}return false;}
+    STOK=r.data||{};if(r.urutan&&r.urutan.length)URUTAN=r.urutan;if(r.otomatis&&r.otomatis.length)OTO=r.otomatis;KODEPEG=kode;
+    try{localStorage.setItem("sctk_kode",kode);}catch(e){}
+    var p=null;try{p=await api({action:"proyek",kode:kode});}catch(e){}
+    PROYEK=(p&&p.ok&&p.data)?p.data:[];
+    pegUI(true,PROYEK.length?"":"");renderAllStok();return true;
+  }catch(e){if(!silent)pegUI(false,"Gagal terhubung ke server.");return false;}
+}
+function loadGudang(){
+  if(new URLSearchParams(location.search).get("m")==="cetak")return;
+  var k="";try{k=localStorage.getItem("sctk_kode")||"";}catch(e){}
+  if(k)pegMasuk(k,true);
+  document.getElementById("pegok").onclick=function(){var v=document.getElementById("pegkode").value.trim();if(v)pegMasuk(v,false);};
+  document.getElementById("pegkode").onkeydown=function(e){if(e.key==="Enter")document.getElementById("pegok").click();};
+}
+function proyekOpts(q){
+  if(!PROYEK.length)return [];
+  var t=String(q||"").toLowerCase().split(/\s+/).filter(Boolean),out=[];
+  PROYEK.forEach(function(p){
+    var hay=(p.ppbj+" "+p.ket+" "+p.dept).toLowerCase();
+    for(var i=0;i<t.length;i++){if(hay.indexOf(t[i])<0)return;}
+    out.push({label:p.ppbj+" — "+p.ket,sub:(p.dept?p.dept+" · ":"")+p.status,value:"Proyek "+p.ket+" (PPBJ "+p.ppbj+")",p:p});
+  });
+  return out.slice(0,30);
+}
+
 /* ===== Departemen & manager ===== */
 var DEPTS=[{n:"RM",m:"Fizi"},{n:"Distribusi",m:"Reza"},{n:"Sales",m:"Reza"},{n:"Produksi",m:"Asep"}];
 var elDept=document.getElementById("dept"),elAts=document.getElementById("atasan");
@@ -325,6 +413,9 @@ function autoManager(){
   else if(elAts.dataset.auto==="1"){elAts.value="";elAts.dataset.auto="0";}
 }
 var elPic=document.getElementById("pic");
+combo(document.getElementById("alasan"),proyekOpts,function(it){
+  if(it&&it.p){document.getElementById("ppbj").value=it.p.ppbj;var a=document.getElementById("alasan");if(a._upd)a._upd();muatStokProyek();}
+});
 combo(elPic,function(q){
   var k=q.trim().toLowerCase();
   return picList().filter(function(n){return !k||n.toLowerCase().indexOf(k)>=0;}).map(function(n){return {label:n,sub:"PIC "+elDept.value.trim(),value:n};});
@@ -438,6 +529,7 @@ async function saveXlsx(){
   }catch(e){st.textContent=(e&&e.code==="declined")?"Penyimpanan dibatalkan.":"Excel gagal dibuat. Coba lagi.";}
 }
 var elBy=document.getElementById("by"),elPem=document.getElementById("peminta"),elPpbj=document.getElementById("ppbj");
+elPpbj.addEventListener("change",function(){muatStokProyek();});
 combo(elPpbj,function(q){
   var k=q.trim().toLowerCase(),o="Belum Tersedia";
   return (!k||o.toLowerCase().indexOf(k)>=0)?[{label:o,value:o}]:[];
@@ -495,7 +587,7 @@ function applyPaste(){
   if(loadDB(rows,"data tempel")){saveDB("data tempel");shareDB("data tempel");document.getElementById("pasteTxt").value="";}
 }
 var EMBED=[];
-var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+var API_URL="https://script.google.com/macros/s/AKfycbzXp_XiGCv7iwzZSnedOZuIi3U58ByDkk4GhSMnckc4vsvEdzAj5xcSimLDexSqrzcs0A/exec";
 var MAX_ITEM=8;
 function toast(msg,ok){
   var t=document.getElementById("toast");t.textContent=msg;t.className="toast "+(ok?"ok":"err");t.style.display="block";
@@ -520,6 +612,11 @@ async function kirim(){
   if(!picOk){toast("Pilih PIC dari daftar untuk departemen "+g("dept")+" (PIC menyetujui lebih dulu).",false);return;}
   if(items.some(function(i){return !i.jumlah;})){toast("Jumlah barang belum diisi.",false);return;}
   if(items.length>MAX_ITEM){toast("Maksimal "+MAX_ITEM+" barang per permintaan.",false);return;}
+  if(KODEPEG){
+    var kurang=[];
+    items.forEach(function(i){if(i.baru||!i.kode)return;var q=Number(String(i.jumlah).replace(",","."))||0,x=splitStok(i.kode,q);if(x.kurang>0)kurang.push(i.nama+" (bebas "+fmtQ(x.bebas)+", diminta "+fmtQ(q)+")");});
+    if(kurang.length&&!confirm("Stok tidak mencukupi untuk:\n- "+kurang.join("\n- ")+"\n\nTetap kirim permintaan?"))return;
+  }
   if(API_URL.indexOf("PASTE_")===0){toast("API_URL belum diisi di file index.html.",false);return;}
   if(window.__sentNo&&!confirm("Permintaan ini sudah terkirim dengan nomor "+window.__sentNo+". Kirim lagi sebagai permintaan BARU?"))return;
   var btn=document.getElementById("sendBtn");btn.disabled=true;btn.textContent="Mengirim...";
@@ -538,7 +635,7 @@ async function kirim(){
   var SHOW_STAMP=true; // ubah ke false untuk menyembunyikan teks "Disetujui via email"
   document.body.classList.add("cetak");
   var st=document.createElement("style");
-  st.textContent=".cetak .tools,.cetak .status,.cetak .cnt,.cetak .f.nop{display:none!important}";
+  st.textContent=".cetak .tools,.cetak .status,.cetak .cnt,.cetak .f.nop,.cetak #pegbar,.cetak table .nop{display:none!important}";
   document.head.appendChild(st);
   document.querySelectorAll(".bar .btn").forEach(function(b){if(/Tempel Data|Kirim Permintaan|Download Excel|Unggah Excel/.test(b.textContent))b.style.display="none";});
   info("Memuat data bukti...");
@@ -604,6 +701,7 @@ function resetForm(){window.__sentNo="";setTimeout(loadNomor,50);
   document.getElementById("tgl").valueAsDate=new Date();
   bindGrow("alasan");bindGrow("cat");
   loadPic();
+  loadGudang();
   loadBarang();
   loadNomor();
 })();

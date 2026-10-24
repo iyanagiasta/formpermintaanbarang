@@ -26,7 +26,7 @@ body{margin:0;background:var(--bg);font-family:"Segoe UI",Roboto,Arial,sans-seri
 .btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;font-size:0}
 .wrap{padding:16px;overflow-x:auto}
 /* Lembar kertas: A5 landscape = 210 x 148 mm */
-.sheet{--navy:#0a2a43;--aqua:#1fa5c9;--gold:#b8975a;--pale:#eef6fa;background:#fff;color:#0d1f2d;width:210mm;height:148mm;margin:0 auto;box-shadow:0 2px 14px rgba(0,0,0,.25);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:8.5pt;display:flex;flex-direction:column;overflow:hidden;position:relative;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sheet{--navy:#0a2a43;--aqua:#1fa5c9;--gold:#b8975a;--pale:#eef6fa;background:#fff;color:#0d1f2d;width:210mm;min-height:148mm;margin:0 auto;box-shadow:0 2px 14px rgba(0,0,0,.25);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:8.5pt;display:flex;flex-direction:column;overflow:hidden;position:relative;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .head{position:relative;height:19mm;background:linear-gradient(120deg,#06203a 0%,#0a3a5c 55%,#0f6f93 100%);color:#fff;text-align:center;padding-top:3.2mm;border-bottom:1.2mm solid var(--gold);overflow:hidden}
 .head svg{position:absolute;left:0;bottom:0;width:100%;height:9mm;opacity:.22}
 .head h1{position:relative;margin:0;font-family:Georgia,"Times New Roman",serif;font-size:15pt;letter-spacing:2.5px;font-weight:700}
@@ -46,7 +46,8 @@ td.c{text-align:center}td.c input{text-align:center}
 .del{border:0;background:none;color:#b00020;cursor:pointer;font-size:14px;width:100%}
 .reason{margin-top:2.2mm}
 .reason label{display:block;font-size:7pt;font-weight:700;color:var(--navy);margin-bottom:.4mm}
-.reason textarea{display:block;width:100%;border:.3mm solid #9fb8c6;border-radius:1mm;font:inherit;height:8mm;resize:none;padding:1mm 1.8mm;background:var(--pale);color:#0d1f2d;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.reason textarea{display:block;width:100%;border:.3mm solid #9fb8c6;border-radius:1mm;font:inherit;height:8mm;min-height:8mm;overflow:hidden;overflow-wrap:anywhere;word-break:break-word;white-space:pre-wrap;line-height:1.3;resize:none;padding:1mm 1.8mm;background:var(--pale);color:#0d1f2d;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.cnt{font-size:6.5pt;color:#5b6b75;text-align:right;margin-top:.3mm}
 .sign{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-top:auto;padding-top:2.5mm}
 .box{border:.3mm solid var(--navy);border-radius:1.2mm;overflow:hidden;text-align:center}
 .box .role{background:var(--navy);color:#fff;font-weight:600;font-size:7.5pt;padding:.9mm 0;border-bottom:.5mm solid var(--gold)}
@@ -102,21 +103,23 @@ html,body{background:#fff}
   </div>
   <div class="body">
   <div class="meta">
-    <div class="f"><label>Dibuat oleh</label><input id="by"></div>
+    <div class="f"><label>Nama Pemohon</label><input id="by" autocomplete="off"></div>
     <div class="f"><label>Nama Departemen</label><input id="dept" autocomplete="off"></div>
+    <div class="f"><label>PIC (User Peminta)</label><input id="pic" autocomplete="off" placeholder="Pilih departemen dulu"></div>
     <div class="f"><label>Tanggal</label><input id="tgl" type="date"></div>
     <div class="f"><label>Nomor Dokumen</label><input id="doc" readonly tabindex="-1" placeholder="Nomor dibuat otomatis"></div>
     <div class="f"><label>Nomor PPBJ</label><input id="ppbj" autocomplete="off"></div>
-    <div class="f nop"><label>Email Peminta (untuk notifikasi)</label><input id="email" type="email" autocomplete="off"></div>
+    <div class="f nop"><label>Email Pemohon (opsional, untuk notifikasi)</label><input id="email" type="email" autocomplete="off"></div>
   </div>
   <table>
     <colgroup><col style="width:9mm"><col style="width:34mm"><col><col style="width:24mm"><col style="width:20mm"><col class="nop" style="width:8mm"></colgroup>
     <thead><tr><th>No</th><th>Kode Barang</th><th>Nama Barang</th><th>Satuan</th><th>Jumlah</th><th class="nop"></th></tr></thead>
     <tbody id="rows"></tbody>
   </table>
-  <div class="reason"><label>Alasan Permintaan</label><textarea id="alasan"></textarea></div>
+  <div class="reason"><label>Alasan Permintaan</label><textarea id="alasan" maxlength="1000"></textarea><div class="cnt nop" id="cnt_alasan"></div></div>
+  <div class="reason" id="catbox"><label id="catlabel">Catatan untuk PIC, Atasan dan Gudang (opsional)</label><textarea id="cat" maxlength="1000"></textarea><div class="cnt nop" id="cnt_cat"></div></div>
   <div class="sign">
-    <div class="box"><div class="role">Peminta</div><div class="ttd"><span class="st"></span></div><div class="nm"><span>Nama</span><input id="peminta" autocomplete="off"></div></div>
+    <div class="box"><div class="role">User Peminta (PIC)</div><div class="ttd"><span class="st"></span></div><div class="nm"><span>Nama</span><input id="peminta" autocomplete="off" readonly tabindex="-1"></div></div>
     <div class="box"><div class="role">Atasan Langsung</div><div class="ttd"><span class="st"></span></div><div class="nm"><span>Nama</span><input id="atasan" autocomplete="off"></div></div>
     <div class="box"><div class="role">Staff Gudang</div><div class="ttd"><span class="st"></span></div><div class="nm"><span>Nama</span><input id="staff" autocomplete="off"></div></div>
     <div class="box"><div class="role">Manager Gudang</div><div class="ttd"><span class="st"></span></div><div class="nm"><span>Nama</span><input id="mgrg" autocomplete="off"></div></div>
@@ -127,7 +130,7 @@ html,body{background:#fff}
   <button class="btn" onclick="addRow()">+ Tambah baris barang</button>
   <button class="btn" onclick="resetForm()">Kosongkan form</button>
 </div>
-<div class="status">Satu lembar muat sekitar 5–6 baris barang. Tombol Simpan PDF menghasilkan file A5 landscape siap cetak.</div>
+<div class="status">Isi normal menghasilkan PDF A5 landscape. Bila alasan atau catatan panjang, lembar otomatis memanjang dan PDF menjadi A4 portrait.</div>
 </div>
 
 <div id="toast" class="toast" style="display:none"></div>
@@ -299,10 +302,42 @@ function itemOpts(q){
 var DEPTS=[{n:"RM",m:"Fizi"},{n:"Distribusi",m:"Reza"},{n:"Sales",m:"Reza"},{n:"Produksi",m:"Asep"}];
 var elDept=document.getElementById("dept"),elAts=document.getElementById("atasan");
 function findDept(v){var k=norm(v);if(!k)return null;for(var i=0;i<DEPTS.length;i++){if(norm(DEPTS[i].n)===k)return DEPTS[i];}return null;}
+function autoGrow(el){if(!el)return;el.style.height="auto";el.style.height=Math.max(el.scrollHeight+2,0)+"px";}
+function bindGrow(id){
+  var el=document.getElementById(id),c=document.getElementById("cnt_"+id);
+  function upd(){autoGrow(el);if(c)c.textContent=el.value.length+" / 1000";}
+  el.addEventListener("input",upd);el._upd=upd;upd();
+}
+var PICS={}; // departemen (norm) -> daftar nama PIC
+function picList(){return PICS[norm(elDept.value)]||[];}
+function syncPic(){document.getElementById("peminta").value=document.getElementById("pic").value.trim();}
+function checkPic(){
+  var el=document.getElementById("pic"),l=picList(),v=el.value.trim().toLowerCase();
+  if(v&&!l.some(function(n){return n.toLowerCase()===v;}))el.value="";
+  if(!el.value&&l.length===1)el.value=l[0];
+  el.placeholder=elDept.value.trim()?(l.length?"Pilih PIC":"PIC belum terdaftar"):"Pilih departemen dulu";
+  syncPic();
+}
 function autoManager(){
+  checkPic();
   var d=findDept(elDept.value);
   if(d){if(!elAts.value||elAts.dataset.auto==="1"){elAts.value=d.m;elAts.dataset.auto="1";}}
   else if(elAts.dataset.auto==="1"){elAts.value="";elAts.dataset.auto="0";}
+}
+var elPic=document.getElementById("pic");
+combo(elPic,function(q){
+  var k=q.trim().toLowerCase();
+  return picList().filter(function(n){return !k||n.toLowerCase().indexOf(k)>=0;}).map(function(n){return {label:n,sub:"PIC "+elDept.value.trim(),value:n};});
+},syncPic);
+elPic.addEventListener("input",syncPic);
+elPic.addEventListener("change",function(){checkPic();});
+function loadPic(){
+  if(new URLSearchParams(location.search).get("m")==="cetak")return;
+  function apply(d){PICS={};Object.keys(d||{}).forEach(function(k){PICS[norm(k)]=d[k];});checkPic();}
+  try{var c=JSON.parse(localStorage.getItem("sctk_pic_v1")||"null");if(c&&c.d)apply(c.d);}catch(e){}
+  api({action:"pic"}).then(function(r){
+    if(r&&r.ok){apply(r.data);try{localStorage.setItem("sctk_pic_v1",JSON.stringify({d:r.data}));}catch(e){}}
+  }).catch(function(){});
 }
 combo(elDept,function(q){
   var k=q.trim().toLowerCase();
@@ -335,10 +370,10 @@ function flatten(doc){
     d.textContent=v;
     var center=cs.textAlign==="center",ta=el.tagName==="TEXTAREA";
     d.style.cssText="display:flex;box-sizing:border-box;width:100%;overflow:hidden;"+
-      "height:"+cs.height+";padding:"+cs.padding+";border:"+cs.border+";border-radius:"+cs.borderRadius+
+      (ta?"min-height:"+cs.height+";height:auto":"height:"+cs.height)+";padding:"+cs.padding+";border:"+cs.border+";border-radius:"+cs.borderRadius+
       ";background:"+cs.backgroundColor+";color:"+cs.color+";font:"+cs.font+";line-height:1.25"+
       ";align-items:"+(ta?"flex-start":"center")+";justify-content:"+(center?"center":"flex-start")+
-      ";white-space:"+(ta?"pre-wrap":"nowrap")+";margin:0";
+      ";white-space:"+(ta?"pre-wrap;overflow-wrap:anywhere;word-break:break-word":"nowrap")+";margin:0";
     el.parentNode.replaceChild(d,el);
   });
 }
@@ -348,15 +383,27 @@ async function savePdf(){
   try{
     if(typeof html2canvas==="undefined"||!window.jspdf)throw {code:"lib"};
     document.body.classList.add("cap");
-    var cv=await html2canvas(document.getElementById("sheet"),{scale:3,backgroundColor:"#fff",useCORS:true,onclone:flatten});
+    var cb=document.getElementById("catbox"),hideCat=!document.getElementById("cat").value.trim();
+    if(hideCat)cb.style.display="none";
+    var cv;
+    try{cv=await html2canvas(document.getElementById("sheet"),{scale:3,backgroundColor:"#fff",useCORS:true,onclone:flatten});}
+    finally{if(hideCat)cb.style.display="";}
     document.body.classList.remove("cap");
-    var pdf=new window.jspdf.jsPDF({orientation:"landscape",unit:"mm",format:"a5"});
-    pdf.addImage(cv.toDataURL("image/jpeg",0.95),"JPEG",0,0,210,148);
+    var mmH=210*cv.height/cv.width,img=cv.toDataURL("image/jpeg",0.95),pdf;
+    if(mmH<=148.8){ // isi normal: A5 landscape
+      pdf=new window.jspdf.jsPDF({orientation:"landscape",unit:"mm",format:"a5"});
+      pdf.addImage(img,"JPEG",0,0,210,148);
+    }else{ // isi panjang: A4 portrait (lebar tetap 210 mm); bila masih lebih tinggi dari A4, diperkecil proporsional
+      pdf=new window.jspdf.jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+      var w=210,h=mmH;if(h>297){w=210*297/h;h=297;}
+      pdf.addImage(img,"JPEG",(210-w)/2,0,w,h);
+    }
     var buf=pdf.output("arraybuffer");
     var no=(document.getElementById("doc").value||"").replace(/[^\w.-]+/g,"_");
     await saveFile("Bukti-Pengambilan-Barang"+(no?"-"+no:"")+".pdf",buf,"PDF disimpan: ");
   }catch(e){
     document.body.classList.remove("cap");
+    var cb2=document.getElementById("catbox");if(cb2&&!document.getElementById("cat").value.trim()&&!document.body.classList.contains("cetak"))cb2.style.display="";
     st.textContent=(e&&e.code==="declined")?"Penyimpanan dibatalkan.":(e&&e.code==="lib")?"Pembuat PDF belum termuat. Periksa koneksi internet lalu muat ulang, atau gunakan tombol Cetak.":"PDF gagal dibuat. Coba lagi atau gunakan tombol Cetak.";
   }finally{btn.disabled=false;btn.textContent=old;}
 }
@@ -371,16 +418,16 @@ async function saveXlsx(){
   var st=document.querySelector(".status");
   try{
     var g=function(id){return document.getElementById(id).value||"";};
-    var pem=document.getElementById("peminta").value.trim()||g("by").trim(),tg=fmtTgl(g("tgl")),nd=g("doc").trim(),al=g("alasan").replace(/\s+/g," ").trim();
-    var aoa=[["Kode Barang","Nama Barang","Satuan","Jumlah","Nama Peminta","Tanggal","Nomor Dokumen","Alasan Permintaan"]];
+    var pem=g("by").trim(),pc=g("pic").trim(),tg=fmtTgl(g("tgl")),nd=g("doc").trim(),al=g("alasan").replace(/\s+/g," ").trim(),ct=g("cat").replace(/\s+/g," ").trim();
+    var aoa=[["Kode Barang","Nama Barang","Satuan","Jumlah","Nama Pemohon","PIC","Tanggal","Nomor Dokumen","Alasan Permintaan","Catatan"]];
     document.querySelectorAll("#rows tr").forEach(function(tr){
       var nama=tr.querySelector(".nama").value.trim();if(!nama)return;
       var j=tr.querySelector(".jml").value.trim(),jn=Number(j.replace(",","."));
-      aoa.push([tr.querySelector(".kode").value,nama,tr.querySelector(".sat").value,(j!==""&&!isNaN(jn))?jn:j,pem,tg,nd,al]);
+      aoa.push([tr.querySelector(".kode").value,nama,tr.querySelector(".sat").value,(j!==""&&!isNaN(jn))?jn:j,pem,pc,tg,nd,al,ct]);
     });
     if(aoa.length<2){st.textContent="Isi minimal satu nama barang sebelum download Excel.";return;}
     var ws=XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"]=[0,1,2,3,4,5,6,7].map(function(c){
+    ws["!cols"]=[0,1,2,3,4,5,6,7,8,9].map(function(c){
       var m=0;aoa.forEach(function(r){m=Math.max(m,String(r[c]==null?"":r[c]).length);});
       return {wch:Math.min(80,Math.max(12,m+3))};
     });
@@ -391,9 +438,6 @@ async function saveXlsx(){
   }catch(e){st.textContent=(e&&e.code==="declined")?"Penyimpanan dibatalkan.":"Excel gagal dibuat. Coba lagi.";}
 }
 var elBy=document.getElementById("by"),elPem=document.getElementById("peminta"),elPpbj=document.getElementById("ppbj");
-elPem.dataset.auto="1";
-elBy.addEventListener("input",function(){if(elPem.dataset.auto!=="0")elPem.value=elBy.value;});
-elPem.addEventListener("input",function(){elPem.dataset.auto=elPem.value?"0":"1";});
 combo(elPpbj,function(q){
   var k=q.trim().toLowerCase(),o="Belum Tersedia";
   return (!k||o.toLowerCase().indexOf(k)>=0)?[{label:o,value:o}]:[];
@@ -471,14 +515,16 @@ async function kirim(){
   });
   if(items.some(function(i){return i.baru&&!i.satuan;})){toast("Barang baru (di luar database) perlu diisi satuannya.",false);return;}
   if(!DB.size){toast("Daftar barang belum termuat. Tunggu sebentar atau muat ulang halaman.",false);return;}
-  if(!g("by")||!g("dept")||!items.length){toast("Isi Dibuat oleh, Nama Departemen, dan minimal satu barang dulu.",false);return;}
+  if(!g("by")||!g("dept")||!items.length){toast("Isi Nama Pemohon, Nama Departemen, dan minimal satu barang dulu.",false);return;}
+  var pv=g("pic").toLowerCase(),picOk=picList().filter(function(n){return n.toLowerCase()===pv;})[0];
+  if(!picOk){toast("Pilih PIC dari daftar untuk departemen "+g("dept")+" (PIC menyetujui lebih dulu).",false);return;}
   if(items.some(function(i){return !i.jumlah;})){toast("Jumlah barang belum diisi.",false);return;}
   if(items.length>MAX_ITEM){toast("Maksimal "+MAX_ITEM+" barang per permintaan.",false);return;}
   if(API_URL.indexOf("PASTE_")===0){toast("API_URL belum diisi di file index.html.",false);return;}
   if(window.__sentNo&&!confirm("Permintaan ini sudah terkirim dengan nomor "+window.__sentNo+". Kirim lagi sebagai permintaan BARU?"))return;
   var btn=document.getElementById("sendBtn");btn.disabled=true;btn.textContent="Mengirim...";
   try{
-    var r=await api({action:"submit",by:g("by"),dept:g("dept"),tgl:g("tgl"),ppbj:g("ppbj"),email:g("email"),alasan:g("alasan"),items:items});
+    var r=await api({action:"submit",by:g("by"),dept:g("dept"),tgl:g("tgl"),ppbj:g("ppbj"),email:g("email"),alasan:g("alasan"),pic:picOk,cat:g("cat"),items:items});
     toast(r.msg||"Selesai.",!!r.ok);
     if(r.ok&&r.nomor){document.getElementById("doc").value=r.nomor;window.__sentNo=r.nomor;}
   }catch(e){toast("Gagal terhubung ke server. Periksa internet lalu coba lagi.",false);}
@@ -492,14 +538,19 @@ async function kirim(){
   var SHOW_STAMP=true; // ubah ke false untuk menyembunyikan teks "Disetujui via email"
   document.body.classList.add("cetak");
   var st=document.createElement("style");
-  st.textContent=".cetak .tools,.cetak .status{display:none!important}";
+  st.textContent=".cetak .tools,.cetak .status,.cetak .cnt,.cetak .f.nop{display:none!important}";
   document.head.appendChild(st);
   document.querySelectorAll(".bar .btn").forEach(function(b){if(/Tempel Data|Kirim Permintaan|Download Excel|Unggah Excel/.test(b.textContent))b.style.display="none";});
   info("Memuat data bukti...");
   api({action:"info",kind:"cetak",id:q.get("id"),t:q.get("t")}).then(function(r){
     if(!r.ok){info(r.msg||"Gagal memuat.");toast(r.msg||"Gagal memuat.",false);return;}
     var d=r.data,set=function(id,v){document.getElementById(id).value=v||"";};
-    set("by",d.by);set("dept",d.dept);set("tgl",d.tgl);set("doc",d.doc);set("ppbj",d.ppbj);set("alasan",d.alasan);
+    var pic=d.pic||{};
+    set("by",d.by);set("dept",d.dept);set("pic",pic.nama);set("tgl",d.tgl);set("doc",d.doc);set("ppbj",d.ppbj);set("alasan",d.alasan);
+    document.getElementById("catlabel").textContent="Catatan";
+    var cl=(d.cat||[]).map(function(x){return x.peran+(x.nama?" ("+x.nama+(x.waktu?", "+x.waktu:"")+")":"")+": "+x.teks;});
+    if(cl.length)set("cat",cl.join("\n"));else document.getElementById("catbox").style.display="none";
+    ["alasan","cat"].forEach(function(id){autoGrow(document.getElementById(id));});
     document.getElementById("rows").innerHTML="";
     d.items.forEach(function(it){
       addRow();var tr=document.querySelector("#rows tr:last-child");
@@ -507,22 +558,22 @@ async function kirim(){
     });
     for(var k=d.items.length;k<5;k++)addRow();
     number();
-    set("peminta",d.by);set("atasan",d.atasan.nama);set("staff",d.staff.nama);set("mgrg",d.manager.nama);
+    set("peminta",pic.nama||d.by);set("atasan",d.atasan.nama);set("staff",d.staff.nama);set("mgrg",d.manager.nama);
     var boxes=document.querySelectorAll(".sign .ttd");
     function stamp(el,t){var sp=el.querySelector(".st");if(t){sp.textContent=t;el.classList.add("has");}}
     if(SHOW_STAMP){
-      stamp(boxes[0],d.kirim?"Diajukan via form "+d.kirim:"");
+      stamp(boxes[0],pic.waktu?((d.tolak==="pic"?"Ditolak via email ":"Disetujui via email ")+pic.waktu):(d.kirim?"Diajukan via form "+d.kirim:""));
       [d.atasan,d.staff,d.manager].forEach(function(a,i){
         var key=["atasan","staff","manager"][i];
         stamp(boxes[i+1],a.waktu?((d.tolak===key?"Ditolak via email ":"Disetujui via email ")+a.waktu):"");
       });
     }
-    [d.atasan,d.staff,d.manager].forEach(function(a,i){
-      if(!a.ttd||d.tolak===["atasan","staff","manager"][i])return;
-      var im=document.createElement("img");im.className="sig";im.src=a.ttd;im.alt="";boxes[i+1].appendChild(im);boxes[i+1].classList.add("has");
+    [pic,d.atasan,d.staff,d.manager].forEach(function(a,i){
+      if(!a||!a.ttd||d.tolak===["pic","atasan","staff","manager"][i])return;
+      var im=document.createElement("img");im.className="sig";im.src=a.ttd;im.alt="";boxes[i].appendChild(im);boxes[i].classList.add("has");
     });
     if(d.status==="Ditolak"){
-      var pn={atasan:d.atasan,staff:d.staff,manager:d.manager}[d.tolak]||{};
+      var pn={pic:pic,atasan:d.atasan,staff:d.staff,manager:d.manager}[d.tolak]||{};
       var rs=document.createElement("div");rs.className="reject-stamp";
       rs.innerHTML='DITOLAK<small>oleh '+esc2(pn.nama||"-")+(pn.waktu?" · "+esc2(pn.waktu):"")+'</small>';
       document.getElementById("sheet").appendChild(rs);
@@ -531,11 +582,19 @@ async function kirim(){
     info((d.status==="Ditolak"?"Bukti PERMINTAAN DITOLAK ":"Bukti ")+d.id+" siap dicetak. Klik Simpan PDF."+(miss.length?" TTD belum tampil → "+miss.join("; "):""));
   }).catch(function(){info("Gagal terhubung ke server.");});
 })();
+window.addEventListener("afterprint",function(){var cb=document.getElementById("catbox");if(cb&&!document.body.classList.contains("cetak"))cb.style.display="";});
+window.addEventListener("beforeprint",function(){
+  var cb=document.getElementById("catbox");if(cb&&!document.getElementById("cat").value.trim())cb.style.display="none";
+  var sh=document.getElementById("sheet"),mm=sh.offsetHeight*25.4/96,st=document.getElementById("pgsz");
+  if(!st){st=document.createElement("style");st.id="pgsz";document.head.appendChild(st);}
+  st.textContent=mm>149?"@page{size:A4 portrait;margin:0}":"@page{size:A5 landscape;margin:0}";
+});
 function resetForm(){window.__sentNo="";setTimeout(loadNomor,50);
-  ["by","dept","doc","tgl","ppbj","alasan","email"].forEach(function(id){document.getElementById(id).value="";});
+  ["by","dept","pic","doc","tgl","ppbj","alasan","cat","email"].forEach(function(id){document.getElementById(id).value="";});
+  ["alasan","cat"].forEach(function(id){var e=document.getElementById(id);if(e._upd)e._upd();});
   document.querySelectorAll(".sign input").forEach(function(i){i.value="";});
   elAts.dataset.auto="0";
-  elAts.dataset.auto="0";elPem.dataset.auto="1";setDefaults();
+  elAts.dataset.auto="0";setDefaults();checkPic();
   document.getElementById("rows").innerHTML="";
   for(var i=0;i<ROWS;i++)addRow();
 }
@@ -543,6 +602,8 @@ function resetForm(){window.__sentNo="";setTimeout(loadNomor,50);
   setDefaults();
   for(var i=0;i<ROWS;i++)addRow();
   document.getElementById("tgl").valueAsDate=new Date();
+  bindGrow("alasan");bindGrow("cat");
+  loadPic();
   loadBarang();
   loadNomor();
 })();

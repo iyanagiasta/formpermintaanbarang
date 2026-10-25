@@ -60,7 +60,7 @@ input.t{width:100%;padding:12px;font:600 16px "Segoe UI",Roboto,Arial,sans-serif
 <div class="wrap" id="app"></div>
 <div class="ov" id="ov" role="dialog" aria-modal="true" aria-labelledby="dj"><div class="dlg"><h3 id="dj"></h3><p id="dk"></p><input class="t" id="di" type="password" autocomplete="off"><p class="err" id="de" role="alert"></p><div class="row"><button class="sec" id="db" type="button">Batal</button><button id="dg" type="button">Masuk</button></div></div></div>
 <script>
-var API_URL="https://script.google.com/macros/s/AKfycbzXp_XiGCv7iwzZSnedOZuIi3U58ByDkk4GhSMnckc4vsvEdzAj5xcSimLDexSqrzcs0A/exec";
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
 var app=document.getElementById("app"),who=document.getElementById("who");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function st(k,v,sess){try{var s=sess?sessionStorage:localStorage;if(v===undefined)return s.getItem(k)||"";if(v===null)s.removeItem(k);else s.setItem(k,v);}catch(e){return "";}return "";}

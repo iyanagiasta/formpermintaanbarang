@@ -91,6 +91,7 @@ html,body{background:#fff}
 </head>
 <body>
 <div class="bar">
+  <a class="btn" href="dashboard.html" style="text-decoration:none">&larr; Halaman Utama</a>
   <div class="info" id="dbinfo">Database barang belum diunggah. Excel harus punya kolom: Nama Barang, Kode Barang, Satuan.</div>
   <label class="btn" style="display:none">Unggah Excel<input type="file" id="xl" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"></label>
   <button class="btn" style="display:none" onclick="openPaste()">Tempel Data</button>
@@ -329,13 +330,13 @@ function renderStok(tr){
   if(!KODEPEG){box.innerHTML="";return;}
   var nama=tr.querySelector(".nama").value.trim();if(!nama){box.innerHTML="";return;}
   var kode=tr.querySelector(".kode").value.trim();
-  if(!kode){box.innerHTML='<span class="stw">Barang baru: belum ada di database stok</span>';return;}
+  if(!kode){box.innerHTML='<span class="stbad">Barang ini belum ada di data stok. Hubungi Staff Gudang. Permintaan tetap bisa dikirim.</span>';return;}
   var r=splitStok(kode,0),q=Number(String(tr.querySelector(".jml").value).replace(",","."))||0;
   var tampil=OTO.concat(SUMB.filter(function(nm){return OTO.indexOf(nm)<0;})),line=tampil.map(function(nm){var v=r.s[SUMB.indexOf(nm)]||0;return '<span class="'+(v>0?"":"z")+'">'+nm+(OTO.indexOf(nm)<0?" (manual)":"")+" "+fmtQ(v)+"</span>";}).join(" · ");
   var extra="";
   if(q>0){
     var x=splitStok(kode,q);
-    if(x.kurang>0){var bk=SUMB.indexOf("Bekas")>=0&&OTO.indexOf("Bekas")<0?(x.s[SUMB.indexOf("Bekas")]||0):0;extra='<span class="stbad">Stok kurang: bebas '+fmtQ(x.bebas)+', diminta '+fmtQ(q)+(bk>0?" (Bekas "+fmtQ(bk)+" dipilih manual oleh gudang)":"")+'</span>';}
+    if(x.kurang>0){var bk=SUMB.indexOf("Bekas")>=0&&OTO.indexOf("Bekas")<0?(x.s[SUMB.indexOf("Bekas")]||0):0;extra='<span class="stbad">'+(x.bebas<=0?"Stok barang tidak tersedia":"Stok tersedia hanya "+fmtQ(x.bebas)+", diminta "+fmtQ(q))+(bk>0?" (ada Bekas "+fmtQ(bk)+", dipilih manual oleh gudang)":"")+". Hubungi Staff Gudang. Permintaan tetap bisa dikirim.</span>";}
     else extra='<span class="stok">Ambil: '+x.take.map(function(t){return t.s+" "+fmtQ(t.q);}).join(" + ")+'</span>';
   }else if(r.bebas<OTO.reduce(function(a,nm){return a+(r.s[SUMB.indexOf(nm)]||0);},0)){extra='<span class="stw">Bebas '+fmtQ(r.bebas)+' (sisanya untuk proyek lain / permintaan berjalan)</span>';}
   box.innerHTML=line+extra;
@@ -615,7 +616,7 @@ async function kirim(){
   if(KODEPEG){
     var kurang=[];
     items.forEach(function(i){if(i.baru||!i.kode)return;var q=Number(String(i.jumlah).replace(",","."))||0,x=splitStok(i.kode,q);if(x.kurang>0)kurang.push(i.nama+" (bebas "+fmtQ(x.bebas)+", diminta "+fmtQ(q)+")");});
-    if(kurang.length&&!confirm("Stok tidak mencukupi untuk:\n- "+kurang.join("\n- ")+"\n\nTetap kirim permintaan?"))return;
+    /* stok kurang tidak menghalangi: pesan sudah tampil di baris barang, Staff Gudang yang menindaklanjuti */
   }
   if(API_URL.indexOf("PASTE_")===0){toast("API_URL belum diisi di file index.html.",false);return;}
   if(window.__sentNo&&!confirm("Permintaan ini sudah terkirim dengan nomor "+window.__sentNo+". Kirim lagi sebagai permintaan BARU?"))return;

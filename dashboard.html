@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Dashboard Gudang - SCTK</title>
+<title>Sistem Gudang SCTK</title>
 <style>
 :root{--navy:#0a2a43;--navy2:#0f6f93;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#d5dee4;--mut:#5b7a8c;--ic:#0a3a5c;--icbg:#e8f1f6}
 @media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--ic:#9fd3ea;--icbg:#22333d}}
@@ -34,11 +34,23 @@ h2{font:700 12px "Segoe UI",Roboto,Arial,sans-serif;letter-spacing:2px;text-tran
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:400px;margin:36px auto}
 input.t{width:100%;padding:12px;font:600 16px "Segoe UI",Roboto,Arial,sans-serif;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
 .err{color:#c0392b;margin:10px 0 0}.msg{color:var(--mut);text-align:center;padding:24px}
+.hello{margin:6px 0 4px;font:700 22px Georgia,serif;color:var(--ink)}.hello+p{margin:0 0 4px;color:var(--mut)}
+.hero{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px}
+@media (max-width:640px){.hero{grid-template-columns:1fr}}
+.big{position:relative;display:flex;flex-direction:column;gap:12px;min-height:168px;text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-top:4px solid var(--navy2);border-radius:16px;padding:22px;cursor:pointer;text-align:left;font:inherit;transition:transform .14s,box-shadow .14s,border-color .14s}
+.big:hover,.big:focus-visible{transform:translateY(-3px);box-shadow:0 14px 30px rgba(10,42,67,.14);border-color:var(--gold);outline:none}
+.big .ico{width:56px;height:56px;border-radius:15px;background:linear-gradient(135deg,#0a3a5c,#0f6f93);color:#fff}.big .ico svg{width:28px;height:28px}
+.big b{display:block;font:700 19px Georgia,serif}.big small{display:block;margin-top:5px;color:var(--mut);font-size:13px;line-height:1.45}
+.big .go{position:absolute;right:20px;top:22px;color:var(--gold);font-size:22px;font-weight:700}
+.big.adm{border-top-color:var(--gold)}.big.adm .ico{background:linear-gradient(135deg,#8a6b2f,#b8975a)}
+.tag{display:inline-block;margin-top:auto;align-self:flex-start;font-size:10px;font-weight:700;letter-spacing:1px;border-radius:20px;padding:3px 10px;background:var(--icbg);color:var(--ic)}
+.tag.a{background:#fff3cd;color:#7a5b00}
+@media (prefers-reduced-motion:reduce){.big{transition:none}}
 @media (prefers-reduced-motion:reduce){.tile{transition:none}}
 </style>
 </head>
 <body>
-<div class="top"><div class="in"><div><h1>DASHBOARD GUDANG</h1><small>PT SARANA CATUR TIRTA KELOLA</small></div><div class="who" id="who"></div></div></div>
+<div class="top"><div class="in"><div><h1>SISTEM GUDANG</h1><small>PT SARANA CATUR TIRTA KELOLA</small></div><div class="who" id="who"></div></div></div>
 <div class="wrap" id="app"></div>
 <script>
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
@@ -54,6 +66,7 @@ var ICON={
  proyek:'<path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-5h6v5M9 11h.01M15 11h.01"/>',
  mutasi:'<path d="M7 7h12l-3-3M17 17H5l3 3"/>',
  opname:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17"/>',
+ admin:'<path d="M12 3 4 6v6c0 4.5 3.2 7.8 8 9 4.8-1.2 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
  link:'<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'
 };
 function ikon(k){return '<span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true">'+(ICON[k]||ICON.link)+'</svg></span>';}
@@ -83,10 +96,17 @@ async function muat(first){
   }catch(e){if(first||!app.innerHTML)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");}
 }
 function tampil(r){
-  who.innerHTML=(r.admin?'<span>Mode admin</span>':'<button class="gh" id="adm">Masuk admin</button>')+'<button class="gh" id="lo">Keluar</button>';
+  who.innerHTML=(r.admin?'<span>Mode admin</span>':'')+'<button class="gh" id="lo">Keluar</button>';
   document.getElementById("lo").onclick=keluar;
-  var ab=document.getElementById("adm");if(ab)ab.onclick=function(){var p=prompt("Kode admin:");if(p){PIN=p.trim();muat(false).then(function(){if(!/Mode admin/.test(who.innerHTML)){PIN="";}else{try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}}});}};
-  var h="";
+  var cari=r.cari||"gudang.html",ext=/^https?:/i.test(cari);
+  var h='<div class="hello">Selamat datang</div><p>Pilih layanan yang Anda perlukan.</p><div class="hero">'+
+   big("index.html","form","Permintaan Barang","Buat permintaan pengambilan barang harian. Persetujuan lewat email, tanpa kertas.","PEGAWAI")+
+   big(cari,"cari","Cari Barang","Lokasi rak, foto barang dan rak, stok Moka dan Accurate, serta proyek yang memakai barang itu. Stock opname juga di sini.","PEGAWAI",ext)+
+   big("kebutuhan.html","kebutuhan","Cek Kebutuhan Proyek","Unggah kebutuhan barang proyek baru. Hasilnya: pakai stok Moka, stok Accurate, atau beli, lengkap dengan harga stok.","PEGAWAI")+
+   (r.admin?big("admin.html","admin","Admin Gudang","Pantauan persetujuan, serah barang, stok dan harga, selisih opname, proyek, mutasi, dan laporan pemakaian.","ADMIN",false,true)
+           :'<button class="big adm" id="adm" type="button"><span class="go" aria-hidden="true">&#8594;</span>'+ikon("admin")+'<div><b>Admin Gudang</b><small>Khusus admin. Masuk dengan kode admin untuk membuka pantauan, stok, laporan, dan selisih opname.</small></div><span class="tag a">KHUSUS ADMIN &middot; LOGIN</span></button>')+
+   '</div>';
+  var ab=document.getElementById("adm");
   if(r.admin&&r.ringkas){
     var s=r.ringkas;
     h+='<h2>Ringkasan</h2><div class="stats">'+
@@ -97,11 +117,15 @@ function tampil(r){
      stat(s.proyekAktif,"Proyek mengikat stok","","admin.html#proyek")+
      stat(s.stokHabis,"Barang stok bebas habis",s.stokHabis>0?"w":"ok","admin.html#stok")+'</div>';
   }
-  var um=r.data.filter(function(m){return m.untuk!=="Admin";}),ad=r.data.filter(function(m){return m.untuk==="Admin";});
-  h+='<h2>Menu</h2>'+grid(um);
-  if(ad.length)h+='<h2>Admin Gudang</h2>'+grid(ad);
-  if(!um.length&&!ad.length)h+='<div class="msg">Belum ada menu. Isi sheet Menu di Google Spreadsheet.</div>';
+  var utama={"index.html":1,"gudang.html":1,"kebutuhan.html":1,"admin.html":1},lain=r.data.filter(function(m){return !utama[m.link]&&m.untuk!=="Admin";}),ad=r.data.filter(function(m){return m.untuk==="Admin";});
+  if(lain.length)h+='<h2>Menu lainnya</h2>'+grid(lain);
+  if(ad.length)h+='<h2>Menu Admin</h2>'+grid(ad);
   app.innerHTML=h;
+  ab=document.getElementById("adm");
+  if(ab)ab.onclick=function(){var p=prompt("Kode admin:");if(!p)return;PIN=p.trim();muat(false).then(function(){if(!/Mode admin/.test(who.innerHTML)){PIN="";alert("Kode admin salah.");}else{try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}}});};
+}
+function big(href,ik,judul,ket,tag,ext,adm){
+  return '<a class="big'+(adm?" adm":"")+'" href="'+esc(href)+'"'+(ext?' rel="noopener"':'')+'><span class="go" aria-hidden="true">&#8594;</span>'+ikon(ik)+'<div><b>'+esc(judul)+'</b><small>'+esc(ket)+'</small></div><span class="tag'+(adm?" a":"")+'">'+tag+'</span></a>';
 }
 function stat(n,l,c,href){return '<a class="stat '+c+'" href="'+href+'"><b>'+esc(n)+'</b><span>'+esc(l)+'</span></a>';}
 function grid(a){

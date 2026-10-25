@@ -480,9 +480,17 @@ function drawMutasi(r,dari,sampai,q,jn){
    '<input id="mq" placeholder="Kode atau nama barang" value="'+esc(q)+'"><button class="gh" id="mgo">Tampilkan</button><button class="gh" id="mcsv"'+(MUT.length?"":" disabled")+'>Unduh CSV</button></div>'+
    '<div class="sum">'+(ring||'<div><b>0</b><span>Tidak ada mutasi</span></div>')+'</div>'+
    '<div class="note">Menampilkan '+MUT.length+' dari '+r.total+' catatan (terbaru dulu).</div>'+
-   (MUT.length?'<table><thead><tr><th>Waktu</th><th>Barang</th><th>Jenis</th><th>Sumber</th><th class="nm">Qty</th><th class="nm">Saldo</th><th>Referensi / Proyek</th><th>Keterangan</th></tr></thead><tbody>'+
-   MUT.map(function(m){return '<tr><td data-l="Waktu">'+esc(m.waktu)+'</td><td data-l="Barang"><b>'+esc(m.nama)+'</b><small>'+esc(m.kode)+'</small></td><td data-l="Jenis">'+esc(m.jenis)+'</td><td data-l="Sumber">'+esc(m.sumber)+'</td><td class="nm" data-l="Qty"><b style="color:'+(m.qty<0?"#c0392b":"#1b8a3a")+'">'+(m.qty>0?"+":"")+fmtN(m.qty)+'</b></td><td class="nm" data-l="Saldo">'+esc(m.saldo)+'</td><td data-l="Referensi">'+esc(m.ref)+(m.dept?'<small>'+esc(m.dept)+(m.proyek?" · "+esc(m.proyek):"")+'</small>':"")+'</td><td data-l="Keterangan">'+esc(m.ket)+'</td></tr>';}).join("")+'</tbody></table>':'<div class="card msg">Tidak ada data pada rentang ini.</div>');
+   (MUT.length?'<table><thead><tr><th>Waktu</th><th>Barang</th><th>Jenis</th><th>Sumber</th><th class="nm">Qty</th><th class="nm">Saldo</th><th>Referensi / Proyek</th><th>Keterangan</th><th></th></tr></thead><tbody>'+
+   MUT.map(function(m){return '<tr><td data-l="Waktu">'+esc(m.waktu)+'</td><td data-l="Barang"><b>'+esc(m.nama)+'</b><small>'+esc(m.kode)+'</small></td><td data-l="Jenis">'+esc(m.jenis)+'</td><td data-l="Sumber">'+esc(m.sumber)+'</td><td class="nm" data-l="Qty"><b style="color:'+(m.qty<0?"#c0392b":"#1b8a3a")+'">'+(m.qty>0?"+":"")+fmtN(m.qty)+'</b></td><td class="nm" data-l="Saldo">'+esc(m.saldo)+'</td><td data-l="Referensi">'+esc(m.ref)+(m.dept?'<small>'+esc(m.dept)+(m.proyek?" · "+esc(m.proyek):"")+'</small>':"")+'</td><td data-l="Keterangan">'+esc(m.ket)+'</td><td>'+((m.jenis==="Serah"||m.jenis==="Pengembalian")&&m.ref?'<button class="gh" data-cetak="'+esc(m.ref)+'">Cetak bukti</button>':"")+'</td></tr>';}).join("")+'</tbody></table>':'<div class="card msg">Tidak ada data pada rentang ini.</div>');
   document.getElementById("mgo").onclick=loadMutasi;
+  Array.prototype.forEach.call(document.querySelectorAll("[data-cetak]"),function(b){b.onclick=async function(){
+    var w=window.open("","_blank");
+    b.disabled=true;
+    try{var x=await api({action:"adminCetakLink",ref:b.getAttribute("data-cetak")});
+      if(x.ok&&x.url){if(w)w.location.href=x.url;else window.location.href=x.url;}
+      else{if(w)w.close();toast(x.msg||"Gagal membuka bukti.",true);}
+    }catch(e){if(w)w.close();toast("Gagal terhubung ke server.",true);}
+    b.disabled=false;};});
   document.getElementById("mq").onkeydown=function(e){if(e.key==="Enter")loadMutasi();};
   document.getElementById("mcsv").onclick=function(){
     var rows=[["Waktu","Kode","Nama","Jenis","Sumber","Qty","Saldo","Referensi","Departemen","Proyek","Keterangan"]].concat(MUT.map(function(m){return [m.waktu,m.kode,m.nama,m.jenis,m.sumber,m.qty,m.saldo,m.ref,m.dept,m.proyek,m.ket];}));
@@ -606,9 +614,28 @@ function drawLaporan(r,dari,sampai){
   pane().innerHTML=
    '<div class="bar"><label class="fl">Dari <input type="date" id="ld" value="'+esc(dari)+'"></label><label class="fl">Sampai <input type="date" id="ls" value="'+esc(sampai)+'"></label><button class="gh" id="lgo">Tampilkan</button><button class="gh" id="lxl"'+(rows.length?"":" disabled")+'>Unduh Excel</button></div>'+
    '<div class="sum"><div><b>Rp '+fmtN(T.nilai||0)+'</b><span>Nilai pemakaian (Moka + Accurate)</span></div><div><b>'+(T.baris||0)+'</b><span>Baris barang diserahkan</span></div><div><b>'+fmtN(T.bekas||0)+'</b><span>Qty Bekas (tidak dinilai)</span></div><div><b>'+(T.tanpaHarga||0)+'</b><span>Baris tanpa harga</span></div><div><b>'+(T.kembali||0)+'</b><span>Barang sisa proyek dikembalikan</span></div></div>'+
+   '<div class="bar"><b>Barang keluar untuk Accurate</b><span class="note" style="margin:0 8px">Penyesuaian persediaan: semua barang yang diambil pada rentang di atas</span><button class="gh" id="lbk">Unduh Barang Keluar</button></div>'+
    '<div class="note">Nilai memakai harga saat barang diserahkan. Pengembalian sisa proyek yang sudah diterima gudang mengurangi nilai proyek asalnya (dihitung dengan harga saat ini). Permintaan tanpa PPBJ dikelompokkan sebagai "Tanpa Proyek".</div>'+
    (rows.length?'<table><thead><tr><th>Proyek (PPBJ)</th><th class="nm">Baris</th><th class="nm">Bekas</th><th class="nm">Nilai</th><th>Catatan</th></tr></thead><tbody>'+body+'</tbody></table>':'<div class="card msg">Belum ada barang diserahkan pada rentang ini.</div>');
   document.getElementById("lgo").onclick=loadLaporan;
+  document.getElementById("lbk").onclick=async function(){
+    var b=this;b.disabled=true;
+    try{
+      var d=document.getElementById("ld").value,e=document.getElementById("ls").value;
+      var x=await api({action:"adminBarangKeluar",dari:d,sampai:e});
+      if(!x.ok){toast(x.msg||"Gagal.",true);b.disabled=false;return;}
+      if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat. Periksa internet lalu muat ulang halaman.",true);b.disabled=false;return;}
+      var wb=XLSX.utils.book_new();
+      var a1=[["Kode Barang","Nama Barang","Qty Keluar","Nama Proyek","No PPBJ","No BPB","Dari Bekas","Dari Moka","Dari Accurate","Di luar stok"]].concat((x.keluar||[]).map(function(g){return [g.kode,g.nama,g.qty,g.proyek,g.ppbj,g.bpb,g.bekas,g.moka,g.accurate,g.lain];}));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a1),"Barang Keluar");
+      var a2=[["Kode Barang","Nama Barang","Qty Masuk (pengembalian)","Nama Proyek","No PPBJ","No BPK"]].concat((x.masuk||[]).map(function(g){return [g.kode,g.nama,g.qty,g.proyek,g.ppbj,g.bpk];}));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a2),"Pengembalian Masuk");
+      var a3=[["Kode Barang","Nama Barang","Qty Kurang (selisih opname)","Sumber"]].concat((x.kurang||[]).map(function(g){return [g.kode,g.nama,g.qty,g.sumber];}));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a3),"Selisih Opname Kurang");
+      XLSX.writeFile(wb,"barang_keluar_"+d+"_sd_"+e+".xlsx");
+      toast("Unduhan siap: "+(x.keluar||[]).length+" baris barang keluar, "+(x.masuk||[]).length+" pengembalian, "+(x.kurang||[]).length+" barang kurang opname.");
+    }catch(er){toast("Gagal terhubung ke server.",true);}
+    b.disabled=false;};
   document.getElementById("lxl").onclick=function(){
     var wb=XLSX.utils.book_new();
     var s1=[["Departemen","No PPBJ / Proyek","Keterangan Proyek","Baris","Qty Bekas (tidak dinilai)","Nilai (Moka+Accurate)","Baris tanpa harga"]].concat(rows.map(function(x){return [x.dept,x.ppbj,x.proyek,x.baris,x.bekas,x.nilai,x.tanpaHarga];}));

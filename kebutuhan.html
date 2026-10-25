@@ -53,7 +53,7 @@ function rp(n){return n==null?"":"Rp "+Math.round(n).toLocaleString("id-ID");}
 var PINADM="";try{PINADM=sessionStorage.getItem("sctk_admin")||"";}catch(e){}
 async function api(b){b.kode=KODE;if(PINADM&&!KODE)b.pin=PINADM;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
 function loginView(msg){
-  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Kode akses PIC / atasan</b></p><input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode PIC"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
+  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Kode akses PIC / atasan / gudang</b></p><input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode PIC"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
   var i=document.getElementById("kd");i.focus();i.onkeydown=function(e){if(e.key==="Enter")masuk();};document.getElementById("go").onclick=masuk;
 }
 async function masuk(){
@@ -66,9 +66,9 @@ function baru(){return {ppbj:"",nama:"",rows:[],file:""};}
 /* ---------- input ---------- */
 function gambarForm(){
   var opt='<option value="">(RAB baru / belum terdaftar)</option>'+PROY.map(function(p){return '<option value="'+esc(p.ppbj)+'">'+esc(p.ppbj)+' - '+esc(p.ket)+'</option>';}).join("");
-  app.innerHTML='<div class="card"><b>Langkah 1. Siapkan proyek</b><div class="note">Satu blok per proyek. Urutan blok = prioritas stok: proyek paling atas mendapat stok lebih dulu. Excel berisi kolom <b>Kode Barang</b>, Nama Barang (opsional), dan <b>Qty</b>. <a href="#" id="contoh">Unduh contoh Excel</a></div></div>'+
+  app.innerHTML='<div class="card"><b>Langkah 1. Siapkan proyek</b><div class="note">Satu blok per proyek. Urutan blok = prioritas stok: proyek paling atas mendapat stok lebih dulu. Excel berisi kolom <b>Kode Barang</b>, Nama Barang (opsional), dan <b>Qty</b>. Kebutuhan yang sudah disimpan per No PPBJ bisa diambil dengan tombol di tiap proyek. <a href="#" id="contoh">Unduh contoh Excel</a></div></div>'+
    BL.map(function(b,i){
-     return '<div class="card blk"><h3>Proyek '+(i+1)+'</h3><div class="fr"><select data-p="'+i+'">'+opt+'</select><input type="text" data-n="'+i+'" placeholder="Nama proyek" value="'+esc(b.nama)+'" style="flex:1;min-width:180px"></div>'+
+     return '<div class="card blk"><h3>Proyek '+(i+1)+'</h3><div class="fr"><select data-p="'+i+'">'+opt+'</select><button class="gh" data-kb="'+i+'" title="Isi daftar barang dari kebutuhan proyek yang tersimpan">Ambil kebutuhan tersimpan</button><input type="text" data-n="'+i+'" placeholder="Nama proyek" value="'+esc(b.nama)+'" style="flex:1;min-width:180px"></div>'+
       '<div class="fr"><input type="file" data-f="'+i+'" accept=".xlsx,.xls,.csv"><span class="note" id="fi'+i+'">'+(b.file?esc(b.file)+': diunggah':'Excel boleh dilewati, barang bisa ditambah lewat pencarian')+'</span></div>'+
       '<div class="fr"><input type="search" data-s="'+i+'" placeholder="Cari nama atau kode barang untuk ditambahkan..." autocomplete="off" style="flex:1;min-width:220px"></div><div class="sres" id="sr'+i+'"></div><div id="rb'+i+'"></div>'+
       '<div class="fr"><button class="gh" data-up="'+i+'"'+(i?'':' disabled')+'>&uarr; Naik</button><button class="gh" data-dn="'+i+'"'+(i<BL.length-1?'':' disabled')+'>&darr; Turun</button><button class="gh" data-rm="'+i+'"'+(BL.length>1?'':' disabled')+'>Hapus</button></div></div>';
@@ -76,6 +76,16 @@ function gambarForm(){
    '<div class="fr"><button class="gh" id="tmb"'+(BL.length>=8?" disabled":"")+'>+ Tambah proyek</button><button class="gold" id="hit">Hitung kebutuhan</button></div>';
   BL.forEach(function(b,i){app.querySelector('[data-p="'+i+'"]').value=b.ppbj;});
   app.querySelectorAll("[data-p]").forEach(function(s){s.onchange=function(){var i=Number(s.getAttribute("data-p"));BL[i].ppbj=s.value;var p=PROY.filter(function(x){return x.ppbj===s.value;})[0];if(p&&!BL[i].nama){BL[i].nama=p.ket||p.ppbj;app.querySelector('[data-n="'+i+'"]').value=BL[i].nama;}};});
+  app.querySelectorAll("[data-kb]").forEach(function(b){b.onclick=async function(){
+    var i=Number(b.getAttribute("data-kb")),pp=BL[i].ppbj;if(!pp){toast("Pilih proyek (No PPBJ) dulu.",true);return;}
+    if(BL[i].rows.length&&!confirm("Daftar barang proyek ini diganti dengan kebutuhan tersimpan?"))return;
+    b.disabled=true;
+    try{var r=await api({action:"kbGet",ppbj:pp});
+      if(!r.ok){toast(r.msg||"Gagal.",true);}
+      else if(!r.items.length){toast("PPBJ "+pp+" belum punya kebutuhan tersimpan. Isi lewat menu Kebutuhan dan Cek PPBJ, atau unggah Excel.",true);}
+      else{BL[i].rows=r.items.map(function(x){return {kode:x.kode,nama:x.nama,satuan:x.satuan,qty:String(x.qty).replace(".",",")};});if(!BL[i].nama){BL[i].nama=r.nama||pp;app.querySelector('[data-n="'+i+'"]').value=BL[i].nama;}renderRows(i);toast(r.items.length+" barang dimuat dari kebutuhan tersimpan.");}
+    }catch(e){toast("Gagal terhubung ke server.",true);}
+    b.disabled=false;};});
   app.querySelectorAll("[data-n]").forEach(function(s){s.oninput=function(){BL[Number(s.getAttribute("data-n"))].nama=s.value;};});
   app.querySelectorAll("[data-f]").forEach(function(f){f.onchange=function(){var i=Number(f.getAttribute("data-f"));if(f.files[0])bacaFile(f.files[0],i);};});
   app.querySelectorAll("[data-up]").forEach(function(b){b.onclick=function(){var i=Number(b.getAttribute("data-up"));var t=BL[i];BL[i]=BL[i-1];BL[i-1]=t;gambarForm();};});

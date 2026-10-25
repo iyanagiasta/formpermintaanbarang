@@ -64,7 +64,7 @@ td small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 <div class="wrap" id="app"></div>
 <div id="toast"></div>
 <script>
-var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+var API_URL="https://script.google.com/macros/s/AKfycbzXp_XiGCv7iwzZSnedOZuIi3U58ByDkk4GhSMnckc4vsvEdzAj5xcSimLDexSqrzcs0A/exec";
 var TAB="pantau",STOK=[],SUMB=["Bekas","Moka","Accurate"],PRO=[],PST=[],PIN="",MODE="belum",DATA=[],BUSY=false,SEMUA=false;
 var app=document.getElementById("app");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
@@ -93,7 +93,7 @@ async function load(first){
     if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
     DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
     var h=(location.hash||"").replace("#","");
-    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan"].indexOf(h)>=0){goTab(h);return;}
+    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem"].indexOf(h)>=0){goTab(h);return;}
     draw(r.now);
   }catch(e){
     if(first)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");else toast("Gagal terhubung ke server.",true);
@@ -184,14 +184,14 @@ async function onAct(b){
 function pane(){return document.getElementById("pane")||app;}
 function tabsUI(){
   if(!document.getElementById("pane"))app.innerHTML='<div class="tabs" id="tabs"></div><div id="pane"></div>';
-  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["laporan","Laporan"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
+  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["laporan","Laporan"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
   document.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){goTab(b.getAttribute("data-tab"));};});
 }
 function goTab(t){
   TAB=t;
   if(t==="pantau"){load(false);return;}
   tabsUI();
-  if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();
+  if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="sistem")loadSistem();
   try{history.replaceState(null,"","#"+t);}catch(e){}
 }
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
@@ -253,6 +253,9 @@ function drawStok(total,q,hs){
    '<div class="fr"><select id="us">'+opt+'</select><input type="file" id="uf" accept=".xlsx,.xls,.csv">'+
    '<label><input type="checkbox" id="unol"> Nolkan barang yang tidak ada di file</label><label><input type="checkbox" id="utb"> Tambahkan kode baru ke sheet Barang</label></div>'+
    '<div class="fr"><button class="sv" id="ugo" disabled>Unggah stok</button><span class="note" id="uinfo"></span></div></div>'+
+   '<div class="card" style="border-color:var(--gold)"><b>Impor awal dari Excel Stock Opname (sekali saja)</b><div class="note">File: sheet <b>Data Stock Opname</b> (Kode Rak, Gudang, Kode Barang, Nama Barang, Satuan, Stock Accurate, Stock Moka, Hasil Stock Opname, Status Hitung). Stok dasar Moka dan Accurate diisi, lalu hasil hitung yang berstatus Sudah diterapkan. Rak dan gudang dikirim ke Cari Barang. <b>Uji dulu dengan 5 baris.</b> Jangan unggah stok Moka/Accurate lain selama opname.</div>'+
+   '<div class="fr"><input type="file" id="xf" accept=".xlsx,.xls"><label>Hanya <input type="number" id="xn" min="0" value="5" style="width:70px"> baris pertama (0 = semua)</label></div>'+
+   '<div class="fr"><button class="sv" id="xgo" disabled>Jalankan impor</button><span class="note" id="xinfo"></span></div></div>'+
    '<div class="card"><b>Unggah harga satuan</b><div class="note">Kolom: Kode Barang, Harga. Satu harga per barang (berlaku untuk Moka dan Accurate).</div>'+
    '<div class="fr"><input type="file" id="hf" accept=".xlsx,.xls,.csv"><button class="sv" id="hgo" disabled>Unggah harga</button><span class="note" id="hinfo"></span></div></div>'+
    '<div class="card"><b>Sinkron ke aplikasi Cari Barang</b><div class="note">Stok (Moka + Accurate) dikirim otomatis setiap berubah. Tekan tombol ini bila ingin memastikan.</div><div class="fr"><button class="gh" id="sink">Sinkron sekarang</button></div></div>'+
@@ -274,6 +277,55 @@ function drawStok(total,q,hs){
   document.getElementById("hgo").onclick=async function(){
     if(!confirm("Unggah "+H.length+" harga satuan?"))return;
     await kirimAdmin(this,{action:"adminHarga",rows:H},loadStok);
+  };
+  var XR=null;
+  document.getElementById("xf").onchange=function(){
+    var f=this.files[0];if(!f)return;
+    if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat.",true);return;}
+    var fr=new FileReader();
+    fr.onload=function(ev){try{
+      var wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"}),ws=wb.Sheets["Data Stock Opname"];
+      if(!ws){toast("Sheet 'Data Stock Opname' tidak ditemukan di file ini.",true);return;}
+      var a=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true}),hd=a[0].map(function(x){return String(x).trim().toLowerCase();});
+      function c(n){return hd.indexOf(n);}
+      var m={rak:c("kode rak"),gud:c("gudang"),kode:c("kode barang"),nama:c("nama barang"),sat:c("satuan"),acc:c("stock accurate"),moka:c("stock moka"),hit:c("hasil stock opname"),st:c("status hitung")};
+      for(var k in m)if(m[k]<0){toast("Kolom '"+k+"' tidak ditemukan di baris judul.",true);return;}
+      function t(v){return String(v==null?"":v).trim();}
+      function num(v){var n=Number(String(v).replace(",","."));return isFinite(n)?n:0;}
+      XR=[];
+      for(var i=1;i<a.length;i++){var r=a[i],kd=t(r[m.kode]);if(!kd)continue;
+        var moka=num(r[m.moka]),acc=num(r[m.acc]);
+        XR.push({kode:kd,nama:t(r[m.nama]),satuan:t(r[m.sat]),rak:t(r[m.rak]),gudang:t(r[m.gud]),moka:moka,acc:acc,hitung:num(r[m.hit]),sudah:/^sudah$/i.test(t(r[m.st]))});}
+      var sd=XR.filter(function(x){return x.sudah;}).length;
+      document.getElementById("xinfo").textContent=XR.length+" barang terbaca, "+sd+" sudah dihitung, "+(XR.length-sd)+" belum.";
+      document.getElementById("xgo").disabled=!XR.length;
+    }catch(e){toast("File tidak bisa dibaca.",true);}};
+    fr.readAsArrayBuffer(f);
+  };
+  document.getElementById("xgo").onclick=async function(){
+    var n=Number(document.getElementById("xn").value)||0,D=n>0?XR.slice(0,n):XR,btn=this,info=document.getElementById("xinfo");
+    if(!confirm("Impor "+D.length+" barang dari Excel?\nStok Moka dan Accurate akan diisi sesuai file, lalu hasil hitung diterapkan."))return;
+    if(BUSY)return;BUSY=true;btn.disabled=true;
+    var SID="XLS-20261021",SNM="Opname Excel 21-10-2026",gagal=null;
+    async function kirim(body,rows,tahap){
+      for(var i=0;i<rows.length;i+=300){
+        info.textContent=tahap+" "+Math.min(i+300,rows.length)+" / "+rows.length+"...";
+        var b=Object.assign({},body,{rows:rows.slice(i,i+300)}),r=await api(b);
+        if(!r.ok){gagal=tahap+": "+(r.msg||"gagal");return false;}
+      }
+      return true;
+    }
+    try{
+      var ok=await kirim({action:"adminStokImport",sumber:"Moka",tambahBarang:true,tanpaSinkron:true,ket:"Impor awal Excel opname"},D.map(function(x){return {kode:x.kode,nama:x.nama,satuan:x.satuan,qty:x.moka};}),"Stok Moka");
+      if(ok)ok=await kirim({action:"adminStokImport",sumber:"Accurate",tambahBarang:true,tanpaSinkron:true,ket:"Impor awal Excel opname"},D.map(function(x){return {kode:x.kode,nama:x.nama,satuan:x.satuan,qty:x.acc};}),"Stok Accurate");
+      var S=D.filter(function(x){return x.sudah;});
+      if(ok&&S.length)ok=await kirim({action:"adminImporOpname",sesiId:SID,sesiNama:SNM,tanpaSinkron:true},S.map(function(x){return {kode:x.kode,nama:x.nama,satuan:x.satuan,rak:x.rak,hitung:x.hitung};}),"Hasil hitung");
+      if(ok)ok=await kirim({action:"adminImporCari",sesiId:SID,sesiNama:SNM,keterangan:"Impor Excel"},D.map(function(x){return {kode:x.kode,nama:x.nama,rak:x.rak,gudang:x.gudang,snapshot:x.moka+x.acc,hitung:x.hitung,dihitung:x.sudah};}),"Cari Barang");
+      if(ok){info.textContent="Menyinkronkan stok...";await api({action:"adminSinkron"});}
+    }catch(e){gagal="Gagal terhubung ke server.";}
+    BUSY=false;btn.disabled=false;
+    if(gagal){info.textContent="";toast("Berhenti di "+gagal+" Aman diulang: data yang sudah masuk tidak ganda.",true);}
+    else{info.textContent="Selesai: "+D.length+" barang diimpor.";toast("Impor selesai.");loadStok();}
   };
   document.getElementById("sink").onclick=function(){kirimAdmin(this,{action:"adminSinkron"},null);};
   document.getElementById("scari").onclick=loadStok;
@@ -415,6 +467,29 @@ function drawMutasi(r,dari,sampai,q,jn){
 
 /* ---- tab Laporan pemakaian ---- */
 var LAP=null;
+async function loadSistem(){
+  pane().innerHTML='<div class="card msg">Memuat...</div>';
+  try{
+    var r=await api({action:"adminSistem"});
+    if(!r.ok){pane().innerHTML='<div class="card msg">'+esc(r.msg||"Gagal memuat.")+'</div>';return;}
+    var kuotaBuruk=r.kuota>=0&&r.kuota<20,cadBuruk=/GAGAL|belum/i.test(r.cadangan||"");
+    var adm=(r.admin||[]).map(function(a){return '<li>'+esc(a.nama||"(tanpa nama)")+' <span style="color:var(--mut)">- '+(a.aktif?"aktif":"nonaktif")+'</span></li>';}).join("")||'<li style="color:var(--mut)">Belum ada admin di sheet Admin. Kode admin cadangan masih dipakai.</li>';
+    pane().innerHTML='<div class="card"><h3 style="margin-top:0">Status sistem</h3>'+
+     '<p>Versi kode: <b>'+esc(r.versi)+'</b></p>'+
+     '<p>Sisa kuota email hari ini: <b style="color:'+(kuotaBuruk?"#c0392b":"inherit")+'">'+(r.kuota>=0?r.kuota:"tidak diketahui")+'</b>'+(kuotaBuruk?' <span class="err">Hampir habis, email persetujuan bisa tertunda.</span>':'')+'</p>'+
+     '<p>Cadangan terakhir: <b style="color:'+(cadBuruk?"#c0392b":"inherit")+'">'+esc(r.cadangan)+'</b><br><span style="color:var(--mut);font-size:12px">Pemicu cadangan harian: '+(r.pemicuCadangan?"terpasang":"BELUM terpasang (jalankan pasangPemicuCadangan di editor Apps Script)")+'</span></p>'+
+     '<p>Sinkron terakhir ke Cari Barang: <b>'+esc(r.sinkron)+'</b></p>'+
+     '<button id="cad">Cadangkan sekarang</button></div>'+
+     '<div class="card" style="margin-top:12px"><h3 style="margin-top:0">Admin</h3><ul style="margin:0 0 8px 18px;padding:0">'+adm+'</ul>'+
+     '<p style="color:var(--mut);font-size:12px;margin:0">Tambah atau nonaktifkan admin langsung di sheet <b>Admin</b> (kolom Nama, PIN, Aktif). Nama admin tercatat di Mutasi.</p></div>';
+    document.getElementById("cad").onclick=async function(){
+      var b=this;b.disabled=true;
+      try{var x=await api({action:"adminCadangan"});toast(x.msg||(x.ok?"Cadangan dibuat.":"Gagal."),!x.ok);if(x.ok)loadSistem();}
+      catch(e){toast("Gagal terhubung ke server.",true);}
+      b.disabled=false;
+    };
+  }catch(e){pane().innerHTML='<div class="card msg">Gagal terhubung ke server.</div>';}
+}
 async function loadLaporan(){
   var dari=(document.getElementById("ld")||{}).value,sampai=(document.getElementById("ls")||{}).value;
   if(dari===undefined){var t=new Date(),a=new Date(t.getFullYear(),t.getMonth(),1);dari=tglIso(a);sampai=tglIso(t);}

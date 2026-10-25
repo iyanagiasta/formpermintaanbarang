@@ -35,26 +35,28 @@ td small{display:block;color:var(--mut);font-size:11px}.nm{text-align:right;whit
 tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 .tag{display:inline-block;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700}.tag.w{background:#fff3cd;color:#7a5b00}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0a2a43;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:#c0392b}
+.top{position:relative}.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#e3c98f;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:none;border:1px solid rgba(227,201,143,.55);border-radius:8px;padding:7px 11px;letter-spacing:0}.homebtn:hover,.homebtn:focus-visible{background:rgba(255,255,255,.12);outline:none}@media (max-width:640px){.top{padding-top:50px}.homebtn{top:10px;transform:none}}
 </style>
 </head>
 <body>
-<div class="top"><h1>CEK KEBUTUHAN PROYEK</h1><div>RAB: PAKAI STOK ATAU BELI</div></div>
+<div class="top"><a class="homebtn" href="dashboard.html">&larr; Halaman Utama</a><h1>CEK KEBUTUHAN PROYEK</h1><div>RAB: PAKAI STOK ATAU BELI</div></div>
 <div class="wrap" id="app"></div><div id="toast"></div>
 <script>
-var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+var API_URL="https://script.google.com/macros/s/AKfycbzXp_XiGCv7iwzZSnedOZuIi3U58ByDkk4GhSMnckc4vsvEdzAj5xcSimLDexSqrzcs0A/exec";
 var KODE="",PROY=[],BL=[],HAS=null,TAB=0,BUSY=false,app=document.getElementById("app");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},5000);}
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
 function rp(n){return n==null?"":"Rp "+Math.round(n).toLocaleString("id-ID");}
-async function api(b){b.kode=KODE;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+var PINADM="";try{PINADM=sessionStorage.getItem("sctk_admin")||"";}catch(e){}
+async function api(b){b.kode=KODE;if(PINADM&&!KODE)b.pin=PINADM;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
 function loginView(msg){
-  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Kode akses pegawai</b></p><input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode pegawai"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
+  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Kode akses PIC / atasan</b></p><input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode PIC"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
   var i=document.getElementById("kd");i.focus();i.onkeydown=function(e){if(e.key==="Enter")masuk();};document.getElementById("go").onclick=masuk;
 }
 async function masuk(){
   var v=document.getElementById("kd").value.trim();if(!v)return;KODE=v;document.getElementById("go").disabled=true;
-  try{var r=await api({action:"proyek"});if(!r.ok){KODE="";loginView(r.msg||"Kode salah.");return;}PROY=r.data||[];try{localStorage.setItem("sctk_kode",KODE)}catch(e){}start();}
+  try{var r=await api({action:"proyekPic"});if(!r.ok){KODE="";loginView(r.msg||"Kode salah.");return;}PROY=r.data||[];try{localStorage.setItem("sctk_pic",KODE)}catch(e){}start();}
   catch(e){KODE="";loginView("Gagal terhubung ke server.");}
 }
 function start(){if(!BL.length)BL.push(baru());HAS=null;gambarForm();}
@@ -166,8 +168,8 @@ function unduhExcel(){
 }
 (function(){
   if(API_URL.indexOf("PASTE_")===0){app.innerHTML='<div class="card msg err">API_URL belum diisi.</div>';return;}
-  var k="";try{k=localStorage.getItem("sctk_kode")||"";}catch(e){}
-  if(k){KODE=k;api({action:"proyek"}).then(function(r){if(r.ok){PROY=r.data||[];start();}else{KODE="";loginView("");}}).catch(function(){KODE="";loginView("");});}
+  var k="";try{k=localStorage.getItem("sctk_pic")||"";}catch(e){}
+  if(k||PINADM){KODE=k;api({action:"proyekPic"}).then(function(r){if(r.ok){PROY=r.data||[];start();}else{KODE="";PINADM="";try{localStorage.removeItem("sctk_pic");sessionStorage.removeItem("sctk_admin")}catch(e){}loginView("");}}).catch(function(){KODE="";loginView("");});}
   else loginView("");
 })();
 </script>

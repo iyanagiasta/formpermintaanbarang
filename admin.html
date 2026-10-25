@@ -93,7 +93,7 @@ async function load(first){
     if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
     DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
     var h=(location.hash||"").replace("#","");
-    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem","pengumuman","terima"].indexOf(h)>=0){goTab(h);return;}
+    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem","pengumuman","terima","pengajuan"].indexOf(h)>=0){goTab(h);return;}
     draw(r.now);
   }catch(e){
     if(first)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");else toast("Gagal terhubung ke server.",true);
@@ -184,14 +184,14 @@ async function onAct(b){
 function pane(){return document.getElementById("pane")||app;}
 function tabsUI(){
   if(!document.getElementById("pane"))app.innerHTML='<div class="tabs" id="tabs"></div><div id="pane"></div>';
-  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["laporan","Laporan"],["terima","Terima Barang"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
+  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["laporan","Laporan"],["terima","Terima Barang"],["pengajuan","Pengajuan"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
   document.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){goTab(b.getAttribute("data-tab"));};});
 }
 function goTab(t){
   TAB=t;
   if(t==="pantau"){load(false);return;}
   tabsUI();
-  if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();
+  if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
   try{history.replaceState(null,"","#"+t);}catch(e){}
 }
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
@@ -502,6 +502,24 @@ function drawMutasi(r,dari,sampai,q,jn){
 /* ---- tab Laporan pemakaian ---- */
 var LAP=null;
 var KMB=[],KFIL="siap";
+var PGJL=[],PGF="aktif";
+async function loadPengajuan(){
+  pane().innerHTML='<div class="card msg">Memuat...</div>';
+  try{var r=await api({action:"adminPgjList"});if(!r.ok){pane().innerHTML='<div class="card msg">'+esc(r.msg||"Gagal memuat.")+'</div>';return;}PGJL=r.data||[];drawPengajuan();}
+  catch(e){pane().innerHTML='<div class="card msg">Gagal terhubung ke server.</div>';}
+}
+function drawPengajuan(){
+  var ak=PGJL.filter(function(x){return x.aktif;}),sl=PGJL.filter(function(x){return !x.aktif;}),L=PGF==="aktif"?ak:sl;
+  pane().innerHTML='<div class="bar"><button class="chip'+(PGF==="aktif"?" on":"")+'" data-pf="aktif">Menunggu persetujuan ('+ak.length+')</button><button class="chip'+(PGF==="selesai"?" on":"")+'" data-pf="selesai">Selesai / ditolak ('+sl.length+')</button><button class="gh" id="pref">Segarkan</button></div>'+
+   '<div class="note">Pengajuan kebutuhan proyek (PDF dan lampiran). Lampiran dan PDF final tersimpan di Google Drive. Penyetuju berurutan: Bagian Gudang, Bagian Pengadaan, Atasan Langsung, lalu penyetuju akhir (aturan di sheet AturanTTD).</div>'+
+   (L.length?'<table><thead><tr><th>Nomor</th><th>Proyek</th><th>Pengaju</th><th>Status</th><th>Menunggu</th><th></th></tr></thead><tbody>'+L.map(function(x){return '<tr><td data-l="Nomor"><b>'+esc(x.nomor)+'</b><small>'+esc(x.waktu)+'</small></td><td data-l="Proyek">'+esc(x.proyek)+'<small>'+esc(x.ppbj||"")+'</small></td><td data-l="Pengaju">'+esc(x.pengaju)+'<small>'+esc(x.dept)+'</small></td><td data-l="Status">'+esc(x.status)+'</td><td data-l="Menunggu">'+esc(x.menunggu||"")+'</td><td>'+
+     (x.aktif?'<button class="gh" data-pr="'+esc(x.id)+'">Ingatkan</button> ':'')+'<a href="'+esc(x.cetak)+'" target="_blank" rel="noopener">PDF</a>'+(x.folder?' · <a href="'+esc(x.folder)+'" target="_blank" rel="noopener">Drive</a>':'')+'</td></tr>';}).join("")+'</tbody></table>':'<div class="card msg">Tidak ada pengajuan.</div>');
+  Array.prototype.forEach.call(document.querySelectorAll("[data-pf]"),function(b){b.onclick=function(){PGF=b.getAttribute("data-pf");drawPengajuan();};});
+  document.getElementById("pref").onclick=loadPengajuan;
+  Array.prototype.forEach.call(document.querySelectorAll("[data-pr]"),function(b){b.onclick=function(){
+    if(!confirm("Kirim pengingat email ke penyetuju saat ini? Tautan lama diganti."))return;
+    kirimAdmin(b,{action:"adminPgjRemind",id:b.getAttribute("data-pr")},loadPengajuan);};});
+}
 async function loadTerima(){
   pane().innerHTML='<div class="card msg">Memuat...</div>';
   try{

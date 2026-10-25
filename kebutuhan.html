@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="pdfpengajuan.js"></script>
 <title>Cek Kebutuhan Proyek - Gudang SCTK</title>
 <style>
 .sres{display:grid;gap:4px;margin:4px 0}.hs{display:block;text-align:left;width:100%;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;cursor:pointer}.hs:hover,.hs:focus-visible{border-color:var(--gold);outline:none}.hs small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
@@ -38,6 +40,8 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 .tag{display:inline-block;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700}.tag.w{background:#fff3cd;color:#7a5b00}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0a2a43;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:#c0392b}
 .top{position:relative}.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#e3c98f;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:none;border:1px solid rgba(227,201,143,.55);border-radius:8px;padding:7px 11px;letter-spacing:0}.homebtn:hover,.homebtn:focus-visible{background:rgba(255,255,255,.12);outline:none}@media (max-width:640px){.top{padding-top:50px}.homebtn{top:10px;transform:none}}
+.at{display:flex;gap:8px;align-items:center;padding:7px 9px;border-top:1px solid var(--line)}.at:first-child{border-top:0}.at>span{flex:1;min-width:0;word-break:break-all}.at small{color:var(--mut)}
+.pgf{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:8px 0}.pgf label{display:block;font-size:12px;color:var(--mut)}.pgf input{width:100%}
 </style>
 </head>
 <body>
@@ -162,7 +166,7 @@ function payload(){return BL.filter(function(b){return b.rows.length;}).map(func
 async function hitung(){
   if(BUSY)return;var p=payload();if(!p.length){toast("Unggah Excel kebutuhan minimal untuk satu proyek.",true);return;}
   BUSY=true;var b=document.getElementById("hit");b.disabled=true;b.textContent="Menghitung...";
-  try{var r=await api({action:"kebutuhan",proyek:p});if(!r.ok){toast(r.msg||"Gagal menghitung.",true);}else{HAS=r;HAS.input=p;TAB=0;tampil();}}
+  try{var r=await api({action:"kebutuhan",proyek:p});if(!r.ok){toast(r.msg||"Gagal menghitung.",true);}else{HAS=r;HAS.input=p;TAB=0;tampil();pengajuan();}}
   catch(e){toast("Gagal terhubung ke server.",true);}
   BUSY=false;b.disabled=false;b.textContent="Hitung kebutuhan";
 }
@@ -210,6 +214,90 @@ function unduhExcel(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(gab),"Gabungan");
   r.proyek.forEach(function(p,i){var a=[head()];p.rows.forEach(function(x){a.push(baris(x));});XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),String(i+1)+" "+p.nama.replace(/[\[\]:*?\/\\]/g," ").slice(0,26));});
   XLSX.writeFile(wb,"kebutuhan-proyek-"+new Date().toISOString().slice(0,10)+".xlsx");
+}
+
+/* ---------- pengajuan: PDF bergaya Bukti Pengambilan + lampiran digabung + ajukan lewat email ---------- */
+var ATT=[],PGJ={pengaju:"",dept:"",email:"",tgl:"",perihal:""},LAST_PG=null;
+try{var sv=JSON.parse(localStorage.getItem("sctk_pgj")||"{}");PGJ.pengaju=sv.pengaju||"";PGJ.dept=sv.dept||"";PGJ.email=sv.email||"";}catch(e){}
+function pengajuan(){
+  var box=document.getElementById("pgj");if(!box){box=document.createElement("div");box.id="pgj";app.appendChild(box);}
+  if(!PGJ.tgl){var _n=new Date(),_p=function(x){return String(x).padStart(2,"0");};PGJ.tgl=_n.getFullYear()+"-"+_p(_n.getMonth()+1)+"-"+_p(_n.getDate());}
+  box.innerHTML='<h2 style="font-size:15px;margin:22px 0 0">Pengajuan (PDF dan persetujuan email)</h2><div class="card"><div class="note">Hasil di atas dijadikan PDF pengajuan bergaya sama dengan Bukti Pengambilan Barang, lengkap kolom tanda tangan (Diajukan Oleh, Bagian Gudang, Bagian Pengadaan, lalu Disetujui Oleh). <b>Tambahkan lampiran dulu</b>, lalu unduh PDF gabungan atau <b>ajukan lewat email</b> agar disetujui dan ditandatangani otomatis oleh masing-masing pihak.</div>'+
+   '<div class="pgf"><div><label>Yang mengajukan (nama)</label><input type="text" id="pg_n" value="'+esc(PGJ.pengaju)+'"></div><div><label>Departemen (RM, Produksi, Gudang, Sales, Distribusi)</label><input type="text" id="pg_d" value="'+esc(PGJ.dept)+'"></div><div><label>Email pengaju (untuk kabar persetujuan)</label><input type="text" id="pg_e" value="'+esc(PGJ.email)+'"></div><div><label>Tanggal</label><input type="date" id="pg_t" value="'+esc(PGJ.tgl)+'"></div></div>'+
+   '<div class="pgf"><div style="grid-column:1/-1"><label>Perihal / keterangan (opsional)</label><input type="text" id="pg_p" value="'+esc(PGJ.perihal)+'" placeholder="mis. Pengajuan kebutuhan material proyek Pompa Utara"></div></div>'+
+   '<div class="fr"><b>Lampiran</b><input type="file" id="pg_f" accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf" multiple><span class="note">PDF dan foto (JPG, PNG). Excel/Word: ubah ke PDF dulu. Bisa menambah berkali-kali.</span></div><div id="pg_l"></div>'+
+   '<div class="fr"><button class="gh" id="pg_x">Unduh PDF gabungan</button><button class="sv" id="pg_a">Ajukan lewat email</button><span class="note" id="pg_i"></span></div><div class="note" id="pg_r"></div></div>'+
+   '<h2 style="font-size:15px;margin:18px 0 0">Pengajuan terbaru</h2><div id="pg_h" class="card note">Memuat...</div>';
+  var m={pg_n:"pengaju",pg_d:"dept",pg_e:"email",pg_t:"tgl",pg_p:"perihal"};Object.keys(m).forEach(function(id){document.getElementById(id).oninput=function(){PGJ[m[id]]=this.value;};});
+  document.getElementById("pg_f").onchange=function(){tambahAtt(this.files);this.value="";};
+  document.getElementById("pg_x").onclick=function(){buatDokumen(false);};
+  document.getElementById("pg_a").onclick=function(){buatDokumen(true);};
+  gambarAtt();riwayatPgj();
+}
+async function riwayatPgj(){
+  var b=document.getElementById("pg_h");if(!b)return;
+  try{var r=await api({action:"pgjList"});if(!r.ok){b.textContent=r.msg||"";return;}
+    b.className="card";b.innerHTML=r.data.length?'<div class="tw"><table><thead><tr><th>Nomor</th><th>Proyek</th><th>Pengaju</th><th>Status</th><th></th></tr></thead><tbody>'+r.data.slice(0,15).map(function(x){return '<tr><td><b>'+esc(x.nomor)+'</b><small>'+esc(x.waktu)+'</small></td><td>'+esc(x.proyek)+'<small>'+esc(x.ppbj)+'</small></td><td>'+esc(x.pengaju)+'<small>'+esc(x.dept)+'</small></td><td><span class="tag '+(x.status==="Disetujui"?"w":"w")+'" style="'+(x.status==="Disetujui"?"background:#dff3e4;color:#14612b":x.status==="Ditolak"?"background:#fde8e8;color:#8a1c28":"")+'">'+esc(x.status)+'</span></td><td><a href="'+esc(x.cetak)+'" target="_blank" rel="noopener">Buka / unduh</a></td></tr>';}).join("")+'</tbody></table></div>':'Belum ada pengajuan.';
+  }catch(e){b.textContent="";}
+}
+function ukuranTxt(n){return n>=1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB";}
+function tambahAtt(fl){
+  Array.prototype.forEach.call(fl,function(f){
+    var nm=f.name.toLowerCase(),pdf=f.type==="application/pdf"||/\.pdf$/.test(nm),img=/^image\//.test(f.type)||/\.(jpe?g|png|webp)$/.test(nm);
+    if(!pdf&&!img){toast(f.name+": hanya PDF atau foto (JPG/PNG). Ubah Excel/Word ke PDF dulu.",true);return;}
+    if(f.size>25*1048576){toast(f.name+" lebih dari 25 MB.",true);return;}
+    ATT.push({file:f,pdf:pdf});
+  });gambarAtt();
+}
+function gambarAtt(){
+  var b=document.getElementById("pg_l");if(!b)return;var tot=ATT.reduce(function(a,x){return a+x.file.size;},0);
+  b.innerHTML=ATT.length?'<div class="rw" style="max-height:220px">'+ATT.map(function(a,i){return '<div class="at"><span><b>'+(i+1)+'.</b> '+esc(a.file.name)+' <small>'+(a.pdf?"PDF":"Foto")+' · '+ukuranTxt(a.file.size)+'</small></span><button class="gh" data-au="'+i+'"'+(i?'':' disabled')+'>&uarr;</button><button class="gh" data-ad="'+i+'"'+(i<ATT.length-1?'':' disabled')+'>&darr;</button><button class="gh" data-ax="'+i+'">&times;</button></div>';}).join("")+'</div><div class="note">'+ATT.length+' lampiran, '+ukuranTxt(tot)+(tot>15*1048576?' <b class="err">(besar: pengajuan lewat email dibatasi sekitar 15 MB setelah digabung)</b>':'')+'. Urutan di sini = urutan di PDF.</div>':'';
+  b.querySelectorAll("[data-au]").forEach(function(x){x.onclick=function(){var i=Number(x.getAttribute("data-au")),t=ATT[i];ATT[i]=ATT[i-1];ATT[i-1]=t;gambarAtt();};});
+  b.querySelectorAll("[data-ad]").forEach(function(x){x.onclick=function(){var i=Number(x.getAttribute("data-ad")),t=ATT[i];ATT[i]=ATT[i+1];ATT[i+1]=t;gambarAtt();};});
+  b.querySelectorAll("[data-ax]").forEach(function(x){x.onclick=function(){ATT.splice(Number(x.getAttribute("data-ax")),1);gambarAtt();};});
+}
+async function gambarKeJpeg(file){
+  var bm;try{bm=await createImageBitmap(file);}catch(e){bm=await new Promise(function(res,rej){var im=new Image(),u=URL.createObjectURL(file);im.onload=function(){res(im);};im.onerror=function(){rej(new Error("gambar rusak"));};im.src=u;});}
+  var w=bm.width||bm.naturalWidth,h=bm.height||bm.naturalHeight,s=Math.min(1,1800/Math.max(w,h)),c=document.createElement("canvas");c.width=Math.max(1,Math.round(w*s));c.height=Math.max(1,Math.round(h*s));
+  var cx=c.getContext("2d");cx.fillStyle="#fff";cx.fillRect(0,0,c.width,c.height);cx.drawImage(bm,0,0,c.width,c.height);
+  var blob=await new Promise(function(res){c.toBlob(res,"image/jpeg",0.8);});return {bytes:await blob.arrayBuffer(),w:c.width,h:c.height};
+}
+function bytesKeB64(u8){var s="",CH=0x8000;for(var i=0;i<u8.length;i+=CH)s+=String.fromCharCode.apply(null,u8.subarray(i,i+CH));return btoa(s);}
+async function buatDokumen(ajukan){
+  if(!window.PDFLib||!window.PengajuanPdf){toast("Pustaka PDF belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
+  if(!HAS){toast("Hitung kebutuhan dulu.",true);return;}
+  if(BUSY)return;
+  PGJ.pengaju=document.getElementById("pg_n").value.trim();PGJ.dept=document.getElementById("pg_d").value.trim();PGJ.email=document.getElementById("pg_e").value.trim();PGJ.tgl=document.getElementById("pg_t").value;PGJ.perihal=document.getElementById("pg_p").value.trim();
+  if(!PGJ.pengaju){toast("Isi nama yang mengajukan.",true);return;}
+  if(ajukan){
+    if(!PGJ.dept){toast("Isi departemen pengaju.",true);return;}
+    if(PGJ.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(PGJ.email)){toast("Format email pengaju tidak valid.",true);return;}
+    if(!confirm("Kirim pengajuan ini ke Bagian Gudang lewat email untuk persetujuan?\n\nSetelah terkirim, isi kebutuhan tidak bisa diubah (buat pengajuan baru bila perlu)."))return;
+  }
+  try{localStorage.setItem("sctk_pgj",JSON.stringify({pengaju:PGJ.pengaju,dept:PGJ.dept,email:PGJ.email}));}catch(e){}
+  BUSY=true;var bx=document.getElementById("pg_x"),ba=document.getElementById("pg_a"),inf=document.getElementById("pg_i");bx.disabled=ba.disabled=true;
+  try{
+    var bundle=null;
+    if(ATT.length){inf.textContent="Menggabungkan lampiran...";
+      try{bundle=await PengajuanPdf.buatBundle(ATT,function(i,n){inf.textContent="Menggabungkan lampiran "+i+" dari "+n+"...";},gambarKeJpeg);}
+      catch(e){toast("Lampiran \""+(e.nama||"")+"\" tidak bisa digabung ("+e.message+"). Hapus atau ganti file itu.",true);inf.textContent="";BUSY=false;bx.disabled=ba.disabled=false;return;}}
+    var data={nomor:"",tgl:PGJ.tgl,pengaju:PGJ.pengaju,dept:PGJ.dept,perihal:PGJ.perihal,oto:HAS.oto,proyek:HAS.proyek};
+    if(ajukan){
+      if(bundle&&bundle.length>15*1048576){toast("Lampiran gabungan "+ukuranTxt(bundle.length)+" terlalu besar untuk diajukan (maksimal sekitar 15 MB). Kurangi atau kecilkan lampiran.",true);inf.textContent="";BUSY=false;bx.disabled=ba.disabled=false;return;}
+      inf.textContent="Mengirim pengajuan ke server...";
+      var r=await api({action:"pgjSubmit",proyek:HAS.input,pengaju:PGJ.pengaju,dept:PGJ.dept,email:PGJ.email,perihal:PGJ.perihal,tgl:PGJ.tgl,lampiran:bundle?bytesKeB64(bundle):"",lampiranNama:ATT.map(function(a){return a.file.name;})});
+      inf.textContent="";
+      if(!r.ok){toast(r.msg||"Gagal mengajukan.",true);document.getElementById("pg_r").innerHTML='<span class="err">'+esc(r.msg||"Gagal mengajukan.")+'</span>';}
+      else{LAST_PG=r;toast(r.msg);document.getElementById("pg_r").innerHTML='<b style="color:#1b8a3a">'+esc(r.msg)+'</b> Status dan PDF bertanda tangan bisa dilihat di daftar Pengajuan terbaru di bawah.';riwayatPgj();}
+    } else {
+      inf.textContent="Menyusun PDF...";
+      var bytes=await PengajuanPdf.buatPdf({data:data,ttd:[{nama:PGJ.pengaju},{},{},{},{}],status:"",lampiranNama:ATT.map(function(a){return a.file.name;}),lampiranBytes:bundle});
+      var blob=new Blob([bytes],{type:"application/pdf"}),nm="pengajuan-kebutuhan-"+(HAS.proyek.length===1&&HAS.proyek[0].ppbj?String(HAS.proyek[0].ppbj).replace(/[^\w-]+/g,"_")+"-":"")+PGJ.tgl+".pdf",a2=document.createElement("a");
+      a2.href=URL.createObjectURL(blob);a2.download=nm;document.body.appendChild(a2);a2.click();setTimeout(function(){URL.revokeObjectURL(a2.href);a2.remove();},1500);
+      inf.textContent="";toast("PDF siap ("+ukuranTxt(blob.size)+"). Ini versi draf tanpa tanda tangan; untuk persetujuan digital pakai Ajukan lewat email.");
+    }
+  }catch(e){toast("Gagal: "+(e&&e.message?e.message:"kesalahan tak dikenal"),true);inf.textContent="";}
+  BUSY=false;bx.disabled=ba.disabled=false;
 }
 (function(){
   if(API_URL.indexOf("PASTE_")===0){app.innerHTML='<div class="card msg err">API_URL belum diisi.</div>';return;}

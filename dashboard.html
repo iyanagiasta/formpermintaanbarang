@@ -46,6 +46,13 @@ input.t{width:100%;padding:12px;font:600 16px "Segoe UI",Roboto,Arial,sans-serif
 .tag{display:inline-block;margin-top:auto;align-self:flex-start;font-size:10px;font-weight:700;letter-spacing:1px;border-radius:20px;padding:3px 10px;background:var(--icbg);color:var(--ic)}
 .tag.a{background:#fff3cd;color:#7a5b00}
 @media (prefers-reduced-motion:reduce){.big{transition:none}}
+.pgm{margin:14px 0 0;display:grid;gap:10px}
+.pg{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--navy2);border-radius:12px;padding:12px 14px}
+.pg.pen{border-left-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.pg b{display:block;font:700 15px Georgia,serif}.pg.pen b:before{content:"\2605  ";color:var(--gold)}
+.pg p{margin:5px 0 0;color:var(--ink);font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.pg a{display:inline-block;margin-top:7px;font-weight:700;font-size:13px;color:var(--navy2)}
+.pg small{display:block;margin-top:6px;color:var(--mut);font-size:11px}
 .ov{position:fixed;inset:0;background:rgba(6,32,58,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
 .ov.on{display:flex}.dlg{background:var(--card);color:var(--ink);border-radius:16px;max-width:380px;width:100%;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.35);border-top:4px solid var(--gold)}
 .dlg h3{margin:0 0 4px;font:700 18px Georgia,serif}.dlg p{margin:0 0 12px;color:var(--mut);font-size:13px;line-height:1.45}
@@ -177,8 +184,20 @@ async function ringkasAdmin(pin){
     var box=document.getElementById("adm-box");if(box)box.innerHTML=h;
   }catch(e){}
 }
+function tglId(iso){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||"");return m?m[3]+"/"+m[2]+"/"+m[1]:"";}
+async function papan(){
+  try{
+    var r=await api({action:"pengumuman"});if(!r||!r.ok||!r.data||!r.data.length)return;
+    var box=document.getElementById("pgm");if(!box)return;
+    box.innerHTML=r.data.map(function(p){
+      var ext=/^https?:/i.test(p.tautan||"");
+      return '<div class="pg'+(p.penting?" pen":"")+'"><b>'+esc(p.judul)+'</b>'+(p.isi?'<p>'+esc(p.isi)+'</p>':'')+
+        (p.tautan?'<a href="'+esc(p.tautan)+'"'+(ext?' target="_blank" rel="noopener"':'')+'>Buka tautan &#8594;</a>':'')+
+        (p.berakhir?'<small>Berlaku sampai '+esc(tglId(p.berakhir))+'</small>':'')+'</div>';}).join("");
+  }catch(e){}
+}
 function tampilAwal(){
-  app.innerHTML=kartu()+'<div id="adm-box"></div>';pasangKartu();bar();
+  app.innerHTML='<div class="pgm" id="pgm" role="region" aria-label="Pengumuman"></div>'+kartu()+'<div id="adm-box"></div>';pasangKartu();bar();papan();
   var pin=st("sctk_admin",undefined,true);if(pin)ringkasAdmin(pin);
 }
 (function(){

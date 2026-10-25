@@ -7,6 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <title>Cek Kebutuhan Proyek - Gudang SCTK</title>
 <style>
+.sres{display:grid;gap:4px;margin:4px 0}.hs{display:block;text-align:left;width:100%;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;cursor:pointer}.hs:hover,.hs:focus-visible{border-color:var(--gold);outline:none}.hs small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.rw{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:9px;margin-top:4px}.rr{display:flex;gap:8px;align-items:center;padding:7px 9px;border-top:1px solid var(--line)}.rr:first-child{border-top:0}.rr>span{flex:1;min-width:0}.rr small{display:block;color:var(--mut);font-size:12px}.rr input{width:84px;padding:6px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--ink);text-align:right}
 :root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--beli:#fde8e8;--belit:#8a1c28}
 @media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--beli:#3a1d22;--belit:#f2b8bf}}
 *{box-sizing:border-box}
@@ -67,7 +69,8 @@ function gambarForm(){
   app.innerHTML='<div class="card"><b>Langkah 1. Siapkan proyek</b><div class="note">Satu blok per proyek. Urutan blok = prioritas stok: proyek paling atas mendapat stok lebih dulu. Excel berisi kolom <b>Kode Barang</b>, Nama Barang (opsional), dan <b>Qty</b>. <a href="#" id="contoh">Unduh contoh Excel</a></div></div>'+
    BL.map(function(b,i){
      return '<div class="card blk"><h3>Proyek '+(i+1)+'</h3><div class="fr"><select data-p="'+i+'">'+opt+'</select><input type="text" data-n="'+i+'" placeholder="Nama proyek" value="'+esc(b.nama)+'" style="flex:1;min-width:180px"></div>'+
-      '<div class="fr"><input type="file" data-f="'+i+'" accept=".xlsx,.xls,.csv"><span class="note" id="fi'+i+'">'+(b.rows.length?esc(b.file)+': '+b.rows.length+' baris':'Belum ada file')+'</span></div>'+
+      '<div class="fr"><input type="file" data-f="'+i+'" accept=".xlsx,.xls,.csv"><span class="note" id="fi'+i+'">'+(b.file?esc(b.file)+': diunggah':'Excel boleh dilewati, barang bisa ditambah lewat pencarian')+'</span></div>'+
+      '<div class="fr"><input type="search" data-s="'+i+'" placeholder="Cari nama atau kode barang untuk ditambahkan..." autocomplete="off" style="flex:1;min-width:220px"></div><div class="sres" id="sr'+i+'"></div><div id="rb'+i+'"></div>'+
       '<div class="fr"><button class="gh" data-up="'+i+'"'+(i?'':' disabled')+'>&uarr; Naik</button><button class="gh" data-dn="'+i+'"'+(i<BL.length-1?'':' disabled')+'>&darr; Turun</button><button class="gh" data-rm="'+i+'"'+(BL.length>1?'':' disabled')+'>Hapus</button></div></div>';
    }).join("")+
    '<div class="fr"><button class="gh" id="tmb"'+(BL.length>=8?" disabled":"")+'>+ Tambah proyek</button><button class="gold" id="hit">Hitung kebutuhan</button></div>';
@@ -78,9 +81,38 @@ function gambarForm(){
   app.querySelectorAll("[data-up]").forEach(function(b){b.onclick=function(){var i=Number(b.getAttribute("data-up"));var t=BL[i];BL[i]=BL[i-1];BL[i-1]=t;gambarForm();};});
   app.querySelectorAll("[data-dn]").forEach(function(b){b.onclick=function(){var i=Number(b.getAttribute("data-dn"));var t=BL[i];BL[i]=BL[i+1];BL[i+1]=t;gambarForm();};});
   app.querySelectorAll("[data-rm]").forEach(function(b){b.onclick=function(){BL.splice(Number(b.getAttribute("data-rm")),1);gambarForm();};});
+  BL.forEach(function(b,i){renderRows(i);});
+  app.querySelectorAll("[data-s]").forEach(function(inp){var i=Number(inp.getAttribute("data-s")),tm=null;inp.oninput=function(){clearTimeout(tm);var q=inp.value.trim(),box=document.getElementById("sr"+i);if(q.length<2){box.innerHTML="";return;}tm=setTimeout(function(){cariBarang(i,q);},350);};});
   document.getElementById("tmb").onclick=function(){BL.push(baru());gambarForm();};
   document.getElementById("hit").onclick=hitung;
   document.getElementById("contoh").onclick=function(e){e.preventDefault();unduhContoh();};
+}
+var SEQ=0;
+async function cariBarang(i,q){
+  var box=document.getElementById("sr"+i),my=++SEQ;if(!box)return;box.innerHTML='<div class="note">Mencari...</div>';
+  try{
+    var r=await api({action:"cariPic",q:q});if(my!==SEQ)return;
+    if(!r.ok){box.innerHTML='<div class="note err">'+esc(r.msg||"Gagal.")+'</div>';return;}
+    if(!r.data.length){box.innerHTML='<div class="note">Tidak ada barang yang cocok.</div>';return;}
+    box.innerHTML=r.data.map(function(x,j){return '<button type="button" class="hs" data-a="'+j+'"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+'</small></button>';}).join("")+(r.total>r.data.length?'<div class="note">'+r.total+' barang cocok. Persempit pencarian untuk melihat lainnya.</div>':'');
+    box.querySelectorAll("[data-a]").forEach(function(b){b.onclick=function(){
+      var x=r.data[Number(b.getAttribute("data-a"))],k=String(x.kode).toUpperCase();
+      var ada=BL[i].rows.some(function(y){return String(y.kode).toUpperCase()===k;});
+      if(ada){toast("Barang itu sudah ada di daftar proyek ini.",true);return;}
+      BL[i].rows.push({kode:x.kode,nama:x.nama,satuan:x.satuan,qty:"1"});
+      box.innerHTML="";var s=app.querySelector('[data-s="'+i+'"]');if(s){s.value="";s.focus();}
+      renderRows(i,true);toast("Ditambahkan: "+x.nama);
+    };});
+  }catch(e){if(my===SEQ)box.innerHTML='<div class="note err">Gagal terhubung ke server.</div>';}
+}
+function renderRows(i,akhir){
+  var box=document.getElementById("rb"+i);if(!box)return;var R=BL[i].rows;
+  if(!R.length){box.innerHTML="";return;}
+  var tampilR=R.slice(0,300);
+  box.innerHTML='<div class="note"><b>'+R.length+' barang</b> di proyek ini'+(R.length>300?' (menampilkan 300 pertama)':'')+'. Ubah jumlah di kolom kanan bila perlu.</div><div class="rw">'+tampilR.map(function(x,j){return '<div class="rr"><span><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+'</small></span><input inputmode="decimal" aria-label="Jumlah" data-q="'+j+'" value="'+esc(x.qty)+'"><button type="button" class="gh" aria-label="Hapus barang" data-x="'+j+'">&times;</button></div>';}).join("")+'</div>';
+  box.querySelectorAll("[data-q]").forEach(function(e){e.oninput=function(){BL[i].rows[Number(e.getAttribute("data-q"))].qty=e.value;};});
+  box.querySelectorAll("[data-x]").forEach(function(b){b.onclick=function(){BL[i].rows.splice(Number(b.getAttribute("data-x")),1);renderRows(i);};});
+  if(akhir){var rw=box.querySelector(".rw");if(rw)rw.scrollTop=rw.scrollHeight;}
 }
 function bacaFile(file,i){
   if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
@@ -89,7 +121,9 @@ function bacaFile(file,i){
     try{
       var wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"}),a=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:"",raw:false});
       var o=ambil(a);if(o.err){toast(o.err,true);return;}
-      BL[i].rows=o.rows;BL[i].file=file.name;document.getElementById("fi"+i).textContent=file.name+": "+o.rows.length+" baris"+(o.adaJudul?"":" (tanpa judul kolom: A=Kode, B=Nama, C=Qty)");
+      var ada={};BL[i].rows.forEach(function(y){ada[String(y.kode).toUpperCase()]=true;});
+      var tambah=o.rows.filter(function(y){return !ada[String(y.kode).toUpperCase()];});
+      BL[i].rows=BL[i].rows.concat(tambah);BL[i].file=file.name;document.getElementById("fi"+i).textContent=file.name+": "+o.rows.length+" baris"+(o.adaJudul?"":" (tanpa judul kolom: A=Kode, B=Nama, C=Qty)");renderRows(i);
     }catch(e){toast("File tidak bisa dibaca. Gunakan .xlsx atau .csv.",true);}
   };
   fr.readAsArrayBuffer(file);
@@ -129,6 +163,7 @@ function tampil(){
   var cur=TAB===0?{rows:r.gabungan.rows,total:r.gabungan.total}:r.proyek[TAB-1];
   var t=cur.total;
   box.innerHTML='<h2 style="font-size:15px;margin:18px 0 0">Hasil perhitungan</h2><div class="note">Stok yang dipakai: '+esc(r.oto.join(" lalu "))+', dikurangi alokasi proyek lain dan permintaan yang sedang berjalan. Harga hanya muncul untuk bagian yang diambil dari stok; barang BELI tidak diberi harga.</div>'+
+   (t.tanpaHarga?'<div class="card" style="border-color:#d08a00;background:#fff8e6;color:#5a4300;margin:10px 0"><b>'+t.tanpaHarga+' barang memakai stok tetapi harganya belum ada.</b> Nilai pemakaian stok di bawah belum lengkap. Admin bisa mengisi harga di tab Stok &amp; Harga, bagian "Barang berstok tetapi belum ada harga".</div>':'')+
    '<div class="tabs">'+tabs.map(function(n,i){return '<button class="'+(i===TAB?"on":"")+'" data-t="'+i+'">'+esc(n)+'</button>';}).join("")+'</div>'+
    '<div class="sum"><div><b>'+t.barang+'</b><span>Jenis barang</span></div><div><b>'+rp(t.nilaiStok)+'</b><span>Nilai pemakaian stok (bukan total RAB)</span></div><div><b>'+t.adaBeli+'</b><span>Barang yang perlu BELI</span></div>'+(t.tanpaHarga?'<div><b>'+t.tanpaHarga+'</b><span>Barang stok tanpa harga</span></div>':'')+(t.tidakDikenal?'<div><b>'+t.tidakDikenal+'</b><span>Kode tidak dikenal</span></div>':'')+'</div>'+
    '<div class="fr"><button class="sv" id="xl">Unduh Excel</button>'+(TAB>0&&r.proyek[TAB-1].ppbj?'<button class="gold" id="alk">Simpan sebagai alokasi (admin)</button>':'')+'</div>'+

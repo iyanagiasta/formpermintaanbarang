@@ -93,7 +93,7 @@ async function load(first){
     if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
     DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
     var h=(location.hash||"").replace("#","");
-    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem"].indexOf(h)>=0){goTab(h);return;}
+    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem","pengumuman"].indexOf(h)>=0){goTab(h);return;}
     draw(r.now);
   }catch(e){
     if(first)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");else toast("Gagal terhubung ke server.",true);
@@ -184,14 +184,14 @@ async function onAct(b){
 function pane(){return document.getElementById("pane")||app;}
 function tabsUI(){
   if(!document.getElementById("pane"))app.innerHTML='<div class="tabs" id="tabs"></div><div id="pane"></div>';
-  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["laporan","Laporan"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
+  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["laporan","Laporan"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
   document.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){goTab(b.getAttribute("data-tab"));};});
 }
 function goTab(t){
   TAB=t;
   if(t==="pantau"){load(false);return;}
   tabsUI();
-  if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="sistem")loadSistem();
+  if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();
   try{history.replaceState(null,"","#"+t);}catch(e){}
 }
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
@@ -258,6 +258,8 @@ function drawStok(total,q,hs){
    '<div class="fr"><button class="sv" id="xgo" disabled>Jalankan impor</button><span class="note" id="xinfo"></span></div></div>'+
    '<div class="card"><b>Unggah harga satuan</b><div class="note">Kolom: Kode Barang, Harga. Satu harga per barang (berlaku untuk Moka dan Accurate).</div>'+
    '<div class="fr"><input type="file" id="hf" accept=".xlsx,.xls,.csv"><button class="sv" id="hgo" disabled>Unggah harga</button><span class="note" id="hinfo"></span></div></div>'+
+   '<div class="card"><b>Barang berstok tetapi belum ada harga</b><div class="note">Hasil Cek Kebutuhan tidak bisa menghitung nilai barang ini. Isi harganya di bawah, atau unduh daftarnya lalu unggah kembali lewat "Unggah harga satuan".</div>'+
+   '<div class="fr"><button class="gh" id="thb">Tampilkan daftar</button><button class="gh" id="thx" disabled>Unduh Excel</button><span class="note" id="thi"></span></div><div id="thl"></div></div>'+
    '<div class="card"><b>Sinkron ke aplikasi Cari Barang</b><div class="note">Stok (Moka + Accurate) dikirim otomatis setiap berubah. Tekan tombol ini bila ingin memastikan.</div><div class="fr"><button class="gh" id="sink">Sinkron sekarang</button></div></div>'+
    '<div id="kform"></div>'+
    '<div class="bar"><input id="sq" placeholder="Cari kode atau nama barang..." value="'+esc(q)+'"><label><input type="checkbox" id="hs"'+(hs?" checked":"")+'> Hanya yang ada stok</label><button class="gh" id="scari">Cari</button></div>'+
@@ -326,6 +328,30 @@ function drawStok(total,q,hs){
     BUSY=false;btn.disabled=false;
     if(gagal){info.textContent="";toast("Berhenti di "+gagal+" Aman diulang: data yang sudah masuk tidak ganda.",true);}
     else{info.textContent="Selesai: "+D.length+" barang diimpor.";toast("Impor selesai.");loadStok();}
+  };
+  var TH=[];
+  document.getElementById("thb").onclick=async function(){
+    var b=this;b.disabled=true;var info=document.getElementById("thi");info.textContent="Memuat...";
+    try{
+      var r=await api({action:"adminTanpaHarga"});
+      if(!r.ok){info.textContent="";toast(r.msg||"Gagal.",true);b.disabled=false;return;}
+      TH=r.data||[];info.textContent=r.total+" barang"+(r.total>TH.length?" (menampilkan "+TH.length+" pertama)":"")+" berstok tanpa harga.";
+      document.getElementById("thx").disabled=!TH.length;
+      document.getElementById("thl").innerHTML=TH.length?'<table><thead><tr><th>Barang</th><th class="nm">Stok</th><th>Harga satuan</th></tr></thead><tbody>'+TH.slice(0,100).map(function(x,i){return '<tr><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+' · '+esc(x.satuan||"")+'</small></td><td class="nm" data-l="Stok">'+fmtN(x.stok)+'</td><td><div class="ppi"><input inputmode="decimal" placeholder="mis. 15000" data-hi="'+i+'"><button class="sv" data-hs="'+i+'">Simpan</button></div></td></tr>';}).join("")+'</tbody></table>'+(TH.length>100?'<div class="note">Menampilkan 100 pertama. Unduh Excel untuk daftar lengkap.</div>':''):'<div class="msg">Semua barang berstok sudah punya harga.</div>';
+      document.getElementById("thl").querySelectorAll("[data-hs]").forEach(function(sb){sb.onclick=async function(){
+        var i=Number(sb.getAttribute("data-hs")),inp=document.getElementById("thl").querySelector('[data-hi="'+i+'"]');
+        if(!inp.value.trim()){toast("Isi harganya dulu.",true);return;}
+        if(BUSY)return;BUSY=true;sb.disabled=true;
+        try{var rr=await api({action:"adminHarga",rows:[{kode:TH[i].kode,nama:TH[i].nama,harga:inp.value}]});toast(rr.msg||(rr.ok?"Tersimpan.":"Gagal."),!rr.ok);if(rr.ok&&!/dilewati/.test(rr.msg||"")){sb.closest("tr").style.opacity=.4;inp.disabled=true;}else sb.disabled=false;}
+        catch(e){toast("Gagal terhubung ke server.",true);sb.disabled=false;}
+        BUSY=false;};});
+    }catch(e){info.textContent="";toast("Gagal terhubung ke server.",true);}
+    b.disabled=false;
+  };
+  document.getElementById("thx").onclick=function(){
+    if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat.",true);return;}
+    var a=[["Kode Barang","Nama Barang","Satuan","Stok","Harga"]].concat(TH.map(function(x){return [x.kode,x.nama,x.satuan,x.stok,""];}));
+    var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),"Tanpa Harga");XLSX.writeFile(wb,"barang_tanpa_harga.xlsx");
   };
   document.getElementById("sink").onclick=function(){kirimAdmin(this,{action:"adminSinkron"},null);};
   document.getElementById("scari").onclick=loadStok;
@@ -467,6 +493,37 @@ function drawMutasi(r,dari,sampai,q,jn){
 
 /* ---- tab Laporan pemakaian ---- */
 var LAP=null;
+var PGM=[];
+async function loadPengumuman(){
+  pane().innerHTML='<div class="card msg">Memuat...</div>';
+  try{
+    var r=await api({action:"adminPengumumanList"});
+    if(!r.ok){pane().innerHTML='<div class="card msg">'+esc(r.msg||"Gagal memuat.")+'</div>';return;}
+    PGM=r.data||[];drawPengumuman(null);
+  }catch(e){pane().innerHTML='<div class="card msg">Gagal terhubung ke server.</div>';}
+}
+function drawPengumuman(edit){
+  var e=edit||{id:"",judul:"",isi:"",tautan:"",penting:false,mulai:"",berakhir:"",aktif:true};
+  var today=tglIso(new Date());
+  function status(p){if(!p.aktif)return '<span class="bd r">Nonaktif</span>';if(p.berakhir&&p.berakhir<today)return '<span class="bd r">Sudah berakhir</span>';if(p.mulai&&p.mulai>today)return '<span class="bd n">Belum tayang</span>';return '<span class="bd d">Tayang</span>';}
+  pane().innerHTML=
+   '<div class="card"><b>'+(e.id?"Ubah pengumuman":"Pengumuman baru")+'</b><div class="note">Tampil di halaman utama dan <u>bisa dibaca siapa saja yang punya alamat halaman itu</u>. Jangan menulis data sensitif.</div>'+
+   '<div class="fr"><input class="t" id="pj" maxlength="120" placeholder="Judul" value="'+esc(e.judul)+'"></div>'+
+   '<div class="fr"><textarea id="pi" maxlength="1000" rows="4" placeholder="Isi pengumuman (maks 1000 huruf)" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font:inherit">'+esc(e.isi)+'</textarea></div>'+
+   '<div class="fr"><input class="t" id="pt" placeholder="Tautan (opsional), mis. https://..." value="'+esc(e.tautan)+'"></div>'+
+   '<div class="fr"><label>Mulai tayang <input type="date" id="pm" value="'+esc(e.mulai)+'"></label><label>Berakhir (kosong = tanpa batas) <input type="date" id="pe" value="'+esc(e.berakhir)+'"></label></div>'+
+   '<div class="fr"><label><input type="checkbox" id="pp"'+(e.penting?" checked":"")+'> Penting (tampil menonjol)</label><label><input type="checkbox" id="pa"'+(e.aktif?" checked":"")+'> Aktif</label></div>'+
+   '<div class="fr"><button class="sv" id="psv">'+(e.id?"Simpan perubahan":"Tayangkan")+'</button>'+(e.id?'<button class="gh" id="pbt">Batal</button>':'')+'</div></div>'+
+   (PGM.length?'<table><thead><tr><th>Pengumuman</th><th>Masa tayang</th><th>Status</th><th>Aksi</th></tr></thead><tbody>'+PGM.map(function(p,i){
+     return '<tr><td data-l="Pengumuman"><b>'+(p.penting?"&#9733; ":"")+esc(p.judul)+'</b><small>'+esc((p.isi||"").slice(0,140))+(p.tautan?' · '+esc(p.tautan):'')+'</small></td><td data-l="Masa tayang">'+esc(p.mulai||"-")+' s/d '+esc(p.berakhir||"tanpa batas")+'</td><td data-l="Status">'+status(p)+'</td><td><button class="rm" data-pe="'+i+'">Ubah</button> <button class="gh" data-ph="'+i+'">Hapus</button></td></tr>';}).join("")+'</tbody></table>':'<div class="card msg">Belum ada pengumuman.</div>');
+  document.getElementById("psv").onclick=async function(){
+    var b={action:"adminPengumumanSimpan",aksi:"simpan",id:e.id,judul:document.getElementById("pj").value,isi:document.getElementById("pi").value,tautan:document.getElementById("pt").value,mulai:document.getElementById("pm").value,berakhir:document.getElementById("pe").value,penting:document.getElementById("pp").checked,aktif:document.getElementById("pa").checked};
+    await kirimAdmin(this,b,loadPengumuman);
+  };
+  var bt=document.getElementById("pbt");if(bt)bt.onclick=function(){drawPengumuman(null);};
+  pane().querySelectorAll("[data-pe]").forEach(function(b){b.onclick=function(){drawPengumuman(PGM[Number(b.getAttribute("data-pe"))]);window.scrollTo(0,0);};});
+  pane().querySelectorAll("[data-ph]").forEach(function(b){b.onclick=async function(){var p=PGM[Number(b.getAttribute("data-ph"))];if(!confirm('Hapus pengumuman "'+p.judul+'"?'))return;await kirimAdmin(this,{action:"adminPengumumanSimpan",aksi:"hapus",id:p.id},loadPengumuman);};});
+}
 async function loadSistem(){
   pane().innerHTML='<div class="card msg">Memuat...</div>';
   try{

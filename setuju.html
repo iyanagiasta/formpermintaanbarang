@@ -53,14 +53,14 @@ function render(r){
   var rows=d.items.map(function(i,n){return "<tr><td>"+(n+1)+"</td><td>"+(i.kode==="BARU"?"<b style=\"color:#b8760a\">BARU</b> (belum ada kode)":esc(i.kode))+"</td><td>"+esc(i.nama)+"</td><td>"+esc(i.satuan)+"</td><td>"+esc(i.jumlah)+"</td></tr>";}).join("");
   app.innerHTML=
    '<div class="card"><span class="tag">'+esc(r.tahap)+'</span>'+
-   '<p style="margin:10px 0 4px">Halo <b>'+esc(r.approver)+'</b>, mohon periksa permintaan berikut.</p>'+
+   '<p style="margin:10px 0 4px">Halo <b>'+esc(r.approver)+'</b>, mohon periksa '+(d.jenis==='Pengembalian'?'pengembalian barang sisa proyek':'permintaan')+' berikut.</p>'+
    '<div class="row"><b>No</b><span>'+esc(d.id)+'</span></div>'+
    '<div class="row"><b>Pemohon</b><span><strong>'+esc(d.by)+'</strong>'+(d.email?' ('+esc(d.email)+')':"")+'</span></div>'+
    (d.pic&&d.pic.nama?'<div class="row"><b>PIC</b><span>'+esc(d.pic.nama)+'</span></div>':"")+
    '<div class="row"><b>Departemen</b><span>'+esc(d.dept)+'</span></div>'+
    '<div class="row"><b>Nomor Dokumen</b><span>'+esc(d.doc)+'</span></div>'+
-   '<div class="row"><b>Nomor PPBJ</b><span>'+esc(d.ppbj)+'</span></div>'+
-   '<div class="row"><b>Alasan</b><span>'+esc(d.alasan)+'</span></div>'+
+   '<div class="row"><b>'+(d.jenis==='Pengembalian'?'Sisa Proyek (PPBJ)':'Nomor PPBJ')+'</b><span>'+esc(d.ppbj)+'</span></div>'+
+   '<div class="row"><b>'+(d.jenis==='Pengembalian'?'Keterangan':'Alasan')+'</b><span>'+esc(d.alasan)+'</span></div>'+
    (cat?'<div class="note"><b>Catatan</b>'+cat+'</div>':"")+'</div>'+
    '<div class="card" style="overflow-x:auto"><table><tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Sat</th><th>Jml</th></tr>'+rows+'</table></div>'+
    '<div class="card"><label for="cat"><b>Catatan Anda</b> (opsional)</label><textarea id="cat" maxlength="1000" placeholder="'+(act==="reject"?"Alasan penolakan atau informasi untuk pihak berikutnya":"Informasi tambahan untuk pihak berikutnya")+'"></textarea><div class="cnt" id="cnt">0 / 1000</div>'+

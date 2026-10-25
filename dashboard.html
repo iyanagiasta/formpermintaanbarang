@@ -76,6 +76,7 @@ var ICON={
  cari:'<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/>',
  kebutuhan:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 12l2 2 4-4"/>',
  admin:'<path d="M12 3 4 6v6c0 4.5 3.2 7.8 8 9 4.8-1.2 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+ kembali:'<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
  pantau:'<path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/>',
  serah:'<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
  stok:'<path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="M3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5"/>',
@@ -134,6 +135,7 @@ async function buka(aksi,btn){
       var k=await pastikanPegawai();
       if(k){var r=await api({action:"menu",kode:k}),u=(r&&r.ok&&r.cari)||"gudang.html";location.href=u;}
     }
+    else if(aksi==="kembali"){if(await pastikanPegawai())location.href="pengembalian.html";}
     else if(aksi==="kebutuhan"){if(await pastikanPic())location.href="kebutuhan.html";}
     else if(aksi==="admin"){if(await pastikanAdmin())location.href="admin.html";}
   }finally{if(btn)btn.disabled=false;}
@@ -147,6 +149,7 @@ function kartu(){
   return '<div class="hello">Selamat datang</div><p>Pilih layanan yang Anda perlukan. Kode akses diminta saat Anda membuka layanan.</p><div class="hero">'+
    big("minta","form","Permintaan Barang","Buat permintaan pengambilan barang harian. Persetujuan lewat email, tanpa kertas.","KODE PEGAWAI")+
    big("cari","cari","Cari Barang","Lokasi gudang dan rak, foto barang dan rak, stok Moka dan Accurate, serta proyek yang memakai barang itu.","KODE PEGAWAI")+
+   big("kembali","kembali","Pengembalian Barang","Kembalikan barang sisa proyek ke gudang. Persetujuan sama dengan permintaan, stok bertambah setelah gudang menerima barang.","KODE PEGAWAI")+
    big("kebutuhan","kebutuhan","Cek Kebutuhan Proyek","Unggah kebutuhan barang proyek baru. Hasilnya: pakai stok Moka, stok Accurate, atau beli, lengkap dengan harga stok.","KODE PIC / ATASAN")+
    big("admin","admin","Admin Gudang","Pantauan persetujuan, serah barang, stok dan harga, opname, proyek, mutasi, laporan, dan cadangan.","KHUSUS ADMIN",true)+
    '</div>';
@@ -175,10 +178,11 @@ async function ringkasAdmin(pin){
      stat(s.siapSerah,"Siap diserahkan",s.siapSerah>0?"w":"ok","admin.html#serah")+
      stat(s.ppbjBelum,"PPBJ belum diisi",s.ppbjBelum>0?"b":"ok","admin.html#pantau")+
      stat(s.opname||0,"Selisih opname menunggu",(s.opname||0)>0?"w":"ok","admin.html#opname")+
+     stat(s.kembaliTerima||0,"Pengembalian siap diterima",(s.kembaliTerima||0)>0?"w":"ok","admin.html#terima")+
      stat(s.proyekAktif,"Proyek mengikat stok","","admin.html#proyek")+
      stat(s.stokHabis,"Barang stok bebas habis",s.stokHabis>0?"w":"ok","admin.html#stok")+
      (s.kuota>=0?stat(s.kuota,"Sisa kuota email hari ini",s.kuota<20?"b":"ok","admin.html#sistem"):"")+'</div>';
-    var utama={"index.html":1,"gudang.html":1,"kebutuhan.html":1,"admin.html":1},lain=r.data.filter(function(m){return !utama[m.link]&&m.untuk!=="Admin";}),ad=r.data.filter(function(m){return m.untuk==="Admin";});
+    var utama={"index.html":1,"gudang.html":1,"kebutuhan.html":1,"admin.html":1,"pengembalian.html":1},lain=r.data.filter(function(m){return !utama[m.link]&&m.untuk!=="Admin";}),ad=r.data.filter(function(m){return m.untuk==="Admin";});
     if(lain.length)h+='<h2>Menu lainnya</h2>'+grid(lain);
     if(ad.length)h+='<h2>Menu Admin</h2>'+grid(ad);
     var box=document.getElementById("adm-box");if(box)box.innerHTML=h;

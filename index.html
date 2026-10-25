@@ -633,6 +633,7 @@ async function kirim(){
 (function(){
   var q=new URLSearchParams(location.search);
   if(q.get("m")!=="cetak")return;
+  if(String(q.get("id")||"").indexOf("PK-")===0){location.replace("pengembalian.html"+location.search);return;}   // bukti pengembalian dicetak dari halaman sendiri
   var SHOW_STAMP=true; // ubah ke false untuk menyembunyikan teks "Disetujui via email"
   document.body.classList.add("cetak");
   var st=document.createElement("style");

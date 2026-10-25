@@ -93,7 +93,7 @@ async function load(first){
     if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
     DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
     var h=(location.hash||"").replace("#","");
-    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem","pengumuman"].indexOf(h)>=0){goTab(h);return;}
+    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem","pengumuman","terima"].indexOf(h)>=0){goTab(h);return;}
     draw(r.now);
   }catch(e){
     if(first)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");else toast("Gagal terhubung ke server.",true);
@@ -184,14 +184,14 @@ async function onAct(b){
 function pane(){return document.getElementById("pane")||app;}
 function tabsUI(){
   if(!document.getElementById("pane"))app.innerHTML='<div class="tabs" id="tabs"></div><div id="pane"></div>';
-  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["laporan","Laporan"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
+  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["laporan","Laporan"],["terima","Terima Barang"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
   document.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){goTab(b.getAttribute("data-tab"));};});
 }
 function goTab(t){
   TAB=t;
   if(t==="pantau"){load(false);return;}
   tabsUI();
-  if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();
+  if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();
   try{history.replaceState(null,"","#"+t);}catch(e){}
 }
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
@@ -472,7 +472,7 @@ async function loadMutasi(){
   }catch(e){toast("Gagal terhubung ke server.",true);}
 }
 function drawMutasi(r,dari,sampai,q,jn){
-  var JN=["","Unggah Stok","Unggah Stok (dinolkan)","Koreksi","Serah"];
+  var JN=["","Unggah Stok","Unggah Stok (dinolkan)","Koreksi","Serah","Opname","Pengembalian"];
   var ring=Object.keys(r.ringkas||{}).map(function(j){var o=r.ringkas[j];return '<div><b>'+o.n+'</b><span>'+esc(j)+(SUMB.map(function(sn){return o[sn]!=null?" · "+esc(sn)+" "+(o[sn]>0?"+":"")+fmtN(o[sn]):"";}).join(""))+'</span></div>';}).join("");
   pane().innerHTML=
    '<div class="bar"><label class="fl">Dari <input type="date" id="md" value="'+esc(dari)+'"></label><label class="fl">Sampai <input type="date" id="ms" value="'+esc(sampai)+'"></label>'+
@@ -493,6 +493,44 @@ function drawMutasi(r,dari,sampai,q,jn){
 
 /* ---- tab Laporan pemakaian ---- */
 var LAP=null;
+var KMB=[],KFIL="siap";
+async function loadTerima(){
+  pane().innerHTML='<div class="card msg">Memuat...</div>';
+  try{
+    var r=await api({action:"adminKembaliList"});
+    if(!r.ok){pane().innerHTML='<div class="card msg">'+esc(r.msg||"Gagal memuat.")+'</div>';return;}
+    KMB=r.data||[];drawTerima();
+  }catch(e){pane().innerHTML='<div class="card msg">Gagal terhubung ke server.</div>';}
+}
+function drawTerima(){
+  var grp={siap:[],proses:[],selesai:[]};
+  KMB.forEach(function(d){if(d.status==="Siap Diterima")grp.siap.push(d);else if(d.status==="Selesai Diterima"||d.status==="Ditolak")grp.selesai.push(d);else grp.proses.push(d);});
+  var lab={siap:"Siap diterima ("+grp.siap.length+")",proses:"Dalam persetujuan ("+grp.proses.length+")",selesai:"Selesai / ditolak ("+grp.selesai.length+")"};
+  var L=grp[KFIL]||[];
+  pane().innerHTML='<div class="bar">'+Object.keys(lab).map(function(k){return '<button class="chip'+(KFIL===k?" on":"")+'" data-kf="'+k+'">'+lab[k]+'</button>';}).join("")+'<button class="gh" id="kref">Segarkan</button></div>'+
+   '<div class="note">Pengembalian barang sisa proyek. Stok <b>Accurate</b> bertambah saat Anda menekan <b>Terima</b>, setelah barang benar-benar ada di gudang.</div>'+
+   (L.length?L.map(function(d,ix){
+     var rows=d.items.map(function(it){return '<tr><td data-l="Barang"><b>'+esc(it.nama)+'</b><small>'+esc(it.kode)+' · '+esc(it.satuan||"")+'</small></td><td class="nm" data-l="Diajukan">'+fmtN(it.jumlah)+'</td>'+
+       (d.status==="Siap Diterima"?'<td class="nm" data-l="Diterima"><input class="kq" data-no="'+it.no+'" inputmode="decimal" value="'+esc(it.jumlah)+'" style="width:80px;padding:6px;border:1px solid var(--line);border-radius:7px;text-align:right;background:var(--card);color:var(--ink)"></td>':(d.status==="Selesai Diterima"?'<td class="nm" data-l="Diterima"><b>'+fmtN(it.diterima)+'</b></td>':''))+'</tr>';}).join("");
+     var st=d.status==="Siap Diterima"?'<span class="bd w">Siap diterima</span>':d.status==="Selesai Diterima"?'<span class="bd d">Diterima</span>':d.status==="Ditolak"?'<span class="bd b">Ditolak</span>':'<span class="bd n">'+esc(d.status)+'</span>';
+     return '<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+esc(d.doc||d.id)+'</b>'+st+'</div>'+
+       '<div class="note">'+esc(d.by)+' · '+esc(d.dept)+' · dikirim '+esc(d.kirim)+'<br>Sisa dari proyek: <b>'+esc(d.proyek)+'</b>'+(d.alasan?'<br>Keterangan: '+esc(d.alasan):'')+
+       (d.menunggu?'<br>Menunggu <b>'+esc(d.menunggu.peran)+'</b> ('+esc(d.menunggu.nama)+')'+(d.menunggu.lama?', sudah '+esc(d.menunggu.lama):''):'')+
+       (d.status==="Selesai Diterima"?'<br>Diterima oleh '+esc(d.terimaOleh)+' pada '+esc(d.terimaWaktu):'')+'</div>'+
+       '<table><thead><tr><th>Barang</th><th class="nm">Diajukan</th>'+(d.status==="Siap Diterima"?'<th class="nm">Diterima</th>':(d.status==="Selesai Diterima"?'<th class="nm">Diterima</th>':''))+'</tr></thead><tbody>'+rows+'</tbody></table>'+
+       '<div class="fr">'+(d.status==="Siap Diterima"?'<button class="sv" data-kt="'+d.id+'">Terima &amp; masukkan ke stok Accurate</button>':'')+(d.menunggu?'<button class="rm" data-kp="'+d.id+'">Kirim pengingat persetujuan</button>':'')+'</div></div>';
+   }).join(""):'<div class="card msg">Tidak ada dokumen pada kelompok ini.</div>');
+  pane().querySelectorAll("[data-kf]").forEach(function(b){b.onclick=function(){KFIL=b.getAttribute("data-kf");drawTerima();};});
+  document.getElementById("kref").onclick=loadTerima;
+  pane().querySelectorAll("[data-kt]").forEach(function(b){b.onclick=async function(){
+    var card=b.closest(".card"),items=[],bad=false;
+    card.querySelectorAll(".kq").forEach(function(i){var v=i.value.trim().replace(",",".");if(v===""||isNaN(Number(v))||Number(v)<0)bad=true;items.push({no:Number(i.getAttribute("data-no")),jumlah:v});});
+    if(bad){toast("Jumlah diterima harus angka 0 atau lebih.",true);return;}
+    if(!confirm("Terima barang ini secara fisik dan tambahkan ke stok Accurate?"))return;
+    await kirimAdmin(b,{action:"adminKembaliTerima",id:b.getAttribute("data-kt"),items:items},loadTerima);
+  };});
+  pane().querySelectorAll("[data-kp]").forEach(function(b){b.onclick=function(){kirimAdmin(b,{action:"adminRemind",jenis:"persetujuan",id:b.getAttribute("data-kp")},loadTerima);};});
+}
 var PGM=[];
 async function loadPengumuman(){
   pane().innerHTML='<div class="card msg">Memuat...</div>';
@@ -563,19 +601,19 @@ function drawLaporan(r,dari,sampai){
   var body="",last="";
   rows.forEach(function(x){
     if(x.dept!==last){body+='<tr class="grp"><td colspan="5" style="background:#eef6f9;border-top:2px solid #b8975a"><b>'+esc(x.dept)+'</b> <small>Subtotal Rp '+fmtN(perDept[x.dept])+'</small></td></tr>';last=x.dept;}
-    body+='<tr><td data-l="Proyek"><b>'+esc(x.ppbj)+'</b>'+(x.proyek?'<small>'+esc(x.proyek)+'</small>':"")+'</td><td class="nm" data-l="Baris">'+x.baris+'</td><td class="nm" data-l="Bekas (tidak dinilai)">'+fmtN(x.bekas)+'</td><td class="nm" data-l="Nilai (Moka+Accurate)"><b>Rp '+fmtN(x.nilai)+'</b></td><td data-l="Catatan">'+(x.tanpaHarga?'<small style="color:#c0392b">'+x.tanpaHarga+' baris tanpa harga</small>':"")+'</td></tr>';
+    body+='<tr><td data-l="Proyek"><b>'+esc(x.ppbj)+'</b>'+(x.proyek?'<small>'+esc(x.proyek)+'</small>':"")+'</td><td class="nm" data-l="Baris">'+x.baris+'</td><td class="nm" data-l="Bekas (tidak dinilai)">'+fmtN(x.bekas)+'</td><td class="nm" data-l="Nilai (Moka+Accurate)"><b>Rp '+fmtN(x.nilai)+'</b></td><td data-l="Catatan">'+(x.tanpaHarga?'<small style="color:#c0392b">'+x.tanpaHarga+' baris tanpa harga</small>':"")+(x.kembali?'<small style="color:#14612b">'+x.kembali+' barang dikembalikan (nilai sudah dikurangi)</small>':"")+'</td></tr>';
   });
   pane().innerHTML=
    '<div class="bar"><label class="fl">Dari <input type="date" id="ld" value="'+esc(dari)+'"></label><label class="fl">Sampai <input type="date" id="ls" value="'+esc(sampai)+'"></label><button class="gh" id="lgo">Tampilkan</button><button class="gh" id="lxl"'+(rows.length?"":" disabled")+'>Unduh Excel</button></div>'+
-   '<div class="sum"><div><b>Rp '+fmtN(T.nilai||0)+'</b><span>Nilai pemakaian (Moka + Accurate)</span></div><div><b>'+(T.baris||0)+'</b><span>Baris barang diserahkan</span></div><div><b>'+fmtN(T.bekas||0)+'</b><span>Qty Bekas (tidak dinilai)</span></div><div><b>'+(T.tanpaHarga||0)+'</b><span>Baris tanpa harga</span></div></div>'+
-   '<div class="note">Nilai memakai harga saat barang diserahkan. Permintaan tanpa PPBJ dikelompokkan sebagai "Tanpa Proyek".</div>'+
+   '<div class="sum"><div><b>Rp '+fmtN(T.nilai||0)+'</b><span>Nilai pemakaian (Moka + Accurate)</span></div><div><b>'+(T.baris||0)+'</b><span>Baris barang diserahkan</span></div><div><b>'+fmtN(T.bekas||0)+'</b><span>Qty Bekas (tidak dinilai)</span></div><div><b>'+(T.tanpaHarga||0)+'</b><span>Baris tanpa harga</span></div><div><b>'+(T.kembali||0)+'</b><span>Barang sisa proyek dikembalikan</span></div></div>'+
+   '<div class="note">Nilai memakai harga saat barang diserahkan. Pengembalian sisa proyek yang sudah diterima gudang mengurangi nilai proyek asalnya (dihitung dengan harga saat ini). Permintaan tanpa PPBJ dikelompokkan sebagai "Tanpa Proyek".</div>'+
    (rows.length?'<table><thead><tr><th>Proyek (PPBJ)</th><th class="nm">Baris</th><th class="nm">Bekas</th><th class="nm">Nilai</th><th>Catatan</th></tr></thead><tbody>'+body+'</tbody></table>':'<div class="card msg">Belum ada barang diserahkan pada rentang ini.</div>');
   document.getElementById("lgo").onclick=loadLaporan;
   document.getElementById("lxl").onclick=function(){
     var wb=XLSX.utils.book_new();
     var s1=[["Departemen","No PPBJ / Proyek","Keterangan Proyek","Baris","Qty Bekas (tidak dinilai)","Nilai (Moka+Accurate)","Baris tanpa harga"]].concat(rows.map(function(x){return [x.dept,x.ppbj,x.proyek,x.baris,x.bekas,x.nilai,x.tanpaHarga];}));
     s1.push(["TOTAL","","",T.baris,T.bekas,T.nilai,T.tanpaHarga]);
-    var s2=[["Departemen","No PPBJ / Proyek","Keterangan Proyek","Kode","Nama Barang","Bekas","Moka","Accurate","Harga Satuan","Nilai (Moka+Accurate)","Catatan"]].concat((r.detail||[]).map(function(d){return [d.dept,d.ppbj,d.proyek,d.kode,d.nama,d.bekas,d.moka,d.accurate,d.harga,d.nilai,d.tanpaHarga?"Harga belum ada":""];}));
+    var s2=[["Departemen","No PPBJ / Proyek","Keterangan Proyek","Kode","Nama Barang","Bekas","Moka","Accurate","Dikembalikan (Accurate)","Harga Satuan","Nilai (Moka+Accurate, setelah pengembalian)","Catatan"]].concat((r.detail||[]).map(function(d){return [d.dept,d.ppbj,d.proyek,d.kode,d.nama,d.bekas,d.moka,d.accurate,d.kembali||0,d.harga,d.nilai,d.tanpaHarga?"Harga belum ada":""];}));
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(s1),"Ringkasan");XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(s2),"Rincian Barang");
     XLSX.writeFile(wb,"laporan_pemakaian_"+dari+"_sd_"+sampai+".xlsx");
   };

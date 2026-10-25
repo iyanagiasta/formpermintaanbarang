@@ -42,7 +42,7 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 <div class="top"><a class="homebtn" href="dashboard.html">&larr; Halaman Utama</a><h1>CEK KEBUTUHAN PROYEK</h1><div>RAB: PAKAI STOK ATAU BELI</div></div>
 <div class="wrap" id="app"></div><div id="toast"></div>
 <script>
-var API_URL="https://script.google.com/macros/s/AKfycbzXp_XiGCv7iwzZSnedOZuIi3U58ByDkk4GhSMnckc4vsvEdzAj5xcSimLDexSqrzcs0A/exec";
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
 var KODE="",PROY=[],BL=[],HAS=null,TAB=0,BUSY=false,app=document.getElementById("app");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},5000);}

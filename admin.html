@@ -515,7 +515,7 @@ function drawRekap(){
   var tot=RK.reduce(function(s,g){return s+g.n;},0),tanpaEm=RK.filter(function(g){return !g.email;}).length;
   var cards=RK.map(function(g,i){
     var rows=g.reqs.map(function(q){
-      return '<tr><td data-l="No BPB"><b>'+esc(q.doc)+'</b></td><td data-l="Peminta">'+esc(q.by)+'<small>'+esc(q.dept)+'</small></td><td data-l="Diajukan">'+esc(q.tgl)+'<small>'+q.hari+' hari lalu</small></td><td data-l="Barang">'+q.items.map(function(x){return esc(x.nama)+' <small style="display:inline">('+esc(x.jumlah)+' '+esc(x.satuan)+')</small>';}).join('<br>')+'</td></tr>';
+      return '<tr><td data-l="No BPB"><b>'+esc(q.doc)+'</b>'+(q.lama?'<small>form manual lama</small><div class="fr" style="margin:4px 0 0"><input placeholder="No PPBJ" maxlength="60" data-ln="'+esc(q.doc)+'" style="width:120px"><button class="sv" data-lk="'+esc(q.doc)+'">Isi</button></div>':'')+'</td><td data-l="Peminta">'+esc(q.by)+'<small>'+esc(q.dept)+'</small></td><td data-l="Diajukan">'+esc(q.tgl)+'<small>'+q.hari+' hari lalu</small></td><td data-l="Barang">'+q.items.map(function(x){return esc(x.nama)+' <small style="display:inline">('+esc(x.jumlah)+' '+esc(x.satuan)+')</small>';}).join('<br>')+'</td></tr>';
     }).join("");
     return '<div class="card" style="margin-bottom:12px"><div class="bar" style="margin:0 0 8px"><b style="flex:1">'+esc(g.pic)+' <span class="bd '+(g.tertua>=7?"b":"w")+'">'+g.n+' permintaan, tertua '+g.tertua+' hari</span></b>'+
       (g.email?'<small>'+esc(g.email)+'</small>':'<span class="bd b">email PIC kosong</span>')+'<button class="rm" data-rk="'+i+'"'+(g.email?"":" disabled")+'>Kirim rekap ke PIC ini</button></div>'+
@@ -528,6 +528,7 @@ function drawRekap(){
   document.getElementById("rkb").onclick=function(){load(false);};
   document.getElementById("rkx").onclick=rekapExcel;
   document.getElementById("rka").onclick=function(){if(confirm("Kirim email rekap ke "+RK.filter(function(g){return g.email;}).length+" PIC?"))kirimAdmin(this,{action:"adminPpbjKirimRekap"});};
+  pane().querySelectorAll("[data-lk]").forEach(function(b){b.onclick=function(){var d=b.getAttribute("data-lk"),i=pane().querySelector('[data-ln="'+d.replace(/"/g,'\\"')+'"]'),no=i?i.value.trim():"";if(!no){toast("Isi nomor PPBJ dulu.",true);return;}kirimAdmin(b,{action:"adminLamaPpbj",doc:d,no:no},loadRekap);};});
   pane().querySelectorAll("[data-rk]").forEach(function(b){b.onclick=function(){var g=RK[+b.getAttribute("data-rk")];if(confirm("Kirim rekap "+g.n+" permintaan ke "+g.pic+"?"))kirimAdmin(b,{action:"adminPpbjKirimRekap",keys:[g.key]});};});
 }
 function rekapExcel(){
@@ -537,6 +538,78 @@ function rekapExcel(){
   var b=[["PIC","Email PIC","Jumlah Permintaan","Tertua (hari)"]].concat(RK.map(function(g){return [g.pic,g.email,g.n,g.tertua];}));
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(b),"Ringkasan per PIC");XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),"Rincian");
   XLSX.writeFile(wb,"rekap_ppbj_belum_ada_"+new Date().toISOString().slice(0,10)+".xlsx");toast("Excel rekap siap: "+(a.length-1)+" baris barang.");
+}
+
+/* ---- Input barang keluar lama (form manual) ---- */
+var LM={rows:[],nama:"",hasil:null};
+function drawSerah(oto){
+  drawSerah0(oto);
+  pane().insertAdjacentHTML("afterbegin",'<div class="bar"><button class="rm" id="lmgo">Input barang keluar lama (form manual)</button><span class="note" style="margin:0">Untuk proyek yang sudah jalan dan barangnya sudah keluar lewat form kertas.</span></div>');
+  document.getElementById("lmgo").onclick=function(){LM={rows:[],nama:"",hasil:null};viewLama();};
+}
+function viewLama(){
+  var h=LM.hasil,rows=LM.rows;
+  var info=h?(
+    '<div class="sum"><div><b>'+(h.docs||[]).length+'</b><span>Form manual</span></div><div><b>'+(h.nBaris||0)+'</b><span>Baris dibaca</span></div><div><b'+(h.nErr?' style="color:#c0392b"':"")+'>'+(h.nErr||0)+'</b><span>Baris bermasalah</span></div></div>'+
+    (h.err&&h.err.length?'<div class="card" style="border-color:#c0392b"><b>Perbaiki di Excel lalu unggah ulang:</b><ul style="margin:6px 0 0 18px;padding:0">'+h.err.map(function(e){return '<li>Baris '+e.baris+': '+esc(e.msg)+'</li>';}).join("")+(h.nErr>h.err.length?'<li>... dan '+(h.nErr-h.err.length)+' lainnya</li>':"")+'</ul></div>':"")+
+    (h.warn&&h.warn.length?'<div class="card" style="border-color:#b8760a"><b>Perhatian:</b><ul style="margin:6px 0 0 18px;padding:0">'+h.warn.map(function(w){return '<li>'+esc(w)+'</li>';}).join("")+'</ul></div>':"")+
+    ((h.docs||[]).length?'<table><thead><tr><th>No form</th><th>Tanggal</th><th>PPBJ</th><th>Departemen</th><th>PIC</th><th class="nm">Barang</th><th class="nm">Total qty</th></tr></thead><tbody>'+h.docs.map(function(d){return '<tr><td data-l="No form"><b>'+esc(d.doc)+'</b></td><td data-l="Tanggal">'+esc(d.tgl)+'</td><td data-l="PPBJ">'+esc(d.ppbj||"-")+'</td><td data-l="Departemen">'+esc(d.dept||"-")+'</td><td data-l="PIC">'+esc(d.pic||"-")+'</td><td class="nm" data-l="Barang">'+d.n+'</td><td class="nm" data-l="Total qty">'+fmtN(d.qty)+'</td></tr>';}).join("")+'</tbody></table>':"")
+  ):"";
+  pane().innerHTML=
+   '<div class="bar"><button class="gh" id="lmb">&larr; Kembali ke Serah Barang</button><button class="gh" id="lmc">Unduh contoh Excel</button></div>'+
+   '<div class="card"><b>Input barang keluar lama</b><div class="note">Catat barang yang sudah keluar dengan form permintaan manual. <b>Stok akan berkurang</b> sesuai isian, tercatat di Mutasi dan laporan proyek, dan dokumennya masuk daftar Penyesuaian Accurate dengan status Belum.</div>'+
+   '<div class="note">Kolom Excel: <b>Tanggal</b>, <b>No Form</b> (nomor form manual / BPB), <b>No PPBJ</b>, <b>Departemen</b> (boleh kosong bila PPBJ terdaftar), <b>Kode Barang</b>, <b>Qty</b>, <b>Sumber</b> (Bekas, Moka, Accurate, atau kosong = otomatis Moka lalu Accurate), <b>Pemohon</b>, <b>PIC</b>, <b>Nama Proyek</b> (teks bebas, dipakai bila PPBJ belum ada), <b>Catatan</b> (opsional). Bila No PPBJ kosong, form itu otomatis masuk rekap PPBJ per PIC. Satu form boleh banyak baris, tapi tanggal, PPBJ, dan departemennya harus sama. Nomor form yang sudah ada di Serah ditolak, jadi aman bila terunggah dua kali.</div>'+
+   '<div class="fr"><input type="file" id="lmf" accept=".xlsx,.xls,.csv"><span class="note" id="lmn">'+esc(LM.nama)+'</span></div>'+
+   '<div class="bar"><button class="gh" id="lmp"'+(rows.length?"":" disabled")+'>Periksa dulu (pratinjau)</button><button class="sv" id="lms"'+(h&&h.bisaSimpan?"":" disabled")+'>Simpan '+(h&&h.bisaSimpan?(h.docs||[]).length+" form":"")+' dan kurangi stok</button></div></div>'+info;
+  document.getElementById("lmb").onclick=function(){loadSerah();};
+  document.getElementById("lmc").onclick=lamaContoh;
+  document.getElementById("lmf").onchange=function(){var f=this.files[0];if(!f)return;lamaBaca(f,function(a){LM.rows=lamaPeta(a);LM.nama=f.name+" ("+LM.rows.length+" baris)";LM.hasil=null;if(!LM.rows.length)toast("Tidak ada baris data yang terbaca. Pakai kolom seperti contoh.",true);viewLama();});};
+  document.getElementById("lmp").onclick=function(){lamaKirim(this,false);};
+  document.getElementById("lms").onclick=function(){if(confirm("Simpan "+h.docs.length+" form manual dan kurangi stok? Tindakan ini tidak bisa dibatalkan dari sini (koreksi lewat Koreksi Stok)."))lamaKirim(this,true);};
+}
+function lamaBaca(file,cb){
+  if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
+  var fr=new FileReader();
+  fr.onload=function(ev){
+    try{
+      var wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array",cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]];
+      var a=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true});
+      a=a.map(function(r){return r.map(function(c){if(c instanceof Date){var d=new Date(c.getTime()+12*3600000);return d.getUTCFullYear()+"-"+("0"+(d.getUTCMonth()+1)).slice(-2)+"-"+("0"+d.getUTCDate()).slice(-2);}return c;});});
+      cb(a);
+    }catch(e){toast("File tidak bisa dibaca. Gunakan .xlsx atau .csv.",true);}
+  };
+  fr.readAsArrayBuffer(file);
+}
+function lamaPeta(a){
+  var hi=-1,m={};
+  var urutK=["doc","tgl","ppbj","kode","qty","sumber","pic","by","proyek","dept","cat"];
+  var kunciKolom={tgl:/^tanggal|^tgl/,doc:/no.*form|no.*bpb|nomor|^form|dokumen/,ppbj:/ppbj/,dept:/dept/,kode:/kode/,qty:/^qty|jumlah|^jml/,sumber:/sumber/,pic:/^pic|nama pic/,by:/pemohon|peminta/,proyek:/proyek/,cat:/catatan|^ket|pengambil/};
+  for(var i=0;i<Math.min(a.length,10)&&hi<0;i++){
+    var t={};a[i].forEach(function(c,j){var s=String(c).toLowerCase().trim();for(var u=0;u<urutK.length;u++){var k=urutK[u];if(t[k]===undefined&&kunciKolom[k].test(s)){t[k]=j;break;}}});
+    if(t.doc!==undefined&&t.kode!==undefined&&t.qty!==undefined){hi=i;m=t;}
+  }
+  if(hi<0)return [];
+  var out=[];
+  for(var r=hi+1;r<a.length;r++){
+    var x=a[r],g=function(k){return m[k]===undefined?"":String(x[m[k]]==null?"":x[m[k]]).trim();};
+    if(!g("doc")&&!g("kode")&&!g("qty"))continue;
+    out.push({baris:r+1,tgl:g("tgl"),doc:g("doc"),ppbj:g("ppbj"),dept:g("dept"),kode:g("kode"),qty:g("qty").replace(",","."),sumber:g("sumber"),cat:g("cat"),pic:g("pic"),by:g("by"),proyek:g("proyek")});
+  }
+  return out.slice(0,1500);
+}
+async function lamaKirim(btn,simpan){
+  if(BUSY)return;BUSY=true;btn.disabled=true;
+  try{
+    var r=await api({action:"adminLamaImpor",rows:LM.rows,simpan:simpan});
+    if(!r.ok){toast(r.msg||"Gagal.",true);}
+    else{LM.hasil=r;toast(r.msg,!!r.nErr);if(simpan&&r.simpan){LM={rows:[],nama:"",hasil:null};BUSY=false;btn.disabled=false;await loadSerah();toast(r.msg);return;}}
+  }catch(e){toast("Gagal terhubung ke server.",true);}
+  BUSY=false;viewLama();
+}
+function lamaContoh(){
+  if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat.",true);return;}
+  var a=[["Tanggal","No Form","No PPBJ","Departemen","Kode Barang","Qty","Sumber","Pemohon","PIC","Nama Proyek","Catatan"],["05/10/2026","FM-0012","PPBJ-001","RM","K001",3,"","Budi","Ramji","Gedung A","Diambil Budi"],["05/10/2026","FM-0012","PPBJ-001","RM","K002",2,"Moka","Budi","Ramji","Gedung A",""],["08/10/2026","FM-0013","","Produksi","K001",1,"Accurate","Sari","Sari","Pompa Utara","PPBJ belum ada"]];
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),"Barang Keluar Lama");XLSX.writeFile(wb,"contoh_barang_keluar_lama.xlsx");
 }
 
 /* ---- tab Proyek ---- */
@@ -588,7 +661,7 @@ async function loadSerah(){
     SERAH=r.data||[];SUMB=r.sumber||SUMB;drawSerah(r.otomatis||[]);
   }catch(e){toast("Gagal terhubung ke server.",true);}
 }
-function drawSerah(oto){
+function drawSerah0(oto){
   var head='<div class="note">Permintaan yang sudah disetujui semua pihak dan belum ditandai diserahkan. Isi jumlah per sumber (sudah terisi saran: '+esc(oto.join(" lalu ")||"-")+'). Bekas tidak disarankan otomatis, isi manual bila dipakai. Stok baru berkurang setelah tombol ditekan.</div>';
   if(!SERAH.length){pane().innerHTML=head+'<div class="card msg">Tidak ada permintaan yang menunggu penyerahan.</div>';return;}
   pane().innerHTML=head+SERAH.map(function(g,gi){

@@ -52,7 +52,7 @@ function render(r){
    '<div class="row"><b>Dibuat oleh</b><span>'+esc(d.by)+'</span></div>'+
    '<div class="row"><b>Departemen</b><span>'+esc(d.dept)+'</span></div>'+
    '<div class="row"><b>Nomor Dokumen</b><span>'+esc(d.doc)+'</span></div>'+
-   '<div class="row"><b>Alasan</b><span>'+esc(d.alasan)+'</span></div></div>'+
+   '<div class="row"><b>'+(d.lama?"Proyek (form lama)":"Alasan")+'</b><span>'+esc(d.alasan)+'</span></div></div>'+
    '<div class="card" style="overflow-x:auto"><table><tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Sat</th><th>Jml</th></tr>'+rows+'</table></div>'+
    '<div class="card"><b>Nomor PPBJ</b><input class="no" id="no" maxlength="60" autocomplete="off" placeholder="Ketik nomor PPBJ"><button class="ok" id="go" style="width:100%">Simpan Nomor PPBJ</button></div>';
   document.getElementById("go").onclick=send;
@@ -61,7 +61,7 @@ function render(r){
 function renderGrup(r){
   var rows=r.reqs.map(function(d,k){
     var it=d.items.map(function(i){return esc(i.nama)+" <small>("+esc(i.jumlah)+" "+esc(i.satuan)+")</small>";}).join("<br>");
-    return '<div class="card"><div class="row"><b>No. BPB</b><span>'+esc(d.doc)+' <span class="tag">'+d.hari+' hari</span></span></div><div class="row"><b>Peminta</b><span>'+esc(d.by)+' ('+esc(d.dept)+')</span></div><div class="row"><b>Tanggal</b><span>'+esc(d.tgl)+'</span></div><div class="row"><b>Alasan</b><span>'+esc(d.alasan)+'</span></div><div class="row"><b>Barang</b><span>'+it+'</span></div>'+
+    return '<div class="card"><div class="row"><b>'+(d.lama?"No. form manual":"No. BPB")+'</b><span>'+esc(d.doc)+' <span class="tag">'+d.hari+' hari</span></span></div><div class="row"><b>Peminta</b><span>'+esc(d.by)+' ('+esc(d.dept)+')</span></div><div class="row"><b>Tanggal</b><span>'+esc(d.tgl)+'</span></div><div class="row"><b>Alasan</b><span>'+esc(d.alasan)+'</span></div><div class="row"><b>Barang</b><span>'+it+'</span></div>'+
       '<input class="no" data-id="'+esc(d.id)+'" maxlength="60" autocomplete="off" placeholder="Nomor PPBJ untuk '+esc(d.doc)+'"></div>';
   }).join("");
   app.innerHTML='<div class="card"><p style="margin:0">Yth. <b>'+esc(r.pic)+'</b>, ada <b>'+r.reqs.length+' permintaan</b> yang menunggu Nomor PPBJ. Isi yang sudah siap, yang belum boleh dikosongkan, lalu klik Simpan.</p></div>'+rows+'<div class="card"><button class="ok" id="go" style="width:100%">Simpan Semua Nomor PPBJ</button></div>';

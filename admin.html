@@ -125,11 +125,12 @@ function draw(now){
    '<div class="sum"><div><b>'+nSet+'</b><span>Menunggu persetujuan</span></div><div><b>'+nLate+'</b><span>Menunggu 24 jam atau lebih</span></div><div><b>'+nPp+'</b><span>PPBJ belum ada</span></div></div>'+
    '<div class="bar">'+
    [["belum","Belum lengkap"],["setuju","Menunggu persetujuan"],["ppbj","PPBJ belum ada"],["semua","Semua"]].map(function(c){var on=(c[0]==="semua"?SEMUA:(!SEMUA&&MODE===c[0]));return '<button class="chip'+(on?" on":"")+'" data-chip="'+c[0]+'">'+c[1]+'</button>';}).join("")+
-   '<input id="q" placeholder="Cari No BPB, pemohon, PIC, departemen..." value="'+esc(q)+'"><button class="gh" id="rf">Segarkan</button><button class="gh" id="lo">Keluar</button></div>'+
+   '<input id="q" placeholder="Cari No BPB, pemohon, PIC, departemen..." value="'+esc(q)+'"><button class="rm" id="rkgo">Rekap PPBJ per PIC</button><button class="gh" id="rf">Segarkan</button><button class="gh" id="lo">Keluar</button></div>'+
    '<div id="tb"></div><p style="color:var(--mut);font-size:12px">Diperbarui: '+esc(now||"")+'. Pengingat otomatis dikirim tiap pagi (persetujuan: menunggu 24 jam atau lebih; PPBJ: sejak hari ke-3).</p>';
   drawRows();
   document.getElementById("q").oninput=drawRows;
   document.getElementById("rf").onclick=function(){load(false);};
+  document.getElementById("rkgo").onclick=loadRekap;
   document.getElementById("lo").onclick=function(){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView("");};
   pane().querySelectorAll("[data-chip]").forEach(function(b){b.onclick=function(){
     var k=b.getAttribute("data-chip");
@@ -500,6 +501,42 @@ async function paPdf(btn,zip){
     toast("Unduhan siap: "+docs.length+" dokumen."+(lewat.length?" Dilewati "+lewat.length+": "+lewat.slice(0,3).join("; ")+(lewat.length>3?" ...":""):""),lewat.length>0&&!docs.length);
   }catch(e){toast("Gagal membuat PDF: "+(e&&e.message?e.message:"coba lagi"),true);}
   btn.disabled=false;btn.textContent=tek;
+}
+
+/* ---- Rekap PPBJ belum ada, per PIC ---- */
+var RK=[];
+async function loadRekap(){
+  pane().innerHTML='<div class="card msg">Memuat rekap...</div>';
+  try{var r=await api({action:"adminPpbjRekap"});if(!r.ok){toast(r.msg||"Gagal.",true);return;}RK=r.groups||[];drawRekap();}
+  catch(e){toast("Gagal terhubung ke server.",true);}
+}
+function drawRekap(){
+  tabsUI();
+  var tot=RK.reduce(function(s,g){return s+g.n;},0),tanpaEm=RK.filter(function(g){return !g.email;}).length;
+  var cards=RK.map(function(g,i){
+    var rows=g.reqs.map(function(q){
+      return '<tr><td data-l="No BPB"><b>'+esc(q.doc)+'</b></td><td data-l="Peminta">'+esc(q.by)+'<small>'+esc(q.dept)+'</small></td><td data-l="Diajukan">'+esc(q.tgl)+'<small>'+q.hari+' hari lalu</small></td><td data-l="Barang">'+q.items.map(function(x){return esc(x.nama)+' <small style="display:inline">('+esc(x.jumlah)+' '+esc(x.satuan)+')</small>';}).join('<br>')+'</td></tr>';
+    }).join("");
+    return '<div class="card" style="margin-bottom:12px"><div class="bar" style="margin:0 0 8px"><b style="flex:1">'+esc(g.pic)+' <span class="bd '+(g.tertua>=7?"b":"w")+'">'+g.n+' permintaan, tertua '+g.tertua+' hari</span></b>'+
+      (g.email?'<small>'+esc(g.email)+'</small>':'<span class="bd b">email PIC kosong</span>')+'<button class="rm" data-rk="'+i+'"'+(g.email?"":" disabled")+'>Kirim rekap ke PIC ini</button></div>'+
+      '<table><thead><tr><th>No BPB</th><th>Peminta</th><th>Diajukan</th><th>Barang (qty)</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }).join("");
+  pane().innerHTML='<div class="bar"><button class="gh" id="rkb">&larr; Kembali ke Pantauan</button><button class="rm" id="rka"'+(RK.length?"":" disabled")+'>Kirim rekap ke semua PIC</button><button class="gh" id="rkx"'+(RK.length?"":" disabled")+'>Unduh Excel</button></div>'+
+   '<div class="sum"><div><b>'+tot+'</b><span>Permintaan belum ada PPBJ</span></div><div><b>'+RK.length+'</b><span>PIC terkait</span></div><div><b'+(tanpaEm?' style="color:#c0392b"':"")+'>'+tanpaEm+'</b><span>PIC tanpa email</span></div></div>'+
+   '<div class="note">Email ke PIC berisi rincian tiap permintaan (No BPB, peminta, barang, qty) dan satu tombol untuk mengisi semua nomor PPBJ sekaligus. CC: atasan departemen, Staff dan Manager Gudang. PIC tanpa email bisa dikirimi lewat Excel (unduh lalu kirim sendiri).</div>'+
+   (RK.length?cards:'<div class="card msg">Semua permintaan sudah punya nomor PPBJ.</div>');
+  document.getElementById("rkb").onclick=function(){load(false);};
+  document.getElementById("rkx").onclick=rekapExcel;
+  document.getElementById("rka").onclick=function(){if(confirm("Kirim email rekap ke "+RK.filter(function(g){return g.email;}).length+" PIC?"))kirimAdmin(this,{action:"adminPpbjKirimRekap"});};
+  pane().querySelectorAll("[data-rk]").forEach(function(b){b.onclick=function(){var g=RK[+b.getAttribute("data-rk")];if(confirm("Kirim rekap "+g.n+" permintaan ke "+g.pic+"?"))kirimAdmin(b,{action:"adminPpbjKirimRekap",keys:[g.key]});};});
+}
+function rekapExcel(){
+  if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
+  var a=[["PIC","Email PIC","No BPB","Peminta","Departemen","Tanggal Diajukan","Umur (hari)","Kode Barang","Nama Barang","Satuan","Qty","Alasan","Nomor PPBJ (diisi PIC)"]];
+  RK.forEach(function(g){g.reqs.forEach(function(q){q.items.forEach(function(x){a.push([g.pic,g.email,q.doc,q.by,q.dept,q.tgl,q.hari,x.kode,x.nama,x.satuan,x.jumlah,q.alasan,""]);});});});
+  var b=[["PIC","Email PIC","Jumlah Permintaan","Tertua (hari)"]].concat(RK.map(function(g){return [g.pic,g.email,g.n,g.tertua];}));
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(b),"Ringkasan per PIC");XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),"Rincian");
+  XLSX.writeFile(wb,"rekap_ppbj_belum_ada_"+new Date().toISOString().slice(0,10)+".xlsx");toast("Excel rekap siap: "+(a.length-1)+" baris barang.");
 }
 
 /* ---- tab Proyek ---- */

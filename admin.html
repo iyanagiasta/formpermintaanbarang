@@ -433,7 +433,7 @@ function drawAccurate(){
    '<input id="paq" placeholder="Cari dokumen / proyek / No transaksi" value="'+esc(PAF.q)+'"><label class="fl"><input type="checkbox" id="paa"'+(PAF.acc?" checked":"")+'> hanya yang ada bagian dari stok Accurate</label><button class="gh" id="par">Segarkan</button></div>'+
    '<div class="bar"><label class="fl"><input type="checkbox" id="pall"'+(vis.length&&nSelVis===Math.min(vis.length,500)?" checked":"")+'> Pilih semua yang tampil</label><b id="pasel">'+sel.length+' dokumen dipilih</b>'+
    '<button class="gh" id="pax">Unduh Excel rincian</button><button class="gh" id="pag">Unduh PDF gabungan</button><button class="gh" id="paz2">Unduh ZIP (1 PDF per dokumen)</button></div>'+
-   '<div class="bar"><input id="pano" placeholder="No transaksi penyesuaian di Accurate" maxlength="80"><input id="pact" placeholder="Catatan (opsional)" maxlength="200"><button class="sv" id="pat">Tandai sudah diinput</button><button class="gh" id="pab">Kembalikan ke Belum</button></div>'+
+   '<div class="bar"><input id="pano" placeholder="No transaksi penyesuaian di Accurate" maxlength="80"><input id="pact" placeholder="Catatan (opsional)" maxlength="200"><button class="sv" id="pat">Tandai sudah diinput</button><button class="gh" id="pab">Kembalikan ke Belum</button><button class="rm" id="pah" title="Khusus dokumen hasil input barang keluar lama yang salah unggah">Hapus input lama terpilih</button></div>'+
    '<div class="note">Pilih satu atau banyak dokumen (misalnya semua dokumen satu proyek), unduh PDF gabungan untuk diunggah sekali ke Accurate, lalu isi nomor transaksi dan klik Tandai. Nomor yang sama berlaku untuk semua dokumen terpilih. Pengingat hanya dikirim ke Staff Gudang.</div>'+
    (vis.length?'<table><thead><tr><th></th><th>Tanggal</th><th>Dokumen</th><th>No PPBJ</th><th>Proyek</th><th class="nm">Barang / Qty</th><th>Sumber stok</th><th>Status</th></tr></thead><tbody>'+body+'</tbody></table>'+(vis.length>500?'<div class="note">Menampilkan 500 dari '+vis.length+'. Persempit filter.</div>':""):'<div class="card msg">Tidak ada dokumen yang cocok dengan filter.</div>');
   var $=function(i){return document.getElementById(i);};
@@ -445,7 +445,7 @@ function drawAccurate(){
   document.querySelectorAll("[data-pk]").forEach(function(c){c.onchange=function(){var k=c.getAttribute("data-pk");if(c.checked)PAS[k]=1;else delete PAS[k];$("pasel").textContent=paTerpilih().length+" dokumen dipilih";};});
   $("pax").onclick=function(){paExcel(this);};$("pag").onclick=function(){paPdf(this,false);};$("paz2").onclick=function(){paPdf(this,true);};
   paBadge();
-  $("pat").onclick=function(){paTandai(this,"sudah");};$("pab").onclick=function(){paTandai(this,"belum");};
+  $("pat").onclick=function(){paTandai(this,"sudah");};$("pab").onclick=function(){paTandai(this,"belum");};$("pah").onclick=function(){paHapus(this);};
 }
 function paSimpan(bytes,nama,tipe){var b=new Blob([bytes],{type:tipe}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=nama;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},4000);}
 async function paTandai(btn,aksi){
@@ -454,6 +454,11 @@ async function paTandai(btn,aksi){
   if(aksi==="sudah"&&!no){toast("Isi nomor transaksi penyesuaian Accurate dulu.",true);return;}
   if(!confirm((aksi==="sudah"?"Tandai "+sel.length+" dokumen sudah diinput ke Accurate dengan nomor "+no+"?":"Kembalikan "+sel.length+" dokumen ke status Belum?")))return;
   await kirimAdmin(btn,{action:"adminPaTandai",keys:sel.map(function(x){return x.key;}),aksi:aksi,noTrans:no,cat:document.getElementById("pact").value.trim()},async function(){PAS={};await loadAccurate();});
+}
+async function paHapus(btn){
+  var sel=paTerpilih();if(!sel.length){toast("Pilih dokumen dulu.",true);return;}
+  if(!confirm("HAPUS "+sel.length+" dokumen input lama?\n\nStok dikembalikan, baris di Serah dan daftar Accurate dihapus. Hanya berlaku untuk dokumen hasil Input barang keluar lama yang statusnya Belum. Dokumen lain otomatis dilewati."))return;
+  await kirimAdmin(btn,{action:"adminLamaBatal",keys:sel.map(function(x){return x.key;})},async function(){PAS={};await loadAccurate();});
 }
 async function paExcel(btn){
   var sel=paTerpilih();if(!sel.length){toast("Pilih dokumen dulu.",true);return;}

@@ -187,12 +187,13 @@ async function onAct(b){
 function pane(){return document.getElementById("pane")||app;}
 function tabsUI(){
   if(!document.getElementById("pane"))app.innerHTML='<div class="tabs" id="tabs"></div><div id="pane"></div>';
-  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["laporan","Laporan"],["accurate","Accurate"],["realisasi","Realisasi"],["terima","Terima Barang"],["pengajuan","Pengajuan"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
+  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["laporan","Laporan"],["accurate","Accurate"],["realisasi","Realisasi"],["pembelian","Pembelian"],["terima","Terima Barang"],["pengajuan","Pengajuan"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
   paBadge();
   document.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){goTab(b.getAttribute("data-tab"));};});
 }
 function goTab(t){
   if(t==="realisasi"){location.href="realisasi.html";return;}
+  if(t==="pembelian"){location.href="pengadaan.html";return;}
   TAB=t;
   if(t==="pantau"){load(false);return;}
   tabsUI();

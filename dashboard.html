@@ -141,6 +141,7 @@ async function buka(aksi,btn){
     else if(aksi==="proyek"){if(await pastikanPic())location.href="proyek.html";}
     else if(aksi==="beli"){if(await pastikanPic())location.href="pembelian.html";}
     else if(aksi==="realisasi"){if(await pastikanPic())location.href="realisasi.html";}
+    else if(aksi==="pembelianku"){if(await pastikanPic())location.href="pengadaan.html";}
     else if(aksi==="admin"){if(await pastikanAdmin())location.href="admin.html";}
   }finally{if(btn)btn.disabled=false;}
 }
@@ -158,6 +159,7 @@ function kartu(){
    big("proyek","proyek","Kebutuhan dan Cek PPBJ","Simpan kebutuhan (RAB) proyek per No PPBJ, lalu cek barang apa saja yang sudah keluar, dikembalikan, dan masih diproses.","KODE PIC / ATASAN / GUDANG")+
    big("beli","form","Pengajuan Pembelian","Ajukan pembelian UMO atau PPBJ (Capex/Opex). Persetujuan atasan, Pengadaan, Accounting lewat email dengan tanda tangan otomatis.","KODE PIC / ATASAN / GUDANG")+
    big("realisasi","form","Realisasi Pembelian","Catat belanja atas UMO atau Capex yang sudah disetujui, bandingkan dengan pengajuan, lalu tutup realisasinya.","KODE PIC / ATASAN / GUDANG")+
+   big("pembelianku","form","Pembelian dan Penerimaan","Pengadaan mencatat pembelian dan surat jalan; Staff Gudang mengonfirmasi barang diterima fisik; Accounting mengesahkan pembelian darurat.","KODE PENGADAAN / ACCOUNTING / GUDANG")+
    big("admin","admin","Admin Gudang","Pantauan persetujuan, serah barang, stok dan harga, opname, proyek, mutasi, laporan, dan cadangan.","KHUSUS ADMIN",true)+
    '</div>';
 }

@@ -541,11 +541,11 @@ function rekapExcel(){
 }
 
 /* ---- Input barang keluar lama (form manual) ---- */
-var LM={rows:[],nama:"",hasil:null};
+var LM={rows:[],nama:"",hasil:null,izin:false};
 function drawSerah(oto){
   drawSerah0(oto);
   pane().insertAdjacentHTML("afterbegin",'<div class="bar"><button class="rm" id="lmgo">Input barang keluar lama (form manual)</button><span class="note" style="margin:0">Untuk proyek yang sudah jalan dan barangnya sudah keluar lewat form kertas.</span></div>');
-  document.getElementById("lmgo").onclick=function(){LM={rows:[],nama:"",hasil:null};viewLama();};
+  document.getElementById("lmgo").onclick=function(){LM={rows:[],nama:"",hasil:null,izin:false};viewLama();};
 }
 function viewLama(){
   var h=LM.hasil,rows=LM.rows;
@@ -560,8 +560,10 @@ function viewLama(){
    '<div class="card"><b>Input barang keluar lama</b><div class="note">Catat barang yang sudah keluar dengan form permintaan manual. <b>Stok akan berkurang</b> sesuai isian, tercatat di Mutasi dan laporan proyek, dan dokumennya masuk daftar Penyesuaian Accurate dengan status Belum.</div>'+
    '<div class="note">Kolom Excel: <b>Tanggal</b>, <b>No Form</b> (nomor form manual / BPB), <b>No PPBJ</b>, <b>Departemen</b> (boleh kosong bila PPBJ terdaftar), <b>Kode Barang</b>, <b>Nama Barang</b> (opsional: dipakai untuk mengecek kode, atau mencari barang bila kode kosong), <b>Qty</b>, <b>Sumber</b> (Bekas, Moka, Accurate, atau kosong = otomatis Moka lalu Accurate), <b>Pemohon</b>, <b>PIC</b>, <b>Nama Proyek</b> (teks bebas, dipakai bila PPBJ belum ada), <b>Catatan</b> (opsional). Bila No PPBJ kosong, form itu otomatis masuk rekap PPBJ per PIC. Satu form boleh banyak baris, tapi tanggal, PPBJ, dan departemennya harus sama. Nomor form yang sudah ada di Serah ditolak, jadi aman bila terunggah dua kali.</div>'+
    '<div class="fr"><input type="file" id="lmf" accept=".xlsx,.xls,.csv"><span class="note" id="lmn">'+esc(LM.nama)+'</span></div>'+
+   '<div class="fr"><label class="fl" style="align-items:flex-start"><input type="checkbox" id="lmi"'+(LM.izin?" checked":"")+'> <span><b>Jika stok di sistem kurang, tetap catat penuh</b> dan kurangi stok hanya sampai 0. Pakai ini bila stok di sistem sudah lebih dulu berkurang (misalnya stok diimpor setelah barang keluar), sehingga bagian yang kurang tidak dikurangi dua kali.</span></label></div>'+
    '<div class="bar"><button class="gh" id="lmp"'+(rows.length?"":" disabled")+'>Periksa dulu (pratinjau)</button><button class="sv" id="lms"'+(h&&h.bisaSimpan?"":" disabled")+'>Simpan '+(h&&h.bisaSimpan?(h.docs||[]).length+" form":"")+' dan kurangi stok</button></div></div>'+info;
   document.getElementById("lmb").onclick=function(){loadSerah();};
+  document.getElementById("lmi").onchange=function(){LM.izin=this.checked;LM.hasil=null;viewLama();};
   document.getElementById("lmc").onclick=lamaContoh;
   document.getElementById("lmf").onchange=function(){var f=this.files[0];if(!f)return;lamaBaca(f,function(a){LM.rows=lamaPeta(a);LM.nama=f.name+" ("+LM.rows.length+" baris)";LM.hasil=null;if(!LM.rows.length)toast("Tidak ada baris data yang terbaca. Pakai kolom seperti contoh.",true);viewLama();});};
   document.getElementById("lmp").onclick=function(){lamaKirim(this,false);};
@@ -600,9 +602,9 @@ function lamaPeta(a){
 async function lamaKirim(btn,simpan){
   if(BUSY)return;BUSY=true;btn.disabled=true;
   try{
-    var r=await api({action:"adminLamaImpor",rows:LM.rows,simpan:simpan});
+    var r=await api({action:"adminLamaImpor",rows:LM.rows,simpan:simpan,izinKurang:LM.izin});
     if(!r.ok){toast(r.msg||"Gagal.",true);}
-    else{LM.hasil=r;toast(r.msg,!!r.nErr);if(simpan&&r.simpan){LM={rows:[],nama:"",hasil:null};BUSY=false;btn.disabled=false;await loadSerah();toast(r.msg);return;}}
+    else{LM.hasil=r;toast(r.msg,!!r.nErr);if(simpan&&r.simpan){LM={rows:[],nama:"",hasil:null,izin:false};BUSY=false;btn.disabled=false;await loadSerah();toast(r.msg);return;}}
   }catch(e){toast("Gagal terhubung ke server.",true);}
   BUSY=false;viewLama();
 }

@@ -471,15 +471,15 @@ async function paExcel(btn){
       if(!r.ok){toast(r.msg||"Gagal.",true);btn.disabled=false;return;}rows=rows.concat(r.rows||[]);
     }
     var wb=XLSX.utils.book_new();
-    var a1=[["Tanggal","Jenis","No Dokumen","Proyek","No PPBJ","Barang","Total Qty","Qty dari stok Accurate","Status","No Transaksi Accurate"]].concat(sel.map(function(x){return [x.tgl,x.jenis,x.doc,x.proyek,x.ppbj,x.n,x.qty,x.qacc,x.status,x.noTrans];}));
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a1),"Dokumen");
-    var a2=[["Jenis","No Dokumen","Tanggal","Proyek","No PPBJ","Kode Barang","Nama Barang","Satuan","Qty Total","Dari Bekas","Dari Moka","Dari Accurate","Status","No Transaksi Accurate"]].concat(rows.map(function(x){return [x.jenis,x.doc,x.tgl,x.proyek,x.ppbj,x.kode,x.nama,x.satuan,x.qty,x.bekas,x.moka,x.accurate,x.status,x.noTrans];}));
+    var a2=[["Rincian Barang (untuk penyesuaian Accurate)"],[],["No Transaksi Accurate","Status","Tanggal","Jenis","No Dokumen","No PPBJ","Proyek","Kode Barang","Nama Barang","Satuan","Qty Total","Dari Bekas","Dari Moka","Dari Accurate"]].concat(rows.map(function(x){return [x.noTrans,x.status,x.tgl,x.jenis,x.doc,x.ppbj,x.proyek,x.kode,x.nama,x.satuan,x.qty,x.bekas,x.moka,x.accurate];}));
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a2),"Rincian Barang");
     var tot={};rows.forEach(function(x){var k=x.jenis+"|"+x.kode,t=tot[k]||(tot[k]={jenis:x.jenis,kode:x.kode,nama:x.nama,satuan:x.satuan,qty:0,accurate:0});t.qty+=x.qty;t.accurate+=x.accurate;});
-    var a3=[["Jenis","Kode Barang","Nama Barang","Satuan","Total Qty","Total dari stok Accurate"]].concat(Object.keys(tot).sort().map(function(k){var t=tot[k];return [t.jenis,t.kode,t.nama,t.satuan,Math.round(t.qty*1000)/1000,Math.round(t.accurate*1000)/1000];}));
+    var a3=[["Total per Barang (semua dokumen terpilih)"],[],["Jenis","Kode Barang","Nama Barang","Satuan","Total Qty","Total dari stok Accurate"]].concat(Object.keys(tot).sort().map(function(k){var t=tot[k];return [t.jenis,t.kode,t.nama,t.satuan,Math.round(t.qty*1000)/1000,Math.round(t.accurate*1000)/1000];}));
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a3),"Total per Barang");
+    var a1=[["Tanggal","Jenis","No Dokumen","Proyek","No PPBJ","Jumlah Barang","Total Qty","Qty dari stok Accurate","Status","No Transaksi Accurate"]].concat(sel.map(function(x){return [x.tgl,x.jenis,x.doc,x.proyek,x.ppbj,x.n,x.qty,x.qacc,x.status,x.noTrans];}));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a1),"Daftar Dokumen");
     XLSX.writeFile(wb,"penyesuaian_accurate_"+new Date().toISOString().slice(0,10)+".xlsx");
-    toast("Excel siap: "+sel.length+" dokumen, "+rows.length+" baris barang.");
+    toast("Excel siap: "+sel.length+" dokumen, "+rows.length+" baris barang. Rincian ada di sheet pertama (Rincian Barang)."+(rows.length?"":" Perhatian: tidak ada rincian barang yang ditemukan untuk dokumen terpilih."),!rows.length);
   }catch(e){toast("Gagal terhubung ke server.",true);}
   btn.disabled=false;
 }

@@ -123,13 +123,18 @@ function unduhCek(){
   XLSX.writeFile(wb,"cek-ppbj-"+String(r.ppbj).replace(/[^\w-]+/g,"_")+".xlsx");
 }
 /* ================= ISI KEBUTUHAN ================= */
+function opsiDept(cur){
+  var l=(INFO&&INFO.depts)||[],c=String(cur||"").trim(),ada=!c||l.some(function(d){return d.toLowerCase()===c.toLowerCase();});
+  if(!l.length)return '<option value="'+esc(c)+'">'+esc(c||"Departemen")+'</option>';
+  return '<option value="">Departemen: pilih</option>'+(ada?"":'<option value="'+esc(c)+'" selected>'+esc(c)+' (tidak terdaftar)</option>')+l.map(function(d){return '<option value="'+esc(d)+'"'+(c.toLowerCase()===d.toLowerCase()?" selected":"")+'>'+esc(d)+'</option>';}).join("");
+}
 function formBaru(){return {ppbj:"",nama:"",dept:"",kategori:"",rows:[],ada:0,file:""};}
 function viewIsi(){
   if(!FORM)FORM=formBaru();
   var f=FORM,box=document.getElementById("isi");
   box.innerHTML='<div class="card"><b>Kebutuhan barang proyek</b><div class="note">Isi No PPBJ, nama proyek, dan <b>kategori Capex atau Opex</b> (menentukan alur persetujuan pembelian), lalu tambahkan barang (kode dan satuan terisi otomatis) atau impor dari Excel. Bila PPBJ sudah punya kebutuhan, isinya dimuat otomatis dan penyimpanan akan <b>mengganti seluruhnya</b> (versi lama tersimpan di riwayat).</div>'+
    '<div class="fr"><input type="text" id="fp" list="dlp2" placeholder="No PPBJ" value="'+esc(f.ppbj)+'" style="width:210px"><datalist id="dlp2">'+opsiPpbj()+'</datalist><button class="gh" id="muat">Muat kebutuhan tersimpan</button></div>'+
-   '<div class="fr"><input type="text" id="fn" placeholder="Nama proyek" value="'+esc(f.nama)+'" style="flex:1;min-width:220px"><input type="text" id="fd" placeholder="Departemen" value="'+esc(f.dept)+'" style="width:170px"><select id="fk" title="Kategori anggaran (menentukan alur pembelian)"><option value="">Kategori: pilih</option><option value="Opex"'+(f.kategori==="Opex"?' selected':'')+'>Opex</option><option value="Capex"'+(f.kategori==="Capex"?' selected':'')+'>Capex</option></select></div>'+
+   '<div class="fr"><input type="text" id="fn" placeholder="Nama proyek" value="'+esc(f.nama)+'" style="flex:1;min-width:220px"><select id="fd" style="width:170px" title="Departemen">'+opsiDept(f.dept)+'</select><select id="fk" title="Kategori anggaran (menentukan alur pembelian)"><option value="">Kategori: pilih</option><option value="Opex"'+(f.kategori==="Opex"?' selected':'')+'>Opex</option><option value="Capex"'+(f.kategori==="Capex"?' selected':'')+'>Capex</option></select></div>'+
    '<div class="fr"><input type="search" id="fs" placeholder="Cari nama atau kode barang untuk ditambahkan..." autocomplete="off" style="flex:1;min-width:240px"></div><div class="sres" id="sr"></div>'+
    '<div class="fr"><input type="file" id="ff" accept=".xlsx,.xls,.csv"><a href="#" id="contoh">Unduh contoh Excel</a><span class="note" id="fi">'+(f.file?esc(f.file):'')+'</span></div></div><div id="rb"></div>';
   document.getElementById("fp").oninput=function(){f.ppbj=this.value;};

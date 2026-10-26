@@ -67,7 +67,7 @@ td small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 <div id="toast"></div>
 <script>
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
-var TAB="pantau",STOK=[],SUMB=["Bekas","Moka","Accurate"],PRO=[],PST=[],PIN="",MODE="belum",DATA=[],BUSY=false,SEMUA=false;
+var PDEPT=[],TAB="pantau",STOK=[],SUMB=["Bekas","Moka","Accurate"],PRO=[],PST=[],PIN="",MODE="belum",DATA=[],BUSY=false,SEMUA=false;
 var app=document.getElementById("app");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},4500);}
@@ -545,7 +545,7 @@ async function loadProyek(){
   try{
     var r=await api({action:"adminProyekList"});
     if(!r.ok){toast(r.msg||"Gagal.",true);return;}
-    PRO=r.data||[];PST=r.status||[];drawProyek();
+    PRO=r.data||[];PST=r.status||[];PDEPT=r.depts||[];drawProyek();
   }catch(e){toast("Gagal terhubung ke server.",true);}
 }
 function stCls(s){return s==="Aktif"?"a":s==="Ditunda Sebentar"?"s":"l";}
@@ -554,7 +554,7 @@ function drawProyek(){
   pane().innerHTML=
    '<div class="sum"><div><b>'+nA+' / 15</b><span>Proyek mengikat stok (Aktif + Ditunda Sebentar)</span></div></div>'+
    '<div class="card"><b>Tambah / ubah proyek</b><div class="note">Mengisi No PPBJ yang sudah ada akan mengubah proyek itu. Aktif dan Ditunda Sebentar mengikat stok; Ditunda Lama, Selesai, Batal melepasnya.</div>'+
-   '<div class="fr"><input type="text" id="pp" placeholder="No PPBJ" maxlength="60"><input type="text" id="pk" placeholder="Keterangan proyek" maxlength="300" style="flex:1;min-width:200px"><input type="text" id="pd" placeholder="Departemen" maxlength="60">'+
+   '<div class="fr"><input type="text" id="pp" placeholder="No PPBJ" maxlength="60"><input type="text" id="pk" placeholder="Keterangan proyek" maxlength="300" style="flex:1;min-width:200px"><select id="pd"><option value="">Departemen: pilih</option>'+PDEPT.map(function(d){return '<option>'+esc(d)+'</option>';}).join("")+'</select>'+
    '<select id="ps">'+PST.map(function(s){return '<option>'+esc(s)+'</option>';}).join("")+'</select><button class="sv" id="pgo">Simpan</button></div></div>'+
    (PRO.length?'<table><thead><tr><th>No PPBJ</th><th>Keterangan</th><th>Departemen</th><th>Status</th><th>Ubah status</th></tr></thead><tbody>'+
    PRO.map(function(p,i){return '<tr><td data-l="No PPBJ"><b>'+esc(p.ppbj)+'</b><small>'+esc(p.dibuat||"")+'</small></td><td data-l="Keterangan">'+esc(p.ket)+'</td><td data-l="Departemen">'+esc(p.dept)+'</td>'+

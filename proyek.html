@@ -123,19 +123,20 @@ function unduhCek(){
   XLSX.writeFile(wb,"cek-ppbj-"+String(r.ppbj).replace(/[^\w-]+/g,"_")+".xlsx");
 }
 /* ================= ISI KEBUTUHAN ================= */
-function formBaru(){return {ppbj:"",nama:"",dept:"",rows:[],ada:0,file:""};}
+function formBaru(){return {ppbj:"",nama:"",dept:"",kategori:"",rows:[],ada:0,file:""};}
 function viewIsi(){
   if(!FORM)FORM=formBaru();
   var f=FORM,box=document.getElementById("isi");
-  box.innerHTML='<div class="card"><b>Kebutuhan barang proyek</b><div class="note">Isi No PPBJ dan nama proyek, lalu tambahkan barang (kode dan satuan terisi otomatis) atau impor dari Excel. Bila PPBJ sudah punya kebutuhan, isinya dimuat otomatis dan penyimpanan akan <b>mengganti seluruhnya</b> (versi lama tersimpan di riwayat).</div>'+
+  box.innerHTML='<div class="card"><b>Kebutuhan barang proyek</b><div class="note">Isi No PPBJ, nama proyek, dan <b>kategori Capex atau Opex</b> (menentukan alur persetujuan pembelian), lalu tambahkan barang (kode dan satuan terisi otomatis) atau impor dari Excel. Bila PPBJ sudah punya kebutuhan, isinya dimuat otomatis dan penyimpanan akan <b>mengganti seluruhnya</b> (versi lama tersimpan di riwayat).</div>'+
    '<div class="fr"><input type="text" id="fp" list="dlp2" placeholder="No PPBJ" value="'+esc(f.ppbj)+'" style="width:210px"><datalist id="dlp2">'+opsiPpbj()+'</datalist><button class="gh" id="muat">Muat kebutuhan tersimpan</button></div>'+
-   '<div class="fr"><input type="text" id="fn" placeholder="Nama proyek" value="'+esc(f.nama)+'" style="flex:1;min-width:220px"><input type="text" id="fd" placeholder="Departemen" value="'+esc(f.dept)+'" style="width:170px"></div>'+
+   '<div class="fr"><input type="text" id="fn" placeholder="Nama proyek" value="'+esc(f.nama)+'" style="flex:1;min-width:220px"><input type="text" id="fd" placeholder="Departemen" value="'+esc(f.dept)+'" style="width:170px"><select id="fk" title="Kategori anggaran (menentukan alur pembelian)"><option value="">Kategori: pilih</option><option value="Opex"'+(f.kategori==="Opex"?' selected':'')+'>Opex</option><option value="Capex"'+(f.kategori==="Capex"?' selected':'')+'>Capex</option></select></div>'+
    '<div class="fr"><input type="search" id="fs" placeholder="Cari nama atau kode barang untuk ditambahkan..." autocomplete="off" style="flex:1;min-width:240px"></div><div class="sres" id="sr"></div>'+
    '<div class="fr"><input type="file" id="ff" accept=".xlsx,.xls,.csv"><a href="#" id="contoh">Unduh contoh Excel</a><span class="note" id="fi">'+(f.file?esc(f.file):'')+'</span></div></div><div id="rb"></div>';
   document.getElementById("fp").oninput=function(){f.ppbj=this.value;};
   document.getElementById("fn").oninput=function(){f.nama=this.value;};
   document.getElementById("fd").oninput=function(){f.dept=this.value;};
-  document.getElementById("fp").onchange=function(){f.ppbj=this.value;var p=LIST.filter(function(x){return x.ppbj===f.ppbj;})[0];if(p){if(!f.nama){f.nama=p.nama||"";document.getElementById("fn").value=f.nama;}if(!f.dept){f.dept=p.dept||"";document.getElementById("fd").value=f.dept;}if(p.n&&!f.rows.length)muat();}};
+  document.getElementById("fk").onchange=function(){f.kategori=this.value;};
+  document.getElementById("fp").onchange=function(){f.ppbj=this.value;var p=LIST.filter(function(x){return x.ppbj===f.ppbj;})[0];if(p){if(!f.kategori&&p.kategori){f.kategori=p.kategori;document.getElementById("fk").value=f.kategori;}if(!f.nama){f.nama=p.nama||"";document.getElementById("fn").value=f.nama;}if(!f.dept){f.dept=p.dept||"";document.getElementById("fd").value=f.dept;}if(p.n&&!f.rows.length)muat();}};
   document.getElementById("muat").onclick=muat;
   document.getElementById("ff").onchange=function(){if(this.files[0])bacaFile(this.files[0]);};
   document.getElementById("contoh").onclick=function(e){e.preventDefault();unduhContoh();};
@@ -145,7 +146,7 @@ function viewIsi(){
 async function muat(){
   var v=document.getElementById("fp").value.trim();if(!v){toast("Isi No PPBJ dulu.",true);return;}
   try{var r=await api({action:"kbGet",ppbj:v});if(!r.ok){toast(r.msg||"Gagal.",true);return;}
-    var f=FORM;f.ppbj=r.ppbj;f.nama=r.nama||f.nama;f.dept=r.dept||f.dept;f.rows=r.items.map(function(x){return {kode:x.kode,nama:x.nama,satuan:x.satuan,qty:String(x.qty).replace(".",","),ok:true};});f.ada=r.items.length;
+    var f=FORM;f.ppbj=r.ppbj;f.nama=r.nama||f.nama;f.dept=r.dept||f.dept;f.kategori=r.kategori||f.kategori;f.rows=r.items.map(function(x){return {kode:x.kode,nama:x.nama,satuan:x.satuan,qty:String(x.qty).replace(".",","),ok:true};});f.ada=r.items.length;
     viewIsi();toast(r.items.length?("Dimuat "+r.items.length+" barang"+(r.diubah?" (terakhir diubah "+r.diubah+")":"")+"."):"Belum ada kebutuhan tersimpan. Silakan isi.");
   }catch(e){toast("Gagal terhubung ke server.",true);}
 }
@@ -179,14 +180,14 @@ function gambarRows(akhir){
 function tombolSimpan(){return '<div class="fr"><button class="sv" id="simpan">Simpan kebutuhan</button><button class="gh" id="reset">Kosongkan form</button></div>';}
 function pasangSimpan(){document.getElementById("simpan").onclick=simpan;document.getElementById("reset").onclick=function(){if(FORM.rows.length&&!confirm("Kosongkan form ini? Isian yang belum disimpan hilang."))return;FORM=formBaru();viewIsi();};}
 async function simpan(ganti){
-  var f=FORM;f.ppbj=document.getElementById("fp").value.trim();f.nama=document.getElementById("fn").value.trim();f.dept=document.getElementById("fd").value.trim();
-  if(!f.ppbj){toast("No PPBJ wajib diisi.",true);return;}if(!f.nama){toast("Nama proyek wajib diisi.",true);return;}
+  var f=FORM;f.ppbj=document.getElementById("fp").value.trim();f.nama=document.getElementById("fn").value.trim();f.dept=document.getElementById("fd").value.trim();f.kategori=document.getElementById("fk").value;
+  if(!f.ppbj){toast("No PPBJ wajib diisi.",true);return;}if(!f.kategori){toast("Pilih kategori Capex atau Opex untuk proyek ini.",true);return;}if(!f.nama){toast("Nama proyek wajib diisi.",true);return;}
   if(!f.rows.length){toast("Isi minimal satu barang.",true);return;}
   if(f.rows.some(function(x){return !x.ok;})){toast("Masih ada barang yang tidak dikenal. Hapus atau ganti dulu.",true);return;}
   var items=f.rows.map(function(x){return {kode:x.kode,qty:x.qty};});
   var b=document.getElementById("simpan");b.disabled=true;
   try{
-    var r=await api({action:"kbSimpan",ppbj:f.ppbj,nama:f.nama,dept:f.dept,items:items,ganti:ganti===true});
+    var r=await api({action:"kbSimpan",ppbj:f.ppbj,nama:f.nama,dept:f.dept,kategori:f.kategori,items:items,ganti:ganti===true});
     if(r.perlu==="ganti"){
       if(confirm("PPBJ "+f.ppbj+" sudah punya kebutuhan ("+r.ada+" barang).\n\nGanti SELURUHNYA dengan daftar ini ("+items.length+" barang)? Versi lama tersimpan di riwayat.")){b.disabled=false;return simpan(true);}
       b.disabled=false;return;

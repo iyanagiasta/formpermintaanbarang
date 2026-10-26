@@ -139,6 +139,7 @@ async function buka(aksi,btn){
     else if(aksi==="kembali"){if(await pastikanPegawai())location.href="pengembalian.html";}
     else if(aksi==="kebutuhan"){if(await pastikanPic())location.href="kebutuhan.html";}
     else if(aksi==="proyek"){if(await pastikanPic())location.href="proyek.html";}
+    else if(aksi==="beli"){if(await pastikanPic())location.href="pembelian.html";}
     else if(aksi==="admin"){if(await pastikanAdmin())location.href="admin.html";}
   }finally{if(btn)btn.disabled=false;}
 }
@@ -154,6 +155,7 @@ function kartu(){
    big("kembali","kembali","Pengembalian Barang","Kembalikan barang sisa proyek ke gudang. Persetujuan sama dengan permintaan, stok bertambah setelah gudang menerima barang.","KODE PEGAWAI")+
    big("kebutuhan","kebutuhan","Cek Kebutuhan Proyek","Unggah kebutuhan barang proyek baru. Hasilnya: pakai stok Moka, stok Accurate, atau beli, lengkap dengan harga stok.","KODE PIC / ATASAN")+
    big("proyek","proyek","Kebutuhan dan Cek PPBJ","Simpan kebutuhan (RAB) proyek per No PPBJ, lalu cek barang apa saja yang sudah keluar, dikembalikan, dan masih diproses.","KODE PIC / ATASAN / GUDANG")+
+   big("beli","form","Pengajuan Pembelian","Ajukan pembelian UMO atau PPBJ (Capex/Opex). Persetujuan atasan, Pengadaan, Accounting lewat email dengan tanda tangan otomatis.","KODE PIC / ATASAN / GUDANG")+
    big("admin","admin","Admin Gudang","Pantauan persetujuan, serah barang, stok dan harga, opname, proyek, mutasi, laporan, dan cadangan.","KHUSUS ADMIN",true)+
    '</div>';
 }
@@ -185,7 +187,7 @@ async function ringkasAdmin(pin){
      stat(s.proyekAktif,"Proyek mengikat stok","","admin.html#proyek")+
      stat(s.stokHabis,"Barang stok bebas habis",s.stokHabis>0?"w":"ok","admin.html#stok")+
      (s.kuota>=0?stat(s.kuota,"Sisa kuota email hari ini",s.kuota<20?"b":"ok","admin.html#sistem"):"")+'</div>';
-    var utama={"index.html":1,"gudang.html":1,"kebutuhan.html":1,"proyek.html":1,"admin.html":1,"pengembalian.html":1},lain=r.data.filter(function(m){return !utama[m.link]&&m.untuk!=="Admin";}),ad=r.data.filter(function(m){return m.untuk==="Admin";});
+    var utama={"index.html":1,"gudang.html":1,"kebutuhan.html":1,"proyek.html":1,"pembelian.html":1,"admin.html":1,"pengembalian.html":1},lain=r.data.filter(function(m){return !utama[m.link]&&m.untuk!=="Admin";}),ad=r.data.filter(function(m){return m.untuk==="Admin";});
     if(lain.length)h+='<h2>Menu lainnya</h2>'+grid(lain);
     if(ad.length)h+='<h2>Menu Admin</h2>'+grid(ad);
     var box=document.getElementById("adm-box");if(box)box.innerHTML=h;

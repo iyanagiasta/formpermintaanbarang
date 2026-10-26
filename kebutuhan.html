@@ -66,13 +66,13 @@ async function masuk(){
   catch(e){KODE="";loginView("Gagal terhubung ke server.");}
 }
 function start(){if(!BL.length)BL.push(baru());HAS=null;gambarForm();}
-function baru(){return {ppbj:"",nama:"",rows:[],file:""};}
+function baru(){return {ppbj:"",nama:"",kategori:"",dept:"",rows:[],file:""};}
 /* ---------- input ---------- */
 function gambarForm(){
   var opt='<option value="">(RAB baru / belum terdaftar)</option>'+PROY.map(function(p){return '<option value="'+esc(p.ppbj)+'">'+esc(p.ppbj)+' - '+esc(p.ket)+'</option>';}).join("");
   app.innerHTML='<div class="card"><b>Langkah 1. Siapkan proyek</b><div class="note">Satu blok per proyek. Urutan blok = prioritas stok: proyek paling atas mendapat stok lebih dulu. Excel berisi kolom <b>Kode Barang</b>, Nama Barang (opsional), dan <b>Qty</b>. Kebutuhan yang sudah disimpan per No PPBJ bisa diambil dengan tombol di tiap proyek. <a href="#" id="contoh">Unduh contoh Excel</a></div></div>'+
    BL.map(function(b,i){
-     return '<div class="card blk"><h3>Proyek '+(i+1)+'</h3><div class="fr"><select data-p="'+i+'">'+opt+'</select><button class="gh" data-kb="'+i+'" title="Isi daftar barang dari kebutuhan proyek yang tersimpan">Ambil kebutuhan tersimpan</button><input type="text" data-n="'+i+'" placeholder="Nama proyek" value="'+esc(b.nama)+'" style="flex:1;min-width:180px"></div>'+
+     return '<div class="card blk"><h3>Proyek '+(i+1)+'</h3><div class="fr"><select data-p="'+i+'">'+opt+'</select><button class="gh" data-kb="'+i+'" title="Isi daftar barang dari kebutuhan proyek yang tersimpan">Ambil kebutuhan tersimpan</button><input type="text" data-n="'+i+'" placeholder="Nama proyek" value="'+esc(b.nama)+'" style="flex:1;min-width:180px"><select data-k="'+i+'" title="Kategori anggaran proyek (dipakai untuk pengajuan pembelian)"><option value="">Kategori: pilih</option><option value="Opex"'+(b.kategori==="Opex"?' selected':'')+'>Opex</option><option value="Capex"'+(b.kategori==="Capex"?' selected':'')+'>Capex</option></select></div>'+
       '<div class="fr"><input type="file" data-f="'+i+'" accept=".xlsx,.xls,.csv"><span class="note" id="fi'+i+'">'+(b.file?esc(b.file)+': diunggah':'Excel boleh dilewati, barang bisa ditambah lewat pencarian')+'</span></div>'+
       '<div class="fr"><input type="search" data-s="'+i+'" placeholder="Cari nama atau kode barang untuk ditambahkan..." autocomplete="off" style="flex:1;min-width:220px"></div><div class="sres" id="sr'+i+'"></div><div id="rb'+i+'"></div>'+
       '<div class="fr"><button class="gh" data-up="'+i+'"'+(i?'':' disabled')+'>&uarr; Naik</button><button class="gh" data-dn="'+i+'"'+(i<BL.length-1?'':' disabled')+'>&darr; Turun</button><button class="gh" data-rm="'+i+'"'+(BL.length>1?'':' disabled')+'>Hapus</button></div></div>';
@@ -87,10 +87,11 @@ function gambarForm(){
     try{var r=await api({action:"kbGet",ppbj:pp});
       if(!r.ok){toast(r.msg||"Gagal.",true);}
       else if(!r.items.length){toast("PPBJ "+pp+" belum punya kebutuhan tersimpan. Isi lewat menu Kebutuhan dan Cek PPBJ, atau unggah Excel.",true);}
-      else{BL[i].rows=r.items.map(function(x){return {kode:x.kode,nama:x.nama,satuan:x.satuan,qty:String(x.qty).replace(".",",")};});if(!BL[i].nama){BL[i].nama=r.nama||pp;app.querySelector('[data-n="'+i+'"]').value=BL[i].nama;}renderRows(i);toast(r.items.length+" barang dimuat dari kebutuhan tersimpan.");}
+      else{BL[i].rows=r.items.map(function(x){return {kode:x.kode,nama:x.nama,satuan:x.satuan,qty:String(x.qty).replace(".",",")};});if(!BL[i].nama){BL[i].nama=r.nama||pp;app.querySelector('[data-n="'+i+'"]').value=BL[i].nama;}if(r.kategori){BL[i].kategori=r.kategori;app.querySelector('[data-k="'+i+'"]').value=r.kategori;}if(r.dept)BL[i].dept=r.dept;renderRows(i);toast(r.items.length+" barang dimuat dari kebutuhan tersimpan.");}
     }catch(e){toast("Gagal terhubung ke server.",true);}
     b.disabled=false;};});
   app.querySelectorAll("[data-n]").forEach(function(s){s.oninput=function(){BL[Number(s.getAttribute("data-n"))].nama=s.value;};});
+  app.querySelectorAll("[data-k]").forEach(function(s){s.onchange=function(){BL[Number(s.getAttribute("data-k"))].kategori=s.value;};});
   app.querySelectorAll("[data-f]").forEach(function(f){f.onchange=function(){var i=Number(f.getAttribute("data-f"));if(f.files[0])bacaFile(f.files[0],i);};});
   app.querySelectorAll("[data-up]").forEach(function(b){b.onclick=function(){var i=Number(b.getAttribute("data-up"));var t=BL[i];BL[i]=BL[i-1];BL[i-1]=t;gambarForm();};});
   app.querySelectorAll("[data-dn]").forEach(function(b){b.onclick=function(){var i=Number(b.getAttribute("data-dn"));var t=BL[i];BL[i]=BL[i+1];BL[i+1]=t;gambarForm();};});
@@ -162,7 +163,7 @@ function unduhContoh(){
   var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="contoh-kebutuhan-proyek.csv";document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
 }
 /* ---------- hitung & tampil ---------- */
-function payload(){return BL.filter(function(b){return b.rows.length;}).map(function(b,i){return {nama:b.nama||("Proyek "+(i+1)),ppbj:b.ppbj,rows:b.rows};});}
+function payload(){return BL.filter(function(b){return b.rows.length;}).map(function(b,i){return {nama:b.nama||("Proyek "+(i+1)),ppbj:b.ppbj,kategori:b.kategori||"",dept:b.dept||"",rows:b.rows};});}
 async function hitung(){
   if(BUSY)return;var p=payload();if(!p.length){toast("Unggah Excel kebutuhan minimal untuk satu proyek.",true);return;}
   BUSY=true;var b=document.getElementById("hit");b.disabled=true;b.textContent="Menghitung...";
@@ -180,14 +181,22 @@ function tampil(){
    (t.tanpaHarga?'<div class="card" style="border-color:#d08a00;background:#fff8e6;color:#5a4300;margin:10px 0"><b>'+t.tanpaHarga+' barang memakai stok tetapi harganya belum ada.</b> Nilai pemakaian stok di bawah belum lengkap. Admin bisa mengisi harga di tab Stok &amp; Harga, bagian "Barang berstok tetapi belum ada harga".</div>':'')+
    '<div class="tabs">'+tabs.map(function(n,i){return '<button class="'+(i===TAB?"on":"")+'" data-t="'+i+'">'+esc(n)+'</button>';}).join("")+'</div>'+
    '<div class="sum"><div><b>'+t.barang+'</b><span>Jenis barang</span></div><div><b>'+rp(t.nilaiStok)+'</b><span>Nilai pemakaian stok (bukan total RAB)</span></div><div><b>'+t.adaBeli+'</b><span>Barang yang perlu BELI</span></div>'+(t.tanpaHarga?'<div><b>'+t.tanpaHarga+'</b><span>Barang stok tanpa harga</span></div>':'')+(t.tidakDikenal?'<div><b>'+t.tidakDikenal+'</b><span>Kode tidak dikenal</span></div>':'')+'</div>'+
-   '<div class="fr"><button class="sv" id="xl">Unduh Excel</button>'+(TAB>0&&r.proyek[TAB-1].ppbj?'<button class="gold" id="alk">Simpan sebagai alokasi (admin)</button>':'')+'</div>'+
+   '<div class="fr"><button class="sv" id="xl">Unduh Excel</button>'+(TAB>0&&r.proyek[TAB-1].ppbj?'<button class="gold" id="alk">Simpan sebagai alokasi (admin)</button>':'')+(TAB>0&&t.adaBeli>0?'<button class="sv" id="bl">Buat pengajuan pembelian ('+t.adaBeli+' barang BELI)</button>':'')+'</div>'+
    '<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Butuh</th>'+r.oto.map(function(n){return '<th class="nm">Pakai '+esc(n)+'</th>';}).join("")+'<th class="nm">BELI</th><th class="nm">Harga satuan</th><th class="nm">Subtotal (stok)</th><th>Catatan</th></tr></thead><tbody>'+
    cur.rows.map(function(x){return '<tr class="'+(x.beli>0?"beli":"")+'"><td><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+(TAB===0&&x.perProyek?' · '+x.perProyek.map(function(q,i){return q?esc(r.proyek[i].nama)+' '+fmtN(q):"";}).filter(Boolean).join(", "):'')+'</small></td><td class="nm">'+fmtN(x.butuh)+'</td>'+
      x.ambil.map(function(a){return '<td class="nm">'+(a?fmtN(a):'-')+'</td>';}).join("")+'<td class="nm b">'+(x.beli>0?fmtN(x.beli):'-')+'</td><td class="nm">'+rp(x.harga)+'</td><td class="nm">'+rp(x.subtotal)+'</td><td><small>'+esc(x.cat)+'</small></td></tr>';}).join("")+'</tbody></table></div>';
   box.querySelectorAll("[data-t]").forEach(function(b){b.onclick=function(){TAB=Number(b.getAttribute("data-t"));tampil();};});
   document.getElementById("xl").onclick=unduhExcel;
   var al=document.getElementById("alk");if(al)al.onclick=simpanAlokasi;
+  var bl=document.getElementById("bl");if(bl)bl.onclick=buatPembelian;
   if(!box.dataset.s){box.dataset.s=1;box.scrollIntoView({behavior:"smooth"});}
+}
+function buatPembelian(){
+  var idx=TAB-1,p=HAS.proyek[idx],inp=HAS.input[idx]||{},items=p.rows.filter(function(x){return x.beli>0;}).map(function(x){return {kode:x.kode,nama:x.nama||x.kode,satuan:x.satuan||"",qty:x.beli};});
+  if(!items.length){toast("Tidak ada barang berstatus BELI di proyek ini.",true);return;}
+  var kat=inp.kategori||"";if(!kat){kat=prompt("Kategori proyek ini: ketik Capex atau Opex");if(!kat)return;kat=/^c/i.test(kat.trim())?"Capex":"Opex";}
+  try{sessionStorage.setItem("sctk_pb_prefill",JSON.stringify({ppbj:p.ppbj||"",proyek:p.nama||"",dept:inp.dept||"",kategori:kat,jenis:p.ppbj?"PPBJ":"UMO",perihal:"Pembelian barang kebutuhan proyek "+(p.nama||""),items:items}));}catch(e){toast("Browser memblokir penyimpanan sementara. Izinkan lalu coba lagi.",true);return;}
+  location.href="pembelian.html";
 }
 function simpanAlokasi(){
   var idx=TAB-1,p=HAS.proyek[idx],pin="";try{pin=sessionStorage.getItem("sctk_admin")||"";}catch(e){}

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="pdfpengajuan.js"></script>
+<title>Pengajuan Pembelian - Gudang SCTK</title>
+<style>
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--red:#c0392b;--grn:#1b8a3a;--redbg:#fde8e8;--redt:#8a1c28}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--redbg:#3a1d22;--redt:#f2b8bf}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.top{background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 18px Georgia,serif;letter-spacing:1.5px}.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#e3c98f;font-weight:600}
+.wrap{max-width:1000px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+textarea{width:100%;padding:9px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);min-height:60px}
+button{font:600 14px "Segoe UI",Roboto,Arial,sans-serif;padding:11px 18px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer}
+button:disabled{opacity:.5;cursor:default}button.ok{background:var(--grn)}button.no{background:var(--red)}button.gh{background:transparent;color:var(--navy);border:1px solid var(--line)}
+@media (prefers-color-scheme:dark){button.gh{color:var(--ink)}}
+.fr{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.note{color:var(--mut);font-size:12px}.err{color:var(--red)}.msg{text-align:center;padding:26px;color:var(--mut)}
+dl{display:grid;grid-template-columns:150px 1fr;gap:4px 10px;margin:0}dt{color:var(--mut)}dd{margin:0;word-break:break-word}
+.chip{display:inline-block;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700;background:#fff3cd;color:#7a5b00}.chip.g{background:#dff3e4;color:#14612b}.chip.r{background:var(--redbg);color:var(--redt)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line)}th{background:var(--navy);color:#fff;text-align:left;padding:7px;font-size:12px;white-space:nowrap}td{border-top:1px solid var(--line);padding:7px;vertical-align:top}td small{display:block;color:var(--mut);font-size:11px}.nm{text-align:right;white-space:nowrap}
+tr.beli td.b{background:var(--redbg);color:var(--redt);font-weight:700}
+.step{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}.step:first-child{border-top:0}.dot{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--line);color:var(--ink)}.dot.g{background:var(--grn);color:#fff}.dot.r{background:var(--red);color:#fff}.dot.w{background:var(--gold);color:#fff}
+.step img{height:34px;display:block;margin-top:3px;background:#fff;border:1px solid var(--line);border-radius:4px}
+h2{font-size:15px;margin:16px 0 6px}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0a2a43;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:var(--red)}
+</style>
+</head>
+<body>
+<div class="top"><h1>PENGAJUAN PEMBELIAN</h1><div>PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="wrap" id="app"><div class="card msg">Memuat...</div></div><div id="toast"></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+var Q=new URLSearchParams(location.search),ID=Q.get("id")||"",TK=Q.get("t")||"",app=document.getElementById("app"),D=null,BUSY=false;
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},6000);}
+function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
+function rp(n){return n==null||n===""?"":"Rp "+Math.round(Number(n)).toLocaleString("id-ID");}
+async function api(b){var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+function b64Bytes(s){var bin=atob(s),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
+function bytesB64(u8){var s="",CH=0x8000;for(var i=0;i<u8.length;i+=CH)s+=String.fromCharCode.apply(null,u8.subarray(i,i+CH));return btoa(s);}
+async function muat(){
+  if(!ID||!TK){app.innerHTML='<div class="card msg err">Tautan tidak lengkap.</div>';return;}
+  try{var r=await api({action:"pbInfo",id:ID,t:TK});
+    if(!r.ok){app.innerHTML='<div class="card msg err">'+esc(r.msg||"Tautan tidak valid.")+'</div>';return;}
+    D=r;gambar();
+    if(r.kind==="cetak"&&r.meta.status==="Disetujui"&&!r.adaFinal)simpanFinal();
+  }catch(e){app.innerHTML='<div class="card msg err">Gagal terhubung ke server.</div>';}
+}
+function chip(st){return '<span class="chip '+(st==="Disetujui"?"g":(st==="Ditolak"||st==="Dibatalkan")?"r":"")+'">'+esc(st)+'</span>';}
+function gambar(){
+  var m=D.meta,d=D.data,st=m.status,aktif=st!=="Disetujui"&&st!=="Ditolak"&&st!=="Dibatalkan";
+  var steps=D.ttd.map(function(t,i){
+    var done=!!t.waktu,cls=i===0||done?"g":(t.giliran?"w":"");
+    if(t.tolak)cls="r";
+    return '<div class="step"><div class="dot '+cls+'">'+(cls==="r"?"&times;":cls==="g"?"&check;":i+1)+'</div><div><b>'+esc(t.label)+'</b> '+(t.nama?'- '+esc(t.nama):'')+(t.waktu?'<span class="note"> · '+esc(t.waktu)+'</span>':(t.giliran?'<span class="note"> · menunggu</span>':''))+(t.cat?'<div class="note">Catatan: '+esc(t.cat)+'</div>':'')+(t.img?'<img src="'+esc(t.img)+'" alt="Tanda tangan">':'')+'</div></div>';}).join("");
+  var tabel='<h2>Rincian barang / pekerjaan</h2><div class="tw"><table><thead><tr><th>No</th><th>Barang</th><th class="nm">Qty</th><th class="nm">Harga</th><th class="nm">Subtotal</th><th>Keterangan</th></tr></thead><tbody>'+
+   d.items.map(function(x,i){return '<tr><td>'+(i+1)+'</td><td><b>'+esc(x.nama)+'</b><small>'+(x.kode?esc(x.kode)+' · ':'<i>non-stok</i> · ')+esc(x.satuan||"")+'</small></td><td class="nm">'+fmtN(x.qty)+'</td><td class="nm">'+rp(x.harga)+'</td><td class="nm">'+rp(x.subtotal)+'</td><td>'+esc(x.ket||"")+'</td></tr>';}).join("")+
+   '</tbody></table></div><div class="note" style="text-align:right;margin-top:4px">Total perkiraan: <b>'+rp(d.total)+'</b></div>';
+  var per=(D.peringatan||[]).map(function(w){return '<div class="card" style="border-left:4px solid var(--red);background:var(--redbg);color:var(--redt)">'+esc(w)+'</div>';}).join("");
+  var aksi="";
+  if(D.kind==="setuju"&&aktif)aksi='<div class="card"><b>Keputusan Anda'+(D.who?' ('+esc(D.who)+')':'')+'</b><div class="note">Periksa dokumen dan lampiran lewat tombol Unduh PDF lengkap. Tanda tangan Anda akan dibubuhkan otomatis setelah menyetujui.</div><textarea id="cat" maxlength="500" placeholder="Catatan (wajib bila menolak)"></textarea><div class="fr"><button class="ok" id="ok">SETUJU</button><button class="no" id="no">TOLAK</button></div></div>';
+  app.innerHTML='<div class="card"><div class="fr" style="margin-top:0"><b style="font-size:16px">'+esc(m.nomor)+'</b> '+chip(st)+'</div><dl><dt>Jenis</dt><dd>'+(m.jenis==="UMO"?"UMO (Uang Muka Operasional)":"PPBJ")+' - <b>'+esc(m.kategori)+'</b></dd>'+(m.darurat?'<dt>Darurat</dt><dd class="err">'+esc(m.alasanDarurat)+'</dd>':'')+'<dt>Pengaju</dt><dd>'+esc(m.pengaju)+' ('+esc(m.dept)+')</dd><dt>Proyek</dt><dd>'+esc(m.proyek||"-")+'</dd><dt>No PPBJ</dt><dd>'+esc(m.ppbj||"-")+'</dd>'+(m.perihal?'<dt>Perihal</dt><dd>'+esc(m.perihal)+'</dd>':'')+'<dt>Diajukan</dt><dd>'+esc(m.waktu)+'</dd><dt>Total perkiraan</dt><dd><b>'+rp(m.total)+'</b></dd>'+(m.revisi?'<dt>Revisi dari</dt><dd>'+esc(m.revisi)+'</dd>':'')+(m.catatan?'<dt>Catatan</dt><dd>'+esc(m.catatan)+'</dd>':'')+'<dt>Lampiran</dt><dd>'+(m.adaLampiran?'Ada (digabung di PDF)':'Tidak ada')+'</dd>'+(st==="Ditolak"?'<dt>Ditolak oleh</dt><dd class="err">'+esc(m.tolakOleh)+': '+esc(m.alasanTolak)+'</dd>':'')+'</dl>'+
+   '<div class="fr"><button id="pdf">Unduh PDF lengkap</button><span class="note" id="pinfo"></span></div></div>'+per+aksi+'<div class="card"><b>Persetujuan</b>'+steps+'</div>'+tabel;
+  document.getElementById("pdf").onclick=function(){unduh(false);};
+  var ok=document.getElementById("ok");if(ok){ok.onclick=function(){putuskan("approve");};document.getElementById("no").onclick=function(){putuskan("reject");};}
+}
+async function susunPdf(){
+  var m=D.meta,d=D.data,lam=null;
+  if(m.adaLampiran){var r=await api({action:"pbLampiran",id:ID,t:TK});if(!r.ok)throw new Error(r.msg||"Lampiran tidak terbaca.");if(r.b64)lam=b64Bytes(r.b64);}
+  return await PengajuanPdf.buatPdfBeli({data:d,ttd:D.ttd,status:m.status,tolakOleh:m.tolakOleh,alasanTolak:m.alasanTolak,lampiranNama:d.lampiranNama||[],lampiranBytes:lam});
+}
+async function unduh(){
+  if(!window.PDFLib||!window.PengajuanPdf){toast("Pustaka PDF belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
+  if(BUSY)return;BUSY=true;var b=document.getElementById("pdf"),inf=document.getElementById("pinfo");b.disabled=true;inf.textContent="Menyusun PDF dan lampiran...";
+  try{var bytes=await susunPdf(),a=document.createElement("a");a.href=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));a.download="pembelian-"+String(D.meta.nomor).replace(/[^\w-]+/g,"-")+".pdf";document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);inf.textContent="";}
+  catch(e){toast("Gagal membuat PDF: "+(e&&e.message?e.message:"kesalahan"),true);inf.textContent="";}
+  BUSY=false;b.disabled=false;
+}
+async function simpanFinal(){
+  try{if(!window.PDFLib||!window.PengajuanPdf)return;var bytes=await susunPdf();if(bytes.length>20*1048576)return;
+    var r=await api({action:"pbFinal",id:ID,t:TK,pdf:bytesB64(bytes)});if(r.ok&&!r.sudah)toast("PDF final tersimpan di Google Drive.");}catch(e){}
+}
+async function putuskan(act){
+  var cat=(document.getElementById("cat").value||"").trim();
+  if(act==="reject"&&!cat){toast("Isi alasan penolakan pada kolom catatan.",true);return;}
+  if(!confirm(act==="approve"?"Setujui pengajuan ini? Tanda tangan Anda akan dibubuhkan.":"Tolak pengajuan ini?"))return;
+  var ok=document.getElementById("ok"),no=document.getElementById("no");ok.disabled=no.disabled=true;
+  try{var r=await api({action:"pbDecide",id:ID,t:TK,act:act,cat:cat});
+    if(r.ok){app.innerHTML='<div class="card msg"><b style="color:var(--grn);font-size:16px">'+esc(r.msg)+'</b><br><br>Anda boleh menutup halaman ini.</div>';}
+    else{toast(r.msg||"Gagal.",true);ok.disabled=no.disabled=false;}
+  }catch(e){toast("Gagal terhubung ke server.",true);ok.disabled=no.disabled=false;}
+}
+muat();
+</script>
+</body>
+</html>

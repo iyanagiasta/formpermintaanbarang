@@ -558,7 +558,7 @@ function viewLama(){
   pane().innerHTML=
    '<div class="bar"><button class="gh" id="lmb">&larr; Kembali ke Serah Barang</button><button class="gh" id="lmc">Unduh contoh Excel</button></div>'+
    '<div class="card"><b>Input barang keluar lama</b><div class="note">Catat barang yang sudah keluar dengan form permintaan manual. <b>Stok akan berkurang</b> sesuai isian, tercatat di Mutasi dan laporan proyek, dan dokumennya masuk daftar Penyesuaian Accurate dengan status Belum.</div>'+
-   '<div class="note">Kolom Excel: <b>Tanggal</b>, <b>No Form</b> (nomor form manual / BPB), <b>No PPBJ</b>, <b>Departemen</b> (boleh kosong bila PPBJ terdaftar), <b>Kode Barang</b>, <b>Qty</b>, <b>Sumber</b> (Bekas, Moka, Accurate, atau kosong = otomatis Moka lalu Accurate), <b>Pemohon</b>, <b>PIC</b>, <b>Nama Proyek</b> (teks bebas, dipakai bila PPBJ belum ada), <b>Catatan</b> (opsional). Bila No PPBJ kosong, form itu otomatis masuk rekap PPBJ per PIC. Satu form boleh banyak baris, tapi tanggal, PPBJ, dan departemennya harus sama. Nomor form yang sudah ada di Serah ditolak, jadi aman bila terunggah dua kali.</div>'+
+   '<div class="note">Kolom Excel: <b>Tanggal</b>, <b>No Form</b> (nomor form manual / BPB), <b>No PPBJ</b>, <b>Departemen</b> (boleh kosong bila PPBJ terdaftar), <b>Kode Barang</b>, <b>Nama Barang</b> (opsional: dipakai untuk mengecek kode, atau mencari barang bila kode kosong), <b>Qty</b>, <b>Sumber</b> (Bekas, Moka, Accurate, atau kosong = otomatis Moka lalu Accurate), <b>Pemohon</b>, <b>PIC</b>, <b>Nama Proyek</b> (teks bebas, dipakai bila PPBJ belum ada), <b>Catatan</b> (opsional). Bila No PPBJ kosong, form itu otomatis masuk rekap PPBJ per PIC. Satu form boleh banyak baris, tapi tanggal, PPBJ, dan departemennya harus sama. Nomor form yang sudah ada di Serah ditolak, jadi aman bila terunggah dua kali.</div>'+
    '<div class="fr"><input type="file" id="lmf" accept=".xlsx,.xls,.csv"><span class="note" id="lmn">'+esc(LM.nama)+'</span></div>'+
    '<div class="bar"><button class="gh" id="lmp"'+(rows.length?"":" disabled")+'>Periksa dulu (pratinjau)</button><button class="sv" id="lms"'+(h&&h.bisaSimpan?"":" disabled")+'>Simpan '+(h&&h.bisaSimpan?(h.docs||[]).length+" form":"")+' dan kurangi stok</button></div></div>'+info;
   document.getElementById("lmb").onclick=function(){loadSerah();};
@@ -582,8 +582,8 @@ function lamaBaca(file,cb){
 }
 function lamaPeta(a){
   var hi=-1,m={};
-  var urutK=["doc","tgl","ppbj","kode","qty","sumber","pic","by","proyek","dept","cat"];
-  var kunciKolom={tgl:/^tanggal|^tgl/,doc:/no.*form|no.*bpb|nomor|^form|dokumen/,ppbj:/ppbj/,dept:/dept/,kode:/kode/,qty:/^qty|jumlah|^jml/,sumber:/sumber/,pic:/^pic|nama pic/,by:/pemohon|peminta/,proyek:/proyek/,cat:/catatan|^ket|pengambil/};
+  var urutK=["doc","tgl","ppbj","kode","qty","sumber","pic","by","nama","proyek","dept","cat"];
+  var kunciKolom={tgl:/^tanggal|^tgl/,doc:/no.*form|no.*bpb|nomor|^form|dokumen/,ppbj:/ppbj/,dept:/dept/,kode:/kode/,qty:/^qty|jumlah|^jml/,sumber:/sumber/,pic:/^pic|nama pic/,by:/pemohon|peminta/,nama:/nama barang|^barang|^nama$/,proyek:/proyek/,cat:/catatan|^ket|pengambil/};
   for(var i=0;i<Math.min(a.length,10)&&hi<0;i++){
     var t={};a[i].forEach(function(c,j){var s=String(c).toLowerCase().trim();for(var u=0;u<urutK.length;u++){var k=urutK[u];if(t[k]===undefined&&kunciKolom[k].test(s)){t[k]=j;break;}}});
     if(t.doc!==undefined&&t.kode!==undefined&&t.qty!==undefined){hi=i;m=t;}
@@ -593,7 +593,7 @@ function lamaPeta(a){
   for(var r=hi+1;r<a.length;r++){
     var x=a[r],g=function(k){return m[k]===undefined?"":String(x[m[k]]==null?"":x[m[k]]).trim();};
     if(!g("doc")&&!g("kode")&&!g("qty"))continue;
-    out.push({baris:r+1,tgl:g("tgl"),doc:g("doc"),ppbj:g("ppbj"),dept:g("dept"),kode:g("kode"),qty:g("qty").replace(",","."),sumber:g("sumber"),cat:g("cat"),pic:g("pic"),by:g("by"),proyek:g("proyek")});
+    out.push({baris:r+1,tgl:g("tgl"),doc:g("doc"),ppbj:g("ppbj"),dept:g("dept"),kode:g("kode"),qty:g("qty").replace(",","."),sumber:g("sumber"),cat:g("cat"),pic:g("pic"),by:g("by"),proyek:g("proyek"),nama:g("nama")});
   }
   return out.slice(0,1500);
 }
@@ -608,7 +608,7 @@ async function lamaKirim(btn,simpan){
 }
 function lamaContoh(){
   if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat.",true);return;}
-  var a=[["Tanggal","No Form","No PPBJ","Departemen","Kode Barang","Qty","Sumber","Pemohon","PIC","Nama Proyek","Catatan"],["05/10/2026","FM-0012","PPBJ-001","RM","K001",3,"","Budi","Ramji","Gedung A","Diambil Budi"],["05/10/2026","FM-0012","PPBJ-001","RM","K002",2,"Moka","Budi","Ramji","Gedung A",""],["08/10/2026","FM-0013","","Produksi","K001",1,"Accurate","Sari","Sari","Pompa Utara","PPBJ belum ada"]];
+  var a=[["Tanggal","No Form","No PPBJ","Departemen","Kode Barang","Nama Barang","Qty","Sumber","Pemohon","PIC","Nama Proyek","Catatan"],["05/10/2026","FM-0012","PPBJ-001","RM","K001","Pipa PVC 4 inch",3,"","Budi","Ramji","Gedung A","Diambil Budi"],["05/10/2026","FM-0012","PPBJ-001","RM","","Oli Mesin",2,"Moka","Budi","Ramji","Gedung A","kode kosong: dicari dari nama"],["08/10/2026","FM-0013","","Produksi","K001","Pipa PVC 4 inch",1,"Accurate","Sari","Sari","Pompa Utara","PPBJ belum ada"]];
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),"Barang Keluar Lama");XLSX.writeFile(wb,"contoh_barang_keluar_lama.xlsx");
 }
 

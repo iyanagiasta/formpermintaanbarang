@@ -385,7 +385,7 @@ async function kirimAdmin(btn,body,after){
   BUSY=false;btn.disabled=false;
 }
 /* ---- tab Accurate: penyesuaian persediaan ke Accurate ---- */
-var PA={rows:[],ring:null},PAF={status:"Belum",jenis:"",dari:"",sampai:"",q:"",acc:false},PAS={};
+var PA={rows:[],ring:null},PAF={status:"Belum",jenis:"",ppbj:"",dari:"",sampai:"",q:"",acc:false},PAS={};
 function paMuatRingkas(){
   api({action:"adminPaRingkas"}).then(function(r){if(r&&r.ok){PA.ring=r.ringkas;paBadge();}}).catch(function(){});
 }
@@ -406,6 +406,7 @@ function paTampil(){
   return PA.rows.filter(function(x){
     if(PAF.status&&x.status!==PAF.status)return false;
     if(PAF.jenis&&x.jenis!==PAF.jenis)return false;
+    if(PAF.ppbj==="__kosong"?!!x.ppbj:(PAF.ppbj&&x.ppbj!==PAF.ppbj))return false;
     if(PAF.dari&&x.tgl<PAF.dari)return false;
     if(PAF.sampai&&x.tgl>PAF.sampai)return false;
     if(PAF.acc&&!(x.qacc>0))return false;
@@ -419,22 +420,24 @@ function drawAccurate(){
   var body=vis.slice(0,500).map(function(x){
     var merah=x.status==="Belum"&&x.umur>R.batas;
     return '<tr><td><input type="checkbox" data-pk="'+esc(x.key)+'"'+(PAS[x.key]?" checked":"")+'></td><td data-l="Tanggal">'+esc(x.tgl)+'</td><td data-l="Dokumen"><b>'+esc(x.doc)+'</b><small>'+esc(x.jenis)+'</small></td>'+
-      '<td data-l="Proyek">'+esc(x.proyek||"-")+(x.ppbj?'<small>'+esc(x.ppbj)+'</small>':"")+'</td><td class="nm" data-l="Barang / Qty">'+x.n+' / '+fmtN(x.qty)+'</td><td data-l="Sumber stok">'+esc(x.sumber||"-")+'</td>'+
+      '<td data-l="No PPBJ">'+(x.ppbj?'<b>'+esc(x.ppbj)+'</b>':'<span class="bd w">belum ada</span>')+'</td><td data-l="Proyek">'+esc(x.proyek||"-")+'</td><td class="nm" data-l="Barang / Qty">'+x.n+' / '+fmtN(x.qty)+'</td><td data-l="Sumber stok">'+esc(x.sumber||"-")+'</td>'+
       '<td data-l="Status">'+(x.status==="Sudah"?'<span class="bd d">Sudah</span><small>'+esc(x.noTrans)+'</small><small>'+esc(x.tglIn)+(x.oleh?" - "+esc(x.oleh):"")+'</small>':'<span class="bd '+(merah?"b":"w")+'">Belum</span><small>'+x.umur+' hari</small>')+'</td></tr>';
   }).join("");
   var jenisOp=["","Barang Keluar","Pengembalian Masuk","Selisih Opname"].map(function(j){return '<option value="'+esc(j)+'"'+(PAF.jenis===j?" selected":"")+'>'+(j||"Semua jenis")+'</option>';}).join("");
+  var ppSet={};PA.rows.forEach(function(x){if(x.ppbj)ppSet[x.ppbj]=1;});
+  var ppOp='<option value="">Semua PPBJ</option><option value="__kosong"'+(PAF.ppbj==="__kosong"?" selected":"")+'>(PPBJ belum ada)</option>'+Object.keys(ppSet).sort().map(function(p){return '<option value="'+esc(p)+'"'+(PAF.ppbj===p?" selected":"")+'>'+esc(p)+'</option>';}).join("");
   pane().innerHTML=
    '<div class="sum"><div><b'+(R.belum?' style="color:'+(R.lewatBatas?"#c0392b":"#b8760a")+'"':"")+'>'+R.belum+'</b><span>Belum disesuaikan ke Accurate</span></div><div><b>'+R.tertua+' hari</b><span>Dokumen tertua yang belum</span></div><div><b'+(R.lewatBatas?' style="color:#c0392b"':"")+'>'+R.lewatBatas+'</b><span>Lewat batas '+R.batas+' hari</span></div><div><b>'+R.sudah+'</b><span>Sudah diinput</span></div></div>'+
    '<div class="bar"><select id="pas">'+[["Belum","Belum diinput"],["Sudah","Sudah diinput"],["","Semua status"]].map(function(o){return '<option value="'+o[0]+'"'+(PAF.status===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select>'+
-   '<select id="paj">'+jenisOp+'</select><label class="fl">Dari <input type="date" id="pad" value="'+esc(PAF.dari)+'"></label><label class="fl">Sampai <input type="date" id="paz" value="'+esc(PAF.sampai)+'"></label>'+
+   '<select id="paj">'+jenisOp+'</select><select id="pap" style="max-width:240px">'+ppOp+'</select><label class="fl">Dari <input type="date" id="pad" value="'+esc(PAF.dari)+'"></label><label class="fl">Sampai <input type="date" id="paz" value="'+esc(PAF.sampai)+'"></label>'+
    '<input id="paq" placeholder="Cari dokumen / proyek / No transaksi" value="'+esc(PAF.q)+'"><label class="fl"><input type="checkbox" id="paa"'+(PAF.acc?" checked":"")+'> hanya yang ada bagian dari stok Accurate</label><button class="gh" id="par">Segarkan</button></div>'+
    '<div class="bar"><label class="fl"><input type="checkbox" id="pall"'+(vis.length&&nSelVis===Math.min(vis.length,500)?" checked":"")+'> Pilih semua yang tampil</label><b id="pasel">'+sel.length+' dokumen dipilih</b>'+
    '<button class="gh" id="pax">Unduh Excel rincian</button><button class="gh" id="pag">Unduh PDF gabungan</button><button class="gh" id="paz2">Unduh ZIP (1 PDF per dokumen)</button></div>'+
    '<div class="bar"><input id="pano" placeholder="No transaksi penyesuaian di Accurate" maxlength="80"><input id="pact" placeholder="Catatan (opsional)" maxlength="200"><button class="sv" id="pat">Tandai sudah diinput</button><button class="gh" id="pab">Kembalikan ke Belum</button></div>'+
    '<div class="note">Pilih satu atau banyak dokumen (misalnya semua dokumen satu proyek), unduh PDF gabungan untuk diunggah sekali ke Accurate, lalu isi nomor transaksi dan klik Tandai. Nomor yang sama berlaku untuk semua dokumen terpilih. Pengingat hanya dikirim ke Staff Gudang.</div>'+
-   (vis.length?'<table><thead><tr><th></th><th>Tanggal</th><th>Dokumen</th><th>Proyek</th><th class="nm">Barang / Qty</th><th>Sumber stok</th><th>Status</th></tr></thead><tbody>'+body+'</tbody></table>'+(vis.length>500?'<div class="note">Menampilkan 500 dari '+vis.length+'. Persempit filter.</div>':""):'<div class="card msg">Tidak ada dokumen yang cocok dengan filter.</div>');
+   (vis.length?'<table><thead><tr><th></th><th>Tanggal</th><th>Dokumen</th><th>No PPBJ</th><th>Proyek</th><th class="nm">Barang / Qty</th><th>Sumber stok</th><th>Status</th></tr></thead><tbody>'+body+'</tbody></table>'+(vis.length>500?'<div class="note">Menampilkan 500 dari '+vis.length+'. Persempit filter.</div>':""):'<div class="card msg">Tidak ada dokumen yang cocok dengan filter.</div>');
   var $=function(i){return document.getElementById(i);};
-  $("pas").onchange=function(){PAF.status=this.value;drawAccurate();};$("paj").onchange=function(){PAF.jenis=this.value;drawAccurate();};
+  $("pas").onchange=function(){PAF.status=this.value;drawAccurate();};$("paj").onchange=function(){PAF.jenis=this.value;drawAccurate();};$("pap").onchange=function(){PAF.ppbj=this.value;drawAccurate();};
   $("pad").onchange=function(){PAF.dari=this.value;drawAccurate();};$("paz").onchange=function(){PAF.sampai=this.value;drawAccurate();};
   $("paa").onchange=function(){PAF.acc=this.checked;drawAccurate();};$("par").onclick=loadAccurate;
   $("paq").onkeydown=function(e){if(e.key==="Enter"){PAF.q=this.value;drawAccurate();}};$("paq").onchange=function(){PAF.q=this.value;drawAccurate();};

@@ -88,8 +88,18 @@ html,body{background:#fff}
 .sheet{box-shadow:none;margin:0}
 }
 </style>
+<style>
+#gate{position:fixed;inset:0;z-index:999;background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);display:none;align-items:center;justify-content:center;padding:16px}
+#gate .gc{background:#fff;color:#0d1f2d;border-radius:14px;max-width:380px;width:100%;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,.35);text-align:center}
+#gate h2{margin:0 0 4px;font:700 17px Georgia,serif;letter-spacing:1px;color:#0a2a43}#gate p{margin:6px 0 14px;color:#5b7a8c;font-size:13px}
+#gate input{width:100%;padding:12px;font:600 16px "Segoe UI",Roboto,Arial,sans-serif;border:1px solid #cfd8de;border-radius:8px;margin-bottom:10px}
+#gate button{width:100%;padding:12px;border:0;border-radius:8px;background:#0a2a43;color:#fff;font:600 14px "Segoe UI",Roboto,Arial,sans-serif;cursor:pointer}
+#gate .gm{color:#c0392b;font-size:13px;min-height:18px;margin-top:8px}#gate a{display:inline-block;margin-top:10px;font-size:12px;color:#5b7a8c}
+@media print{#gate{display:none!important}}
+</style>
 </head>
 <body>
+<div id="gate"><div class="gc"><h2>PERMINTAAN BARANG</h2><p>PT Sarana Catur Tirta Kelola<br>Masukkan kode pegawai untuk membuka form.</p><input id="gkode" type="password" autocomplete="off" placeholder="Kode pegawai"><button id="gok" type="button">Masuk</button><div class="gm" id="gmsg"></div><a href="dashboard.html">&larr; Halaman Utama</a></div></div>
 <div class="bar">
   <a class="btn" href="dashboard.html" style="text-decoration:none">&larr; Halaman Utama</a>
   <div class="info" id="dbinfo">Database barang belum diunggah. Excel harus punya kolom: Nama Barang, Kode Barang, Satuan.</div>
@@ -342,7 +352,14 @@ function renderStok(tr){
   box.innerHTML=line+extra;
 }
 function renderAllStok(){document.querySelectorAll("#rows tr").forEach(renderStok);}
+function gateUI(ok,msg){
+  var g=document.getElementById("gate");if(!g)return;
+  if(new URLSearchParams(location.search).get("m")==="cetak"){g.style.display="none";return;}
+  g.style.display=ok?"none":"flex";document.getElementById("gmsg").textContent=ok?"":(msg||"");
+  if(!ok){var i=document.getElementById("gkode");if(i&&document.activeElement!==i)try{i.focus();}catch(e){}}
+}
 function pegUI(ok,msg){
+  gateUI(ok,msg);
   document.getElementById("pegtxt").innerHTML=ok?'<span class="ok">Stok dan proyek aktif.</span> <a href="#" id="peglo">Keluar</a>':"Pegawai: masukkan kode untuk melihat stok barang dan daftar proyek.";
   document.getElementById("pegform").style.display=ok?"none":"";
   var m=document.getElementById("pegmsg");m.className=ok?"ok":"bad";m.textContent=msg||"";
@@ -372,7 +389,10 @@ async function pegMasuk(kode,silent){
 function loadGudang(){
   if(new URLSearchParams(location.search).get("m")==="cetak")return;
   var k="";try{k=localStorage.getItem("sctk_kode")||"";}catch(e){}
-  if(k)pegMasuk(k,true);
+  gateUI(false,"");
+  if(k)pegMasuk(k,true).then(function(ok){if(!ok)gateUI(false,"");});
+  document.getElementById("gok").onclick=async function(){var v=document.getElementById("gkode").value.trim();if(!v)return;var b=this;b.disabled=true;await pegMasuk(v,false);b.disabled=false;};
+  document.getElementById("gkode").onkeydown=function(e){if(e.key==="Enter")document.getElementById("gok").click();};
   document.getElementById("pegok").onclick=function(){var v=document.getElementById("pegkode").value.trim();if(v)pegMasuk(v,false);};
   document.getElementById("pegkode").onkeydown=function(e){if(e.key==="Enter")document.getElementById("pegok").click();};
 }
@@ -622,7 +642,7 @@ async function kirim(){
   if(window.__sentNo&&!confirm("Permintaan ini sudah terkirim dengan nomor "+window.__sentNo+". Kirim lagi sebagai permintaan BARU?"))return;
   var btn=document.getElementById("sendBtn");btn.disabled=true;btn.textContent="Mengirim...";
   try{
-    var r=await api({action:"submit",by:g("by"),dept:g("dept"),tgl:g("tgl"),ppbj:g("ppbj"),email:g("email"),alasan:g("alasan"),pic:picOk,cat:g("cat"),items:items});
+    var r=await api({action:"submit",kode:KODEPEG,by:g("by"),dept:g("dept"),tgl:g("tgl"),ppbj:g("ppbj"),email:g("email"),alasan:g("alasan"),pic:picOk,cat:g("cat"),items:items});
     toast(r.msg||"Selesai.",!!r.ok);
     if(r.ok&&r.nomor){document.getElementById("doc").value=r.nomor;window.__sentNo=r.nomor;}
   }catch(e){toast("Gagal terhubung ke server. Periksa internet lalu coba lagi.",false);}

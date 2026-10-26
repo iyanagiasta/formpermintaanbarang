@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="pdfbukti.js"></script>
 <title>Admin Gudang - Pantauan No BPB</title>
 <style>
 :root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c}
@@ -93,8 +95,8 @@ async function load(first){
     if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
     DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
     var h=(location.hash||"").replace("#","");
-    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem","pengumuman","terima","pengajuan"].indexOf(h)>=0){goTab(h);return;}
-    draw(r.now);
+    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem","pengumuman","terima","pengajuan","accurate"].indexOf(h)>=0){goTab(h);return;}
+    draw(r.now);paMuatRingkas();
   }catch(e){
     if(first)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");else toast("Gagal terhubung ke server.",true);
   }
@@ -184,14 +186,15 @@ async function onAct(b){
 function pane(){return document.getElementById("pane")||app;}
 function tabsUI(){
   if(!document.getElementById("pane"))app.innerHTML='<div class="tabs" id="tabs"></div><div id="pane"></div>';
-  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["laporan","Laporan"],["terima","Terima Barang"],["pengajuan","Pengajuan"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
+  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["laporan","Laporan"],["accurate","Accurate"],["terima","Terima Barang"],["pengajuan","Pengajuan"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
+  paBadge();
   document.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){goTab(b.getAttribute("data-tab"));};});
 }
 function goTab(t){
   TAB=t;
   if(t==="pantau"){load(false);return;}
   tabsUI();
-  if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
+  if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="accurate")loadAccurate();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
   try{history.replaceState(null,"","#"+t);}catch(e){}
 }
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
@@ -380,6 +383,125 @@ async function kirimAdmin(btn,body,after){
   catch(e){toast("Gagal terhubung ke server.",true);}
   BUSY=false;btn.disabled=false;
 }
+/* ---- tab Accurate: penyesuaian persediaan ke Accurate ---- */
+var PA={rows:[],ring:null},PAF={status:"Belum",jenis:"",dari:"",sampai:"",q:"",acc:false},PAS={};
+function paMuatRingkas(){
+  api({action:"adminPaRingkas"}).then(function(r){if(r&&r.ok){PA.ring=r.ringkas;paBadge();}}).catch(function(){});
+}
+function paBadge(){
+  var b=document.querySelector('[data-tab="accurate"]');if(!b||!PA.ring)return;
+  var n=PA.ring.belum;b.innerHTML="Accurate"+(n?' <span class="bd '+(PA.ring.lewatBatas?"b":"w")+'" style="margin-left:4px">'+n+'</span>':"");
+}
+async function loadAccurate(){
+  pane().innerHTML='<div class="card msg">Memuat dan menyinkronkan dokumen...</div>';
+  try{
+    var r=await api({action:"adminPaList"});
+    if(!r.ok){toast(r.msg||"Gagal.",true);return;}
+    PA.rows=r.rows||[];PA.ring=r.ringkas;drawAccurate();
+  }catch(e){toast("Gagal terhubung ke server.",true);}
+}
+function paTampil(){
+  var q=PAF.q.trim().toLowerCase();
+  return PA.rows.filter(function(x){
+    if(PAF.status&&x.status!==PAF.status)return false;
+    if(PAF.jenis&&x.jenis!==PAF.jenis)return false;
+    if(PAF.dari&&x.tgl<PAF.dari)return false;
+    if(PAF.sampai&&x.tgl>PAF.sampai)return false;
+    if(PAF.acc&&!(x.qacc>0))return false;
+    if(q&&(x.doc+" "+x.proyek+" "+x.ppbj+" "+x.noTrans+" "+x.jenis).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+}
+function paTerpilih(){return PA.rows.filter(function(x){return PAS[x.key];});}
+function drawAccurate(){
+  var R=PA.ring||{belum:0,sudah:0,tertua:0,lewatBatas:0,batas:7},vis=paTampil(),sel=paTerpilih(),nSelVis=vis.filter(function(x){return PAS[x.key];}).length;
+  var body=vis.slice(0,500).map(function(x){
+    var merah=x.status==="Belum"&&x.umur>R.batas;
+    return '<tr><td><input type="checkbox" data-pk="'+esc(x.key)+'"'+(PAS[x.key]?" checked":"")+'></td><td data-l="Tanggal">'+esc(x.tgl)+'</td><td data-l="Dokumen"><b>'+esc(x.doc)+'</b><small>'+esc(x.jenis)+'</small></td>'+
+      '<td data-l="Proyek">'+esc(x.proyek||"-")+(x.ppbj?'<small>'+esc(x.ppbj)+'</small>':"")+'</td><td class="nm" data-l="Barang / Qty">'+x.n+' / '+fmtN(x.qty)+'</td><td data-l="Sumber stok">'+esc(x.sumber||"-")+'</td>'+
+      '<td data-l="Status">'+(x.status==="Sudah"?'<span class="bd d">Sudah</span><small>'+esc(x.noTrans)+'</small><small>'+esc(x.tglIn)+(x.oleh?" - "+esc(x.oleh):"")+'</small>':'<span class="bd '+(merah?"b":"w")+'">Belum</span><small>'+x.umur+' hari</small>')+'</td></tr>';
+  }).join("");
+  var jenisOp=["","Barang Keluar","Pengembalian Masuk","Selisih Opname"].map(function(j){return '<option value="'+esc(j)+'"'+(PAF.jenis===j?" selected":"")+'>'+(j||"Semua jenis")+'</option>';}).join("");
+  pane().innerHTML=
+   '<div class="sum"><div><b'+(R.belum?' style="color:'+(R.lewatBatas?"#c0392b":"#b8760a")+'"':"")+'>'+R.belum+'</b><span>Belum disesuaikan ke Accurate</span></div><div><b>'+R.tertua+' hari</b><span>Dokumen tertua yang belum</span></div><div><b'+(R.lewatBatas?' style="color:#c0392b"':"")+'>'+R.lewatBatas+'</b><span>Lewat batas '+R.batas+' hari</span></div><div><b>'+R.sudah+'</b><span>Sudah diinput</span></div></div>'+
+   '<div class="bar"><select id="pas">'+[["Belum","Belum diinput"],["Sudah","Sudah diinput"],["","Semua status"]].map(function(o){return '<option value="'+o[0]+'"'+(PAF.status===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select>'+
+   '<select id="paj">'+jenisOp+'</select><label class="fl">Dari <input type="date" id="pad" value="'+esc(PAF.dari)+'"></label><label class="fl">Sampai <input type="date" id="paz" value="'+esc(PAF.sampai)+'"></label>'+
+   '<input id="paq" placeholder="Cari dokumen / proyek / No transaksi" value="'+esc(PAF.q)+'"><label class="fl"><input type="checkbox" id="paa"'+(PAF.acc?" checked":"")+'> hanya yang ada bagian dari stok Accurate</label><button class="gh" id="par">Segarkan</button></div>'+
+   '<div class="bar"><label class="fl"><input type="checkbox" id="pall"'+(vis.length&&nSelVis===Math.min(vis.length,500)?" checked":"")+'> Pilih semua yang tampil</label><b id="pasel">'+sel.length+' dokumen dipilih</b>'+
+   '<button class="gh" id="pax">Unduh Excel rincian</button><button class="gh" id="pag">Unduh PDF gabungan</button><button class="gh" id="paz2">Unduh ZIP (1 PDF per dokumen)</button></div>'+
+   '<div class="bar"><input id="pano" placeholder="No transaksi penyesuaian di Accurate" maxlength="80"><input id="pact" placeholder="Catatan (opsional)" maxlength="200"><button class="sv" id="pat">Tandai sudah diinput</button><button class="gh" id="pab">Kembalikan ke Belum</button></div>'+
+   '<div class="note">Pilih satu atau banyak dokumen (misalnya semua dokumen satu proyek), unduh PDF gabungan untuk diunggah sekali ke Accurate, lalu isi nomor transaksi dan klik Tandai. Nomor yang sama berlaku untuk semua dokumen terpilih. Pengingat hanya dikirim ke Staff Gudang.</div>'+
+   (vis.length?'<table><thead><tr><th></th><th>Tanggal</th><th>Dokumen</th><th>Proyek</th><th class="nm">Barang / Qty</th><th>Sumber stok</th><th>Status</th></tr></thead><tbody>'+body+'</tbody></table>'+(vis.length>500?'<div class="note">Menampilkan 500 dari '+vis.length+'. Persempit filter.</div>':""):'<div class="card msg">Tidak ada dokumen yang cocok dengan filter.</div>');
+  var $=function(i){return document.getElementById(i);};
+  $("pas").onchange=function(){PAF.status=this.value;drawAccurate();};$("paj").onchange=function(){PAF.jenis=this.value;drawAccurate();};
+  $("pad").onchange=function(){PAF.dari=this.value;drawAccurate();};$("paz").onchange=function(){PAF.sampai=this.value;drawAccurate();};
+  $("paa").onchange=function(){PAF.acc=this.checked;drawAccurate();};$("par").onclick=loadAccurate;
+  $("paq").onkeydown=function(e){if(e.key==="Enter"){PAF.q=this.value;drawAccurate();}};$("paq").onchange=function(){PAF.q=this.value;drawAccurate();};
+  $("pall").onchange=function(){var on=this.checked;vis.slice(0,500).forEach(function(x){if(on)PAS[x.key]=1;else delete PAS[x.key];});drawAccurate();};
+  document.querySelectorAll("[data-pk]").forEach(function(c){c.onchange=function(){var k=c.getAttribute("data-pk");if(c.checked)PAS[k]=1;else delete PAS[k];$("pasel").textContent=paTerpilih().length+" dokumen dipilih";};});
+  $("pax").onclick=function(){paExcel(this);};$("pag").onclick=function(){paPdf(this,false);};$("paz2").onclick=function(){paPdf(this,true);};
+  paBadge();
+  $("pat").onclick=function(){paTandai(this,"sudah");};$("pab").onclick=function(){paTandai(this,"belum");};
+}
+function paSimpan(bytes,nama,tipe){var b=new Blob([bytes],{type:tipe}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=nama;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},4000);}
+async function paTandai(btn,aksi){
+  var sel=paTerpilih();if(!sel.length){toast("Pilih dokumen dulu.",true);return;}
+  var no=document.getElementById("pano").value.trim();
+  if(aksi==="sudah"&&!no){toast("Isi nomor transaksi penyesuaian Accurate dulu.",true);return;}
+  if(!confirm((aksi==="sudah"?"Tandai "+sel.length+" dokumen sudah diinput ke Accurate dengan nomor "+no+"?":"Kembalikan "+sel.length+" dokumen ke status Belum?")))return;
+  await kirimAdmin(btn,{action:"adminPaTandai",keys:sel.map(function(x){return x.key;}),aksi:aksi,noTrans:no,cat:document.getElementById("pact").value.trim()},async function(){PAS={};await loadAccurate();});
+}
+async function paExcel(btn){
+  var sel=paTerpilih();if(!sel.length){toast("Pilih dokumen dulu.",true);return;}
+  if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
+  btn.disabled=true;
+  try{
+    var rows=[];
+    for(var i=0;i<sel.length;i+=150){
+      var r=await api({action:"adminPaRincian",keys:sel.slice(i,i+150).map(function(x){return x.key;})});
+      if(!r.ok){toast(r.msg||"Gagal.",true);btn.disabled=false;return;}rows=rows.concat(r.rows||[]);
+    }
+    var wb=XLSX.utils.book_new();
+    var a1=[["Tanggal","Jenis","No Dokumen","Proyek","No PPBJ","Barang","Total Qty","Qty dari stok Accurate","Status","No Transaksi Accurate"]].concat(sel.map(function(x){return [x.tgl,x.jenis,x.doc,x.proyek,x.ppbj,x.n,x.qty,x.qacc,x.status,x.noTrans];}));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a1),"Dokumen");
+    var a2=[["Jenis","No Dokumen","Tanggal","Proyek","No PPBJ","Kode Barang","Nama Barang","Satuan","Qty Total","Dari Bekas","Dari Moka","Dari Accurate","Status","No Transaksi Accurate"]].concat(rows.map(function(x){return [x.jenis,x.doc,x.tgl,x.proyek,x.ppbj,x.kode,x.nama,x.satuan,x.qty,x.bekas,x.moka,x.accurate,x.status,x.noTrans];}));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a2),"Rincian Barang");
+    var tot={};rows.forEach(function(x){var k=x.jenis+"|"+x.kode,t=tot[k]||(tot[k]={jenis:x.jenis,kode:x.kode,nama:x.nama,satuan:x.satuan,qty:0,accurate:0});t.qty+=x.qty;t.accurate+=x.accurate;});
+    var a3=[["Jenis","Kode Barang","Nama Barang","Satuan","Total Qty","Total dari stok Accurate"]].concat(Object.keys(tot).sort().map(function(k){var t=tot[k];return [t.jenis,t.kode,t.nama,t.satuan,Math.round(t.qty*1000)/1000,Math.round(t.accurate*1000)/1000];}));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a3),"Total per Barang");
+    XLSX.writeFile(wb,"penyesuaian_accurate_"+new Date().toISOString().slice(0,10)+".xlsx");
+    toast("Excel siap: "+sel.length+" dokumen, "+rows.length+" baris barang.");
+  }catch(e){toast("Gagal terhubung ke server.",true);}
+  btn.disabled=false;
+}
+async function paPdf(btn,zip){
+  var sel=paTerpilih();if(!sel.length){toast("Pilih dokumen dulu.",true);return;}
+  if(!window.PDFLib||!window.BuktiPdf){toast("Pembuat PDF belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
+  var tek=btn.textContent;btn.disabled=true;
+  try{
+    var docs=[],sig={},lewat=[];
+    for(var i=0;i<sel.length;i+=25){
+      btn.textContent="Mengambil data "+Math.min(i+25,sel.length)+"/"+sel.length+"...";
+      var r=await api({action:"adminPaBukti",keys:sel.slice(i,i+25).map(function(x){return x.key;})});
+      if(!r.ok){toast(r.msg||"Gagal.",true);btn.disabled=false;btn.textContent=tek;return;}
+      docs=docs.concat(r.docs||[]);Object.keys(r.sig||{}).forEach(function(k){if(r.sig[k])sig[k]=r.sig[k];});lewat=lewat.concat(r.lewat||[]);
+    }
+    var urut={};sel.forEach(function(x,i){urut[x.key]=x.tgl+"|"+x.doc;});docs.sort(function(a,b){return urut[a.key]<urut[b.key]?-1:1;});
+    if(!docs.length){toast("Tidak ada dokumen yang bisa dicetak. "+(lewat[0]||""),true);btn.disabled=false;btn.textContent=tek;return;}
+    var stamp=new Date().toISOString().slice(0,10);
+    if(zip){
+      var files=[];
+      for(var j=0;j<docs.length;j++){btn.textContent="Membuat PDF "+(j+1)+"/"+docs.length+"...";files.push({name:String(docs[j].doc).replace(/[\\\/:*?"<>|\s]+/g,"-")+".pdf",bytes:await BuktiPdf.buatSatu(docs[j],sig)});}
+      paSimpan(BuktiPdf.buatZip(files),"bukti_accurate_"+stamp+".zip","application/zip");
+    }else{
+      var bytes=await BuktiPdf.buatGabungan(docs,sig,function(i,n){btn.textContent="Membuat PDF "+i+"/"+n+"...";});
+      paSimpan(bytes,"bukti_accurate_"+stamp+".pdf","application/pdf");
+    }
+    toast("Unduhan siap: "+docs.length+" dokumen."+(lewat.length?" Dilewati "+lewat.length+": "+lewat.slice(0,3).join("; ")+(lewat.length>3?" ...":""):""),lewat.length>0&&!docs.length);
+  }catch(e){toast("Gagal membuat PDF: "+(e&&e.message?e.message:"coba lagi"),true);}
+  btn.disabled=false;btn.textContent=tek;
+}
+
 /* ---- tab Proyek ---- */
 async function loadProyek(){
   pane().innerHTML='<div class="card msg">Memuat...</div>';

@@ -260,7 +260,7 @@ function drawStok(total,q,hs){
    '<div class="fr"><select id="us">'+opt+'</select><input type="file" id="uf" accept=".xlsx,.xls,.csv">'+
    '<label><input type="checkbox" id="unol"> Nolkan barang yang tidak ada di file</label><label><input type="checkbox" id="utb"> Tambahkan kode baru ke sheet Barang</label></div>'+
    '<div class="fr"><button class="sv" id="ugo" disabled>Unggah stok</button><span class="note" id="uinfo"></span></div></div>'+
-   '<div class="card" style="border-color:var(--gold)"><b>Impor awal dari Excel Stock Opname (sekali saja)</b><div class="note">File: sheet <b>Data Stock Opname</b> (Kode Rak, Gudang, Kode Barang, Nama Barang, Satuan, Stock Accurate, Stock Moka, Hasil Stock Opname, Status Hitung). Stok dasar Moka dan Accurate diisi, lalu hasil hitung yang berstatus Sudah diterapkan. Rak dan gudang dikirim ke Cari Barang. <b>Uji dulu dengan 5 baris.</b> Jangan unggah stok Moka/Accurate lain selama opname.</div>'+
+   '<div class="card" style="border-color:var(--gold)"><b>Impor hasil hitung dari Excel</b><div class="note">File Excel dengan baris judul. Wajib: <b>Kode Barang, Qty Moka, Qty Accurate, Hasil Hitung</b>. Boleh ada: Nama Barang, Total (diabaikan), Kode Rak, Gudang, Satuan, Status Hitung. Baris dengan Hasil Hitung terisi dianggap sudah dihitung (bila ada kolom Status Hitung, yang berstatus Sudah). Stok dasar Moka dan Accurate diisi, lalu hasil hitung yang berstatus Sudah diterapkan. Rak dan gudang dikirim ke Cari Barang. <b>Uji dulu dengan 5 baris.</b> Jangan unggah stok Moka/Accurate lain selama opname.</div>'+
    '<div class="fr"><input type="file" id="xf" accept=".xlsx,.xls"><label>Hanya <input type="number" id="xn" min="0" value="5" style="width:70px"> baris pertama (0 = semua)</label></div>'+
    '<div class="fr"><button class="sv" id="xgo" disabled>Jalankan impor</button><span class="note" id="xinfo"></span></div></div>'+
    '<div class="card"><b>Unggah harga satuan</b><div class="note">Kolom: Kode Barang, Harga. Satu harga per barang (berlaku untuk Moka dan Accurate).</div>'+
@@ -293,18 +293,24 @@ function drawStok(total,q,hs){
     if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat.",true);return;}
     var fr=new FileReader();
     fr.onload=function(ev){try{
-      var wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"}),ws=wb.Sheets["Data Stock Opname"];
-      if(!ws){toast("Sheet 'Data Stock Opname' tidak ditemukan di file ini.",true);return;}
-      var a=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true}),hd=a[0].map(function(x){return String(x).trim().toLowerCase();});
-      function c(n){return hd.indexOf(n);}
-      var m={rak:c("kode rak"),gud:c("gudang"),kode:c("kode barang"),nama:c("nama barang"),sat:c("satuan"),acc:c("stock accurate"),moka:c("stock moka"),hit:c("hasil stock opname"),st:c("status hitung")};
-      for(var k in m)if(m[k]<0){toast("Kolom '"+k+"' tidak ditemukan di baris judul.",true);return;}
+      var wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"}),ws=wb.Sheets["Data Stock Opname"]||wb.Sheets[wb.SheetNames[0]];
+      if(!ws){toast("File tidak berisi sheet.",true);return;}
+      var a=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true});
+      var AL={kode:["kode barang","kode"],nama:["nama barang","nama"],moka:["qty moka","stock moka","stok moka","moka"],acc:["qty accurate","stock accurate","stok accurate","accurate"],hit:["hasil hitung","hasil stock opname","hasil opname","hasil"],rak:["kode rak","rak"],gud:["gudang"],sat:["satuan"],st:["status hitung","status"]};
+      var hb=-1,hd=[];
+      for(var q=0;q<Math.min(a.length,10)&&hb<0;q++){var h2=(a[q]||[]).map(function(x){return String(x).trim().toLowerCase();});if(AL.kode.some(function(n){return h2.indexOf(n)>=0;})){hb=q;hd=h2;}}
+      if(hb<0){toast("Baris judul dengan kolom 'Kode Barang' tidak ditemukan.",true);return;}
+      var m={};for(var k in AL){m[k]=-1;for(var j=0;j<AL[k].length&&m[k]<0;j++)m[k]=hd.indexOf(AL[k][j]);}
+      var hilang=["kode","moka","acc","hit"].filter(function(k){return m[k]<0;});
+      if(hilang.length){toast("Kolom tidak ditemukan: "+hilang.map(function(k){return {kode:"Kode Barang",moka:"Qty Moka",acc:"Qty Accurate",hit:"Hasil Hitung"}[k];}).join(", "),true);return;}
       function t(v){return String(v==null?"":v).trim();}
       function num(v){var n=Number(String(v).replace(",","."));return isFinite(n)?n:0;}
+      function ada(r,c){return c>=0&&t(r[c])!=="";}
       XR=[];
-      for(var i=1;i<a.length;i++){var r=a[i],kd=t(r[m.kode]);if(!kd)continue;
+      for(var i=hb+1;i<a.length;i++){var r=a[i],kd=t(r[m.kode]);if(!kd)continue;
         var moka=num(r[m.moka]),acc=num(r[m.acc]);
-        XR.push({kode:kd,nama:t(r[m.nama]),satuan:t(r[m.sat]),rak:t(r[m.rak]),gudang:t(r[m.gud]),moka:moka,acc:acc,hitung:num(r[m.hit]),sudah:/^sudah$/i.test(t(r[m.st]))});}
+        var sudah=m.st>=0?/^sudah$/i.test(t(r[m.st])):ada(r,m.hit);
+        XR.push({kode:kd,nama:m.nama>=0?t(r[m.nama]):"",satuan:m.sat>=0?t(r[m.sat]):"",rak:m.rak>=0?t(r[m.rak]):"",gudang:m.gud>=0?t(r[m.gud]):"",moka:moka,acc:acc,hitung:num(r[m.hit]),sudah:sudah});}
       var sd=XR.filter(function(x){return x.sudah;}).length;
       document.getElementById("xinfo").textContent=XR.length+" barang terbaca, "+sd+" sudah dihitung, "+(XR.length-sd)+" belum.";
       document.getElementById("xgo").disabled=!XR.length;
@@ -315,7 +321,7 @@ function drawStok(total,q,hs){
     var n=Number(document.getElementById("xn").value)||0,D=n>0?XR.slice(0,n):XR,btn=this,info=document.getElementById("xinfo");
     if(!confirm("Impor "+D.length+" barang dari Excel?\nStok Moka dan Accurate akan diisi sesuai file, lalu hasil hitung diterapkan."))return;
     if(BUSY)return;BUSY=true;btn.disabled=true;
-    var SID="XLS-20261021",SNM="Opname Excel 21-10-2026",gagal=null;
+    var _d=new Date(),_p=function(x){return String(x).padStart(2,"0");},SID="XLS-"+String(_d.getFullYear()).slice(2)+_p(_d.getMonth()+1)+_p(_d.getDate())+"-"+_p(_d.getHours())+_p(_d.getMinutes()),SNM="Opname Excel "+_p(_d.getDate())+"-"+_p(_d.getMonth()+1)+"-"+_d.getFullYear()+" "+_p(_d.getHours())+":"+_p(_d.getMinutes()),gagal=null;
     async function kirim(body,rows,tahap){
       for(var i=0;i<rows.length;i+=300){
         info.textContent=tahap+" "+Math.min(i+300,rows.length)+" / "+rows.length+"...";

@@ -70,3 +70,17 @@ html[data-tema=gelap] body.tema tbody tr:nth-child(even){background:rgba(127,160
 body.tema input,body.tema select,body.tema textarea{border-color:var(--line)}
 html[data-tema=gelap] body.tema input:not([type=checkbox]):not([type=radio]),html[data-tema=gelap] body.tema select,html[data-tema=gelap] body.tema textarea{background:rgba(127,160,180,.1);color:var(--ink)}
 html[data-tema=gelap] body.tema .sheet input,html[data-tema=gelap] body.tema .sheet textarea,html[data-tema=gelap] body.tema .sheet select{background:#fff;color:#111}
+
+/* DAFTAR PENCARIAN / PREDIKSI: latar solid dan teks eksplisit di semua kombinasi tema (gelap, terang, mode OS) */
+html[data-tema=gelap]:root{--solid:#0e2438;--solid-ink:#e8f3f8;--solid-sub:#9fc0d2;--solid-hover:#17405e}
+html[data-tema=terang]:root{--solid:#ffffff;--solid-ink:#0b2133;--solid-sub:#52707f;--solid-hover:#dff1f8}
+body.tema .dd,body.tema .sl,body.tema #hpred,body.tema .cr .res,body.tema .pred{background:var(--solid)!important;color:var(--solid-ink)!important;border:1px solid var(--accent);border-radius:10px}
+body.tema .dd .it,body.tema .sl button,body.tema .cr button.pk,body.tema #hpred>*,body.tema .pred>*{background:transparent!important;color:var(--solid-ink)!important;border-color:var(--line)!important;box-shadow:none}
+body.tema .dd .it small,body.tema .sl small,body.tema .cr small,body.tema #hpred small,body.tema .pred small{color:var(--solid-sub)!important;opacity:1}
+body.tema .dd .it:hover,body.tema .dd .it.on,body.tema .sl button:hover,body.tema .sl button.on,body.tema .cr button.pk:hover,body.tema #hpred>*:hover,body.tema .pred>*:hover{background:var(--solid-hover)!important;color:var(--solid-ink)!important}
+body.tema .dd .it.on small,body.tema .dd .it:hover small{color:var(--solid-sub)!important}
+/* kotak pilihan (select) dan isinya */
+html[data-tema=gelap] body.tema select{background-color:#12304a;color:#e8f3f8}
+html[data-tema=terang] body.tema select{background-color:#fff;color:#0b2133}
+html[data-tema=gelap] body.tema option,html[data-tema=gelap] body.tema optgroup{background:#0e2438;color:#e8f3f8}
+html[data-tema=terang] body.tema option,html[data-tema=terang] body.tema optgroup{background:#fff;color:#0b2133}

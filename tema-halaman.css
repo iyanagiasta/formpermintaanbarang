@@ -84,3 +84,12 @@ html[data-tema=gelap] body.tema select{background-color:#12304a;color:#e8f3f8}
 html[data-tema=terang] body.tema select{background-color:#fff;color:#0b2133}
 html[data-tema=gelap] body.tema option,html[data-tema=gelap] body.tema optgroup{background:#0e2438;color:#e8f3f8}
 html[data-tema=terang] body.tema option,html[data-tema=terang] body.tema optgroup{background:#fff;color:#0b2133}
+
+/* pilihan select (dropdown bawaan browser): paksa gelap/terang agar daftar tidak putih berteks putih */
+html[data-tema=gelap] select,html[data-tema=gelap] option,html[data-tema=gelap] optgroup{color-scheme:dark!important}
+html[data-tema=terang] select,html[data-tema=terang] option,html[data-tema=terang] optgroup{color-scheme:light!important}
+html[data-tema=gelap] select{background-color:#12304a!important;color:#e8f3f8!important}
+html[data-tema=gelap] select option,html[data-tema=gelap] select optgroup{background-color:#0e2438!important;color:#e8f3f8!important}
+html[data-tema=gelap] select option:checked,html[data-tema=gelap] select option:hover{background-color:#1d5b82!important;color:#fff!important}
+html[data-tema=terang] select{background-color:#fff!important;color:#0b2133!important}
+html[data-tema=terang] select option,html[data-tema=terang] select optgroup{background-color:#fff!important;color:#0b2133!important}

@@ -28,3 +28,26 @@
   }
   if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",mulai);else mulai();
 })();
+
+/* Judul kolom tabel dibuat beku: tabel dengan banyak baris dibungkus kotak gulir, judul kolom menempel di atas saat digulir. */
+(function(){
+  var d=document,MIN=8;
+  var st=d.createElement("style");
+  st.textContent=".tbox{max-height:72vh;overflow:auto;position:relative;border-radius:12px}"+
+   ".tbox>table,.tw.tbox>table{overflow:visible!important;margin:0}"+
+   ".tbox thead th{position:sticky;top:0;z-index:3;box-shadow:0 1px 0 rgba(0,0,0,.25)}"+
+   "@media (max-width:820px){.tbox{max-height:none;overflow:visible}.tbox thead th{position:static}}";
+  (d.head||d.documentElement).appendChild(st);
+  function proses(t){
+    if(t._beku)return;var th=t.tHead;if(!th||!th.rows.length)return;
+    var tb=t.tBodies[0];if(!tb||tb.rows.length<MIN)return;
+    t._beku=true;var p=t.parentNode;
+    if(p&&p.classList&&p.classList.contains("tw")&&p.children.length===1){p.classList.add("tbox");return;}
+    var w=d.createElement("div");w.className="tbox";p.insertBefore(w,t);w.appendChild(t);
+  }
+  function semua(){var l=d.getElementsByTagName("table");for(var i=0;i<l.length;i++)proses(l[i]);}
+  var tm=null;
+  function jadwal(){clearTimeout(tm);tm=setTimeout(semua,60);}
+  function mulai(){semua();try{new MutationObserver(jadwal).observe(d.body,{childList:true,subtree:true});}catch(e){}}
+  if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",mulai);else mulai();
+})();

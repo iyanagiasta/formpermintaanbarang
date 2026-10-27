@@ -175,6 +175,19 @@ async function buatPdf(items,s,uji){
   return await doc.save();
 }
 /* ===== antarmuka ===== */
+
+var PRESET=[];
+function pisiSelect(pil){var s=document.getElementById("pset");if(!s)return;s.innerHTML='<option value="">(pilih preset)</option>'+PRESET.map(function(p){return '<option value="'+esc(p.nama)+'"'+(p.nama===pil?" selected":"")+'>'+esc(p.nama)+'</option>';}).join("");}
+async function muatPreset(pil){try{var r=await api({action:"labelPresetList"});if(r&&r.ok){PRESET=r.data||[];pisiSelect(pil);}}catch(e){}}
+function pasangPreset(){
+  muatPreset(localStorage.getItem("sctk_label_preset")||"");
+  document.getElementById("ppakai").onclick=function(){var n=document.getElementById("pset").value,p=PRESET.filter(function(x){return x.nama===n;})[0];if(!p){toast("Pilih preset dulu.",true);return;}
+    S=Object.assign({},DEF,p.s,{mulai:1});simpanS();try{localStorage.setItem("sctk_label_preset",n);}catch(e){}tampil();toast("Preset \""+n+"\" dipakai.");};
+  document.getElementById("psimpan").onclick=async function(){var n=(document.getElementById("pnama").value||"").trim()||document.getElementById("pset").value;if(!n){toast("Isi nama preset (atau pilih preset untuk diperbarui).",true);return;}
+    var bt=this;bt.disabled=true;try{var r=await api({action:"labelPresetSimpan",nama:n,s:S});toast(r.msg||(r.ok?"Tersimpan.":"Gagal."),!r.ok);if(r.ok){try{localStorage.setItem("sctk_label_preset",n);}catch(e){}await muatPreset(n);document.getElementById("pnama").value="";}}catch(e){toast("Gagal terhubung ke server. Pastikan Code.gs terbaru sudah ditempel.",true);}bt.disabled=false;};
+  document.getElementById("phapus").onclick=async function(){var n=document.getElementById("pset").value;if(!n){toast("Pilih preset yang akan dihapus.",true);return;}if(!confirm("Hapus preset \""+n+"\"?"))return;
+    var r=await api({action:"labelPresetHapus",nama:n});toast(r.msg||"Selesai.",!r.ok);if(r.ok)await muatPreset("");};
+}
 function simpanS(){try{localStorage.setItem("sctk_label",JSON.stringify(S));}catch(e){}}
 function totalLabel(){return PILIH.reduce(function(a,x){return a+x.n;},0);}
 function tampil(){
@@ -182,11 +195,12 @@ function tampil(){
   '<div class="card"><b>2. Pengaturan lembar label</b><div class="note">Bawaan: Tom &amp; Jerry nomor 103, 12 label per lembar (2 kolom x 6 baris, 64 x 32 mm). Semua ukuran bebas diisi manual (boleh desimal, mis. 32,5): ukur label di lembar Anda dengan penggaris lalu isi. Gunakan "Cetak uji" dulu pada kertas biasa, lalu tumpuk ke lembar label dan terawang ke cahaya.</div>'+
   '<div class="dt"><div><label>Lebar label (mm)</label><input type="text" inputmode="decimal" data-s="lw"></div><div><label>Tinggi label (mm)</label><input type="text" inputmode="decimal" data-s="lh"></div><div><label>Jumlah kolom</label><input type="text" inputmode="decimal" data-s="kol"></div><div><label>Jumlah baris</label><input type="text" inputmode="decimal" data-s="bar"></div><div><label>Jarak antar kolom (mm)</label><input type="text" inputmode="decimal" data-s="gx"></div><div><label>Jarak antar baris (mm)</label><input type="text" inputmode="decimal" data-s="gy"></div><div><label>Batas kiri (mm)</label><input type="text" inputmode="decimal" data-s="ml"></div><div><label>Batas atas (mm)</label><input type="text" inputmode="decimal" data-s="mt"></div><div><label>Lebar kertas (mm)</label><input type="text" inputmode="decimal" data-s="pw"></div><div><label>Tinggi kertas (mm)</label><input type="text" inputmode="decimal" data-s="ph"></div><div><label>Ruang dalam label / padding (mm)</label><input type="text" inputmode="decimal" data-s="pad"></div></div>'+
   '<div class="cb"><label><input type="checkbox" data-c="slowfast"> Kotak centang Slow Moving / Fast Moving</label><label><input type="checkbox" data-c="kodeTeks"> Tulis kode di bawah barcode</label><label><input type="checkbox" data-c="stokKotak"> Kotak angka stok</label><label><input type="checkbox" data-c="rakTeks"> Tulis rak di sebelah kode</label><label><input type="checkbox" data-c="garis"> Cetak garis tepi label (untuk uji)</label></div>'+
-  '<div class="dt"><div><label>Mulai dari label ke- (bila lembar sudah terpakai sebagian)</label><input type="text" inputmode="decimal" data-s="mulai"></div></div><div class="fr"><button class="gh" id="reset">Kembalikan ke bawaan</button></div></div>'+
+  '<div class="dt"><div><label>Mulai dari label ke- (bila lembar sudah terpakai sebagian)</label><input type="text" inputmode="decimal" data-s="mulai"></div></div><div class="fr"><button class="gh" id="reset">Kembalikan ke bawaan</button></div>'+
+  '<div class="note" style="margin-top:12px"><b>Preset ukuran</b> (tersimpan di server, bisa dipakai dari komputer atau HP mana pun)</div><div class="fr"><select id="pset" style="min-width:200px"><option value="">(pilih preset)</option></select><button class="gh" id="ppakai">Pakai</button><button class="gh" id="phapus">Hapus</button><input type="text" id="pnama" maxlength="60" placeholder="Nama preset baru, mis. Tom &amp; Jerry 103" style="flex:1;min-width:200px"><button class="sv" id="psimpan">Simpan ukuran ini sebagai preset</button></div></div>'+
   '<div class="card"><b>3. Cetak</b><div class="fr"><button class="sv" id="buat">Buat PDF label</button><button class="gh" id="uji">Cetak uji (kotak kosong)</button><span class="note" id="info"></span></div><div class="note">Buka PDF, cetak dengan ukuran <b>100% / Actual size</b> (jangan "Fit to page") dan margin "None".</div></div>';
   app.querySelectorAll("[data-s]").forEach(function(i){i.value=S[i.getAttribute("data-s")];i.oninput=function(){var v=Number(String(i.value).replace(",",".").trim());S[i.getAttribute("data-s")]=isNaN(v)?0:v;simpanS();};});
   app.querySelectorAll("[data-c]").forEach(function(i){i.checked=!!S[i.getAttribute("data-c")];i.onchange=function(){S[i.getAttribute("data-c")]=i.checked;simpanS();};});
-  document.getElementById("semua").onclick=tambahSemua;isiRak();
+  document.getElementById("semua").onclick=tambahSemua;isiRak();pasangPreset();
   document.getElementById("rakadd").onclick=function(){tambahRak(false);};document.getElementById("rakcetak").onclick=function(){tambahRak(true);};
   document.getElementById("urut").onchange=function(){urutkan(this.value);this.value="";};
   var rx=document.getElementById("rakxl"),rf=document.getElementById("rakf");rx.hidden=!BISARAK;rx.onclick=function(){rf.click();};rf.onchange=function(){muatRakXl(rf.files[0]);rf.value="";};

@@ -1,0 +1,62 @@
+/* Kulit tema untuk halaman biasa (bukan dashboard). Muat SETELAH gaya halaman. Lembar kertas (.sheet) tetap putih. */
+html[data-tema=gelap]:root{
+  --bg:#050f1a;--bar:#0c2236;--bar-ink:#e8f3f8;--line:rgba(120,190,220,.22);--accent:#4cc3f0;--accent-ink:#04202c;--muted:#8fb0c2;
+  --ink:#e8f3f8;--card:#0e2438;--mut:#8fb0c2;--navy:#16688a;--gold:#d9b46a;color-scheme:dark}
+html[data-tema=terang]:root{
+  --bg:#eaf1f5;--bar:#ffffff;--bar-ink:#0b2133;--line:rgba(10,58,92,.18);--accent:#0f7fb0;--accent-ink:#fff;--muted:#52707f;
+  --ink:#0b2133;--card:#ffffff;--mut:#52707f;--navy:#0a3a5c;--gold:#a8812f;color-scheme:light}
+body.tema{background:var(--bg);color:var(--bar-ink);font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif}
+html[data-tema=gelap] body.tema{background:radial-gradient(900px 400px at 85% -5%,rgba(47,208,196,.14),transparent 70%),radial-gradient(700px 360px at 0% 0%,rgba(76,195,240,.1),transparent 70%),var(--bg)}
+/* kepala */
+.tbar,body.tema .top{position:relative;display:flex;align-items:center;gap:12px;padding:12px 16px;color:#e8f3f8;text-align:left;
+  background:linear-gradient(120deg,#05182a,#0a3556 55%,#0f6f93);border-bottom:3px solid var(--gold)}
+body.tema .top{display:block;text-align:center;padding:16px 56px}
+body.tema .top h1{margin:0;font:700 19px "Cormorant Garamond",Georgia,serif;letter-spacing:2px;text-transform:uppercase}
+body.tema .top div{margin-top:3px;font-size:10.5px;letter-spacing:2.2px;color:#e3c98f;font-weight:600}
+.tbar .tt b{display:block;font:700 19px "Cormorant Garamond",Georgia,serif;letter-spacing:2px;text-transform:uppercase}
+.tbar .tt small{display:block;font-size:10px;letter-spacing:2.2px;color:#e3c98f;font-weight:600;margin-top:1px}
+.lg{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);overflow:hidden}
+.lg img{width:100%;height:100%;object-fit:contain;padding:4px}.lg svg{width:22px;height:22px}.lg.ada svg{display:none}
+body.tema .top .lg{position:absolute;left:auto;right:56px;top:50%;transform:translateY(-50%);display:none}
+.tg{margin-left:auto;font-size:15px;line-height:1;padding:8px 11px;border-radius:99px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;cursor:pointer}
+.tg:hover{background:rgba(255,255,255,.2)}
+body.tema .top .tg{position:absolute;right:12px;top:50%;transform:translateY(-50%);margin:0}
+@media(max-width:560px){body.tema .top{padding:14px 52px 14px 12px}}
+/* bilah aksi, tombol */
+body.tema .bar{background:var(--bar);border-bottom:1px solid var(--line);color:var(--bar-ink)}
+body.tema #pegbar{background:var(--bar);border-bottom:1px solid var(--line);color:var(--muted)}
+body.tema #pegbar input{background:rgba(127,160,180,.12);border:1px solid var(--line);color:var(--bar-ink)}
+body.tema .btn{border-radius:10px;border-color:var(--accent);color:var(--accent);transition:background .15s,transform .15s}
+body.tema .btn:hover{background:rgba(76,195,240,.12)}
+body.tema .btn.primary{background:linear-gradient(135deg,#2fd0c4,#4cc3f0);color:#04202c;border-color:transparent}
+body.tema .btn.primary:hover{filter:brightness(1.08)}
+html[data-tema=terang] body.tema .btn.primary{background:linear-gradient(135deg,#0a9d93,#0f7fb0);color:#fff}
+body.tema .dd{background:var(--bar);color:var(--bar-ink);border:1px solid var(--accent);border-radius:12px;box-shadow:0 14px 36px rgba(0,0,0,.45)}
+/* halaman berbentuk kartu (cari barang, master barang) */
+body.tema .card{background:var(--card);border:1px solid var(--line);border-radius:16px;color:var(--ink);backdrop-filter:blur(8px)}
+body.tema input.t,body.tema .card input,body.tema .card select,body.tema .card textarea{background:rgba(127,160,180,.1);border:1px solid var(--line);color:var(--ink);border-radius:10px}
+body.tema input:focus,body.tema select:focus,body.tema textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+body.tema .card button:not(.gh):not(.sv):not(.rm){background:linear-gradient(135deg,#0f6f93,#16688a);color:#fff;border-radius:10px}
+body.tema button.gh{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:10px}
+body.tema button.sv{background:linear-gradient(135deg,#1b8a5a,#2fb57d);border-radius:10px}
+body.tema .tabs button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+body.tema .q div{background:rgba(127,160,180,.08);border-color:var(--line)}
+body.tema .bar{backdrop-filter:blur(8px)}
+html[data-tema=gelap] body.tema div.kode{background:#123524;color:#a8e0b5}
+html[data-tema=gelap] body.tema .mirip{background:#3a3010;color:#f2dc9b}
+html[data-tema=gelap] body.tema .al{background:#2a2412;color:#e8d9a8}
+html[data-tema=gelap] body.tema .bd.a,html[data-tema=gelap] body.tema .tag.ok{background:#12402a;color:#8be0ac}
+html[data-tema=gelap] body.tema .bd.s,html[data-tema=gelap] body.tema .tag.w{background:#41330c;color:#f2d27a}
+html[data-tema=gelap] body.tema .bd.b,html[data-tema=gelap] body.tema .tag.bad{background:#4a1b20;color:#ffb3b3}
+html[data-tema=gelap] body.tema .err{color:#ff8a8a}
+body.tema .msg{color:var(--mut)}
+/* gerbang kode pegawai */
+#gate{background:radial-gradient(700px 400px at 80% 0%,rgba(47,208,196,.25),transparent 70%),linear-gradient(120deg,#04121f,#0a3556 60%,#0f6f93)!important}
+html[data-tema=gelap] #gate .gc{background:#0e2438;color:#e8f3f8;border:1px solid rgba(120,190,220,.25);border-top:3px solid #d9b46a;border-radius:20px}
+html[data-tema=gelap] #gate h2{color:#e8f3f8;font-family:"Cormorant Garamond",Georgia,serif;font-size:22px}
+html[data-tema=gelap] #gate p,html[data-tema=gelap] #gate a{color:#8fb0c2}
+html[data-tema=gelap] #gate input{background:rgba(255,255,255,.06);border-color:rgba(120,190,220,.3);color:#e8f3f8}
+html[data-tema=gelap] #gate button{background:linear-gradient(135deg,#2fd0c4,#4cc3f0);color:#04202c}
+@media print{.tbar,.tg,body.tema .top{display:none!important}html[data-tema] body.tema{background:#fff!important}}
+html[data-tema] body.tema{background-repeat:no-repeat;background-attachment:fixed}
+@media(max-width:560px){body.tema .top .homebtn{position:static;transform:none;display:inline-block;margin:0 0 8px}body.tema .top{padding:12px 52px 12px 12px;text-align:left}body.tema .top h1{font-size:17px;letter-spacing:1.5px}}

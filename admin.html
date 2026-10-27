@@ -267,7 +267,7 @@ function drawStok(total,q,hs){
    '<div class="fr"><input type="file" id="hf" accept=".xlsx,.xls,.csv"><button class="sv" id="hgo" disabled>Unggah harga</button><span class="note" id="hinfo"></span></div></div>'+
    '<div class="card"><b>Barang berstok tetapi belum ada harga</b><div class="note">Hasil Cek Kebutuhan tidak bisa menghitung nilai barang ini. Isi harganya di bawah, atau unduh daftarnya lalu unggah kembali lewat "Unggah harga satuan".</div>'+
    '<div class="fr"><button class="gh" id="thb">Tampilkan daftar</button><button class="gh" id="thx" disabled>Unduh Excel</button><span class="note" id="thi"></span></div><div id="thl"></div></div>'+
-   '<div class="card"><b>Sinkron ke aplikasi Cari Barang</b><div class="note">Stok (Moka + Accurate) dikirim otomatis setiap berubah. Tekan tombol ini bila ingin memastikan.</div><div class="fr"><button class="gh" id="sink">Sinkron sekarang</button></div></div>'+
+   '<div class="card"><b>Sinkron ke aplikasi Cari Barang</b><div class="note">Stok (Moka + Accurate) dikirim otomatis setiap berubah. Tekan tombol ini bila ingin memastikan.</div><div class="fr"><button class="gh" id="sink">Sinkron sekarang</button></div></div><div class="card"><b>Tarik data rak dari Cari Barang</b><div class="note">Rak di Cari Barang menjadi acuan. Ditarik otomatis tiap pagi; tekan untuk menarik sekarang. Gudang hanya membaca, tidak mengubah Cari Barang.</div><div class="fr"><button class="gh" id="rakt">Tarik rak sekarang</button></div></div>'+
    '<div id="kform"></div>'+
    '<div class="bar"><input id="sq" placeholder="Cari kode atau nama barang..." value="'+esc(q)+'"><label><input type="checkbox" id="hs"'+(hs?" checked":"")+'> Hanya yang ada stok</label><button class="gh" id="scari">Cari</button></div>'+
    '<div class="note">Menampilkan '+STOK.length+' dari '+total+' barang.</div>'+
@@ -361,6 +361,7 @@ function drawStok(total,q,hs){
     var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),"Tanpa Harga");XLSX.writeFile(wb,"barang_tanpa_harga.xlsx");
   };
   document.getElementById("sink").onclick=function(){kirimAdmin(this,{action:"adminSinkron"},null);};
+  document.getElementById("rakt").onclick=function(){kirimAdmin(this,{action:"adminTarikRak"},null);};
   document.getElementById("scari").onclick=loadStok;
   document.getElementById("sq").onkeydown=function(e){if(e.key==="Enter")loadStok();};
   pane().querySelectorAll("[data-kor]").forEach(function(b){b.onclick=function(){formKoreksi(STOK[Number(b.getAttribute("data-kor"))]);};});

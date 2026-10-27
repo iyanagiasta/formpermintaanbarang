@@ -131,7 +131,7 @@ async function pastikanAdmin(){
 async function buka(aksi,btn){
   if(btn)btn.disabled=true;
   try{
-    if(aksi==="minta"){if(await pastikanPegawai())location.href="index.html";}
+    if(aksi==="minta"){if(await pastikanPegawai())location.href="index.html?dari=utama";}
     else if(aksi==="cari"){
       var k=await pastikanPegawai();
       if(k){var r=await api({action:"menu",kode:k}),u=(r&&r.ok&&r.cari)||"gudang.html";location.href=u;}

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Pengajuan Master Barang - Gudang SCTK</title>
+<style>
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.top{background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold);position:relative}
+.top h1{margin:0;font:700 18px Georgia,serif;letter-spacing:1.5px}.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#e3c98f;font-weight:600}
+.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#e3c98f;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:none;border:1px solid rgba(227,201,143,.55);border-radius:8px;padding:6px 9px}
+@media (max-width:560px){.homebtn{position:static;transform:none;display:inline-block;margin-bottom:8px}}
+.wrap{max-width:760px;margin:0 auto;padding:14px 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:12px;color:var(--mut);margin:10px 0 3px;font-weight:600}
+input,select,textarea{width:100%;padding:11px;font:inherit;font-size:16px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+textarea{min-height:64px;resize:vertical}
+button{font:600 14px "Segoe UI",Roboto,Arial,sans-serif;padding:11px 16px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer}
+button:disabled{opacity:.5;cursor:default}button.sv{background:#1b8a3a}button.gh{background:transparent;color:var(--navy);border:1px solid var(--line)}
+@media (prefers-color-scheme:dark){button.gh{color:var(--ink)}}
+.note{color:var(--mut);font-size:12px;margin-top:4px}.err{color:#c0392b}.msg{text-align:center;padding:22px;color:var(--mut)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:560px){.row2{grid-template-columns:1fr}}
+.kode{font:700 20px Consolas,monospace;letter-spacing:1px;background:#eaf3ea;color:#14612b;border-radius:8px;padding:10px;text-align:center;margin-top:8px}
+@media (prefers-color-scheme:dark){.kode{background:#1d3a26;color:#a8e0b5}}
+.mirip{border-left:4px solid #d9a21b;background:#fff8e1;color:#5e4500;border-radius:8px;padding:9px 11px;margin-top:8px;font-size:13px}
+@media (prefers-color-scheme:dark){.mirip{background:#3a3010;color:#f2dc9b}}
+.tabs{display:flex;gap:6px;margin:0 0 12px}.tabs button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:20px}.tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.it{border-top:1px solid var(--line);padding:9px 0}.it:first-child{border-top:0}.it small{display:block;color:var(--mut);font-size:12px}
+.tag{display:inline-block;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700}.tag.ok{background:#dff3e4;color:#14612b}.tag.bad{background:#fde8e8;color:#8a1c28}.tag.w{background:#fff3cd;color:#7a5b00}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0a2a43;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:#c0392b}
+</style>
+</head>
+<body>
+<div class="top"><a class="homebtn" href="dashboard.html">&larr; Halaman Utama</a><h1>PENGAJUAN MASTER BARANG</h1><div>BARANG BARU · KODE OTOMATIS</div></div>
+<div class="wrap" id="app"></div><div id="toast"></div>
+<datalist id="dsat"></datalist><datalist id="ddept"></datalist>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+var KODE="",META=null,BUSY=false,app=document.getElementById("app"),T=null;
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},6000);}
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k)||"";if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}return "";}
+async function api(b){b.kode=KODE;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+function loginView(msg){
+  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><b>Kode pegawai</b><div class="note">Sama dengan kode yang dipakai di form permintaan barang.</div><input id="kd" type="password" autocomplete="off" placeholder="Kode pegawai" style="margin-top:8px"><div class="err" style="margin:6px 0">'+esc(msg||"")+'</div><button id="go" style="width:100%">Masuk</button></div>';
+  var i=document.getElementById("kd");i.value=ls("sctk_kode");i.onkeydown=function(e){if(e.key==="Enter")masuk();};document.getElementById("go").onclick=masuk;
+}
+async function masuk(){
+  var v=document.getElementById("kd").value.trim();if(!v)return;KODE=v;var b=document.getElementById("go");b.disabled=true;
+  try{var r=await api({action:"mbMeta"});if(!r.ok){KODE="";loginView(r.msg||"Kode salah.");return;}ls("sctk_kode",KODE);META=r;form();}
+  catch(e){KODE="";loginView("Gagal terhubung ke server.");}
+}
+function opts(a,ph){return '<option value="">'+esc(ph)+'</option>'+a.map(function(x){var n=x.nama||x;return '<option>'+esc(n)+'</option>';}).join("");}
+function form(sukses){
+  app.innerHTML='<div class="tabs"><button class="on" id="t1">Ajukan barang baru</button><button id="t2">Pengajuan saya</button></div>'+
+  (sukses?'<div class="card" style="border-color:#1b8a3a"><b>Terkirim ke Gudang.</b><div class="note">No. pengajuan <b>'+esc(sukses.no)+'</b>. Usulan kode: <b>'+esc(sukses.kode)+'</b> (kode final ditetapkan Gudang saat disetujui).</div></div>':"")+
+  '<div class="card"><div class="row2"><div><label>Nama pemohon</label><input id="pem" autocomplete="off"></div><div><label>Departemen</label><input id="dept" list="ddept" autocomplete="off"></div></div>'+
+  '<label>Email (opsional, untuk pemberitahuan hasil)</label><input id="em" type="email" autocomplete="off">'+
+  '<hr style="border:0;border-top:1px solid var(--line);margin:14px 0 4px">'+
+  '<label>Nama barang</label><input id="nm" autocomplete="off" placeholder="contoh: BEND COUPLER dn 4 Inch -- 110 mm GF"><div id="mirip"></div>'+
+  '<div class="row2"><div><label>Satuan</label><input id="sat" list="dsat" autocomplete="off" placeholder="pcs, unit, meter..."></div><div><label>Kategori</label><select id="kat">'+opts(META.kategori,"Pilih kategori")+'</select></div></div>'+
+  '<label>Jenis barang</label><select id="jn">'+opts(META.jenis,"Pilih jenis barang")+'</select>'+
+  '<div id="kd2"></div>'+
+  '<label>Spesifikasi / merek (opsional)</label><input id="sp" autocomplete="off">'+
+  '<label>Alasan pengajuan (opsional)</label><textarea id="al"></textarea>'+
+  '<div style="margin-top:14px"><button class="sv" id="kirim" style="width:100%">Kirim pengajuan</button></div></div>';
+  document.getElementById("dsat").innerHTML=META.satuan.map(function(s){return '<option value="'+esc(s)+'">';}).join("");
+  document.getElementById("ddept").innerHTML=META.dept.map(function(s){return '<option value="'+esc(s)+'">';}).join("");
+  document.getElementById("pem").value=ls("sctk_mb_pem");document.getElementById("dept").value=ls("sctk_mb_dept");document.getElementById("em").value=ls("sctk_mb_em");
+  document.getElementById("t2").onclick=saya;
+  document.getElementById("nm").oninput=cek;document.getElementById("jn").onchange=cek;
+  document.getElementById("kirim").onclick=kirim;
+}
+function cek(){
+  clearTimeout(T);T=setTimeout(async function(){
+    var nama=document.getElementById("nm").value.trim(),jn=document.getElementById("jn").value;
+    if(nama.length<3){document.getElementById("mirip").innerHTML="";document.getElementById("kd2").innerHTML="";return;}
+    try{var r=await api({action:"mbCek",nama:nama,jenis:jn});if(!r.ok)return;
+      document.getElementById("mirip").innerHTML=r.mirip&&r.mirip.length?'<div class="mirip"><b>Sudah ada barang yang mirip.</b> Pastikan bukan barang yang sama:<br>'+r.mirip.map(function(x){return esc(x.nama)+' <small>('+esc(x.kode)+')</small>';}).join("<br>")+'</div>':"";
+      document.getElementById("kd2").innerHTML=r.kodeUsulan?'<div class="kode">'+esc(r.kodeUsulan)+'</div><div class="note" style="text-align:center">Usulan kode. Kode final ditetapkan Gudang.</div>':"";
+    }catch(e){}
+  },450);
+}
+async function kirim(){
+  if(BUSY)return;var g=function(i){return document.getElementById(i).value.trim();};
+  var b={action:"mbSubmit",pemohon:g("pem"),dept:g("dept"),email:g("em"),nama:g("nm"),satuan:g("sat"),kategori:g("kat"),jenis:g("jn"),spek:g("sp"),alasan:g("al")};
+  if(!b.pemohon||!b.dept){toast("Isi nama pemohon dan departemen.",true);return;}
+  if(!b.nama||!b.satuan||!b.kategori||!b.jenis){toast("Nama barang, satuan, kategori, dan jenis wajib diisi.",true);return;}
+  BUSY=true;var bt=document.getElementById("kirim");bt.disabled=true;bt.textContent="Mengirim...";
+  try{var r=await api(b);if(!r.ok){toast(r.msg||"Gagal.",true);bt.disabled=false;bt.textContent="Kirim pengajuan";BUSY=false;return;}
+    ls("sctk_mb_pem",b.pemohon);ls("sctk_mb_dept",b.dept);ls("sctk_mb_em",b.email);BUSY=false;form(r);
+  }catch(e){toast("Gagal terhubung ke server.",true);bt.disabled=false;bt.textContent="Kirim pengajuan";BUSY=false;}
+}
+async function saya(){
+  var pem=ls("sctk_mb_pem");
+  app.innerHTML='<div class="tabs"><button id="t1">Ajukan barang baru</button><button class="on">Pengajuan saya</button></div><div class="card" id="ls"><div class="msg">Memuat...</div></div>';
+  document.getElementById("t1").onclick=function(){form();};
+  if(!pem){document.getElementById("ls").innerHTML='<div class="msg">Isi dan kirim satu pengajuan dulu agar nama Anda tercatat.</div>';return;}
+  try{var r=await api({action:"mbSaya",pemohon:pem});if(!r.ok){toast(r.msg||"Gagal.",true);return;}
+    var d=r.data||[];document.getElementById("ls").innerHTML='<div class="note" style="margin:0 0 6px">Pengajuan atas nama <b>'+esc(pem)+'</b></div>'+(d.length?d.map(function(x){
+      var c=x.status==="Disetujui"?"ok":x.status==="Ditolak"?"bad":"w";
+      return '<div class="it"><b>'+esc(x.nama)+'</b> <span class="tag '+c+'">'+esc(x.status)+'</span><small>'+esc(x.no)+' &middot; '+esc(x.waktu)+' &middot; '+esc(x.satuan)+' &middot; '+esc(x.jenis)+(x.kode?' &middot; Kode <b>'+esc(x.kode)+'</b>':'')+'</small>'+(x.tolak?'<small class="err">Alasan ditolak: '+esc(x.tolak)+'</small>':'')+'</div>';}).join(""):'<div class="msg">Belum ada pengajuan.</div>');
+  }catch(e){toast("Gagal terhubung ke server.",true);}
+}
+(function(){var k=ls("sctk_kode");if(!k){loginView("");return;}KODE=k;api({action:"mbMeta"}).then(function(r){if(r.ok){META=r;form();}else{KODE="";loginView(r.msg||"");}}).catch(function(){KODE="";loginView("Gagal terhubung ke server.");});})();
+</script>
+</body>
+</html>

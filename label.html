@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<title>Cetak Label Barcode - Gudang SCTK</title>
+<style>
+.sres{display:grid;gap:4px;margin:4px 0}.hs{display:block;text-align:left;width:100%;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;cursor:pointer}.hs:hover,.hs:focus-visible{border-color:var(--gold);outline:none}.hs small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.rw{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:9px;margin-top:4px}.rr{display:flex;gap:8px;align-items:center;padding:7px 9px;border-top:1px solid var(--line)}.rr:first-child{border-top:0}.rr>span{flex:1;min-width:0}.rr small{display:block;color:var(--mut);font-size:12px}.rr input{width:84px;padding:6px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--ink);text-align:right}
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--beli:#fde8e8;--belit:#8a1c28}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--beli:#3a1d22;--belit:#f2b8bf}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.top{background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 18px Georgia,serif;letter-spacing:1.5px}.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#e3c98f;font-weight:600}
+.wrap{max-width:1150px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+input.t,select,input[type=text]{padding:9px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+input.t{width:100%;font:600 16px "Segoe UI",Roboto,Arial,sans-serif;padding:12px}
+button{font:600 13px "Segoe UI",Roboto,Arial,sans-serif;padding:9px 13px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer}
+button:disabled{opacity:.5;cursor:default}button.gh{background:transparent;color:var(--navy);border:1px solid var(--line)}button.sv{background:#1b8a3a}button.gold{background:var(--gold)}
+@media (prefers-color-scheme:dark){button.gh{color:var(--ink)}}
+.fr{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.note{color:var(--mut);font-size:12px}.err{color:#c0392b}.msg{text-align:center;padding:22px;color:var(--mut)}
+.blk{border-left:4px solid var(--gold)}
+.blk h3{margin:0 0 6px;font-size:14px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.tabs button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:20px}.tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.sum{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}.sum div{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+.sum b{display:block;font-size:20px}.sum span{color:var(--mut);font-size:12px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line)}
+th{background:var(--navy);color:#fff;text-align:left;padding:8px;font-size:12px;white-space:nowrap}td{border-top:1px solid var(--line);padding:8px;vertical-align:top}
+td small{display:block;color:var(--mut);font-size:11px}.nm{text-align:right;white-space:nowrap}
+tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
+.tag{display:inline-block;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700}.tag.w{background:#fff3cd;color:#7a5b00}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0a2a43;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:#c0392b}
+.top{position:relative}.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#e3c98f;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:none;border:1px solid rgba(227,201,143,.55);border-radius:8px;padding:7px 11px;letter-spacing:0}.homebtn:hover,.homebtn:focus-visible{background:rgba(255,255,255,.12);outline:none}@media (max-width:640px){.top{padding-top:50px}.homebtn{top:10px;transform:none}}
+.at{display:flex;gap:8px;align-items:center;padding:7px 9px;border-top:1px solid var(--line)}.at:first-child{border-top:0}.at>span{flex:1;min-width:0;word-break:break-all}.at small{color:var(--mut)}
+.pgf{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:8px 0}.pgf label{display:block;font-size:12px;color:var(--mut)}.pgf input{width:100%}
+</style>
+<style>
+.ir{display:grid;grid-template-columns:2.4fr .6fr .6fr .9fr 1.3fr auto;gap:6px;align-items:start;padding:8px 0;border-top:1px solid var(--line)}.ir:first-child{border-top:0}
+.ir input{width:100%;padding:8px}.ir .sg{position:relative}.ir .sl{position:absolute;z-index:5;left:0;right:0;top:100%;background:var(--card);border:1px solid var(--line);border-radius:8px;max-height:220px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.ir .sl button{display:block;width:100%;text-align:left;background:transparent;color:var(--ink);border:0;border-top:1px solid var(--line);border-radius:0;padding:7px 9px;font-weight:400}.ir .sl button:first-child{border-top:0}.ir .sl button:hover{background:var(--bg)}.ir .sl small{display:block;color:var(--mut)}
+.ir small.k{display:block;color:var(--mut);font-size:11px;margin-top:2px}
+@media (max-width:760px){.ir{grid-template-columns:1fr 1fr}.ir .sg{grid-column:1/-1}}
+.hd{display:grid;grid-template-columns:2.4fr .6fr .6fr .9fr 1.3fr auto;gap:6px;font-size:12px;color:var(--mut);padding-bottom:4px}@media (max-width:760px){.hd{display:none}}
+.chk{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0}.chk label{border:1px solid var(--line);border-radius:20px;padding:6px 12px;cursor:pointer;font-weight:600}.chk input{margin-right:5px}.chk label.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.pgf select{width:100%}
+</style>
+<style>
+.dt{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:8px 0}.dt label{display:block;font-size:12px;color:var(--mut)}.dt input,.dt select{width:100%;padding:9px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.cb{display:flex;gap:16px;flex-wrap:wrap;margin:6px 0}.cb label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.cr{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:9px}
+.cr button.pk{display:block;width:100%;text-align:left;background:transparent;color:var(--ink);border:0;border-top:1px solid var(--line);border-radius:0;padding:8px 10px;font-weight:400}.cr button.pk:first-child{border-top:0}.cr button.pk:hover{background:var(--bg)}.cr small{display:block;color:var(--mut)}
+.qy{width:70px;padding:7px;text-align:right;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.pv{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;max-width:420px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="top"><a class="homebtn" href="dashboard.html">&larr; Halaman Utama</a><h1>CETAK LABEL BARCODE</h1><div>LABEL TOM &amp; JERRY · KERTAS A4</div></div>
+<div class="wrap" id="app"></div><div id="toast"></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+var C128=["212222", "222122", "222221", "121223", "121322", "131222", "122213", "122312", "132212", "221213", "221312", "231212", "112232", "122132", "122231", "113222", "123122", "123221", "223211", "221132", "221231", "213212", "223112", "312131", "311222", "321122", "321221", "312212", "322112", "322211", "212123", "212321", "232121", "111323", "131123", "131321", "112313", "132113", "132311", "211313", "231113", "231311", "112133", "112331", "132131", "113123", "113321", "133121", "313121", "211331", "231131", "213113", "213311", "213131", "311123", "311321", "331121", "312113", "312311", "332111", "314111", "221411", "431111", "111224", "111422", "121124", "121421", "141122", "141221", "112214", "112412", "122114", "122411", "142112", "142211", "241211", "221114", "413111", "241112", "134111", "111242", "121142", "121241", "114212", "124112", "124211", "411212", "421112", "421211", "212141", "214121", "412121", "111143", "111341", "131141", "114113", "114311", "411113", "411311", "113141", "114131", "311141", "411131", "211412", "211214", "211232", "2331112"];
+var KODE="",PINADM="",BARANG=[],PILIH=[],app=document.getElementById("app");
+var DEF={pw:210,ph:297,lw:64,lh:32,kol:2,bar:6,gx:2,gy:2,ml:40,mt:47.5,pad:2,slowfast:true,kodeTeks:true,stokKotak:true,rakTeks:true,mulai:1,garis:false};
+var S=Object.assign({},DEF);
+try{PINADM=sessionStorage.getItem("sctk_admin")||"";}catch(e){}
+try{var sv=JSON.parse(localStorage.getItem("sctk_label")||"null");if(sv)S=Object.assign({},DEF,sv,{mulai:1});}catch(e){}
+function fmtStok(v){if(v===""||v==null)return "";var n=Number(String(v).replace(",","."));return isNaN(n)?String(v).slice(0,8):(Math.round(n*1000)/1000).toString().replace(".",",");}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},7000);}
+async function api(b){b.kode=KODE;if(PINADM&&!KODE)b.pin=PINADM;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+function loginView(msg){
+  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Kode akses</b></p><input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode akses"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
+  var i=document.getElementById("kd");try{i.value=localStorage.getItem("sctk_pic")||"";}catch(e){}i.onkeydown=function(e){if(e.key==="Enter")masuk();};document.getElementById("go").onclick=masuk;
+}
+async function masuk(){
+  var v=document.getElementById("kd").value.trim();if(!v)return;KODE=v;document.getElementById("go").disabled=true;
+  try{var r=await muatBarang();if(!r.ok){KODE="";loginView(r.msg||"Kode salah.");return;}try{localStorage.setItem("sctk_pic",KODE);}catch(e){}BARANG=r.items||[];tampil();}
+  catch(e){KODE="";loginView("Gagal terhubung ke server.");}
+}
+async function muatBarang(){
+  var r=await api({action:"labelBarang"});
+  if(r&&r.ok){STOKADA=true;BISARAK=!!r.bisaRak;return r;}
+  if(r&&/dikenal|action/i.test(String(r.msg||""))){var r2=await api({action:"pbBarang"});STOKADA=false;return r2;}  // Code.gs lama: tanpa data stok
+  return r;
+}
+var STOKADA=true,BISARAK=false;
+/* ===== Code 128 ===== */
+function c128(text){
+  text=String(text==null?"":text).replace(/[^\x20-\x7e]/g,"-");if(!text)return null;
+  var vals=[],start;
+  if(/^\d+$/.test(text)&&text.length>=4&&text.length%2===0){start=105;for(var i=0;i<text.length;i+=2)vals.push(Number(text.substr(i,2)));}
+  else{start=104;for(var j=0;j<text.length;j++)vals.push(text.charCodeAt(j)-32);}
+  var sum=start;vals.forEach(function(v,i){sum+=v*(i+1);});
+  var seq=[start].concat(vals,[sum%103,106]),bars=[],mod=0;
+  seq.forEach(function(v){var p=C128[v];for(var k=0;k<p.length;k++){var w=Number(p[k]);if(k%2===0)bars.push([mod,w]);mod+=w;}});
+  return {bars:bars,modules:mod};
+}
+/* ===== PDF ===== */
+var MM=72/25.4;
+function aman(font,txt){
+  var out="";for(var i=0;i<txt.length;i++){var ch=txt[i],c=ch.charCodeAt(0);if(c<32||(c>126&&c<160)||c>255)ch="?";out+=ch;}
+  try{font.widthOfTextAtSize(out,10);return out;}catch(e){return out.replace(/[^\x20-\x7e]/g,"?");}
+}
+function bungkus(font,txt,size,maxW,maxBaris){
+  var kata=txt.split(/\s+/).filter(Boolean),baris=[],cur="";
+  kata.forEach(function(k){var t=cur?cur+" "+k:k;if(font.widthOfTextAtSize(t,size)<=maxW)cur=t;else{if(cur)baris.push(cur);cur=k;
+    while(font.widthOfTextAtSize(cur,size)>maxW&&cur.length>1){var n=cur.length;while(n>1&&font.widthOfTextAtSize(cur.slice(0,n),size)>maxW)n--;baris.push(cur.slice(0,n));cur=cur.slice(n);}}});
+  if(cur)baris.push(cur);return baris.length>maxBaris?null:baris;
+}
+function posisi(s,n){ // n = indeks label dari 0 pada lembar
+  var per=s.kol*s.bar,i=n%per,c=i%s.kol,r=Math.floor(i/s.kol);
+  return {x:s.ml+c*(s.lw+s.gx),y:s.mt+r*(s.lh+s.gy)};
+}
+function gambarLabel(page,F,s,x,y,item){
+  var lw=s.lw*MM,lh=s.lh*MM,pad=s.pad*MM,X=x*MM,Ytop=(s.ph-y)*MM,Y=Ytop-lh,PDF=window.PDFLib,rgb=PDF.rgb;
+  var inner=lw-2*pad,cur=Ytop-pad; // cur = batas atas konten (koordinat pdf)
+  var bawah=Y+pad,hCek=0;
+  if(s.slowfast||s.stokKotak){hCek=3.8*MM;}
+  var nm=aman(F.b,String(item.nama||"").toUpperCase()),sz=10,baris=null;
+  while(sz>=5.5){baris=bungkus(F.b,nm,sz,inner,2);if(baris)break;sz-=0.5;}
+  if(!baris){sz=5.5;baris=bungkus(F.b,nm,sz,inner,3)||[nm.slice(0,40)];}
+  baris.forEach(function(t){cur-=sz*0.88;page.drawText(t,{x:X+pad+(inner-F.b.widthOfTextAtSize(t,sz))/2,y:cur,size:sz,font:F.b,color:rgb(0,0,0)});cur-=sz*0.22;});
+  cur-=0.6*MM;
+  var kt=s.kodeTeks?(5.2*MM):0,hBar=cur-(bawah+hCek+kt+(hCek?0.8*MM:0));
+  var enc=c128(item.kode);
+  if(enc&&hBar>4*MM){
+    var tersedia=inner,mw=Math.min(0.42*MM,tersedia/(enc.modules+0)),wTot=mw*enc.modules,bx=X+pad+(inner-wTot)/2;
+    enc.bars.forEach(function(b){page.drawRectangle({x:bx+b[0]*mw,y:cur-hBar,width:b[1]*mw,height:hBar,color:rgb(0,0,0)});});
+    if(s.kodeTeks){var kz=Math.min(7,hBar>0?7:7),kk=aman(F.r,(s.rakTeks&&item.rak?String(item.rak)+"  |  ":"")+String(item.kode));while(F.r.widthOfTextAtSize(kk,kz)>inner&&kz>4)kz-=0.5;page.drawText(kk,{x:X+pad+(inner-F.r.widthOfTextAtSize(kk,kz))/2,y:cur-hBar-kz*0.95,size:kz,font:F.r,color:rgb(0,0,0)});}
+  }
+  var bs=2.6*MM,yy=bawah+(hCek-bs)/2,fz=6.5,kiri=X+pad,kanan=X+pad+inner;
+  var stokTxt=s.stokKotak?fmtStok(item.stok):null,bw=0;
+  if(s.stokKotak){ // kotak stok kecil di kanan bawah: "Stok" lalu angka
+    var sz2=7.5,lab="Stok",lw2=F.r.widthOfTextAtSize(lab,5.5),tw=F.b.widthOfTextAtSize(stokTxt||"",sz2);
+    while(tw>11*MM&&sz2>4.5){sz2-=0.5;tw=F.b.widthOfTextAtSize(stokTxt,sz2);}
+    bw=Math.max(12*MM,tw+3*MM);var bh=hCek>0?hCek-0.2*MM:3.6*MM,bx=kanan-bw,by=bawah+(hCek-bh)/2;
+    if(!s.slowfast){bh=3.8*MM;by=bawah;}
+    page.drawRectangle({x:bx,y:by,width:bw,height:bh,borderColor:rgb(0,0,0),borderWidth:0.7});
+    page.drawText(lab,{x:bx+0.8*MM,y:by+bh-2.2*MM,size:4.6,font:F.r,color:rgb(0,0,0)});
+    if(stokTxt)page.drawText(stokTxt,{x:bx+(bw-tw)/2,y:by+0.7*MM,size:sz2,font:F.b,color:rgb(0,0,0)});
+  }
+  if(s.slowfast){
+    var t1="Slow Moving",t2="Fast Moving",w1=F.r.widthOfTextAtSize(t1,fz),w2=F.r.widthOfTextAtSize(t2,fz),gap=3*MM,tot=bs+0.9*MM+w1+gap+bs+0.9*MM+w2,sisa=inner-(s.stokKotak?bw+1.5*MM:0),sx=kiri+Math.max(0,(sisa-tot)/2);
+    page.drawRectangle({x:sx,y:yy,width:bs,height:bs,borderColor:rgb(0,0,0),borderWidth:0.7});page.drawText(t1,{x:sx+bs+0.9*MM,y:yy+0.5*MM,size:fz,font:F.r,color:rgb(0,0,0)});
+    var x2=sx+bs+0.9*MM+w1+gap;page.drawRectangle({x:x2,y:yy,width:bs,height:bs,borderColor:rgb(0,0,0),borderWidth:0.7});page.drawText(t2,{x:x2+bs+0.9*MM,y:yy+0.5*MM,size:fz,font:F.r,color:rgb(0,0,0)});
+  }
+}
+function garisLabel(page,s,x,y){
+  page.drawRectangle({x:x*MM,y:(s.ph-y-s.lh)*MM,width:s.lw*MM,height:s.lh*MM,borderColor:window.PDFLib.rgb(0.55,0.55,0.55),borderWidth:0.4});
+}
+async function buatPdf(items,s,uji){
+  var PDF=window.PDFLib,doc=await PDF.PDFDocument.create(),F={b:await doc.embedFont(PDF.StandardFonts.HelveticaBold),r:await doc.embedFont(PDF.StandardFonts.Helvetica)};
+  var per=s.kol*s.bar,n=Math.max(0,Math.min(per-1,Math.round(s.mulai)-1)),page=null,total=0;
+  function baru(){page=doc.addPage([s.pw*MM,s.ph*MM]);}
+  baru();
+  if(uji){
+    for(var i=0;i<per;i++){var p=posisi(s,i);garisLabel(page,s,p.x,p.y);page.drawText(String(i+1),{x:(p.x+1.5)*MM,y:(s.ph-p.y-4)*MM,size:7,font:F.r,color:PDF.rgb(0.4,0.4,0.4)});}
+    page.drawText("Uji cetak: kotak harus pas dengan label. Ukuran "+s.lw+"x"+s.lh+" mm, mulai "+s.ml+" mm dari kiri dan "+s.mt+" mm dari atas.",{x:10*MM,y:8*MM,size:7,font:F.r});
+    return await doc.save();
+  }
+  var antri=[];items.forEach(function(it){for(var k=0;k<it.n;k++)antri.push(it);});
+  antri.forEach(function(it){
+    if(n>0&&n%per===0)baru();var p=posisi(s,n);if(s.garis)garisLabel(page,s,p.x,p.y);gambarLabel(page,F,s,p.x,p.y,it);n++;total++;});
+  return await doc.save();
+}
+/* ===== antarmuka ===== */
+function simpanS(){try{localStorage.setItem("sctk_label",JSON.stringify(S));}catch(e){}}
+function totalLabel(){return PILIH.reduce(function(a,x){return a+x.n;},0);}
+function tampil(){
+  app.innerHTML='<div class="card"><b>1. Pilih barang</b><div class="note">Ketik nama atau kode barang, klik untuk menambahkan. Atur jumlah label per barang.</div><div class="fr"><input type="text" id="cari" placeholder="Cari nama atau kode barang" style="flex:1;min-width:200px"></div><div class="cr" id="hasil" hidden></div><div class="fr"><b style="font-size:13px">Per rak:</b><select id="rakpil" style="max-width:260px"></select><button class="gh" id="rakadd">Tambah barang rak ini</button><button class="sv" id="rakcetak">Cetak langsung rak ini</button><button class="gh" id="rakxl" hidden>Muat daftar rak dari Excel</button><input type="file" id="rakf" accept=".xlsx,.xls,.csv" hidden></div><div class="note" id="rakinfo"></div><div class="fr"><button class="gh" id="semua">Tambah semua barang dari data stok</button><label class="note"><input type="checkbox" id="sem0" checked> hanya yang stoknya lebih dari 0</label><button class="gh" id="isi">Isi semua stok dari data</button><button class="gh" id="kosong">Kosongkan daftar</button><select id="urut"><option value="">Urutkan daftar...</option><option value="rak">Menurut rak</option><option value="nama">Menurut nama</option><option value="kode">Menurut kode</option></select></div><div id="dipilih"></div></div>'+
+  '<div class="card"><b>2. Pengaturan lembar label</b><div class="note">Bawaan: Tom &amp; Jerry nomor 103, 12 label per lembar (2 kolom x 6 baris, 64 x 32 mm). Ukur label di lembar Anda dengan penggaris dan sesuaikan bila berbeda. Gunakan "Cetak uji" dulu pada kertas biasa, lalu tumpuk ke lembar label dan terawang ke cahaya.</div>'+
+  '<div class="dt"><div><label>Lebar label (mm)</label><input type="number" step="0.5" data-s="lw"></div><div><label>Tinggi label (mm)</label><input type="number" step="0.5" data-s="lh"></div><div><label>Jumlah kolom</label><input type="number" data-s="kol"></div><div><label>Jumlah baris</label><input type="number" data-s="bar"></div><div><label>Jarak antar kolom (mm)</label><input type="number" step="0.5" data-s="gx"></div><div><label>Jarak antar baris (mm)</label><input type="number" step="0.5" data-s="gy"></div><div><label>Batas kiri (mm)</label><input type="number" step="0.5" data-s="ml"></div><div><label>Batas atas (mm)</label><input type="number" step="0.5" data-s="mt"></div><div><label>Lebar kertas (mm)</label><input type="number" data-s="pw"></div><div><label>Tinggi kertas (mm)</label><input type="number" data-s="ph"></div></div>'+
+  '<div class="cb"><label><input type="checkbox" data-c="slowfast"> Kotak centang Slow Moving / Fast Moving</label><label><input type="checkbox" data-c="kodeTeks"> Tulis kode di bawah barcode</label><label><input type="checkbox" data-c="stokKotak"> Kotak angka stok</label><label><input type="checkbox" data-c="rakTeks"> Tulis rak di sebelah kode</label><label><input type="checkbox" data-c="garis"> Cetak garis tepi label (untuk uji)</label></div>'+
+  '<div class="dt"><div><label>Mulai dari label ke- (bila lembar sudah terpakai sebagian)</label><input type="number" min="1" data-s="mulai"></div></div><div class="fr"><button class="gh" id="reset">Kembalikan ke bawaan</button></div></div>'+
+  '<div class="card"><b>3. Cetak</b><div class="fr"><button class="sv" id="buat">Buat PDF label</button><button class="gh" id="uji">Cetak uji (kotak kosong)</button><span class="note" id="info"></span></div><div class="note">Buka PDF, cetak dengan ukuran <b>100% / Actual size</b> (jangan "Fit to page") dan margin "None".</div></div>';
+  app.querySelectorAll("[data-s]").forEach(function(i){i.value=S[i.getAttribute("data-s")];i.oninput=function(){var v=Number(i.value);if(!isNaN(v))S[i.getAttribute("data-s")]=v;simpanS();};});
+  app.querySelectorAll("[data-c]").forEach(function(i){i.checked=!!S[i.getAttribute("data-c")];i.onchange=function(){S[i.getAttribute("data-c")]=i.checked;simpanS();};});
+  document.getElementById("semua").onclick=tambahSemua;isiRak();
+  document.getElementById("rakadd").onclick=function(){tambahRak(false);};document.getElementById("rakcetak").onclick=function(){tambahRak(true);};
+  document.getElementById("urut").onchange=function(){urutkan(this.value);this.value="";};
+  var rx=document.getElementById("rakxl"),rf=document.getElementById("rakf");rx.hidden=!BISARAK;rx.onclick=function(){rf.click();};rf.onchange=function(){muatRakXl(rf.files[0]);rf.value="";};
+  document.getElementById("isi").onclick=function(){if(!STOKADA){toast("Data stok belum tersedia. Tempel Code.gs terbaru dulu.",true);return;}PILIH.forEach(function(x){x.stok=x.stokSis;});gPilih();toast("Angka stok semua barang di daftar dikembalikan ke data sistem.");};
+  document.getElementById("kosong").onclick=function(){if(PILIH.length&&confirm("Kosongkan daftar label?")){PILIH=[];gPilih();}};
+  document.getElementById("reset").onclick=function(){S=Object.assign({},DEF);simpanS();tampil();};
+  var cari=document.getElementById("cari");cari.oninput=function(){saran(cari.value);};
+  document.getElementById("buat").onclick=function(){cetak(false);};document.getElementById("uji").onclick=function(){cetak(true);};
+  gPilih();
+}
+function baris(b){var st=STOKADA&&b.stok!=null?fmtStok(b.stok):"";return {kode:b.kode,nama:b.nama,n:1,stok:st,stokSis:st,rak:b.rak||""};}
+function saran(q){
+  var h=document.getElementById("hasil"),t=String(q||"").trim().toLowerCase().split(/\s+/).filter(Boolean);if(!t.length){h.hidden=true;return;}
+  var hit=BARANG.filter(function(b){var s=(b.nama+" "+b.kode).toLowerCase();return t.every(function(z){return s.indexOf(z)>=0;});}).slice(0,40);
+  h.hidden=!hit.length;h.innerHTML=hit.map(function(b,i){return '<button class="pk" data-i="'+i+'">'+esc(b.nama)+'<small>'+esc(b.kode)+(b.satuan?' · '+esc(b.satuan):'')+'</small></button>';}).join("");
+  h.querySelectorAll("[data-i]").forEach(function(bt){bt.onclick=function(){var b=hit[Number(bt.getAttribute("data-i"))],ada=PILIH.filter(function(x){return x.kode===b.kode;})[0];if(ada)ada.n++;else PILIH.push(baris(b));h.hidden=true;document.getElementById('cari').value='';document.getElementById('cari').focus();gPilih();};});
+}
+function gPilih(){
+  var d=document.getElementById("dipilih");if(!d)return;
+  d.innerHTML=PILIH.length?'<div class="tw"><table><thead><tr><th>Nama di label (boleh diubah)</th><th>Kode / rak</th><th class="nm">Stok di label</th><th class="nm">Jumlah label</th><th></th></tr></thead><tbody>'+PILIH.map(function(x,i){return '<tr><td><input type="text" class="nmi" value="'+esc(x.nama)+'" data-n="'+i+'" style="width:100%;min-width:180px;padding:7px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit"></td><td>'+esc(x.kode)+'<br><input type="text" data-rk="'+i+'" value="'+esc(x.rak||'')+'" placeholder="rak" style="width:90px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit;font-size:12px"></td><td class="nm"><input class="qy" type="text" inputmode="decimal" value="'+esc(x.stok)+'" data-s2="'+i+'" style="'+(x.stok!==x.stokSis?'border-color:#b8975a;':'')+'"><small>'+(STOKADA?(x.stok!==x.stokSis?'diubah (sistem '+esc(x.stokSis||'-')+')':'sesuai data'):'')+'</small></td><td class="nm"><input class="qy" type="number" min="1" max="500" value="'+x.n+'" data-q="'+i+'"></td><td><button class="gh" data-x="'+i+'">Hapus</button></td></tr>';}).join("")+'</tbody></table></div><div class="note" id="tot">Total '+totalLabel()+' label, kira-kira '+Math.ceil((totalLabel()+Math.max(0,Math.round(S.mulai)-1))/Math.max(1,S.kol*S.bar))+' lembar.</div>':'<div class="note" style="margin-top:8px">Belum ada barang dipilih.</div>';
+  d.querySelectorAll("[data-q]").forEach(function(i){i.oninput=function(){var v=Math.max(1,Math.min(500,Math.round(Number(i.value))||1));PILIH[Number(i.getAttribute("data-q"))].n=v;var n=document.getElementById("tot");if(n)n.textContent="Total "+totalLabel()+" label, kira-kira "+Math.ceil((totalLabel()+Math.max(0,Math.round(S.mulai)-1))/Math.max(1,S.kol*S.bar))+" lembar.";};});
+  d.querySelectorAll("[data-rk]").forEach(function(i){i.oninput=function(){PILIH[Number(i.getAttribute("data-rk"))].rak=i.value;};});
+  d.querySelectorAll("[data-n]").forEach(function(i){i.oninput=function(){PILIH[Number(i.getAttribute("data-n"))].nama=i.value;};});
+  d.querySelectorAll("[data-s2]").forEach(function(i){i.onchange=function(){var x=PILIH[Number(i.getAttribute("data-s2"))];x.stok=i.value.trim();gPilih();};});
+  d.querySelectorAll("[data-x]").forEach(function(b){b.onclick=function(){PILIH.splice(Number(b.getAttribute("data-x")),1);gPilih();};});
+}
+function natural(a,b){return String(a).localeCompare(String(b),"id",{numeric:true,sensitivity:"base"});}
+function isiRak(){
+  var sel=document.getElementById("rakpil"),c={},kosong=0;BARANG.forEach(function(b){if(b.rak)c[b.rak]=(c[b.rak]||0)+1;else kosong++;});
+  var ks=Object.keys(c).sort(natural);
+  sel.innerHTML='<option value="">- pilih rak -</option>'+ks.map(function(k){return '<option value="'+esc(k)+'">'+esc(k)+' ('+c[k]+' barang)</option>';}).join("");
+  document.getElementById("rakinfo").textContent=ks.length?ks.length+" rak terdata. "+kosong+" barang belum punya data rak."+(BISARAK?" Data rak bisa diisi lewat \"Muat daftar rak dari Excel\" (kolom Kode Barang, Rak, Gudang).":""):"Belum ada data rak."+(BISARAK?" Isi lewat \"Muat daftar rak dari Excel\" (kolom Kode Barang, Rak, Gudang), atau impor Excel opname di Admin > Stok & Harga.":" Minta admin atau gudang mengisinya.");
+}
+function barangRak(r){var h0=document.getElementById("sem0").checked;return BARANG.filter(function(b){return b.rak===r&&(!h0||Number(b.stok)>0);}).sort(function(a,b){return natural(a.nama,b.nama);});}
+function tambahRak(langsung){
+  var r=document.getElementById("rakpil").value;if(!r){toast("Pilih rak dulu.",true);return;}
+  if(!STOKADA){toast("Data rak dan stok belum tersedia. Tempel Code.gs terbaru dulu.",true);return;}
+  var hit=barangRak(r);if(!hit.length){toast("Tidak ada barang di rak "+r+(document.getElementById("sem0").checked?" dengan stok lebih dari 0 (hilangkan centang \"hanya yang stoknya lebih dari 0\" bila perlu)":"")+".",true);return;}
+  if(langsung)PILIH=[];
+  var ada={};PILIH.forEach(function(x){ada[x.kode]=1;});var n=0;hit.forEach(function(b){if(!ada[b.kode]){PILIH.push(baris(b));n++;}});gPilih();
+  if(langsung)cetak(false);else toast(n+" barang rak "+r+" ditambahkan ke daftar.");
+}
+function urutkan(k){
+  if(!k)return;PILIH.sort(function(a,b){return k==="rak"?(natural(a.rak||"~",b.rak||"~")||natural(a.nama,b.nama)):k==="kode"?natural(a.kode,b.kode):natural(a.nama,b.nama);});gPilih();toast("Daftar diurutkan menurut "+k+".");
+}
+async function muatRakXl(f){
+  if(!f)return;if(!window.XLSX){toast("Pustaka Excel belum termuat.",true);return;}
+  try{var wb=XLSX.read(await f.arrayBuffer(),{type:"array"}),ws=wb.Sheets[wb.SheetNames[0]],a=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});
+    var hi=-1,ik=-1,ir=-1,ig=-1;for(var i=0;i<Math.min(15,a.length)&&hi<0;i++){a[i].forEach(function(c,j){var t=String(c).toLowerCase().replace(/[^a-z]/g,"");if(t==="kodebarang"||t==="kode")ik=j;else if(t==="rak"||t==="koderak")ir=j;else if(t==="gudang")ig=j;});if(ik>=0&&ir>=0)hi=i;else{ik=ir=ig=-1;}}
+    if(hi<0){toast("Kolom tidak ditemukan. Judul kolom harus ada: Kode Barang dan Rak (Gudang boleh).",true);return;}
+    var rows=[];for(var r=hi+1;r<a.length;r++){var k=String(a[r][ik]||"").trim(),rk=String(a[r][ir]||"").trim();if(k&&rk)rows.push({kode:k,rak:rk,gudang:ig>=0?String(a[r][ig]||"").trim():""});}
+    if(!rows.length){toast("Tidak ada baris dengan kode dan rak.",true);return;}
+    if(!confirm("Simpan lokasi rak untuk "+rows.length+" barang? Rak lama pada kode yang sama akan diganti."))return;
+    var b=0,u=0;for(var i2=0;i2<rows.length;i2+=1000){var res=await api({action:"labelRakSimpan",rows:rows.slice(i2,i2+1000)});if(!res.ok){toast(res.msg||"Gagal menyimpan rak.",true);return;}b+=res.baru;u+=res.ubah;}
+    var m=await muatBarang();if(m.ok){BARANG=m.items||[];isiRak();}toast("Rak tersimpan: "+b+" baru, "+u+" diubah.");
+  }catch(e){toast("Gagal membaca file: "+(e&&e.message||"tak dikenal"),true);}
+}
+function tambahSemua(){
+  if(!STOKADA){toast("Data stok belum tersedia. Tempel Code.gs terbaru dulu.",true);return;}
+  var h0=document.getElementById("sem0").checked,ada={};PILIH.forEach(function(x){ada[x.kode]=1;});
+  var baru=BARANG.filter(function(b){return !ada[b.kode]&&(!h0||Number(b.stok)>0);});
+  if(!baru.length){toast("Tidak ada barang baru untuk ditambahkan.",true);return;}
+  if(baru.length>300&&!confirm("Ini menambah "+baru.length+" barang (satu label masing-masing). Lanjutkan?"))return;
+  baru.forEach(function(b){PILIH.push(baris(b));});gPilih();toast(baru.length+" barang ditambahkan dari data stok. Hapus yang tidak perlu atau ubah angkanya.");
+}
+function cekS(){
+  var k=["lw","lh","kol","bar","pw","ph"].filter(function(z){return !(S[z]>0);});if(k.length)return "Ukuran label, jumlah kolom/baris, dan ukuran kertas harus lebih dari 0.";
+  if(S.ml<0||S.mt<0||S.gx<0||S.gy<0)return "Batas dan jarak tidak boleh negatif.";
+  if(S.ml+S.kol*S.lw+(S.kol-1)*S.gx>S.pw+0.01)return "Susunan kolom melebihi lebar kertas ("+(S.ml+S.kol*S.lw+(S.kol-1)*S.gx).toFixed(1)+" mm). Kurangi batas kiri atau jumlah kolom.";
+  if(S.mt+S.bar*S.lh+(S.bar-1)*S.gy>S.ph+0.01)return "Susunan baris melebihi tinggi kertas ("+(S.mt+S.bar*S.lh+(S.bar-1)*S.gy).toFixed(1)+" mm). Kurangi batas atas atau jumlah baris.";
+  return "";
+}
+async function cetak(uji){
+  if(!window.PDFLib){toast("Pustaka PDF belum termuat. Periksa internet lalu muat ulang.",true);return;}
+  var er=cekS();if(er){toast(er,true);return;}
+  if(!uji&&!PILIH.length){toast("Pilih barang dulu.",true);return;}
+  var info=document.getElementById("info"),pesan=[];
+  if(!uji){PILIH.forEach(function(x){var e=c128(x.kode),inner=(S.lw-2*S.pad);if(!e){pesan.push(x.nama+": kode kosong");return;}if(inner/e.modules<0.19)pesan.push(x.kode+" terlalu panjang untuk label ini (barcode sangat rapat, mungkin sulit dipindai)");});}
+  info.textContent="Menyusun PDF...";
+  try{var by=await buatPdf(PILIH,S,uji),bl=new Blob([by],{type:"application/pdf"}),u=URL.createObjectURL(bl);window.open(u,"_blank");
+    var a=document.createElement("a");a.href=u;a.download=(uji?"uji-label-":"label-barcode-")+new Date().toISOString().slice(0,10)+".pdf";document.body.appendChild(a);a.click();setTimeout(function(){a.remove();},1500);
+    info.textContent=uji?"PDF uji siap.":"PDF siap: "+totalLabel()+" label.";if(pesan.length)toast("Perhatian: "+pesan.slice(0,3).join("; "),true);}
+  catch(e){info.textContent="";toast("Gagal membuat PDF: "+(e&&e.message?e.message:"kesalahan"),true);}
+}
+(function(){
+  if(PINADM){muatBarang().then(function(r){if(r.ok){BARANG=r.items||[];tampil();}else{PINADM="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView("");}}).catch(function(){loginView("");});return;}
+  var k="";try{k=localStorage.getItem("sctk_pic")||"";}catch(e){}
+  if(k){KODE=k;muatBarang().then(function(r){if(r.ok){BARANG=r.items||[];tampil();}else{KODE="";loginView("");}}).catch(function(){KODE="";loginView("");});}else loginView("");
+})();
+</script>
+</body>
+</html>

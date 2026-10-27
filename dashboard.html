@@ -1,70 +1,40 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-tema="gelap">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Sistem Gudang SCTK</title>
-<style>
-:root{--navy:#0a2a43;--navy2:#0f6f93;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#d5dee4;--mut:#5b7a8c;--ic:#0a3a5c;--icbg:#e8f1f6}
-@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--ic:#9fd3ea;--icbg:#22333d}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
-.top{background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;border-bottom:4px solid var(--gold)}
-.top .in{max-width:1100px;margin:0 auto;padding:22px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.top h1{margin:0;font:700 20px Georgia,serif;letter-spacing:1.5px}
-.top small{display:block;margin-top:5px;font-size:11px;letter-spacing:2px;color:#e3c98f;font-weight:600}
-.who{display:flex;gap:8px;align-items:center;font-size:12px;color:#cfe3ee}
-button{font:600 13px "Segoe UI",Roboto,Arial,sans-serif;padding:9px 14px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer}
-button.gh{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)}
-button.gold{background:var(--gold)}
-.wrap{max-width:1100px;margin:0 auto;padding:18px 16px 40px}
-h2{font:700 12px "Segoe UI",Roboto,Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin:22px 0 10px}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
-.stat{display:block;text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-left:4px solid var(--navy2);border-radius:12px;padding:14px}
-.stat b{display:block;font-size:30px;line-height:1.1}.stat span{color:var(--mut);font-size:12px}
-.stat.w{border-left-color:#d08a00}.stat.b{border-left-color:#c0392b}.stat.ok{border-left-color:#1b8a3a}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
-.tile{display:flex;gap:14px;align-items:flex-start;text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;transition:transform .12s,box-shadow .12s,border-color .12s}
-.tile:hover,.tile:focus-visible{transform:translateY(-2px);box-shadow:0 8px 20px rgba(10,42,67,.12);border-color:var(--gold);outline:none}
-.ico{flex:none;width:46px;height:46px;border-radius:12px;background:var(--icbg);color:var(--ic);display:grid;place-items:center}
-.ico svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.tile b{display:block;font-size:15px}.tile small{display:block;margin-top:3px;color:var(--mut);font-size:12px;line-height:1.35}
-.badge{display:inline-block;margin-top:6px;font-size:10px;font-weight:700;letter-spacing:1px;color:#7a5b00;background:#fff3cd;border-radius:20px;padding:2px 8px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:400px;margin:36px auto}
-input.t{width:100%;padding:12px;font:600 16px "Segoe UI",Roboto,Arial,sans-serif;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
-.err{color:#c0392b;margin:10px 0 0}.msg{color:var(--mut);text-align:center;padding:24px}
-.hello{margin:6px 0 4px;font:700 22px Georgia,serif;color:var(--ink)}.hello+p{margin:0 0 4px;color:var(--mut)}
-.hero{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px}
-@media (max-width:640px){.hero{grid-template-columns:1fr}}
-.big{position:relative;display:flex;flex-direction:column;gap:12px;min-height:168px;text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-top:4px solid var(--navy2);border-radius:16px;padding:22px;cursor:pointer;text-align:left;font:inherit;transition:transform .14s,box-shadow .14s,border-color .14s}
-.big:hover,.big:focus-visible{transform:translateY(-3px);box-shadow:0 14px 30px rgba(10,42,67,.14);border-color:var(--gold);outline:none}
-.big .ico{width:56px;height:56px;border-radius:15px;background:linear-gradient(135deg,#0a3a5c,#0f6f93);color:#fff}.big .ico svg{width:28px;height:28px}
-.big b{display:block;font:700 19px Georgia,serif}.big small{display:block;margin-top:5px;color:var(--mut);font-size:13px;line-height:1.45}
-.big .go{position:absolute;right:20px;top:22px;color:var(--gold);font-size:22px;font-weight:700}
-.big.adm{border-top-color:var(--gold)}.big.adm .ico{background:linear-gradient(135deg,#8a6b2f,#b8975a)}
-.tag{display:inline-block;margin-top:auto;align-self:flex-start;font-size:10px;font-weight:700;letter-spacing:1px;border-radius:20px;padding:3px 10px;background:var(--icbg);color:var(--ic)}
-.tag.a{background:#fff3cd;color:#7a5b00}
-@media (prefers-reduced-motion:reduce){.big{transition:none}}
-.pgm{margin:14px 0 0;display:grid;gap:10px}
-.pg{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--navy2);border-radius:12px;padding:12px 14px}
-.pg.pen{border-left-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
-.pg b{display:block;font:700 15px Georgia,serif}.pg.pen b:before{content:"\2605  ";color:var(--gold)}
-.pg p{margin:5px 0 0;color:var(--ink);font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
-.pg a{display:inline-block;margin-top:7px;font-weight:700;font-size:13px;color:var(--navy2)}
-.pg small{display:block;margin-top:6px;color:var(--mut);font-size:11px}
-.ov{position:fixed;inset:0;background:rgba(6,32,58,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
-.ov.on{display:flex}.dlg{background:var(--card);color:var(--ink);border-radius:16px;max-width:380px;width:100%;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.35);border-top:4px solid var(--gold)}
-.dlg h3{margin:0 0 4px;font:700 18px Georgia,serif}.dlg p{margin:0 0 12px;color:var(--mut);font-size:13px;line-height:1.45}
-.dlg .row{display:flex;gap:8px;margin-top:12px}.dlg .row button{flex:1}.dlg button.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
-.big[disabled]{opacity:.6;cursor:wait}
-.ov{position:fixed;inset:0;background:rgba(6,32,58,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
-.ov.on{display:flex}
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tema.css">
+<script>try{document.documentElement.setAttribute("data-tema",localStorage.getItem("sctk_tema")==="terang"?"terang":"gelap");}catch(e){}</script>
 </head>
 <body>
-<div class="top"><div class="in"><div><h1>SISTEM GUDANG</h1><small>PT SARANA CATUR TIRTA KELOLA</small></div><div class="who" id="who"></div></div></div>
-<div class="wrap" id="app"></div>
+<header class="hero">
+  <div class="bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="wrap">
+    <div class="bar">
+      <div class="brand">
+        <div class="logo">
+          <img src="logo.png" alt="Logo PT Sarana Catur Tirta Kelola" onerror="this.remove();document.getElementById('lg').style.display='block'">
+          <svg id="lg" style="display:none" viewBox="0 0 24 24" fill="none" stroke="#4cc3f0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.2 6 10.5A6 6 0 0 1 6 13.5C6 9.2 12 3 12 3z"/><path d="M9.5 14.5a2.7 2.7 0 0 0 2.5 2"/></svg>
+        </div>
+        <div><h1>Sistem Gudang</h1><small>PT SARANA CATUR TIRTA KELOLA</small></div>
+      </div>
+      <div class="aksi"><span class="pill" id="tgl"></span><button class="pill" type="button" id="tema" aria-label="Ganti tema terang atau gelap">&#9728;</button><span id="who"></span></div>
+    </div>
+    <div class="salam">
+      <div class="wkt" id="wkt"></div>
+      <h2>Selamat datang di <em>Sistem Gudang</em></h2>
+      <p id="kata">Satu tempat untuk permintaan, stok, dan opname. Rapi, cepat, dan tanpa kertas.</p>
+    </div>
+  </div>
+  <svg class="wave b" viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true"><path class="w1" d="M0 40 C 180 10 360 70 540 40 S 900 10 1080 40 S 1260 70 1440 40 V80 H0z"/><path class="w1" d="M1440 40 C 1620 10 1800 70 1980 40 S 2340 10 2520 40 S 2700 70 2880 40 V80 H1440z"/></svg>
+  <svg class="wave" viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true"><path class="w2" d="M0 50 C 240 80 480 20 720 50 S 1200 80 1440 50 V80 H0z"/><path class="w2" d="M1440 50 C 1680 80 1920 20 2160 50 S 2640 80 2880 50 V80 H1440z"/></svg>
+</header>
+<main class="wrap" id="app"></main>
+<footer>PT Sarana Catur Tirta Kelola &middot; Sistem Gudang</footer>
 <div class="ov" id="ov" role="dialog" aria-modal="true" aria-labelledby="dj"><div class="dlg"><h3 id="dj"></h3><p id="dk"></p><input class="t" id="di" type="password" autocomplete="off"><p class="err" id="de" role="alert"></p><div class="row"><button class="sec" id="db" type="button">Batal</button><button id="dg" type="button">Masuk</button></div></div></div>
 <script>
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
@@ -152,7 +122,7 @@ function big(aksi,ik,judul,ket,tag,adm){
   return '<button class="big'+(adm?" adm":"")+'" type="button" data-aksi="'+aksi+'"><span class="go" aria-hidden="true">&#8594;</span>'+ikon(ik)+'<div><b>'+esc(judul)+'</b><small>'+esc(ket)+'</small></div><span class="tag'+(adm?" a":"")+'">&#128274; '+tag+'</span></button>';
 }
 function kartu(){
-  return '<div class="hello">Selamat datang</div><p>Pilih layanan yang Anda perlukan. Kode akses diminta saat Anda membuka layanan.</p><div class="hero">'+
+  return '<div class="pgm" id="pgm" role="region" aria-label="Pengumuman"></div><div class="sec"><h3>Layanan &middot; kode akses diminta saat layanan dibuka</h3></div><div class="menu">'+
    big("minta","form","Permintaan Barang","Buat permintaan pengambilan barang harian. Persetujuan lewat email, tanpa kertas.","KODE PEGAWAI")+
    big("cari","cari","Cari Barang","Lokasi gudang dan rak, foto barang dan rak, stok Moka dan Accurate, serta proyek yang memakai barang itu.","KODE PEGAWAI")+
    big("kembali","kembali","Pengembalian Barang","Kembalikan barang sisa proyek ke gudang. Persetujuan sama dengan permintaan, stok bertambah setelah gudang menerima barang.","KODE PEGAWAI")+
@@ -161,7 +131,7 @@ function kartu(){
    big("beli","form","Pengajuan Pembelian","Ajukan pembelian UMO atau PPBJ (Capex/Opex). Persetujuan atasan, Pengadaan, Accounting lewat email dengan tanda tangan otomatis.","KODE PIC / ATASAN / GUDANG")+
    big("realisasi","form","Realisasi Pembelian","Catat belanja atas UMO atau Capex yang sudah disetujui, bandingkan dengan pengajuan, lalu tutup realisasinya.","KODE PIC / ATASAN / GUDANG")+
    big("pembelianku","form","Pembelian dan Penerimaan","Pengadaan mencatat pembelian dan surat jalan; Staff Gudang mengonfirmasi barang diterima fisik; Accounting mengesahkan pembelian darurat.","KODE PENGADAAN / ACCOUNTING / GUDANG")+
-   big("label","form","Cetak Label Barcode","Cetak label barcode dan label Tom &amp; Jerry berisi nama barang, barcode, dan kotak Slow / Fast Moving.","KODE PIC / ATASAN / GUDANG")+
+   big("label","form","Cetak Label Barcode","Cetak label barcode dan label Tom & Jerry berisi nama barang, barcode, dan kotak Slow / Fast Moving.","KODE PIC / ATASAN / GUDANG")+
    big("admin","admin","Admin Gudang","Pantauan persetujuan, serah barang, stok dan harga, opname, proyek, mutasi, laporan, dan cadangan.","KHUSUS ADMIN",true)+
    '</div>';
 }
@@ -170,10 +140,20 @@ function pasangKartu(){
 }
 function bar(){
   var ada=st("sctk_kode")||st("sctk_pic")||st("sctk_admin",undefined,true);
-  who.innerHTML=ada?'<button class="gh" id="lo">Keluar</button>':"";
+  who.innerHTML=ada?'<button class="pill" id="lo" type="button">Keluar</button>':"";
   var lo=document.getElementById("lo");if(lo)lo.onclick=keluar;
 }
-function stat(n,l,c,href){return '<a class="stat '+c+'" href="'+href+'"><b>'+esc(n)+'</b><span>'+esc(l)+'</span></a>';}
+var SI={
+ jam:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+ kotak:'<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+ awas:'<path d="M12 3 2 20h20z"/><path d="M12 10v5M12 18h.01"/>',
+ daftar:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17"/>',
+ balik:'<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+ gedung:'<path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-5h6v5"/>',
+ tumpuk:'<path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="M3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5"/>',
+ surat:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'
+};
+function stat(n,l,c,href,ik){return '<a class="stat '+c+'" href="'+href+'"><div class="top"><span class="ik"><svg viewBox="0 0 24 24" aria-hidden="true">'+(SI[ik]||SI.kotak)+'</svg></span><span class="dot"></span></div><b>'+esc(n)+'</b><span class="l">'+esc(l)+'</span></a>';}
 function grid(a){
   return '<div class="grid">'+a.map(function(m){
     var ext=/^https?:/i.test(m.link);
@@ -183,19 +163,20 @@ function grid(a){
 async function ringkasAdmin(pin){
   try{
     var r=await api({action:"menu",pin:pin});if(!r.ok)return;
-    var s=r.ringkas||{},h="";
-    h+='<h2>Ringkasan</h2><div class="stats">'+
-     stat(s.menunggu,"Menunggu persetujuan",s.menunggu>0?"w":"ok","admin.html#pantau")+
-     stat(s.siapSerah,"Siap diserahkan",s.siapSerah>0?"w":"ok","admin.html#serah")+
-     stat(s.ppbjBelum,"PPBJ belum diisi",s.ppbjBelum>0?"b":"ok","admin.html#pantau")+
-     stat(s.opname||0,"Selisih opname menunggu",(s.opname||0)>0?"w":"ok","admin.html#opname")+
-     stat(s.kembaliTerima||0,"Pengembalian siap diterima",(s.kembaliTerima||0)>0?"w":"ok","admin.html#terima")+
-     stat(s.proyekAktif,"Proyek mengikat stok","","admin.html#proyek")+
-     stat(s.stokHabis,"Barang stok bebas habis",s.stokHabis>0?"w":"ok","admin.html#stok")+
-     (s.kuota>=0?stat(s.kuota,"Sisa kuota email hari ini",s.kuota<20?"b":"ok","admin.html#sistem"):"")+'</div>';
+    var s=r.ringkas||{};
+    var h="",hs='<div class="sec"><h3>Ringkasan admin</h3></div><div class="stats">'+
+     stat(s.menunggu,"Menunggu persetujuan",s.menunggu>0?"w":"ok","admin.html#pantau","jam")+
+     stat(s.siapSerah,"Siap diserahkan",s.siapSerah>0?"w":"ok","admin.html#serah","kotak")+
+     stat(s.ppbjBelum,"PPBJ belum diisi",s.ppbjBelum>0?"b":"ok","admin.html#pantau","awas")+
+     stat(s.opname||0,"Selisih opname menunggu",(s.opname||0)>0?"w":"ok","admin.html#opname","daftar")+
+     stat(s.kembaliTerima||0,"Pengembalian siap diterima",(s.kembaliTerima||0)>0?"w":"ok","admin.html#terima","balik")+
+     stat(s.proyekAktif,"Proyek mengikat stok","","admin.html#proyek","gedung")+
+     stat(s.stokHabis,"Barang stok bebas habis",s.stokHabis>0?"w":"ok","admin.html#stok","tumpuk")+
+     (s.kuota>=0?stat(s.kuota,"Sisa kuota email hari ini",s.kuota<20?"b":"ok","admin.html#sistem","surat"):"")+'</div>';
+    var bs=document.getElementById("adm-stat");if(bs)bs.innerHTML=hs;
     var utama={"index.html":1,"gudang.html":1,"kebutuhan.html":1,"proyek.html":1,"pembelian.html":1,"admin.html":1,"pengembalian.html":1},lain=r.data.filter(function(m){return !utama[m.link]&&m.untuk!=="Admin";}),ad=r.data.filter(function(m){return m.untuk==="Admin";});
-    if(lain.length)h+='<h2>Menu lainnya</h2>'+grid(lain);
-    if(ad.length)h+='<h2>Menu Admin</h2>'+grid(ad);
+    if(lain.length)h+='<div class="sec"><h3>Menu lainnya</h3></div>'+grid(lain);
+    if(ad.length)h+='<div class="sec"><h3>Menu Admin</h3></div>'+grid(ad);
     var box=document.getElementById("adm-box");if(box)box.innerHTML=h;
   }catch(e){}
 }
@@ -212,9 +193,19 @@ async function papan(){
   }catch(e){}
 }
 function tampilAwal(){
-  app.innerHTML='<div class="pgm" id="pgm" role="region" aria-label="Pengumuman"></div>'+kartu()+'<div id="adm-box"></div>';pasangKartu();bar();papan();
+  app.innerHTML='<div id="adm-stat"></div>'+kartu()+'<div id="adm-box"></div>';pasangKartu();bar();papan();
   var pin=st("sctk_admin",undefined,true);if(pin)ringkasAdmin(pin);
 }
+(function(){
+  var h=new Date().getHours(),w=h<11?"Selamat pagi":h<15?"Selamat siang":h<18?"Selamat sore":"Selamat malam";
+  document.getElementById("wkt").textContent=w+" \u00b7 semoga harimu lancar";
+  document.getElementById("tgl").textContent=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  var K=["Satu tempat untuk permintaan, stok, dan opname. Rapi, cepat, dan tanpa kertas.","Setiap barang tercatat, setiap tetes air bernilai. Mari kerja dengan teliti.","Gudang yang tertata adalah dasar pelayanan air yang andal.","Dari permintaan sampai penyerahan, semua terpantau dalam satu layar.","Data akurat hari ini, keputusan tepat esok hari."],i=0,e=document.getElementById("kata");
+  setInterval(function(){i=(i+1)%K.length;e.style.opacity=0;setTimeout(function(){e.textContent=K[i];e.style.opacity=1;},500);},7000);
+  var tb=document.getElementById("tema");
+  function ikTema(){tb.innerHTML=document.documentElement.getAttribute("data-tema")==="terang"?"&#127769;":"&#9728;";}
+  ikTema();tb.onclick=function(){var t=document.documentElement.getAttribute("data-tema")==="terang"?"gelap":"terang";document.documentElement.setAttribute("data-tema",t);try{localStorage.setItem("sctk_tema",t);}catch(x){}ikTema();};
+})();
 (function(){
   if(API_URL.indexOf("PASTE_")===0){app.innerHTML='<div class="msg err">API_URL belum diisi.</div>';return;}
   tampilAwal();

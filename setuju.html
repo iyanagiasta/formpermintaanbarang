@@ -33,6 +33,9 @@ button.ok{background:#1b8a3a}button.no{background:#c0392b}button:disabled{opacit
 .tag{display:inline-block;background:#e8f1f6;color:#0a2a43;border-radius:20px;padding:3px 10px;font-size:13px;font-weight:600}
 @media (prefers-color-scheme:dark){.tag{background:#23333c;color:#e6eef2}}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tema-halaman.css">
+<script src="tema.js"></script>
 </head>
 <body>
 <div class="top"><h1>PERSETUJUAN PERMINTAAN BARANG</h1><div>PT SARANA CATUR TIRTA KELOLA</div></div>
@@ -48,12 +51,13 @@ async function api(b){
   return await r.json();
 }
 function render(r){
+  var CAD=!!r.cadangan; if(CAD)act="approve";
   var d=r.data,aksi=act==="reject"?"TOLAK":"SETUJUI";
   var cat=(d.cat||[]).map(function(x){return "\n\n"+esc(x.peran+(x.nama?" ("+x.nama+(x.waktu?", "+x.waktu:"")+")":"")+": "+x.teks);}).join("");
   var rows=d.items.map(function(i,n){return "<tr><td>"+(n+1)+"</td><td>"+(i.kode==="BARU"?"<b style=\"color:#b8760a\">BARU</b> (belum ada kode)":esc(i.kode))+"</td><td>"+esc(i.nama)+"</td><td>"+esc(i.satuan)+"</td><td>"+esc(i.jumlah)+"</td></tr>";}).join("");
   app.innerHTML=
    '<div class="card"><span class="tag">'+esc(r.tahap)+'</span>'+
-   '<p style="margin:10px 0 4px">Halo <b>'+esc(r.approver)+'</b>, mohon periksa '+(d.jenis==='Pengembalian'?'pengembalian barang sisa proyek':'permintaan')+' berikut.</p>'+
+   (CAD?'<p style="margin:10px 0 4px">Halo <b>'+esc(r.cadangan)+'</b>, Anda penyetuju cadangan untuk <b>'+esc(r.approver)+'</b>. Persetujuan tercatat atas nama '+esc(r.approver)+', dan klik Anda dicatat sebagai pembantu. Mohon periksa ':'<p style="margin:10px 0 4px">Halo <b>'+esc(r.approver)+'</b>, mohon periksa ')+(d.jenis==='Pengembalian'?'pengembalian barang sisa proyek':'permintaan')+' berikut.</p>'+
    '<div class="row"><b>No</b><span>'+esc(d.id)+'</span></div>'+
    '<div class="row"><b>Pemohon</b><span><strong>'+esc(d.by)+'</strong>'+(d.email?' ('+esc(d.email)+')':"")+'</span></div>'+
    (d.pic&&d.pic.nama?'<div class="row"><b>PIC</b><span>'+esc(d.pic.nama)+'</span></div>':"")+
@@ -65,10 +69,10 @@ function render(r){
    '<div class="card" style="overflow-x:auto"><table><tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Sat</th><th>Jml</th></tr>'+rows+'</table></div>'+
    '<div class="card"><label for="cat"><b>Catatan Anda</b> (opsional)</label><textarea id="cat" maxlength="1000" placeholder="'+(act==="reject"?"Alasan penolakan atau informasi untuk pihak berikutnya":"Informasi tambahan untuk pihak berikutnya")+'"></textarea><div class="cnt" id="cnt">0 / 1000</div>'+
    '<div class="btns"><button class="'+(act==="reject"?"no":"ok")+'" id="go">Ya, '+aksi+'</button>'+
-   '<button class="'+(act==="reject"?"ok":"no")+'" id="alt">'+(act==="reject"?"Setujui saja":"Tolak saja")+'</button></div></div>';
+   (CAD?'':'<button class="'+(act==="reject"?"ok":"no")+'" id="alt">'+(act==="reject"?"Setujui saja":"Tolak saja")+'</button>')+'</div></div>';
   var ta=document.getElementById("cat");ta.oninput=function(){document.getElementById("cnt").textContent=ta.value.length+" / 1000";};
   document.getElementById("go").onclick=function(){send(act);};
-  document.getElementById("alt").onclick=function(){send(act==="reject"?"approve":"reject");};
+  var alt=document.getElementById("alt");if(alt)alt.onclick=function(){send(act==="reject"?"approve":"reject");};
 }
 async function send(a){
   document.querySelectorAll("button").forEach(function(b){b.disabled=true;});

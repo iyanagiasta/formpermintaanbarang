@@ -160,6 +160,27 @@ function grid(a){
     return '<a class="tile" href="'+esc(m.link)+'"'+(ext?' target="_blank" rel="noopener"':'')+'>'+ikon(m.ikon)+'<div><b>'+esc(m.judul)+'</b><small>'+esc(m.ket)+'</small>'+(m.untuk==="Admin"?'<span class="badge">ADMIN</span>':'')+'</div></a>';
   }).join("")+'</div>';
 }
+
+function grafikAdmin(g){
+  var box=document.getElementById("adm-graf");if(!box||!g)return;
+  var W=560,H=170,pl=28,pb=22,pt=10,pr=8,mx=Math.max.apply(null,g.hari.map(function(x){return x.n;}).concat([3])),bw=(W-pl-pr)/g.hari.length,svg='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Permintaan per hari">';
+  for(var i=0;i<=3;i++){var y=pt+(H-pt-pb)*i/3,v=Math.round(mx*(3-i)/3);svg+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/><text x="'+(pl-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="var(--mut)">'+v+'</text>';}
+  g.hari.forEach(function(x,i){var h=(H-pt-pb)*x.n/mx,xx=pl+i*bw+bw*.18;svg+='<rect x="'+xx+'" y="'+(H-pb-h)+'" width="'+(bw*.64)+'" height="'+Math.max(h,x.n?2:0)+'" rx="3" fill="var(--aqua)"><title>'+x.label+': '+x.n+' permintaan</title></rect>';if(i%2===0||g.hari.length<8)svg+='<text x="'+(xx+bw*.32)+'" y="'+(H-6)+'" text-anchor="middle" font-size="9.5" fill="var(--mut)">'+x.label+'</text>';});
+  svg+='</svg>';
+  var tot=g.status.reduce(function(a,x){return a+x.n;},0),WR=["var(--warn)","var(--aqua)","var(--ok)","var(--bad)"],R=52,cx=70,cy=70,ang=-Math.PI/2,dn='';
+  if(tot){g.status.forEach(function(x,i){if(!x.n)return;var a=x.n/tot*Math.PI*2,e=ang+a,f=a>Math.PI?1:0;
+    if(x.n===tot)dn+='<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="none" stroke="'+WR[i]+'" stroke-width="22"/>';
+    else dn+='<path d="M'+(cx+R*Math.cos(ang))+' '+(cy+R*Math.sin(ang))+' A'+R+' '+R+' 0 '+f+' 1 '+(cx+R*Math.cos(e))+' '+(cy+R*Math.sin(e))+'" fill="none" stroke="'+WR[i]+'" stroke-width="22"><title>'+esc(x.nama)+': '+x.n+'</title></path>';ang=e;});
+    dn='<svg viewBox="0 0 140 140" style="max-width:190px;margin:0 auto" role="img" aria-label="Status permintaan 30 hari">'+dn+'<text x="70" y="68" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">'+tot+'</text><text x="70" y="84" text-anchor="middle" font-size="9.5" fill="var(--mut)">permintaan</text></svg>'+
+    '<div class="lgd">'+g.status.map(function(x,i){return '<span><b style="background:'+WR[i]+'"></b>'+esc(x.nama)+' ('+x.n+')</span>';}).join("")+'</div>';}
+  else dn='<div class="kosong">Belum ada permintaan 30 hari terakhir.</div>';
+  function bars(a,sat){if(!a.length)return '<div class="kosong">Belum ada data.</div>';var m=a[0].n||1;return a.map(function(x){return '<div class="bar"><span title="'+esc(x.nama)+'">'+esc(x.nama)+'</span><span><i style="width:'+Math.max(4,x.n/m*100)+'%"></i></span><em>'+x.n+(sat||"")+'</em></div>';}).join("");}
+  box.innerHTML='<div class="sec"><h3>Grafik dan tren</h3></div><div class="chs">'+
+   '<div class="ch"><h4>Permintaan per hari<small>14 hari terakhir</small></h4>'+svg+'</div>'+
+   '<div class="ch"><h4>Status permintaan<small>30 hari terakhir</small></h4>'+dn+'</div>'+
+   '<div class="ch"><h4>Permintaan per departemen<small>30 hari terakhir</small></h4>'+bars(g.dept)+'</div>'+
+   '<div class="ch"><h4>Barang paling banyak keluar<small>jumlah diserahkan, 30 hari terakhir</small></h4>'+bars(g.keluar)+'</div></div>';
+}
 async function ringkasAdmin(pin){
   try{
     var r=await api({action:"menu",pin:pin});if(!r.ok)return;
@@ -173,7 +194,7 @@ async function ringkasAdmin(pin){
      stat(s.proyekAktif,"Proyek mengikat stok","","admin.html#proyek","gedung")+
      stat(s.stokHabis,"Barang stok bebas habis",s.stokHabis>0?"w":"ok","admin.html#stok","tumpuk")+
      (s.kuota>=0?stat(s.kuota,"Sisa kuota email hari ini",s.kuota<20?"b":"ok","admin.html#sistem","surat"):"")+'</div>';
-    var bs=document.getElementById("adm-stat");if(bs)bs.innerHTML=hs;
+    var bs=document.getElementById("adm-stat");if(bs)bs.innerHTML=hs+'<div id="adm-graf"></div>';grafikAdmin(r.grafik);
     var utama={"index.html":1,"gudang.html":1,"kebutuhan.html":1,"proyek.html":1,"pembelian.html":1,"admin.html":1,"pengembalian.html":1},lain=r.data.filter(function(m){return !utama[m.link]&&m.untuk!=="Admin";}),ad=r.data.filter(function(m){return m.untuk==="Admin";});
     if(lain.length)h+='<div class="sec"><h3>Menu lainnya</h3></div>'+grid(lain);
     if(ad.length)h+='<div class="sec"><h3>Menu Admin</h3></div>'+grid(ad);

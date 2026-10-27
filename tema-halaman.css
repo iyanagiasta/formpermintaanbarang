@@ -60,3 +60,13 @@ html[data-tema=gelap] #gate button{background:linear-gradient(135deg,#2fd0c4,#4c
 @media print{.tbar,.tg,body.tema .top{display:none!important}html[data-tema] body.tema{background:#fff!important}}
 html[data-tema] body.tema{background-repeat:no-repeat;background-attachment:fixed}
 @media(max-width:560px){body.tema .top .homebtn{position:static;transform:none;display:inline-block;margin:0 0 8px}body.tema .top{padding:12px 52px 12px 12px;text-align:left}body.tema .top h1{font-size:17px;letter-spacing:1.5px}}
+
+/* variabel tambahan halaman PIC/atasan/admin (menimpa mode gelap bawaan sistem operasi) */
+html[data-tema=gelap]:root{--beli:#3a1d22;--belit:#f2b8bf;--amb:#3a321a;--ambt:#f0d98a;--redbg:#3a1d22;--redt:#f2b8bf;--red:#ff8a8a;--grn:#5fd18a}
+html[data-tema=terang]:root{--beli:#fde8e8;--belit:#8a1c28;--amb:#fff3cd;--ambt:#7a5b00;--redbg:#fde8e8;--redt:#8a1c28;--red:#c0392b;--grn:#1b8a3a}
+body.tema table{color:var(--ink)}
+body.tema thead th{background:var(--bar);color:var(--bar-ink)}
+html[data-tema=gelap] body.tema tbody tr:nth-child(even){background:rgba(127,160,180,.06)}
+body.tema input,body.tema select,body.tema textarea{border-color:var(--line)}
+html[data-tema=gelap] body.tema input:not([type=checkbox]):not([type=radio]),html[data-tema=gelap] body.tema select,html[data-tema=gelap] body.tema textarea{background:rgba(127,160,180,.1);color:var(--ink)}
+html[data-tema=gelap] body.tema .sheet input,html[data-tema=gelap] body.tema .sheet textarea,html[data-tema=gelap] body.tema .sheet select{background:#fff;color:#111}

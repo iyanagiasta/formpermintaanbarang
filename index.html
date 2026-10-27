@@ -685,10 +685,10 @@ async function kirim(){
     var boxes=document.querySelectorAll(".sign .ttd");
     function stamp(el,t){var sp=el.querySelector(".st");if(t){sp.textContent=t;el.classList.add("has");}}
     if(SHOW_STAMP){
-      stamp(boxes[0],pic.waktu?((d.tolak==="pic"?"Ditolak via email ":"Disetujui via email ")+pic.waktu):(d.kirim?"Diajukan via form "+d.kirim:""));
+      stamp(boxes[0],pic.waktu?((d.tolak==="pic"?"Ditolak via email ":(pic.otomatis?"Disetujui ":"Disetujui via email "))+pic.waktu):(d.kirim?"Diajukan via form "+d.kirim:""));
       [d.atasan,d.staff,d.manager].forEach(function(a,i){
         var key=["atasan","staff","manager"][i];
-        stamp(boxes[i+1],a.waktu?((d.tolak===key?"Ditolak via email ":"Disetujui via email ")+a.waktu):"");
+        stamp(boxes[i+1],a.waktu?((d.tolak===key?"Ditolak via email ":(a.otomatis?"Disetujui ":"Disetujui via email "))+a.waktu):"");
       });
     }
     [pic,d.atasan,d.staff,d.manager].forEach(function(a,i){

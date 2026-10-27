@@ -155,3 +155,15 @@ footer a{color:var(--aqua)}
 :root[data-tema="terang"] .tag{color:var(--aqua);background:rgba(15,127,176,.1);border-color:rgba(15,127,176,.3)}
 :root[data-tema="terang"] .big.adm .tag{color:var(--gold);background:rgba(168,129,47,.12);border-color:rgba(168,129,47,.35)}
 :root[data-tema="terang"] .big .ico{color:#fff}
+
+/* grafik dashboard admin (SVG, tanpa pustaka) */
+.chs{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px}
+.ch{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;backdrop-filter:blur(10px);min-width:0}
+.ch h4{margin:0 0 10px;font:600 13px Inter,sans-serif;color:var(--ink)}.ch h4 small{display:block;color:var(--mut);font-weight:400;font-size:11px;margin-top:2px}
+.ch svg{width:100%;height:auto;display:block}.ch .kosong{color:var(--mut);font-size:12px;padding:20px 0;text-align:center}
+.ch .bar{display:grid;grid-template-columns:minmax(80px,38%) 1fr auto;gap:8px;align-items:center;margin:7px 0;font-size:12px}
+.ch .bar span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.ch .bar i{display:block;height:9px;border-radius:99px;background:linear-gradient(90deg,var(--teal),var(--aqua))}
+.ch .bar em{font-style:normal;color:var(--mut);font-variant-numeric:tabular-nums}
+.lgd{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:11.5px;color:var(--mut)}.lgd b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+@media(max-width:980px){.chs{grid-template-columns:1fr}}

@@ -256,11 +256,10 @@ function tambahSemua(){
   baru.forEach(function(b){PILIH.push(baris(b));});gPilih();toast(baru.length+" barang ditambahkan dari data stok. Hapus yang tidak perlu atau ubah angkanya.");
 }
 function cekS(){
-  var k=["lw","lh","kol","bar","pw","ph"].filter(function(z){return !(S[z]>0);});if(k.length)return "Ukuran label, jumlah kolom/baris, dan ukuran kertas harus lebih dari 0.";
-  if(S.pad<0||2*S.pad>=Math.min(S.lw,S.lh))return "Ruang dalam label (padding) tidak masuk akal untuk ukuran label ini.";
-  if(S.ml<0||S.mt<0||S.gx<0||S.gy<0)return "Batas dan jarak tidak boleh negatif.";
-  if(S.ml+S.kol*S.lw+(S.kol-1)*S.gx>S.pw+0.01)return "Susunan kolom melebihi lebar kertas ("+(S.ml+S.kol*S.lw+(S.kol-1)*S.gx).toFixed(1)+" mm). Kurangi batas kiri atau jumlah kolom.";
-  if(S.mt+S.bar*S.lh+(S.bar-1)*S.gy>S.ph+0.01)return "Susunan baris melebihi tinggi kertas ("+(S.mt+S.bar*S.lh+(S.bar-1)*S.gy).toFixed(1)+" mm). Kurangi batas atas atau jumlah baris.";
+  /* Ukuran sepenuhnya ditentukan pengguna: tidak ada peringatan ukuran. Hanya mencegah kerusakan teknis (nol/kosong). */
+  var k=["lw","lh","kol","bar","pw","ph"].filter(function(z){return !(S[z]>0);});if(k.length)return "Isi dulu ukuran label, jumlah kolom/baris, dan ukuran kertas (angka lebih dari 0).";
+  var mp=Math.max(0,Math.min(S.lw,S.lh)/2-0.5);if(!(S.pad>=0))S.pad=0;if(S.pad>mp)S.pad=mp;
+  ['ml','mt','gx','gy'].forEach(function(z){if(!(S[z]>=0))S[z]=0;});
   return "";
 }
 async function cetak(uji){
@@ -268,7 +267,7 @@ async function cetak(uji){
   var er=cekS();if(er){toast(er,true);return;}
   if(!uji&&!PILIH.length){toast("Pilih barang dulu.",true);return;}
   var info=document.getElementById("info"),pesan=[];
-  if(!uji){PILIH.forEach(function(x){var e=c128(x.kode),inner=(S.lw-2*S.pad);if(!e){pesan.push(x.nama+": kode kosong");return;}if(inner/e.modules<0.19)pesan.push(x.kode+" terlalu panjang untuk label ini (barcode sangat rapat, mungkin sulit dipindai)");});}
+  if(!uji){PILIH.forEach(function(x){var e=c128(x.kode),inner=(S.lw-2*S.pad);if(!e){pesan.push(x.nama+": kode kosong");return;}});}
   info.textContent="Menyusun PDF...";
   try{var by=await buatPdf(PILIH,S,uji),bl=new Blob([by],{type:"application/pdf"}),u=URL.createObjectURL(bl);window.open(u,"_blank");
     var a=document.createElement("a");a.href=u;a.download=(uji?"uji-label-":"label-barcode-")+new Date().toISOString().slice(0,10)+".pdf";document.body.appendChild(a);a.click();setTimeout(function(){a.remove();},1500);

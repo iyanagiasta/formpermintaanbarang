@@ -216,6 +216,11 @@ function bacaFile(file,cb){
   };
   fr.readAsArrayBuffer(file);
 }
+function unduhXlsx(nama,lembar,baris,lebar){
+  if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat.",true);return false;}
+  var ws=XLSX.utils.aoa_to_sheet(baris);if(lebar)ws["!cols"]=lebar.map(function(w){return {wch:w};});
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,String(lembar).slice(0,31));XLSX.writeFile(wb,nama);return true;
+}
 function petaKolom(a){
   var hi=-1,m={};
   for(var i=0;i<Math.min(a.length,10);i++){
@@ -261,7 +266,7 @@ function drawStok(total,q,hs){
    '<label><input type="checkbox" id="unol"> Nolkan barang yang tidak ada di file</label><label><input type="checkbox" id="utb"> Tambahkan kode baru ke sheet Barang</label></div>'+
    '<div class="fr"><button class="sv" id="ugo" disabled>Unggah stok</button><span class="note" id="uinfo"></span></div></div>'+
    '<div class="card" style="border-color:var(--gold)"><b>Impor hasil hitung dari Excel</b><div class="note">File Excel dengan baris judul. Wajib: <b>Kode Barang, Qty Moka, Qty Accurate, Hasil Hitung</b>. Boleh ada: Nama Barang, Total (diabaikan), Kode Rak, Gudang, Satuan, Status Hitung. Baris dengan Hasil Hitung terisi dianggap sudah dihitung (bila ada kolom Status Hitung, yang berstatus Sudah). Stok dasar Moka dan Accurate diisi, lalu hasil hitung yang berstatus Sudah diterapkan. Rak dan gudang dikirim ke Cari Barang. <b>Uji dulu dengan 5 baris.</b> Jangan unggah stok Moka/Accurate lain selama opname.</div>'+
-   '<div class="fr"><input type="file" id="xf" accept=".xlsx,.xls"><label>Hanya <input type="number" id="xn" min="0" value="5" style="width:70px"> baris pertama (0 = semua)</label></div>'+
+   '<div class="fr"><input type="file" id="xf" accept=".xlsx,.xls"><label>Hanya <input type="number" id="xn" min="0" value="5" style="width:70px"> baris pertama (0 = semua)</label><label style="margin-left:12px"><input type="checkbox" id="x0" checked> Hasil 0 dianggap belum dihitung</label></div>'+
    '<div class="fr"><button class="sv" id="xgo" disabled>Jalankan impor</button><span class="note" id="xinfo"></span></div></div>'+
    '<div class="card"><b>Unggah harga satuan</b><div class="note">Kolom: Kode Barang, Harga. Satu harga per barang (berlaku untuk Moka dan Accurate).</div>'+
    '<div class="fr"><input type="file" id="hf" accept=".xlsx,.xls,.csv"><button class="sv" id="hgo" disabled>Unggah harga</button><span class="note" id="hinfo"></span></div></div>'+
@@ -269,7 +274,7 @@ function drawStok(total,q,hs){
    '<div class="fr"><button class="gh" id="thb">Tampilkan daftar</button><button class="gh" id="thx" disabled>Unduh Excel</button><span class="note" id="thi"></span></div><div id="thl"></div></div>'+
    '<div class="card"><b>Sinkron ke aplikasi Cari Barang</b><div class="note">Stok (Moka + Accurate) dikirim otomatis setiap berubah. Tekan tombol ini bila ingin memastikan.</div><div class="fr"><button class="gh" id="sink">Sinkron sekarang</button></div></div><div class="card"><b>Tarik data rak dari Cari Barang</b><div class="note">Rak di Cari Barang menjadi acuan. Ditarik otomatis tiap pagi; tekan untuk menarik sekarang. Gudang hanya membaca, tidak mengubah Cari Barang.</div><div class="fr"><button class="gh" id="rakt">Tarik rak sekarang</button></div></div>'+
    '<div id="kform"></div>'+
-   '<div class="bar"><input id="sq" placeholder="Cari kode atau nama barang..." value="'+esc(q)+'"><label><input type="checkbox" id="hs"'+(hs?" checked":"")+'> Hanya yang ada stok</label><button class="gh" id="scari">Cari</button></div>'+
+   '<div class="bar"><input id="sq" placeholder="Cari kode atau nama barang..." value="'+esc(q)+'"><label><input type="checkbox" id="hs"'+(hs?" checked":"")+'> Hanya yang ada stok</label><button class="gh" id="scari">Cari</button><button class="gh" id="sx">Unduh semua stok (Excel)</button></div>'+
    '<div class="note">Menampilkan '+STOK.length+' dari '+total+' barang.</div>'+
    (STOK.length?'<table><thead><tr><th>Kode / Barang</th>'+SUMB.map(function(s){return '<th class="nm">'+esc(s)+'</th>';}).join("")+'<th class="nm">Total</th><th class="nm">Harga</th><th>Aksi</th></tr></thead><tbody>'+
    STOK.map(function(d,i){return '<tr><td data-l="Barang"><b>'+esc(d.nama)+'</b><small>'+esc(d.kode)+' · '+esc(d.satuan||"")+'</small></td>'+
@@ -288,6 +293,13 @@ function drawStok(total,q,hs){
     await kirimAdmin(this,{action:"adminHarga",rows:H},loadStok);
   };
   var XR=null;
+  function xTerap(){
+    if(!XR)return;var skip0=document.getElementById("x0").checked,n0=0;
+    XR.forEach(function(x){if(x.st!==null)x.sudah=x.st;else{x.sudah=x.ada&&!(skip0&&x.hitung===0);if(x.ada&&x.hitung===0)n0++;}});
+    var sd=XR.filter(function(x){return x.sudah;}).length;
+    document.getElementById("xinfo").textContent=XR.length+" barang terbaca, "+sd+" sudah dihitung, "+(XR.length-sd)+" belum."+(n0?" ("+n0+" baris berhasil hitung 0)":"");
+  }
+  document.getElementById("x0").onchange=xTerap;
   document.getElementById("xf").onchange=function(){
     var f=this.files[0];if(!f)return;
     if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat.",true);return;}
@@ -305,20 +317,19 @@ function drawStok(total,q,hs){
       if(hilang.length){toast("Kolom tidak ditemukan: "+hilang.map(function(k){return {kode:"Kode Barang",moka:"Qty Moka",acc:"Qty Accurate",hit:"Hasil Hitung"}[k];}).join(", "),true);return;}
       function t(v){return String(v==null?"":v).trim();}
       function num(v){var n=Number(String(v).replace(",","."));return isFinite(n)?n:0;}
-      function ada(r,c){return c>=0&&t(r[c])!=="";}
+      function ada(r,c){return c>=0&&!/^(|-|–|—|n\/a|na)$/i.test(t(r[c]));}
       XR=[];
       for(var i=hb+1;i<a.length;i++){var r=a[i],kd=t(r[m.kode]);if(!kd)continue;
         var moka=num(r[m.moka]),acc=num(r[m.acc]);
-        var sudah=m.st>=0?/^sudah$/i.test(t(r[m.st])):ada(r,m.hit);
-        XR.push({kode:kd,nama:m.nama>=0?t(r[m.nama]):"",satuan:m.sat>=0?t(r[m.sat]):"",rak:m.rak>=0?t(r[m.rak]):"",gudang:m.gud>=0?t(r[m.gud]):"",moka:moka,acc:acc,hitung:num(r[m.hit]),sudah:sudah});}
-      var sd=XR.filter(function(x){return x.sudah;}).length;
-      document.getElementById("xinfo").textContent=XR.length+" barang terbaca, "+sd+" sudah dihitung, "+(XR.length-sd)+" belum.";
+        var st=m.st>=0?/^sudah$/i.test(t(r[m.st])):null;
+        XR.push({kode:kd,nama:m.nama>=0?t(r[m.nama]):"",satuan:m.sat>=0?t(r[m.sat]):"",rak:m.rak>=0?t(r[m.rak]):"",gudang:m.gud>=0?t(r[m.gud]):"",moka:moka,acc:acc,hitung:num(r[m.hit]),st:st,ada:ada(r,m.hit),sudah:false});}
+      xTerap();
       document.getElementById("xgo").disabled=!XR.length;
     }catch(e){toast("File tidak bisa dibaca.",true);}};
     fr.readAsArrayBuffer(f);
   };
   document.getElementById("xgo").onclick=async function(){
-    var n=Number(document.getElementById("xn").value)||0,D=n>0?XR.slice(0,n):XR,btn=this,info=document.getElementById("xinfo");
+    xTerap();var n=Number(document.getElementById("xn").value)||0,D=n>0?XR.slice(0,n):XR,btn=this,info=document.getElementById("xinfo");
     if(!confirm("Impor "+D.length+" barang dari Excel?\nStok Moka dan Accurate akan diisi sesuai file, lalu hasil hitung diterapkan."))return;
     if(BUSY)return;BUSY=true;btn.disabled=true;
     var _d=new Date(),_p=function(x){return String(x).padStart(2,"0");},SID="XLS-"+String(_d.getFullYear()).slice(2)+_p(_d.getMonth()+1)+_p(_d.getDate())+"-"+_p(_d.getHours())+_p(_d.getMinutes()),SNM="Opname Excel "+_p(_d.getDate())+"-"+_p(_d.getMonth()+1)+"-"+_d.getFullYear()+" "+_p(_d.getHours())+":"+_p(_d.getMinutes()),gagal=null;
@@ -369,6 +380,20 @@ function drawStok(total,q,hs){
   document.getElementById("sink").onclick=function(){kirimAdmin(this,{action:"adminSinkron"},null);};
   document.getElementById("rakt").onclick=function(){kirimAdmin(this,{action:"adminTarikRak"},null);};
   document.getElementById("scari").onclick=loadStok;
+  document.getElementById("sx").onclick=async function(){
+    var b=this;if(BUSY)return;BUSY=true;b.disabled=true;var t0=b.textContent;b.textContent="Menyiapkan...";
+    try{
+      var r=await api({action:"adminStokList",q:"",hanyaStok:false,semua:true});
+      if(!r.ok){toast(r.msg||"Gagal.",true);}
+      else{
+        var iB=(r.sumber||SUMB).indexOf("Bekas"),iM=(r.sumber||SUMB).indexOf("Moka"),iA=(r.sumber||SUMB).indexOf("Accurate");
+        var rows=[["Kode Barang","Nama Barang","Stok Moka","Stok Accurate","Stok Bekas","Total Stok"]].concat((r.data||[]).map(function(x){return [x.kode,x.nama,x.q[iM]||0,x.q[iA]||0,x.q[iB]||0,x.total];}));
+        var d=new Date(),p=function(n){return String(n).padStart(2,"0");};
+        if(unduhXlsx("stok_keseluruhan_"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+".xlsx","Stok",rows,[16,44,12,14,12,12]))toast("Unduhan siap: "+(r.data||[]).length+" barang.");
+      }
+    }catch(e){toast("Gagal terhubung ke server.",true);}
+    BUSY=false;b.disabled=false;b.textContent=t0;
+  };
   document.getElementById("sq").onkeydown=function(e){if(e.key==="Enter")loadStok();};
   pane().querySelectorAll("[data-kor]").forEach(function(b){b.onclick=function(){formKoreksi(STOK[Number(b.getAttribute("data-kor"))]);};});
 }
@@ -729,7 +754,7 @@ function drawMutasi(r,dari,sampai,q,jn){
   pane().innerHTML=
    '<div class="bar"><label class="fl">Dari <input type="date" id="md" value="'+esc(dari)+'"></label><label class="fl">Sampai <input type="date" id="ms" value="'+esc(sampai)+'"></label>'+
    '<select id="mj">'+JN.map(function(j){return '<option value="'+esc(j)+'"'+(j===jn?" selected":"")+'>'+(j||"Semua jenis")+'</option>';}).join("")+'</select>'+
-   '<input id="mq" placeholder="Kode atau nama barang" value="'+esc(q)+'"><button class="gh" id="mgo">Tampilkan</button><button class="gh" id="mcsv"'+(MUT.length?"":" disabled")+'>Unduh CSV</button></div>'+
+   '<input id="mq" placeholder="Kode atau nama barang" value="'+esc(q)+'"><button class="gh" id="mgo">Tampilkan</button><button class="gh" id="mcsv"'+(MUT.length?"":" disabled")+'>Unduh Excel</button></div>'+
    '<div class="sum">'+(ring||'<div><b>0</b><span>Tidak ada mutasi</span></div>')+'</div>'+
    '<div class="note">Menampilkan '+MUT.length+' dari '+r.total+' catatan (terbaru dulu).</div>'+
    (MUT.length?'<table><thead><tr><th>Waktu</th><th>Barang</th><th>Jenis</th><th>Sumber</th><th class="nm">Qty</th><th class="nm">Saldo</th><th>Referensi / Proyek</th><th>Keterangan</th><th></th></tr></thead><tbody>'+
@@ -746,8 +771,7 @@ function drawMutasi(r,dari,sampai,q,jn){
   document.getElementById("mq").onkeydown=function(e){if(e.key==="Enter")loadMutasi();};
   document.getElementById("mcsv").onclick=function(){
     var rows=[["Waktu","Kode","Nama","Jenis","Sumber","Qty","Saldo","Referensi","Departemen","Proyek","Keterangan"]].concat(MUT.map(function(m){return [m.waktu,m.kode,m.nama,m.jenis,m.sumber,m.qty,m.saldo,m.ref,m.dept,m.proyek,m.ket];}));
-    var csv="﻿"+rows.map(function(r){return r.map(function(c){var t=String(c==null?"":c);if(/^[=+\-@]/.test(t))t="'"+t;return '"'+t.replace(/"/g,'""')+'"';}).join(",");}).join("\r\n");
-    var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="mutasi_"+dari+"_sd_"+sampai+".csv";document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+    unduhXlsx("mutasi_"+dari+"_sd_"+sampai+".xlsx","Mutasi",rows,[18,14,36,12,10,8,8,18,14,18,30]);
   };
 }
 

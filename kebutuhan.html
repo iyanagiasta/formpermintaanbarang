@@ -159,8 +159,9 @@ function ambil(a){
   return {rows:rows,adaJudul:hi>=0};
 }
 function unduhContoh(){
-  var csv="﻿Kode Barang,Nama Barang,Qty\r\nK1,Pipa PVC 3 inch,10\r\nK2,Oli Mesin,4\r\n";
-  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="contoh-kebutuhan-proyek.csv";document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+  if(typeof XLSX==="undefined"){alert("Pembaca Excel belum termuat.");return;}
+  var ws=XLSX.utils.aoa_to_sheet([["Kode Barang","Nama Barang","Qty"],["K1","Pipa PVC 3 inch",10],["K2","Oli Mesin",4]]);ws["!cols"]=[{wch:16},{wch:36},{wch:8}];
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Contoh");XLSX.writeFile(wb,"contoh-kebutuhan-proyek.xlsx");
 }
 /* ---------- hitung & tampil ---------- */
 function payload(){return BL.filter(function(b){return b.rows.length;}).map(function(b,i){return {nama:b.nama||("Proyek "+(i+1)),ppbj:b.ppbj,kategori:b.kategori||"",dept:b.dept||"",rows:b.rows};});}

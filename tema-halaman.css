@@ -93,3 +93,10 @@ html[data-tema=gelap] select option,html[data-tema=gelap] select optgroup{backgr
 html[data-tema=gelap] select option:checked,html[data-tema=gelap] select option:hover{background-color:#1d5b82!important;color:#fff!important}
 html[data-tema=terang] select{background-color:#fff!important;color:#0b2133!important}
 html[data-tema=terang] select option,html[data-tema=terang] select optgroup{background-color:#fff!important;color:#0b2133!important}
+
+/* tombol pilihan (chip): yang aktif jelas berbeda dari yang tidak */
+body.tema .chip{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px}
+body.tema .chip:hover{border-color:var(--accent)}
+body.tema .chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+body.tema .card button.chip:not(.gh):not(.sv):not(.rm){background:transparent;color:var(--ink);border:1px solid var(--line)}
+body.tema .card button.chip.on:not(.gh):not(.sv):not(.rm){background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}

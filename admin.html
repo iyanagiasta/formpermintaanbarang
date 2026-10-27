@@ -1178,38 +1178,136 @@ function drawLaporan(r,dari,sampai){
 }
 
 /* ---- tab Selisih Opname ---- */
-var OPS=[],OPR=[],OPID="";
+var OPS=[],OPR=[],OPSEL=[],OPVIEW="rinci",OPFIL={st:"semua",arah:"",minU:"",minRp:"",rak:"",oleh:"",q:""},OPMETA={};
+function opNilai(x){return x.nilai==null?null:x.nilai;}
 async function loadOpname(id){
-  if(id!==undefined)OPID=id;
-  pane().innerHTML='<div class="card msg">Memuat...</div>';
+  if(id!==undefined){OPSEL=id===""||id==null?[]:(Array.isArray(id)?id:[id]);}
+  if(!OPSEL.length){pane().innerHTML='<div class="card msg">Memuat...</div>';}
+  else pane().innerHTML='<div class="card msg">Memuat...</div>';
   try{
-    var r=await api({action:"adminOpnameList",sesi:OPID||undefined});
+    var r=await api({action:"adminOpnameList",sesi:OPSEL.length?OPSEL.join(","):undefined});
     if(!r.ok){toast(r.msg||"Gagal.",true);return;}
-    OPS=r.sesi||[];OPR=r.rows||[];SUMB=r.sumber||SUMB;drawOpname(r);
+    OPS=r.sesi||[];OPR=r.rows||[];SUMB=r.sumber||SUMB;OPMETA={otomatis:r.otomatis,lebih:r.lebih};drawOpname();
   }catch(e){toast("Gagal terhubung ke server.",true);}
 }
-function drawOpname(r){
-  var head='<div class="note">Hasil stock opname dari aplikasi Cari Barang masuk ke sini. Selisih = hasil hitung dikurangi stok sistem saat dihitung. Kekurangan diambil dari '+esc((r.otomatis||["Moka","Accurate"]).join(" lalu "))+'; kelebihan masuk ke '+esc(r.lebih||"Accurate")+'. Stok baru berubah setelah Anda menekan Terapkan.</div>';
-  var list='<div class="bar">'+(OPS.length?OPS.map(function(x){return '<button class="chip'+(x.id===OPID?" on":"")+'" data-os="'+esc(x.id)+'">'+esc(x.nama)+' · '+x.menunggu+' menunggu</button>';}).join(""):'<span class="note">Belum ada hasil opname yang dikirim.</span>')+'</div>';
-  if(!OPID){pane().innerHTML=head+list;bindOs();return;}
-  var mn=OPR.filter(function(x){return x.status==="Menunggu";});
-  var tb=OPR.length?'<table><thead><tr><th></th><th>Barang</th><th class="nm">Stok saat dihitung</th><th class="nm">Hasil hitung</th><th class="nm">Selisih</th><th class="nm">Stok gudang sekarang</th><th>Terapkan ke</th><th>Status</th></tr></thead><tbody>'+
-   OPR.map(function(x,i){
-     var m=x.status==="Menunggu";
-     return '<tr><td>'+(m?'<input type="checkbox" data-oc="'+i+'" checked>':'')+'</td><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.rak?' · rak '+esc(x.rak):'')+'</small></td>'+
-      '<td class="nm" data-l="Saat dihitung">'+fmtN(x.snap)+'</td><td class="nm" data-l="Hasil hitung">'+fmtN(x.hitung)+'</td>'+
-      '<td class="nm" data-l="Selisih"><b style="color:'+(x.selisih<0?"#c0392b":x.selisih>0?"#1b8a3a":"inherit")+'">'+(x.selisih>0?"+":"")+fmtN(x.selisih)+'</b></td>'+
-      '<td class="nm" data-l="Sekarang">'+fmtN(x.sekarang)+(x.beda?'<small style="color:#b8760a">beda dari saat dihitung</small>':'')+'</td>'+
-      '<td data-l="Terapkan ke">'+(m?'<select data-ou="'+i+'"><option value="Otomatis">Otomatis'+(x.d?' ('+SUMB.map(function(n,j){return x.d[j]?n+' '+(x.d[j]>0?"+":"")+x.d[j]:"";}).filter(Boolean).join(", ")+(x.potong>0?"; kurang "+fmtN(x.potong)+" tak bisa dipotong":"")+')':'')+'</option><option>Moka</option><option>Accurate</option><option value="SetHitung">Samakan dengan hasil hitung</option></select>':'<small>'+esc(x.ket)+'</small>')+'</td>'+
-      '<td data-l="Status"><span class="bd '+(x.status==="Diterapkan"?"a":x.status==="Menunggu"?"s":"l")+'">'+esc(x.status)+'</span></td></tr>';
-   }).join("")+'</tbody></table>':'<div class="card msg">Tidak ada baris.</div>';
-  pane().innerHTML=head+list+'<div class="bar"><button class="sv" id="oter"'+(mn.length?"":" disabled")+'>Terapkan terpilih</button><button class="gh" id="oab"'+(mn.length?"":" disabled")+'>Abaikan terpilih</button><span class="note">'+mn.length+' menunggu</span></div>'+tb;
-  bindOs();
-  function pilih(){var out=[];pane().querySelectorAll("[data-oc]").forEach(function(c){if(c.checked){var i=Number(c.getAttribute("data-oc")),sl=pane().querySelector('[data-ou="'+i+'"]');out.push({kode:OPR[i].kode,sumber:sl?sl.value:"Otomatis"});}});return out;}
-  var bt=document.getElementById("oter");if(bt)bt.onclick=function(){var p=pilih();if(!p.length){toast("Pilih barang dulu.",true);return;}if(!confirm("Terapkan selisih "+p.length+" barang? Stok gudang berubah dan tercatat di Mutasi."))return;kirimAdmin(bt,{action:"adminOpnameProses",aksi:"terapkan",sesi:OPID,rows:p},function(){return loadOpname();});};
-  var ba=document.getElementById("oab");if(ba)ba.onclick=function(){var p=pilih();if(!p.length){toast("Pilih barang dulu.",true);return;}if(!confirm("Abaikan "+p.length+" barang? Stok tidak berubah."))return;kirimAdmin(ba,{action:"adminOpnameProses",aksi:"abaikan",sesi:OPID,rows:p},function(){return loadOpname();});};
+function opLolos(x){
+  var f=OPFIL,st=x.status,s=x.selisih;
+  if(f.st==="selisih"){if(!(s!==0&&st!=="Temuan"))return false;}
+  else if(f.st==="kurang"){if(!(s<0&&st!=="Temuan"))return false;}
+  else if(f.st==="lebih"){if(!(s>0&&st!=="Temuan"))return false;}
+  else if(f.st==="menunggu"){if(st!=="Menunggu")return false;}
+  else if(f.st==="diterapkan"){if(st!=="Diterapkan")return false;}
+  else if(f.st==="sesuai"){if(st!=="Sesuai")return false;}
+  else if(f.st==="temuan"){if(st!=="Temuan")return false;}
+  else if(f.st==="diabaikan"){if(st!=="Diabaikan")return false;}
+  if(f.arah==="kurang"&&!(s<0))return false;if(f.arah==="lebih"&&!(s>0))return false;if(f.arah==="sama"&&s!==0)return false;
+  var mu=Number(String(f.minU).replace(",","."));if(f.minU!==""&&!isNaN(mu)&&Math.abs(s)<mu)return false;
+  var mr=Number(String(f.minRp).replace(/[^\d.,-]/g,"").replace(/\./g,"").replace(",","."));if(f.minRp!==""&&!isNaN(mr)){if(x.nilai==null||Math.abs(x.nilai)<mr)return false;}
+  if(f.rak&&String(x.rak||"")!==f.rak)return false;
+  if(f.oleh&&String(x.oleh||"")!==f.oleh)return false;
+  if(f.q){var h=(x.nama+" "+x.kode+" "+(x.rak||"")).toLowerCase(),t=f.q.toLowerCase().split(/\s+/).filter(Boolean);for(var i=0;i<t.length;i++)if(h.indexOf(t[i])<0)return false;}
+  return true;
 }
-function bindOs(){pane().querySelectorAll("[data-os]").forEach(function(b){b.onclick=function(){loadOpname(b.getAttribute("data-os"));};});}
+function opRingkas(rows){
+  var o={n:0,sesuai:0,sel:0,kurang:0,lebih:0,uK:0,uL:0,nK:0,nL:0,tanpaHarga:0,temuan:0};
+  rows.forEach(function(x){
+    if(x.status==="Temuan"){o.temuan++;return;}
+    o.n++;if(x.selisih===0){o.sesuai++;return;}
+    o.sel++;
+    if(x.selisih<0){o.kurang++;o.uK+=-x.selisih;if(x.nilai!=null)o.nK+=-x.nilai;else o.tanpaHarga++;}
+    else{o.lebih++;o.uL+=x.selisih;if(x.nilai!=null)o.nL+=x.nilai;else o.tanpaHarga++;}
+  });
+  o.akurasi=o.n?Math.round(o.sesuai/o.n*1000)/10:0;return o;
+}
+function opRekap(rows,kunci,label){
+  var g={};
+  rows.forEach(function(x){if(x.status==="Temuan")return;var k=String(x[kunci]||"(kosong)"),o=g[k]||(g[k]={k:k,n:0,sesuai:0,sel:0,uK:0,uL:0,nK:0,nL:0});
+    o.n++;if(x.selisih===0)o.sesuai++;else{o.sel++;if(x.selisih<0){o.uK+=-x.selisih;if(x.nilai!=null)o.nK+=-x.nilai;}else{o.uL+=x.selisih;if(x.nilai!=null)o.nL+=x.nilai;}}});
+  return Object.keys(g).map(function(k){var o=g[k];o.akurasi=o.n?Math.round(o.sesuai/o.n*1000)/10:0;return o;}).sort(function(a,b){return a.akurasi-b.akurasi||b.sel-a.sel;});
+}
+function opBacaFilter(){var g=function(i){var e=document.getElementById(i);return e?e.value:null;},m={arah:g("ofa"),minU:g("ofu"),minRp:g("ofr"),rak:g("ofk"),oleh:g("ofo"),q:g("ofq")};Object.keys(m).forEach(function(k){if(m[k]!==null)OPFIL[k]=m[k];});}
+function drawOpname(){
+  var head='<div class="note">Hasil stock opname dari aplikasi Cari Barang masuk ke sini. Selisih = hasil hitung dikurangi stok sistem saat dihitung. Kekurangan diambil dari '+esc((OPMETA.otomatis||["Moka","Accurate"]).join(" lalu "))+'; kelebihan masuk ke '+esc(OPMETA.lebih||"Accurate")+'. Pada opname langsung, selisih diterapkan otomatis saat hitungan dikirim; yang berstatus Menunggu perlu Anda terapkan.</div>';
+  var list='<div class="bar">'+(OPS.length?OPS.map(function(x){var on=OPSEL.indexOf(x.id)>=0;return '<button class="chip'+(on?" on":"")+'" data-os="'+esc(x.id)+'">'+(on?"&#10003; ":"")+esc(x.nama)+' · '+x.menunggu+' menunggu</button>';}).join("")+'<button class="gh" id="osall">Pilih semua sesi</button><button class="gh" id="osno">Kosongkan</button>':'<span class="note">Belum ada hasil opname yang dikirim.</span>')+'</div>'+
+   '<div class="bar"><button class="rm" id="otmx">Unduh temuan barang (Excel)</button><span class="note" style="margin:0">Barang temuan = barang yang ditemukan saat opname tetapi belum terdaftar. Unduhan ini mencakup semua sesi.</span></div>';
+  if(!OPSEL.length){pane().innerHTML=head+list;bindOs();var ot=document.getElementById("otmx");if(ot)ot.onclick=opTemuan;var oa=document.getElementById("osall");if(oa)oa.onclick=function(){OPSEL=OPS.map(function(x){return x.id;});loadOpname();};var on=document.getElementById("osno");if(on)on.onclick=function(){OPSEL=[];drawOpname();};return;}
+  var vis=[];OPR.forEach(function(x,i){if(opLolos(x))vis.push(i);});
+  var rowsV=vis.map(function(i){return OPR[i];}),R=opRingkas(rowsV);
+  var raks=Array.from(new Set(OPR.map(function(x){return String(x.rak||"");}).filter(Boolean))).sort(),olehs=Array.from(new Set(OPR.map(function(x){return String(x.oleh||"");}).filter(Boolean))).sort();
+  var cnt=function(f){var n=0;OPR.forEach(function(x){var s=OPFIL.st;OPFIL.st=f;if(opLolos(x))n++;OPFIL.st=s;});return n;};
+  var SC=[["semua","Semua"],["selisih","Selisih saja"],["kurang","Kurang"],["lebih","Lebih"],["menunggu","Menunggu"],["diterapkan","Diterapkan"],["sesuai","Sesuai"],["temuan","Temuan"],["diabaikan","Diabaikan"]];
+  var fo=function(a,v,lab){return a.map(function(z){return '<option value="'+esc(z)+'"'+(z===v?" selected":"")+'>'+esc(z===""?lab:z)+'</option>';}).join("");};
+  var filt='<div class="card"><div class="bar" style="margin:0 0 8px">'+SC.map(function(c){return '<button class="chip'+(OPFIL.st===c[0]?" on":"")+'" data-ost="'+c[0]+'">'+c[1]+' ('+cnt(c[0])+')</button>';}).join("")+'</div>'+
+   '<div class="bar"><select id="ofa" title="Arah selisih">'+[["","Semua arah selisih"],["kurang","Hanya kurang (hitung < sistem)"],["lebih","Hanya lebih"],["sama","Hanya sama"]].map(function(z){return '<option value="'+z[0]+'"'+(OPFIL.arah===z[0]?" selected":"")+'>'+z[1]+'</option>';}).join("")+'</select>'+
+   '<input id="ofu" type="text" inputmode="decimal" placeholder="Selisih min. (unit)" value="'+esc(OPFIL.minU)+'" style="width:150px"><input id="ofr" type="text" inputmode="decimal" placeholder="Nilai selisih min. (Rp)" value="'+esc(OPFIL.minRp)+'" style="width:170px">'+
+   '<select id="ofk" title="Rak">'+fo([""].concat(raks),OPFIL.rak,"Semua rak")+'</select><select id="ofo" title="Petugas">'+fo([""].concat(olehs),OPFIL.oleh,"Semua petugas")+'</select>'+
+   '<input id="ofq" placeholder="Cari nama / kode / rak" value="'+esc(OPFIL.q)+'" style="flex:1;min-width:180px"><button class="gh" id="ofreset">Reset filter</button></div></div>';
+  var kartu='<div class="sum"><div><b>'+R.n+'</b><span>Barang dihitung (sesuai filter)</span></div><div><b>'+R.akurasi+'%</b><span>Akurasi ('+R.sesuai+' sesuai)</span></div>'+
+   '<div><b style="color:#c0392b">'+R.kurang+'</b><span>Selisih kurang</span><br><small>'+fmtN(R.uK)+' unit · '+rp(R.nK)+'</small></div><div><b style="color:#1b8a3a">'+R.lebih+'</b><span>Selisih lebih</span><br><small>'+fmtN(R.uL)+' unit · '+rp(R.nL)+'</small></div>'+
+   '<div><b>'+R.temuan+'</b><span>Barang temuan</span></div>'+(R.tanpaHarga?'<div><b>'+R.tanpaHarga+'</b><span>Selisih tanpa harga (nilai belum lengkap)</span></div>':'')+'</div>';
+  var vbtn='<div class="bar">'+[["rinci","Rincian"],["rak","Rekap per rak"],["oleh","Rekap per petugas"]].map(function(v){return '<button class="chip'+(OPVIEW===v[0]?" on":"")+'" data-ov="'+v[0]+'">'+v[1]+'</button>';}).join("")+
+   '<button class="gh" id="opx">Unduh Excel (sesuai filter)</button><button class="gh" id="oph"'+(R.sel?"":" disabled")+'>Unduh daftar hitung ulang</button></div>';
+  var isi;
+  if(OPVIEW==="rinci"){
+    var mn=vis.filter(function(i){return OPR[i].status==="Menunggu";});
+    isi=(rowsV.length?'<div class="bar"><button class="sv" id="oter"'+(mn.length?"":" disabled")+'>Terapkan terpilih</button><button class="gh" id="oab"'+(mn.length?"":" disabled")+'>Abaikan terpilih</button><span class="note">'+mn.length+' menunggu (terlihat)</span></div>'+
+     '<table><thead><tr><th></th><th>Barang</th><th class="nm">Stok saat dihitung</th><th class="nm">Hasil hitung</th><th class="nm">Selisih</th><th class="nm">Nilai selisih</th><th class="nm">Stok gudang sekarang</th><th>Terapkan ke</th><th>Status</th></tr></thead><tbody>'+
+     vis.map(function(i){var x=OPR[i],m=x.status==="Menunggu";
+      return '<tr><td>'+(m?'<input type="checkbox" data-oc="'+i+'" checked>':'')+'</td><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.rak?' · rak '+esc(x.rak):'')+(OPSEL.length>1?' · '+esc(x.sesiNama):'')+(x.oleh?' · '+esc(x.oleh):'')+'</small></td>'+
+       '<td class="nm" data-l="Saat dihitung">'+fmtN(x.snap)+'</td><td class="nm" data-l="Hasil hitung">'+fmtN(x.hitung)+'</td>'+
+       '<td class="nm" data-l="Selisih"><b style="color:'+(x.selisih<0?"#c0392b":x.selisih>0?"#1b8a3a":"inherit")+'">'+(x.selisih>0?"+":"")+fmtN(x.selisih)+'</b></td>'+
+       '<td class="nm" data-l="Nilai">'+(x.nilai!=null?rp(x.nilai):"-")+'</td>'+
+       '<td class="nm" data-l="Sekarang">'+fmtN(x.sekarang)+(x.beda?'<small style="color:#b8760a">beda dari saat dihitung</small>':'')+'</td>'+
+       '<td data-l="Terapkan ke">'+(m?'<select data-ou="'+i+'"><option value="Otomatis">Otomatis'+(x.d?' ('+SUMB.map(function(n,j){return x.d[j]?n+' '+(x.d[j]>0?"+":"")+x.d[j]:"";}).filter(Boolean).join(", ")+(x.potong>0?"; kurang "+fmtN(x.potong)+" tak bisa dipotong":"")+')':'')+'</option><option>Moka</option><option>Accurate</option><option value="SetHitung">Samakan dengan hasil hitung</option></select>':'<small>'+esc(x.ket)+'</small>')+'</td>'+
+       '<td data-l="Status"><span class="bd '+(x.status==="Diterapkan"?"a":x.status==="Menunggu"?"s":"l")+'">'+esc(x.status)+'</span></td></tr>';
+     }).join("")+'</tbody></table>':'<div class="card msg">Tidak ada baris sesuai filter.</div>');
+  }else{
+    var RK=opRekap(rowsV,OPVIEW==="rak"?"rak":"oleh");
+    isi=RK.length?'<table><thead><tr><th>'+(OPVIEW==="rak"?"Rak":"Petugas")+'</th><th class="nm">Dihitung</th><th class="nm">Sesuai</th><th class="nm">Selisih</th><th class="nm">Akurasi</th><th class="nm">Unit kurang</th><th class="nm">Unit lebih</th><th class="nm">Nilai kurang</th><th class="nm">Nilai lebih</th></tr></thead><tbody>'+RK.map(function(o){return '<tr><td data-l="Kelompok"><b>'+esc(o.k)+'</b></td><td class="nm" data-l="Dihitung">'+o.n+'</td><td class="nm" data-l="Sesuai">'+o.sesuai+'</td><td class="nm" data-l="Selisih">'+o.sel+'</td><td class="nm" data-l="Akurasi"><b style="color:'+(o.akurasi<90?"#c0392b":o.akurasi<98?"#b8760a":"#1b8a3a")+'">'+o.akurasi+'%</b></td><td class="nm" data-l="Unit kurang">'+fmtN(o.uK)+'</td><td class="nm" data-l="Unit lebih">'+fmtN(o.uL)+'</td><td class="nm" data-l="Nilai kurang">'+rp(o.nK)+'</td><td class="nm" data-l="Nilai lebih">'+rp(o.nL)+'</td></tr>';}).join("")+'</tbody></table><div class="note">Diurutkan dari akurasi terendah, yaitu '+(OPVIEW==="rak"?"rak":"petugas")+' yang paling perlu diperhatikan. Barang temuan tidak dihitung di sini.</div>':'<div class="card msg">Tidak ada data.</div>';
+  }
+  pane().innerHTML=head+list+filt+kartu+vbtn+isi;
+  bindOs();
+  document.getElementById("osall").onclick=function(){OPSEL=OPS.map(function(x){return x.id;});loadOpname();};
+  document.getElementById("osno").onclick=function(){OPSEL=[];drawOpname();};
+  pane().querySelectorAll("[data-ost]").forEach(function(b){b.onclick=function(){opBacaFilter();OPFIL.st=b.getAttribute("data-ost");drawOpname();};});
+  pane().querySelectorAll("[data-ov]").forEach(function(b){b.onclick=function(){opBacaFilter();OPVIEW=b.getAttribute("data-ov");drawOpname();};});
+  ["ofa","ofk","ofo"].forEach(function(i){document.getElementById(i).onchange=function(){opBacaFilter();drawOpname();};});
+  var tm=null;["ofu","ofr","ofq"].forEach(function(i){var e=document.getElementById(i);e.oninput=function(){clearTimeout(tm);tm=setTimeout(function(){var pos=e.selectionStart;opBacaFilter();drawOpname();var n=document.getElementById(i);if(n){n.focus();try{n.setSelectionRange(pos,pos);}catch(x){}}},350);};});
+  document.getElementById("ofreset").onclick=function(){OPFIL={st:"semua",arah:"",minU:"",minRp:"",rak:"",oleh:"",q:""};drawOpname();};
+  var nama=function(){var n=OPSEL.length===1?(OPS.filter(function(x){return x.id===OPSEL[0];})[0]||{}).nama:OPSEL.length+"_sesi";return String(n||"opname").replace(/[^\w\-]+/g,"_")+"_"+tglIso(new Date());};
+  document.getElementById("opx").onclick=function(){
+    var H=["Sesi","Kode","Nama","Satuan","Rak","Stok saat dihitung","Hasil hitung","Selisih","Harga","Nilai selisih","Status","Petugas","Waktu hitung","Ditinjau","Keterangan"];
+    var A=[H].concat(rowsV.map(function(x){return [x.sesiNama,x.kode,x.nama,x.satuan,x.rak,x.snap,x.hitung,x.selisih,x.harga==null?"":x.harga,x.nilai==null?"":x.nilai,x.status,x.oleh,x.waktu,x.ditinjau,x.ket];}));
+    var rh=["Kelompok","Dihitung","Sesuai","Selisih","Akurasi %","Unit kurang","Unit lebih","Nilai kurang","Nilai lebih"],rk=function(a){return [rh].concat(a.map(function(o){return [o.k,o.n,o.sesuai,o.sel,o.akurasi,o.uK,o.uL,o.nK,o.nL];}));};
+    var rg=[["Ringkasan (sesuai filter)",""],["Barang dihitung",R.n],["Sesuai",R.sesuai],["Akurasi %",R.akurasi],["Selisih kurang (barang)",R.kurang],["Selisih kurang (unit)",R.uK],["Selisih kurang (Rp)",R.nK],["Selisih lebih (barang)",R.lebih],["Selisih lebih (unit)",R.uL],["Selisih lebih (Rp)",R.nL],["Barang temuan",R.temuan],["Selisih tanpa harga",R.tanpaHarga]];
+    if(unduhBanyak("opname_"+nama()+".xlsx",[{n:"Rincian",rows:A,w:[18,14,36,8,10,12,12,10,12,14,12,14,18,18,30]},{n:"Rekap per rak",rows:rk(opRekap(rowsV,"rak")),w:[16,10,10,10,10,12,12,14,14]},{n:"Rekap per petugas",rows:rk(opRekap(rowsV,"oleh")),w:[16,10,10,10,10,12,12,14,14]},{n:"Ringkasan",rows:rg,w:[34,16]}]))toast("Excel siap: "+rowsV.length+" baris, plus rekap per rak dan per petugas.");};
+  document.getElementById("oph").onclick=function(){
+    var L=rowsV.filter(function(x){return x.status!=="Temuan"&&x.selisih!==0;}).sort(function(a,b){return String(a.rak).localeCompare(String(b.rak))||Math.abs(b.selisih)-Math.abs(a.selisih);});
+    var A=[["Rak","Kode","Nama","Satuan","Stok saat dihitung","Hasil hitung sebelumnya","Selisih","Nilai selisih","Hitung ulang (isi)","Catatan"]].concat(L.map(function(x){return [x.rak,x.kode,x.nama,x.satuan,x.snap,x.hitung,x.selisih,x.nilai==null?"":x.nilai,"",""];}));
+    if(unduhBanyak("hitung_ulang_"+nama()+".xlsx",[{n:"Hitung ulang",rows:A,w:[10,14,36,8,12,14,10,14,16,26]}]))toast("Daftar hitung ulang siap: "+L.length+" barang, diurutkan per rak.");};
+  document.getElementById("otmx").onclick=opTemuan;
+  function pilih(){var out=[];pane().querySelectorAll("[data-oc]").forEach(function(c){if(c.checked){var i=Number(c.getAttribute("data-oc")),sl=pane().querySelector('[data-ou="'+i+'"]');out.push({kode:OPR[i].kode,sesi:OPR[i].sesi,sumber:sl?sl.value:"Otomatis"});}});return out;}
+  async function proses(btn,aksi,p){
+    var per={};p.forEach(function(x){(per[x.sesi]=per[x.sesi]||[]).push({kode:x.kode,sumber:x.sumber});});
+    btn.disabled=true;var pesan=[];
+    try{for(var sid in per){var r=await api({action:"adminOpnameProses",aksi:aksi,sesi:sid,rows:per[sid]});pesan.push(r.msg||(r.ok?"Selesai.":"Gagal."));if(!r.ok)break;}
+      toast(pesan.join(" "));}catch(e){toast("Gagal terhubung ke server.",true);}
+    await loadOpname();}
+  var bt=document.getElementById("oter");if(bt)bt.onclick=function(){var p=pilih();if(!p.length){toast("Pilih barang dulu.",true);return;}if(!confirm("Terapkan selisih "+p.length+" barang? Stok gudang berubah dan tercatat di Mutasi."))return;proses(bt,"terapkan",p);};
+  var ba=document.getElementById("oab");if(ba)ba.onclick=function(){var p=pilih();if(!p.length){toast("Pilih barang dulu.",true);return;}if(!confirm("Abaikan "+p.length+" barang? Stok tidak berubah."))return;proses(ba,"abaikan",p);};
+}
+async function opTemuan(){var bt=this;bt.disabled=true;
+    try{var t=await api({action:"adminOpnameList",temuan:true});if(!t.ok){toast(t.msg||"Gagal.",true);bt.disabled=false;return;}
+      var T=t.rows||[];if(!T.length){toast("Belum ada barang temuan.");bt.disabled=false;return;}
+      var A=[["Sesi","Kode (dari hasil hitung)","Nama","Satuan","Rak","Jumlah ditemukan","Petugas","Waktu","Keterangan"]].concat(T.map(function(x){return [x.sesiNama,x.kode,x.nama,x.satuan,x.rak,x.hitung,x.oleh,x.waktu,x.ket];}));
+      if(unduhBanyak("barang_temuan_"+tglIso(new Date())+".xlsx",[{n:"Barang temuan",rows:A,w:[18,18,36,8,10,14,14,18,36]}]))toast("Unduhan siap: "+T.length+" barang temuan.");
+    }catch(e){toast("Gagal terhubung ke server.",true);}bt.disabled=false;}
+function unduhBanyak(nama,lembar){
+  if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat.",true);return false;}
+  var wb=XLSX.utils.book_new();lembar.forEach(function(l){var ws=XLSX.utils.aoa_to_sheet(l.rows);if(l.w)ws["!cols"]=l.w.map(function(w){return {wch:w};});XLSX.utils.book_append_sheet(wb,ws,String(l.n).slice(0,31));});
+  XLSX.writeFile(wb,nama);return true;
+}
+function bindOs(){pane().querySelectorAll("[data-os]").forEach(function(b){b.onclick=function(){var id=b.getAttribute("data-os"),i=OPSEL.indexOf(id);if(i>=0)OPSEL.splice(i,1);else OPSEL.push(id);if(OPSEL.length)loadOpname();else drawOpname();};});}
 (function(){
   var saved="";try{saved=sessionStorage.getItem("sctk_admin")||"";}catch(e){}
   if(API_URL.indexOf("PASTE_")===0){app.innerHTML='<div class="card msg err">API_URL belum diisi di file admin.html.</div>';return;}

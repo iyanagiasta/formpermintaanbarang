@@ -106,6 +106,7 @@ async function buka(aksi,btn){
       var k=await pastikanPegawai();
       if(k){var r=await api({action:"menu",kode:k}),u=(r&&r.ok&&r.cari)||"gudang.html";location.href=u;}
     }
+    else if(aksi==="masterbarang"){if(await pastikanPegawai())location.href="masterbarang.html";}
     else if(aksi==="kembali"){if(await pastikanPegawai())location.href="pengembalian.html";}
     else if(aksi==="kebutuhan"){if(await pastikanPic())location.href="kebutuhan.html";}
     else if(aksi==="proyek"){if(await pastikanPic())location.href="proyek.html";}
@@ -126,6 +127,7 @@ function kartu(){
    big("minta","form","Permintaan Barang","Buat permintaan pengambilan barang harian. Persetujuan lewat email, tanpa kertas.","KODE PEGAWAI")+
    big("cari","cari","Cari Barang","Lokasi gudang dan rak, foto barang dan rak, stok Moka dan Accurate, serta proyek yang memakai barang itu.","KODE PEGAWAI")+
    big("kembali","kembali","Pengembalian Barang","Kembalikan barang sisa proyek ke gudang. Persetujuan sama dengan permintaan, stok bertambah setelah gudang menerima barang.","KODE PEGAWAI")+
+   big("masterbarang","form","Pengajuan Master Barang","Ajukan barang baru yang belum ada di daftar. Gudang menerima pengajuan lalu memasukkannya ke Accurate.","KODE PEGAWAI")+
    big("kebutuhan","kebutuhan","Cek Kebutuhan Proyek","Unggah kebutuhan barang proyek baru. Hasilnya: pakai stok Moka, stok Accurate, atau beli, lengkap dengan harga stok.","KODE PIC / ATASAN")+
    big("proyek","proyek","Kebutuhan dan Cek PPBJ","Simpan kebutuhan (RAB) proyek per No PPBJ, lalu cek barang apa saja yang sudah keluar, dikembalikan, dan masih diproses.","KODE PIC / ATASAN / GUDANG")+
    big("beli","form","Pengajuan Pembelian","Ajukan pembelian UMO atau PPBJ (Capex/Opex). Persetujuan atasan, Pengadaan, Accounting lewat email dengan tanda tangan otomatis.","KODE PIC / ATASAN / GUDANG")+

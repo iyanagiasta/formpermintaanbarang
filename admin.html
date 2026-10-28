@@ -441,45 +441,69 @@ async function kirimAdmin(btn,body,after){
   BUSY=false;btn.disabled=false;
 }
 /* ---- tab Komparasi: file stok perusahaan (Accurate + Moka) vs stok Gudang setelah opname ---- */
-var KP={res:null,f:"selisih",q:"",file:""};
-function kpSel(n){n=Number(n)||0;return n?'<b style="color:'+(n>0?"#1b6fb0":"#c0392b")+'">'+(n>0?"+":"")+fmtN(n)+'</b>':'<span class="note">0</span>';}
+var KP={res:null,f:"perlu",q:"",file:"",sb:""};
+function kpSel(n){n=Number(n)||0;return n?'<b style="color:'+(n>0?"#1b8a3a":"#c0392b")+'">'+(n>0?"+":"")+fmtN(n)+'</b>':'<span class="note">0</span>';}
+function kpRek(x){return Number(x.rekM||0)+Number(x.rekA||0);}
+var KP_KASUS=["Tercakup dokumen","Sebagian dokumen","Cek status dokumen","Sebaran beda","Hanya di Gudang","Hanya di file","Tidak cukup","Sesuai"];
 function drawKP(){
   var R=KP.res;
-  var head='<div class="card"><b>Komparasi stok: file perusahaan vs Gudang</b><div class="note">Unggah file stok perusahaan dengan kolom <b>Kode Barang</b>, <b>Stok Accurate</b>, <b>Stok Moka</b> (boleh juga Nama Barang dan Total). Dibandingkan dengan stok Gudang setelah opname (Accurate, Moka, dan Total = Accurate + Moka; stok Bekas tidak ikut). Hanya melihat laporan: stok Gudang tidak diubah.</div>'+
+  var head='<div class="card"><b>Komparasi stok: Gudang (acuan) vs file perusahaan</b><div class="note"><b>Stok Gudang setelah opname adalah stok yang benar.</b> File perusahaan (Accurate dan Moka) yang disesuaikan. Unggah file dengan kolom <b>Kode Barang</b>, <b>Stok Accurate</b>, <b>Stok Moka</b> (boleh juga Nama Barang dan Total). Hasilnya: adjustment apa yang harus diinput di Accurate dan Moka, <b>MINUS</b> (kurangi) atau <b>PLUS</b> (tambah), berapa. Kalau perlu mengurangi, <b>Moka dipakai dulu</b>, baru Accurate. Tambahan stok masuk ke sumber kelebihan (bawaan Accurate). Stok Bekas tidak ikut. Hanya laporan: stok Gudang tidak diubah.</div>'+
    '<div class="fr"><input type="file" id="kpf" accept=".xlsx,.xls,.csv"><span class="note" id="kpi">'+esc(KP.file)+'</span></div></div>';
   if(!R){pane().innerHTML=head;bindKP();return;}
-  var r=R.ringkas,F=[["selisih","Semua selisih"],["Perlu diperiksa","Perlu diperiksa ("+r.perluDiperiksa+")"],["Dijelaskan dokumen","Dijelaskan dokumen ("+r.dijelaskan+")"],["accurate","Selisih Accurate ("+r.selisihAccurate+")"],["moka","Selisih Moka ("+r.selisihMoka+")"],["Terbalik","Terbalik ("+(r.terbalik||0)+")"],["Salah sumber","Salah sumber ("+(r.salahSumber||0)+")"],["Hanya di file","Hanya di file ("+r.hanyaFile+")"],["Hanya di Gudang","Hanya di Gudang ("+r.hanyaGudang+")"],["cek","Cek status dokumen ("+r.cekStatus+")"],["Sesuai","Sesuai"],["semua","Semua"]];
+  var r=R.ringkas,T=r.total,K=r.kasus||{};
+  var nPerlu=0;R.items.forEach(function(x){if(kpRek(x)!==0)nPerlu++;});
+  var F=[["perlu","Semua yang perlu adjustment ("+nPerlu+")"],["minus","MINUS / kurangi ("+T.barangMinus+")"],["plus","PLUS / tambah ("+T.barangPlus+")"]].concat(KP_KASUS.map(function(z){return [z,z+" ("+(K[z]||0)+")"];})).concat([["semua","Semua barang"]]);
   var L=kpTersaring();
-  var ring='<div class="sum"><div><b>'+r.file+'</b><span>Barang di file</span></div><div><b style="color:#1b8a3a">'+r.sesuai+'</b><span>Sesuai</span></div><div><b'+(r.selisihAccurate?' style="color:#c0392b"':'')+'>'+r.selisihAccurate+'</b><span>Selisih Accurate</span></div><div><b'+(r.selisihMoka?' style="color:#c0392b"':'')+'>'+r.selisihMoka+'</b><span>Selisih Moka</span></div><div><b>'+r.dijelaskan+'</b><span>Dijelaskan dokumen belum disesuaikan</span></div><div><b'+(r.perluDiperiksa?' style="color:#c0392b"':'')+'>'+r.perluDiperiksa+'</b><span>Perlu diperiksa</span></div></div>';
-  var dok=R.dokumen&&R.dokumen.length?'<div class="card" style="border-color:'+(r.dokLewat?"#c0392b":"var(--line)")+'"><b>Dokumen belum disesuaikan di Accurate: '+r.dokBelum+'</b>'+(r.dokLewat?' <span class="note err">'+r.dokLewat+' lewat '+r.batas+' hari</span>':'')+'<div class="note">Inilah yang bisa membuat stok Accurate berbeda dari Gudang. Input dulu ke Accurate di tab Accurate, lalu tandai sudah.</div><div class="tw" style="max-height:220px;overflow:auto"><table><thead><tr><th>Dokumen</th><th>Jenis</th><th>Tanggal</th><th class="nm">Umur</th><th class="nm">Qty Accurate</th></tr></thead><tbody>'+R.dokumen.slice(0,60).map(function(d){return '<tr><td>'+esc(d.doc)+'</td><td>'+esc(d.jenis)+'</td><td>'+esc(d.tgl)+'</td><td class="nm">'+d.umur+' hari</td><td class="nm">'+fmtN(d.qacc)+'</td></tr>';}).join("")+'</tbody></table></div></div>':'<div class="card"><b>Semua dokumen penyesuaian sudah diinput ke Accurate.</b></div>';
+  var ring='<div class="sum"><div><b>'+r.file+'</b><span>Barang di file</span></div><div><b style="color:#c0392b">'+T.barangMinus+'</b><span>Perlu MINUS (kurangi)</span></div><div><b style="color:#1b8a3a">'+T.barangPlus+'</b><span>Perlu PLUS (tambah)</span></div><div><b>'+(K["Tercakup dokumen"]||0)+'</b><span>Tercakup dokumen (cukup input dokumen)</span></div><div><b'+(K["Tidak cukup"]?' style="color:#c0392b"':'')+'>'+(K["Tidak cukup"]||0)+'</b><span>Stok file tidak cukup</span></div><div><b>'+(K["Sesuai"]||0)+'</b><span>Sudah sesuai</span></div></div>'+
+   '<div class="sum"><div style="border-color:#c0392b"><b style="color:#c0392b">Moka &minus;'+fmtN(T.rekMminus)+'</b><span>Kurangi stok Moka (unit)</span><br><small>'+rp(T.nMminus)+'</small></div><div style="border-color:#c0392b"><b style="color:#c0392b">Accurate &minus;'+fmtN(T.rekAminus)+'</b><span>Kurangi stok Accurate (unit)</span><br><small>'+rp(T.nAminus)+'</small></div><div style="border-color:#1b8a3a"><b style="color:#1b8a3a">Moka +'+fmtN(T.rekMplus)+'</b><span>Tambah stok Moka (unit)</span><br><small>'+rp(T.nMplus)+'</small></div><div style="border-color:#1b8a3a"><b style="color:#1b8a3a">Accurate +'+fmtN(T.rekAplus)+'</b><span>Tambah stok Accurate (unit)</span><br><small>'+rp(T.nAplus)+'</small></div></div>'+
+   (T.tanpaHarga?'<div class="note">'+T.tanpaHarga+' barang belum punya harga, nilai Rp-nya belum terhitung.</div>':'')+(T.sisa>0?'<div class="card" style="border-color:#c0392b"><b>'+fmtN(T.sisa)+' unit kekurangan tidak bisa dikurangi</b><div class="note">Stok Moka dan Accurate di file sudah habis. Lihat filter "Tidak cukup".</div></div>':'');
+  var dok=R.dokumen&&R.dokumen.length?'<div class="card" style="border-color:'+(r.dokLewat?"#c0392b":"var(--line)")+'"><b>Dokumen Gudang belum diinput ke Accurate: '+r.dokBelum+'</b>'+(r.dokLewat?' <span class="note err">'+r.dokLewat+' lewat '+r.batas+' hari</span>':'')+'<div class="note">Selisih akibat dokumen ini cukup diselesaikan dengan menginput dokumennya (tab Accurate), bukan adjustment manual.</div><div class="tw" style="max-height:220px;overflow:auto"><table><thead><tr><th>Dokumen</th><th>Jenis</th><th>Tanggal</th><th class="nm">Umur</th><th class="nm">Qty Accurate</th></tr></thead><tbody>'+R.dokumen.slice(0,60).map(function(d){return '<tr><td>'+esc(d.doc)+'</td><td>'+esc(d.jenis)+'</td><td>'+esc(d.tgl)+'</td><td class="nm">'+d.umur+' hari</td><td class="nm">'+fmtN(d.qacc)+'</td></tr>';}).join("")+'</tbody></table></div></div>':'<div class="card"><b>Semua dokumen penyesuaian sudah diinput ke Accurate.</b></div>';
   pane().innerHTML=head+ring+dok+
-   '<div class="bar"><input id="kpq" placeholder="Cari kode atau nama..." value="'+esc(KP.q)+'"><button class="gh" id="kpx">Unduh hasil (Excel)</button>'+(r.kembar?'<span class="note">'+r.kembar+' baris kode ganda di file diabaikan.</span>':'')+'</div>'+
-   '<div class="tabs">'+F.map(function(t){return '<button data-kpf="'+t[0]+'" class="'+(KP.f===t[0]?"on":"")+'">'+esc(t[1])+'</button>';}).join("")+'</div>'+
-   '<div class="note">Menampilkan '+Math.min(L.length,300)+' dari '+L.length+' barang. Excel berisi semuanya. Selisih = file dikurangi Gudang.</div>'+
-   '<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Accurate file</th><th class="nm">Accurate Gudang</th><th class="nm">Selisih</th><th class="nm">Moka file</th><th class="nm">Moka Gudang</th><th class="nm">Selisih</th><th class="nm">Total file</th><th class="nm">Total Gudang</th><th class="nm">Selisih</th><th>Analisis</th></tr></thead><tbody>'+
-   L.slice(0,300).map(function(x){return '<tr><td><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+' &middot; '+esc(x.st)+'</small></td><td class="nm">'+fmtN(x.fa)+'</td><td class="nm">'+fmtN(x.ga)+'</td><td class="nm">'+kpSel(x.dA)+'</td><td class="nm">'+fmtN(x.fm)+'</td><td class="nm">'+fmtN(x.gm)+'</td><td class="nm">'+kpSel(x.dM)+'</td><td class="nm">'+fmtN(x.ft)+'</td><td class="nm">'+fmtN(x.gt)+'</td><td class="nm">'+kpSel(x.dT)+'</td><td style="min-width:240px">'+esc(x.analisis)+'</td></tr>';}).join("")+'</tbody></table></div>';
+   '<div class="bar"><input id="kpq" placeholder="Cari kode atau nama..." value="'+esc(KP.q)+'" style="flex:1;min-width:200px"><select id="kpsb"><option value="">Semua sumber</option><option value="Moka"'+(KP.sb==="Moka"?" selected":"")+'>Hanya yang perlu adjustment Moka</option><option value="Accurate"'+(KP.sb==="Accurate"?" selected":"")+'>Hanya yang perlu adjustment Accurate</option></select><button class="sv" id="kpx2">Unduh Excel sesuai filter</button>'+(r.kembar?'<span class="note">'+r.kembar+' baris kode ganda di file diabaikan.</span>':'')+'</div>'+
+   '<div class="tabs">'+F.map(function(t){return '<button data-kpf="'+esc(t[0])+'" class="'+(KP.f===t[0]?"on":"")+'">'+esc(t[1])+'</button>';}).join("")+'</div>'+
+   '<div class="note">Menampilkan '+Math.min(L.length,300)+' dari '+L.length+' barang. <b>Excel mengikuti filter di atas</b>: pilih kasus (tombol) dan sumber, lalu unduh. Kalau sumber Moka atau Accurate dipilih, Excel berformat siap input. Selisih = Gudang dikurangi file. Adjustment = yang harus diinput di sistem perusahaan. Diurutkan dari nilai terbesar.</div>'+
+   '<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">File Accurate</th><th class="nm">File Moka</th><th class="nm">Gudang Accurate</th><th class="nm">Gudang Moka</th><th class="nm">Selisih total</th><th class="nm">Adjustment Moka</th><th class="nm">Adjustment Accurate</th><th class="nm">Nilai (Rp)</th><th>Analisis</th></tr></thead><tbody>'+
+   L.slice(0,300).map(function(x){return '<tr><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+' &middot; '+esc(x.kasus)+'</small></td><td class="nm" data-l="File Accurate">'+fmtN(x.fa)+'</td><td class="nm" data-l="File Moka">'+fmtN(x.fm)+'</td><td class="nm" data-l="Gudang Accurate">'+fmtN(x.ga)+'</td><td class="nm" data-l="Gudang Moka">'+fmtN(x.gm)+'</td><td class="nm" data-l="Selisih total">'+kpSel(x.dT)+'</td><td class="nm" data-l="Adjustment Moka">'+kpSel(x.rekM)+'</td><td class="nm" data-l="Adjustment Accurate">'+kpSel(x.rekA)+'</td><td class="nm" data-l="Nilai">'+(x.nilai!=null?rp(x.nilai):(kpRek(x)?"harga kosong":"-"))+'</td><td data-l="Analisis" style="min-width:300px">'+esc(x.analisis)+'</td></tr>';}).join("")+'</tbody></table></div>';
   bindKP();
   document.getElementById("kpq").onkeydown=function(e){if(e.key==="Enter"){KP.q=this.value;drawKP();}};prediksi(document.getElementById("kpq"),function(){KP.q=document.getElementById("kpq").value;drawKP();});
+  document.getElementById("kpsb").onchange=function(){KP.q=document.getElementById("kpq").value;KP.sb=this.value;drawKP();};
   document.querySelectorAll("[data-kpf]").forEach(function(b){b.onclick=function(){KP.q=document.getElementById("kpq").value;KP.f=b.getAttribute("data-kpf");drawKP();};});
-  document.getElementById("kpx").onclick=kpUnduh;
+  document.getElementById("kpx2").onclick=kpUnduhTampil;
+}
+function kpCocok(x,f){
+  var t=kpRek(x);
+  if(f==="semua")return true;if(f==="perlu")return t!==0;if(f==="minus")return t<0;if(f==="plus")return t>0;
+  return x.kasus===f;
 }
 function kpTersaring(){
-  var q=KP.q.toLowerCase(),f=KP.f;
+  var q=KP.q.toLowerCase(),f=KP.f,sb=KP.sb;
   return KP.res.items.filter(function(x){
-    if(f==="selisih"){if(x.st==="Sesuai"&&!x.analisis)return false;if(x.st==="Sesuai")return false;}
-    else if(f==="accurate"){if(!x.dA)return false;}else if(f==="moka"){if(!x.dM)return false;}
-    else if(f==="cek"){if(!(x.st==="Sesuai"&&x.analisis))return false;}
-    else if(f!=="semua"&&x.st!==f)return false;
+    if(!kpCocok(x,f))return false;
+    if(sb==="Moka"&&!x.rekM)return false;if(sb==="Accurate"&&!x.rekA)return false;
     return !q||(x.nama+" "+x.kode).toLowerCase().indexOf(q)>=0;});
 }
-function kpUnduh(){
-  var d=new Date(),p=function(n){return String(n).padStart(2,"0");},R=KP.res;
-  var rows=[["Kode Barang","Nama Barang","Accurate File","Accurate Gudang","Selisih Accurate","Moka File","Moka Gudang","Selisih Moka","Total File","Total Gudang","Selisih Total","Status","Analisis"]].concat(R.items.map(function(x){return [x.kode,x.nama,x.fa,x.ga,x.dA,x.fm,x.gm,x.dM,x.ft,x.gt,x.dT,x.st,x.analisis];}));
-  if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat.",true);return;}
-  var wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=[16,44,12,14,14,12,12,12,12,12,12,20,70].map(function(w){return {wch:w};});XLSX.utils.book_append_sheet(wb,ws,"Komparasi");
-  var dk=[["Dokumen","Jenis","Tanggal","Umur (hari)","Jumlah barang","Qty Accurate","Proyek"]].concat((R.dokumen||[]).map(function(x){return [x.doc,x.jenis,x.tgl,x.umur,x.n,x.qacc,x.proyek];}));
-  var w2=XLSX.utils.aoa_to_sheet(dk);w2["!cols"]=[22,20,12,12,14,14,30].map(function(w){return {wch:w};});XLSX.utils.book_append_sheet(wb,w2,"Dokumen belum disesuaikan");
-  XLSX.writeFile(wb,"komparasi_stok_"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+".xlsx");
+function kpBaris(x){return [x.kode,x.nama,x.fa,x.fm,x.ga,x.gm,x.gt,x.dT,x.rekM,x.rekA,x.harga==null?"":x.harga,x.nilai==null?"":x.nilai,x.kasus,x.analisis];}
+var KP_H=["Kode Barang","Nama Barang","File Accurate","File Moka","Gudang Accurate","Gudang Moka","Gudang Total","Selisih total (Gudang - file)","Adjustment Moka (+/-)","Adjustment Accurate (+/-)","Harga","Nilai adjustment (Rp)","Kasus","Analisis"];
+var KP_W=[16,40,12,12,14,14,12,16,16,18,12,16,20,90];
+/* lembar siap input: hanya barang yang perlu adjustment di sumber itu */
+function kpLembarInput(sumber,arah){
+  var key=sumber==="Moka"?"rekM":"rekA",fk=sumber==="Moka"?"fm":"fa";
+  var L=KP.res.items.filter(function(x){var v=Number(x[key])||0;return arah==="minus"?v<0:arah==="plus"?v>0:v!==0;}).sort(function(a,b){return String(a.kode).localeCompare(String(b.kode));});
+  var A=[["Kode Barang","Nama Barang","Aksi","Qty adjustment","Stok di file sekarang","Stok setelah adjustment","Harga","Nilai (Rp)","Keterangan"]].concat(L.map(function(x){var v=Number(x[key]);return [x.kode,x.nama,v<0?"KURANGI":"TAMBAH",Math.abs(v),x[fk],Math.round((Number(x[fk])+v)*1000)/1000,x.harga==null?"":x.harga,x.harga==null?"":Math.round(Math.abs(v)*x.harga),x.analisis];}));
+  return A;
+}
+function kpUnduhTampil(){
+  var L=kpTersaring(),d=new Date(),p=function(n){return String(n).padStart(2,"0");};
+  if(!L.length){toast("Tidak ada baris pada filter ini.",true);return;}
+  var nm=String(KP.f).replace(/[^\w]+/g,"_")+(KP.sb?"_"+KP.sb:""),tg=d.getFullYear()+p(d.getMonth()+1)+p(d.getDate()),ket="Filter: "+KP.f+(KP.sb?" / sumber "+KP.sb:"")+(KP.q?" / cari "+KP.q:"");
+  var rows,w,info;
+  if(KP.sb==="Moka"||KP.sb==="Accurate"){
+    var key=KP.sb==="Moka"?"rekM":"rekA",fk=KP.sb==="Moka"?"fm":"fa";
+    rows=[["Kode Barang","Nama Barang","Aksi","Qty adjustment","Stok di file sekarang","Stok setelah adjustment","Harga","Nilai (Rp)","Keterangan"]].concat(L.map(function(x){var v=Number(x[key])||0;return [x.kode,x.nama,v<0?"KURANGI":v>0?"TAMBAH":"-",Math.abs(v),x[fk],Math.round((Number(x[fk])+v)*1000)/1000,x.harga==null?"":x.harga,x.harga==null||!v?"":Math.round(Math.abs(v)*x.harga),x.analisis];}));
+    w=[16,40,10,14,18,20,12,16,90];info="format siap input "+KP.sb;
+  }else{rows=[KP_H].concat(L.map(kpBaris));w=KP_W;info="rincian lengkap";}
+  var sh=[{n:"Data",rows:rows,w:w},{n:"Keterangan",rows:[["Komparasi stok: Gudang (acuan) vs file perusahaan"],[ket],["Diunduh",d.toLocaleString("id-ID")],["Jumlah baris",L.length],["Aturan","Adjustment = Gudang - file. Minus: kurangi Moka dulu, baru Accurate. Plus: ke "+(KP.res.ringkas.lebih||"Accurate")+"."],["Tip","Pilih filter sumber Moka atau Accurate sebelum mengunduh untuk mendapat format siap input (Aksi, Qty, Stok sebelum dan sesudah)."]],w:[26,90]}];
+  if(unduhBanyak("komparasi_"+nm+"_"+tg+".xlsx",sh))toast("Excel siap: "+L.length+" barang ("+info+").");
 }
 function bindKP(){
   var f=document.getElementById("kpf");if(!f)return;
@@ -495,7 +519,7 @@ function bindKP(){
       var rows=[];for(var i=hb+1;i<a.length;i++){var r=a[i],kd=t(r[m.kode]);if(!kd)continue;rows.push({kode:kd,nama:m.nama>=0?t(r[m.nama]):"",accurate:t(r[m.acc]),moka:t(r[m.moka]),total:m.total>=0?t(r[m.total]):""});}
       if(!rows.length){toast("Tidak ada baris data.",true);return;}
       KP.file=file.name+" ("+rows.length+" baris)";document.getElementById("kpi").textContent="Membandingkan "+rows.length+" baris...";
-      try{var r2=await api({action:"adminKomparasi",rows:rows});if(!r2.ok){toast(r2.msg||"Gagal.",true);document.getElementById("kpi").textContent="";return;}KP.res=r2;KP.f="selisih";KP.q="";drawKP();toast("Selesai: "+r2.ringkas.file+" barang dibandingkan.");}
+      try{var r2=await api({action:"adminKomparasi",rows:rows});if(!r2.ok){toast(r2.msg||"Gagal.",true);document.getElementById("kpi").textContent="";return;}KP.res=r2;KP.f="perlu";KP.q="";KP.sb="";drawKP();toast("Selesai: "+r2.ringkas.file+" barang dibandingkan.");}
       catch(e){toast("Gagal terhubung ke server.",true);}
     });
   };

@@ -29,26 +29,43 @@
   if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",mulai);else mulai();
 })();
 
-/* Judul kolom tabel dibuat beku: tabel dengan banyak baris dibungkus kotak gulir, judul kolom menempel di atas saat digulir. */
+/* Tabel: bisa digeser kiri-kanan, judul kolom beku di atas, dan kolom nama barang (kiri) beku saat digeser. */
 (function(){
   var d=document,MIN=8;
   var st=d.createElement("style");
-  st.textContent=".tbox{max-height:72vh;overflow:auto;position:relative;border-radius:12px}"+
-   ".tbox>table,.tw.tbox>table{overflow:visible!important;margin:0}"+
-   ".tbox thead th{position:sticky;top:0;z-index:3;box-shadow:0 1px 0 rgba(0,0,0,.25)}"+
-   "@media (max-width:820px){.tbox{max-height:none;overflow:visible}.tbox thead th{position:static}}";
+  st.textContent=".tbox{overflow-x:auto;overflow-y:visible;position:relative;border-radius:12px;max-width:100%;-webkit-overflow-scrolling:touch}"+
+   ".tbox.tv{max-height:72vh;overflow-y:auto}"+
+   ".tbox>table{overflow:visible!important;margin:0}"+
+   ".tbox.tv thead th{position:sticky;top:0;z-index:3;box-shadow:0 1px 0 rgba(0,0,0,.25)}"+
+   ".tbox td.kb,.tbox th.kb{position:sticky;left:var(--kl,0);z-index:2;box-shadow:1px 0 0 rgba(127,160,180,.45)}"+
+   ".tbox td.kb{background:var(--card,#fff)}.tbox th.kb{z-index:4}.tbox.tv thead th.kb{z-index:5}"+
+   "@media (max-width:820px){.tbox{overflow:visible;max-height:none!important}.tbox.tv{overflow:visible}.tbox.tv thead th{position:static}.tbox td.kb,.tbox th.kb{position:static;box-shadow:none}}";
   (d.head||d.documentElement).appendChild(st);
+  function boleh(t){return !t.closest(".sheet,#sheet,.nop,[data-tanpa-geser]");}
   function proses(t){
-    if(t._beku)return;var th=t.tHead;if(!th||!th.rows.length)return;
-    var tb=t.tBodies[0];if(!tb||tb.rows.length<MIN)return;
-    t._beku=true;var p=t.parentNode;
-    if(p&&p.classList&&p.classList.contains("tw")&&p.children.length===1){p.classList.add("tbox");return;}
-    var w=d.createElement("div");w.className="tbox";p.insertBefore(w,t);w.appendChild(t);
+    if(t._beku)return;var th=t.tHead;if(!th||!th.rows.length||!boleh(t))return;
+    var tb=t.tBodies[0];if(!tb)return;
+    t._beku=true;var p=t.parentNode,ncol=th.rows[0].cells.length;
+    if(ncol>=6)t.style.minWidth=(ncol*118)+"px";
+    var w;
+    if(p&&p.classList&&p.classList.contains("tw")&&p.children.length===1){w=p;w.classList.add("tbox");}
+    else{w=d.createElement("div");w.className="tbox";p.insertBefore(w,t);w.appendChild(t);}
+    if(tb.rows.length>=MIN)w.classList.add("tv");
   }
-  function semua(){var l=d.getElementsByTagName("table");for(var i=0;i<l.length;i++)proses(l[i]);}
+  /* kolom kiri beku: sampai kolom yang judulnya mengandung barang / nama / dokumen / proyek (maks 3 kolom pertama) */
+  function bekuKol(t){
+    if(!t._beku||!t.tHead||!t.tHead.rows.length)return;
+    var hr=t.tHead.rows[0],n=hr.cells.length;if(n<5)return;
+    var k=-1;for(var i=0;i<Math.min(n,3);i++){if(/barang|nama|dokumen|proyek|pembelian|nomor|uraian/i.test(hr.cells[i].textContent)){k=i;break;}}
+    if(k<0)return;
+    var off=0,lefts=[];for(var j=0;j<=k;j++){lefts.push(off);off+=hr.cells[j].offsetWidth;}
+    var rows=[hr].concat(Array.prototype.slice.call(t.tBodies[0].rows));
+    for(var r=0;r<rows.length;r++){var c=rows[r].cells;if(c.length<n)continue;for(var j2=0;j2<=k;j2++){var el=c[j2];if(!el.classList.contains("kb")){el.classList.add("kb");}el.style.setProperty("--kl",lefts[j2]+"px");}}
+  }
+  function semua(){var l=d.getElementsByTagName("table"),i;for(i=0;i<l.length;i++)proses(l[i]);for(i=0;i<l.length;i++)bekuKol(l[i]);}
   var tm=null;
   function jadwal(){clearTimeout(tm);tm=setTimeout(semua,60);}
-  function mulai(){semua();try{new MutationObserver(jadwal).observe(d.body,{childList:true,subtree:true});}catch(e){}}
+  function mulai(){semua();try{new MutationObserver(jadwal).observe(d.body,{childList:true,subtree:true});}catch(e){}window.addEventListener("resize",jadwal);}
   if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",mulai);else mulai();
 })();
 

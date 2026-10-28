@@ -100,3 +100,12 @@ body.tema .chip:hover{border-color:var(--accent)}
 body.tema .chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
 body.tema .card button.chip:not(.gh):not(.sv):not(.rm){background:transparent;color:var(--ink);border:1px solid var(--line)}
 body.tema .card button.chip.on:not(.gh):not(.sv):not(.rm){background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+
+/* Lembar bukti pengambilan barang (#sheet) selalu berupa kertas putih: isian harus gelap di tema gelap agar terbaca. */
+html[data-tema=gelap] body.tema #sheet,html[data-tema=gelap] body.tema #sheet td,html[data-tema=gelap] body.tema #sheet th{color:#0d1f2d}
+html[data-tema=gelap] body.tema #sheet th{color:#fff}
+html[data-tema=gelap] body.tema #sheet input:not([type=checkbox]):not([type=radio]),html[data-tema=gelap] body.tema #sheet textarea,html[data-tema=gelap] body.tema #sheet select{color:#0d1f2d;-webkit-text-fill-color:#0d1f2d;caret-color:#0d1f2d;border-color:#9fb8c6}
+html[data-tema=gelap] body.tema #sheet .f input,html[data-tema=gelap] body.tema #sheet .sign input{background:#eef6fa}
+html[data-tema=gelap] body.tema #sheet td input,html[data-tema=gelap] body.tema #sheet .nm input{background:transparent}
+html[data-tema=gelap] body.tema #sheet textarea{background:#fff}
+html[data-tema=gelap] body.tema #sheet input::placeholder,html[data-tema=gelap] body.tema #sheet textarea::placeholder{color:#7b8d99;-webkit-text-fill-color:#7b8d99}

@@ -51,3 +51,21 @@
   function mulai(){semua();try{new MutationObserver(jadwal).observe(d.body,{childList:true,subtree:true});}catch(e){}}
   if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",mulai);else mulai();
 })();
+
+/* Tombol melayang "Kembali ke Halaman Utama" dan "Ke atas": tidak perlu menggulir ke atas lagi untuk kembali ke dashboard. */
+(function(){
+  var d=document;
+  function mulai(){
+    var hb=d.querySelector("a.homebtn");if(!hb||d.getElementById("fabkembali"))return;if(!/admin/i.test(location.pathname))return;
+    var st=d.createElement("style");
+    st.textContent="#fabkembali,#fabatas{position:fixed;z-index:40;bottom:16px;font:700 13px 'Segoe UI',Roboto,Arial,sans-serif;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer;text-decoration:none;border:1px solid rgba(227,201,143,.7);background:#0a3a5c;color:#e3c98f}"+
+     "#fabkembali{left:14px;padding:11px 16px}#fabatas{right:14px;width:42px;height:42px;display:none;align-items:center;justify-content:center;font-size:18px;padding:0}"+
+     "#fabkembali:hover,#fabatas:hover{background:#0f6f93;color:#fff}@media print{#fabkembali,#fabatas{display:none!important}}";
+    d.head.appendChild(st);
+    var a=d.createElement("a");a.id="fabkembali";a.href=hb.getAttribute("href")||"dashboard.html";a.innerHTML="&larr; Halaman Utama";a.title="Kembali ke dashboard";d.body.appendChild(a);
+    var u=d.createElement("button");u.type="button";u.id="fabatas";u.innerHTML="&uarr;";u.title="Ke atas";u.onclick=function(){window.scrollTo({top:0,behavior:"smooth"});};d.body.appendChild(u);
+    function cek(){u.style.display=(window.pageYOffset||d.documentElement.scrollTop)>500?"flex":"none";}
+    window.addEventListener("scroll",cek,{passive:true});cek();
+  }
+  if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",mulai);else mulai();
+})();

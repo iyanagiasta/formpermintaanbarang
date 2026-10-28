@@ -24,7 +24,7 @@ button:disabled{opacity:.5;cursor:default}button.sv{background:#1b8a3a}button.gh
 @media (prefers-color-scheme:dark){button.gh{color:var(--ink)}}
 .note{color:var(--mut);font-size:12px;margin-top:4px}.err{color:#c0392b}.msg{text-align:center;padding:22px;color:var(--mut)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:560px){.row2{grid-template-columns:1fr}}
-.kode{font:700 20px Consolas,monospace;letter-spacing:1px;background:#eaf3ea;color:#14612b;border-radius:8px;padding:10px;text-align:center;margin-top:8px}
+.bar2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}.kode{font:700 20px Consolas,monospace;letter-spacing:1px;background:#eaf3ea;color:#14612b;border-radius:8px;padding:10px;text-align:center;margin-top:8px}
 @media (prefers-color-scheme:dark){.kode{background:#1d3a26;color:#a8e0b5}}
 .mirip{border-left:4px solid #d9a21b;background:#fff8e1;color:#5e4500;border-radius:8px;padding:9px 11px;margin-top:8px;font-size:13px}
 @media (prefers-color-scheme:dark){.mirip{background:#3a3010;color:#f2dc9b}}
@@ -58,45 +58,81 @@ async function masuk(){
   catch(e){KODE="";loginView("Gagal terhubung ke server.");}
 }
 function opts(a,ph){return '<option value="">'+esc(ph)+'</option>'+a.map(function(x){var n=x.nama||x;return '<option>'+esc(n)+'</option>';}).join("");}
+var ROWS=[];
+function barisBaru(dari){var p=dari||ROWS[ROWS.length-1]||{};return {nama:"",satuan:p.satuan||"",kategori:p.kategori||"",jenis:p.jenis||"",spek:"",mirip:[],kodeUsulan:"",msg:""};}
 function form(sukses){
+  if(!ROWS.length)ROWS=[barisBaru()];
+  var ok=sukses&&sukses.hasil?sukses.hasil.filter(function(x){return x.ok;}):[];
   app.innerHTML='<div class="tabs"><button class="on" id="t1">Ajukan barang baru</button><button id="t2">Pengajuan saya</button></div>'+
-  (sukses?'<div class="card" style="border-color:#1b8a3a"><b>Terkirim ke Gudang.</b><div class="note">No. pengajuan <b>'+esc(sukses.no)+'</b>. Usulan kode: <b>'+esc(sukses.kode)+'</b> (kode final ditetapkan Gudang saat disetujui).</div></div>':"")+
+  (ok.length?'<div class="card" style="border-color:#1b8a3a"><b>'+ok.length+' pengajuan terkirim ke Gudang.</b><div class="note">Usulan kode (kode final ditetapkan Gudang saat disetujui):</div>'+ok.map(function(x){return '<div class="note" style="margin:3px 0"><b>'+esc(x.nama)+'</b> &middot; '+esc(x.no)+' &middot; kode <b>'+esc(x.kode)+'</b></div>';}).join("")+(sukses.gagal?'<div class="note err">'+sukses.gagal+' baris belum terkirim, lihat pesan merah di bawah.</div>':"")+'</div>':"")+
   '<div class="card"><div class="row2"><div><label>Nama pemohon</label><input id="pem" autocomplete="off"></div><div><label>Departemen</label><input id="dept" list="ddept" autocomplete="off"></div></div>'+
   '<label>Email (opsional, untuk pemberitahuan hasil)</label><input id="em" type="email" autocomplete="off">'+
-  '<hr style="border:0;border-top:1px solid var(--line);margin:14px 0 4px">'+
-  '<label>Nama barang</label><input id="nm" autocomplete="off" placeholder="contoh: BEND COUPLER dn 4 Inch -- 110 mm GF"><div id="mirip"></div>'+
-  '<div class="row2"><div><label>Satuan</label><input id="sat" list="dsat" autocomplete="off" placeholder="pcs, unit, meter..."></div><div><label>Kategori</label><select id="kat">'+opts(META.kategori,"Pilih kategori")+'</select></div></div>'+
-  '<label>Jenis barang</label><select id="jn">'+opts(META.jenis,"Pilih jenis barang")+'</select>'+
-  '<div id="kd2"></div>'+
-  '<label>Spesifikasi / merek (opsional)</label><input id="sp" autocomplete="off">'+
-  '<label>Alasan pengajuan (opsional)</label><textarea id="al"></textarea>'+
+  '<label>Alasan pengajuan (opsional, berlaku untuk semua barang di bawah)</label><textarea id="al"></textarea></div>'+
+  '<div class="card"><div class="bar2"><b>Daftar barang</b> <span class="note" id="jml"></span></div>'+
+  '<div class="note">Isi satu barang per kartu. Satuan, kategori, dan jenis otomatis disalin dari barang di atasnya, tinggal diubah kalau berbeda.</div><div id="rows"></div>'+
+  '<div class="bar2"><button class="gh" id="tambah" type="button">+ Tambah barang</button><button class="gh" id="tempel" type="button">Tempel banyak nama sekaligus</button></div>'+
+  '<div id="tbox" hidden style="margin-top:8px"><label>Satu nama barang per baris</label><textarea id="tt" rows="6" placeholder="BEND COUPLER dn 4 Inch -- 110 mm GF&#10;ELBOW 90 dn 2 Inch&#10;..."></textarea><div class="note">Satuan, kategori, dan jenis diisi dari barang pertama di daftar, bisa diubah per kartu sesudahnya.</div><button class="sv" id="tpakai" type="button">Jadikan kartu</button></div>'+
   '<div style="margin-top:14px"><button class="sv" id="kirim" style="width:100%">Kirim pengajuan</button></div></div>';
-  document.getElementById("dsat").innerHTML=META.satuan.map(function(s){return '<option value="'+esc(s)+'">';}).join("");
-  document.getElementById("ddept").innerHTML=META.dept.map(function(s){return '<option value="'+esc(s)+'">';}).join("");
+  document.getElementById("dsat").innerHTML=META.satuan.map(function(x){return '<option value="'+esc(x)+'">';}).join("");
+  document.getElementById("ddept").innerHTML=META.dept.map(function(x){return '<option value="'+esc(x)+'">';}).join("");
   document.getElementById("pem").value=ls("sctk_mb_pem");document.getElementById("dept").value=ls("sctk_mb_dept");document.getElementById("em").value=ls("sctk_mb_em");
   document.getElementById("t2").onclick=saya;
-  document.getElementById("nm").oninput=cek;document.getElementById("jn").onchange=cek;
+  document.getElementById("tambah").onclick=function(){ROWS.push(barisBaru());gambar();var n=document.querySelectorAll("[data-nm]");if(n.length)n[n.length-1].focus();};
+  document.getElementById("tempel").onclick=function(){var b=document.getElementById("tbox");b.hidden=!b.hidden;};
+  document.getElementById("tpakai").onclick=function(){
+    var L=document.getElementById("tt").value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);if(!L.length){toast("Tempel nama barang dulu.",true);return;}
+    var dasar=ROWS[0]||{};if(ROWS.length===1&&!ROWS[0].nama&&!ROWS[0].satuan&&!ROWS[0].kategori&&!ROWS[0].jenis)ROWS=[];
+    var pola=ROWS[0]||dasar;L.slice(0,60).forEach(function(n){var r=barisBaru(pola);r.nama=n;ROWS.push(r);});
+    document.getElementById("tt").value="";document.getElementById("tbox").hidden=true;gambar();ROWS.forEach(function(r,i){if(r.nama.length>=3)cek(i);});toast(L.length+" nama dijadikan kartu. Lengkapi satuan, kategori, dan jenis yang kosong.");};
   document.getElementById("kirim").onclick=kirim;
+  gambar();
 }
-function cek(){
-  clearTimeout(T);T=setTimeout(async function(){
-    var nama=document.getElementById("nm").value.trim(),jn=document.getElementById("jn").value;
-    if(nama.length<3){document.getElementById("mirip").innerHTML="";document.getElementById("kd2").innerHTML="";return;}
-    try{var r=await api({action:"mbCek",nama:nama,jenis:jn});if(!r.ok)return;
-      document.getElementById("mirip").innerHTML=r.mirip&&r.mirip.length?'<div class="mirip"><b>Sudah ada barang yang mirip.</b> Pastikan bukan barang yang sama:<br>'+r.mirip.map(function(x){return esc(x.nama)+' <small>('+esc(x.kode)+')</small>';}).join("<br>")+'</div>':"";
-      document.getElementById("kd2").innerHTML=r.kodeUsulan?'<div class="kode">'+esc(r.kodeUsulan)+'</div><div class="note" style="text-align:center">Usulan kode. Kode final ditetapkan Gudang.</div>':"";
+function gambar(){
+  var box=document.getElementById("rows");if(!box)return;
+  box.innerHTML=ROWS.map(function(r,i){
+    return '<div class="it" data-r="'+i+'" style="margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:10px"><div class="bar2"><b>Barang '+(i+1)+'</b>'+(ROWS.length>1?'<button class="rm" type="button" data-del="'+i+'" style="margin-left:auto">Hapus</button>':"")+'</div>'+
+    '<label>Nama barang</label><input data-nm="'+i+'" autocomplete="off" placeholder="contoh: BEND COUPLER dn 4 Inch -- 110 mm GF" value="'+esc(r.nama)+'"><div id="mi'+i+'">'+miripHtml(r)+'</div>'+
+    '<div class="row2"><div><label>Satuan</label><input data-sat="'+i+'" list="dsat" autocomplete="off" placeholder="pcs, unit, meter..." value="'+esc(r.satuan)+'"></div><div><label>Kategori</label><select data-kat="'+i+'">'+opts(META.kategori,"Pilih kategori")+'</select></div></div>'+
+    '<label>Jenis barang</label><select data-jn="'+i+'">'+opts(META.jenis,"Pilih jenis barang")+'</select><div id="kc'+i+'">'+kodeHtml(r)+'</div>'+
+    '<label>Spesifikasi / merek (opsional)</label><input data-sp="'+i+'" autocomplete="off" value="'+esc(r.spek)+'">'+(r.msg?'<div class="err" style="margin-top:6px">'+esc(r.msg)+'</div>':"")+'</div>';}).join("");
+  ROWS.forEach(function(r,i){var k=box.querySelector('[data-kat="'+i+'"]'),j=box.querySelector('[data-jn="'+i+'"]');k.value=r.kategori;j.value=r.jenis;});
+  box.querySelectorAll("[data-nm]").forEach(function(e){e.oninput=function(){var i=+e.getAttribute("data-nm");ROWS[i].nama=e.value;cek(i);};});
+  box.querySelectorAll("[data-sat]").forEach(function(e){e.oninput=function(){ROWS[+e.getAttribute("data-sat")].satuan=e.value;};});
+  box.querySelectorAll("[data-kat]").forEach(function(e){e.onchange=function(){ROWS[+e.getAttribute("data-kat")].kategori=e.value;};});
+  box.querySelectorAll("[data-jn]").forEach(function(e){e.onchange=function(){var i=+e.getAttribute("data-jn");ROWS[i].jenis=e.value;cek(i);};});
+  box.querySelectorAll("[data-sp]").forEach(function(e){e.oninput=function(){ROWS[+e.getAttribute("data-sp")].spek=e.value;};});
+  box.querySelectorAll("[data-del]").forEach(function(e){e.onclick=function(){ROWS.splice(+e.getAttribute("data-del"),1);gambar();};});
+  var jm=document.getElementById("jml");if(jm)jm.textContent=ROWS.length+" barang";
+}
+function miripHtml(r){return r.mirip&&r.mirip.length?'<div class="mirip"><b>Sudah ada barang yang mirip.</b> Pastikan bukan barang yang sama:<br>'+r.mirip.map(function(x){return esc(x.nama)+' <small>('+esc(x.kode)+')</small>';}).join("<br>")+'</div>':"";}
+function kodeHtml(r){return r.kodeUsulan?'<div class="kode">'+esc(r.kodeUsulan)+'</div><div class="note" style="text-align:center">Usulan kode. Kode final ditetapkan Gudang.</div>':"";}
+var TM={};
+function cek(i){
+  clearTimeout(TM[i]);TM[i]=setTimeout(async function(){
+    var r=ROWS[i];if(!r)return;var nama=r.nama.trim();
+    if(nama.length<3){r.mirip=[];r.kodeUsulan="";var a=document.getElementById("mi"+i),b=document.getElementById("kc"+i);if(a)a.innerHTML="";if(b)b.innerHTML="";return;}
+    try{var h=await api({action:"mbCek",nama:nama,jenis:r.jenis});if(!h.ok||!ROWS[i]||ROWS[i]!==r)return;
+      r.mirip=h.mirip||[];r.kodeUsulan=h.kodeUsulan||"";var a2=document.getElementById("mi"+i),b2=document.getElementById("kc"+i);if(a2)a2.innerHTML=miripHtml(r);if(b2)b2.innerHTML=kodeHtml(r);
     }catch(e){}
   },450);
 }
 async function kirim(){
   if(BUSY)return;var g=function(i){return document.getElementById(i).value.trim();};
-  var b={action:"mbSubmit",pemohon:g("pem"),dept:g("dept"),email:g("em"),nama:g("nm"),satuan:g("sat"),kategori:g("kat"),jenis:g("jn"),spek:g("sp"),alasan:g("al")};
-  if(!b.pemohon||!b.dept){toast("Isi nama pemohon dan departemen.",true);return;}
-  if(!b.nama||!b.satuan||!b.kategori||!b.jenis){toast("Nama barang, satuan, kategori, dan jenis wajib diisi.",true);return;}
-  BUSY=true;var bt=document.getElementById("kirim");bt.disabled=true;bt.textContent="Mengirim...";
-  try{var r=await api(b);if(!r.ok){toast(r.msg||"Gagal.",true);bt.disabled=false;bt.textContent="Kirim pengajuan";BUSY=false;return;}
-    ls("sctk_mb_pem",b.pemohon);ls("sctk_mb_dept",b.dept);ls("sctk_mb_em",b.email);BUSY=false;form(r);
-  }catch(e){toast("Gagal terhubung ke server.",true);bt.disabled=false;bt.textContent="Kirim pengajuan";BUSY=false;}
+  var pem=g("pem"),dept=g("dept"),em=g("em"),al=g("al");
+  if(!pem||!dept){toast("Isi nama pemohon dan departemen.",true);return;}
+  var isi=ROWS.map(function(r,i){return {r:r,i:i};}).filter(function(x){var r=x.r;return r.nama.trim()||r.satuan.trim()||r.kategori||r.jenis||r.spek.trim();});
+  if(!isi.length){toast("Isi minimal satu barang.",true);return;}
+  for(var k=0;k<isi.length;k++){var r=isi[k].r;if(!r.nama.trim()||!r.satuan.trim()||!r.kategori||!r.jenis){toast("Barang "+(isi[k].i+1)+": nama, satuan, kategori, dan jenis wajib diisi.",true);var el=document.querySelector('[data-r="'+isi[k].i+'"]');if(el)el.scrollIntoView({behavior:"smooth",block:"center"});return;}}
+  if(isi.length>60){toast("Maksimal 60 barang per pengiriman.",true);return;}
+  BUSY=true;var bt=document.getElementById("kirim");bt.disabled=true;bt.textContent="Mengirim "+isi.length+" barang...";
+  try{var h=await api({action:"mbSubmitBanyak",pemohon:pem,dept:dept,email:em,alasan:al,items:isi.map(function(x){return {nama:x.r.nama,satuan:x.r.satuan,kategori:x.r.kategori,jenis:x.r.jenis,spek:x.r.spek};})});
+    BUSY=false;
+    if(!h.ok&&!h.hasil){toast(h.msg||"Gagal.",true);bt.disabled=false;bt.textContent="Kirim pengajuan";return;}
+    ls("sctk_mb_pem",pem);ls("sctk_mb_dept",dept);ls("sctk_mb_em",em);
+    var sisa=[];(h.hasil||[]).forEach(function(x){if(!x.ok){var r=isi[x.i].r;r.msg=x.msg;sisa.push(r);}});
+    ROWS=sisa.length?sisa:[];form(h);document.getElementById("al").value=al;
+    if(sisa.length)toast(h.msg,true);
+  }catch(e){toast("Gagal terhubung ke server.",true);BUSY=false;bt.disabled=false;bt.textContent="Kirim pengajuan";}
 }
 async function saya(){
   var pem=ls("sctk_mb_pem");

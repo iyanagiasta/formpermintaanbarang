@@ -195,6 +195,7 @@ async function ringkasAdmin(pin){
      stat(s.kembaliTerima||0,"Pengembalian siap diterima",(s.kembaliTerima||0)>0?"w":"ok","admin.html#terima","balik")+
      stat(s.proyekAktif,"Proyek mengikat stok","","admin.html#proyek","gedung")+
      stat(s.stokHabis,"Barang stok bebas habis",s.stokHabis>0?"w":"ok","admin.html#stok","tumpuk")+
+     (s.bufferAda?stat(s.bufferKurang||0,"Barang di bawah buffer paket"+((s.bufferMenipis||0)>0?" (+"+s.bufferMenipis+" menipis)":""),(s.bufferKurang||0)>0?"b":((s.bufferMenipis||0)>0?"w":"ok"),"admin.html#buffer","tumpuk"):"")+
      (s.kuota>=0?stat(s.kuota,"Sisa kuota email hari ini",s.kuota<20?"b":"ok","admin.html#sistem","surat"):"")+'</div>';
     var bs=document.getElementById("adm-stat");if(bs)bs.innerHTML=hs+'<div id="adm-graf"></div>';grafikAdmin(r.grafik);
     var utama={"index.html":1,"gudang.html":1,"kebutuhan.html":1,"proyek.html":1,"pembelian.html":1,"admin.html":1,"pengembalian.html":1},lain=r.data.filter(function(m){return !utama[m.link]&&m.untuk!=="Admin";}),ad=r.data.filter(function(m){return m.untuk==="Admin";});

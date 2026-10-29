@@ -100,7 +100,7 @@ async function load(first){
     if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
     DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
     var h=(location.hash||"").replace("#","");
-    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem","pengumuman","terima","pengajuan","accurate","masterbarang","komparasi","baopname"].indexOf(h)>=0){goTab(h);return;}
+    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem","pengumuman","terima","pengajuan","accurate","masterbarang","komparasi","baopname","buffer"].indexOf(h)>=0){goTab(h);return;}
     draw(r.now);paMuatRingkas();
   }catch(e){
     if(first)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");else toast("Gagal terhubung ke server.",true);
@@ -194,7 +194,7 @@ async function onAct(b){
 function pane(){return document.getElementById("pane")||app;}
 function tabsUI(){
   if(!document.getElementById("pane"))app.innerHTML='<div class="tabs" id="tabs"></div><div id="pane"></div>';
-  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["barangmati","Barang Mati"],["laporan","Laporan"],["accurate","Accurate"],["realisasi","Realisasi"],["pembelian","Pembelian"],["label","Label"],["masterbarang","Master Barang"],["komparasi","Komparasi"],["baopname","BA Opname"],["terima","Terima Barang"],["pengajuan","Pengajuan"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
+  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["barangmati","Barang Mati"],["laporan","Laporan"],["accurate","Accurate"],["realisasi","Realisasi"],["pembelian","Pembelian"],["label","Label"],["masterbarang","Master Barang"],["komparasi","Komparasi"],["baopname","BA Opname"],["buffer","Buffer Paket"],["terima","Terima Barang"],["pengajuan","Pengajuan"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
   paBadge();
   document.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){goTab(b.getAttribute("data-tab"));};});
 }
@@ -205,7 +205,7 @@ function goTab(t){
   TAB=t;
   if(t==="pantau"){load(false);return;}
   tabsUI();
-  if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="baopname")loadBA();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="accurate")loadAccurate();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
+  if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="baopname")loadBA();else if(t==="buffer")loadBF();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="accurate")loadAccurate();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
   try{history.replaceState(null,"","#"+t);}catch(e){}
 }
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
@@ -680,6 +680,160 @@ function baCetak(){
   var w=document.createElement("div");w.innerHTML=h;document.body.appendChild(w.firstChild);document.body.classList.add("baon");
 }
 function baTutupCetak(){var e=document.getElementById("baPrint");if(e)e.remove();document.body.classList.remove("baon");}
+
+/* ---- tab Buffer Paket: stok bebas Moka + Accurate harus cukup untuk semua set paket aktif (mis. Sambungan Langsung) ---- */
+var BF={d:null,f:"perlu",q:"",edit:null,warn:[],master:null};
+async function loadBF(){
+  pane().innerHTML='<div class="card msg">Memuat buffer paket...</div>';
+  try{
+    var r=await api({action:"adminBufferList"});
+    if(!r.ok){toast(r.msg||"Gagal.",true);return;}
+    BF.d=r;BF.master=null;drawBF();
+  }catch(e){toast("Gagal terhubung ke server.",true);}
+}
+function bfMasterPeta(){
+  if(BF.master)return BF.master;
+  var m={k:{},n:{}};(BF.d.master||[]).forEach(function(x){m.k[String(x[0]).toUpperCase()]=x;m.n[String(x[1]).toLowerCase().replace(/[^a-z0-9]/g,"")]=x;});
+  BF.master=m;return m;
+}
+function bfBd(s){var c=s==="Aman"?"d":s==="Menipis"?"w":s==="Kurang"||s==="Habis"?"b":"n";return '<span class="bd '+c+'">'+esc(s)+'</span>';}
+function bfTersaring(){
+  var L=BF.d.barang,q=BF.q.toLowerCase();
+  return L.filter(function(x){
+    if(BF.f==="perlu"&&x.status==="Aman")return false;
+    if(BF.f==="kurang"&&x.status!=="Kurang"&&x.status!=="Habis")return false;
+    if(BF.f==="menipis"&&x.status!=="Menipis")return false;
+    if(BF.f==="aman"&&x.status!=="Aman")return false;
+    return !q||(x.nama+" "+x.kode+" "+x.paket.map(function(p){return p.nama;}).join(" ")).toLowerCase().indexOf(q)>=0;
+  });
+}
+function drawBF(){
+  var D=BF.d,R=D.ringkas,P=D.paket;
+  var head='<div class="card"><b>Buffer Paket: stok minimal yang harus ada di Gudang</b><div class="note">Kebutuhan tiap barang = qty per set &times; jumlah set, dijumlahkan dari <b>semua paket aktif</b> (barang yang dipakai beberapa paket dihitung gabungan). Stok yang dibandingkan adalah <b>stok bebas Moka + Accurate</b> (dikurangi alokasi proyek dan permintaan yang masih berjalan). Stok Bekas tidak dihitung. Status <b>Menipis</b> bila stok bebas di bawah '+D.pct+'% buffer.</div>'+
+   '<div class="bar"><button id="bfnew" class="primary">+ Paket baru</button><button type="button" id="bfxlb">Impor dari Excel</button><input type="file" id="bfxl" accept=".xlsx,.xls,.csv" style="display:none"><button id="bfmail">Kirim email ringkasan sekarang</button></div></div>';
+  var warn=BF.warn.length?'<div class="card" style="border-color:var(--ambt,#b8760a)"><b>Peringatan hasil impor/simpan ('+BF.warn.length+')</b><ul style="margin:6px 0 0 18px;padding:0;font-size:13px">'+BF.warn.slice(0,40).map(function(w){return '<li>'+esc(w)+'</li>';}).join("")+'</ul><button id="bfwx" style="margin-top:8px">Tutup</button></div>':'';
+  var ring='<div class="sum"><div><b style="color:var(--grn,#1b8a3a)">'+R.Aman+'</b><span>Aman</span></div><div><b style="color:var(--ambt,#b8760a)">'+R.Menipis+'</b><span>Menipis</span></div><div><b style="color:var(--red,#c0392b)">'+(R.Kurang+R.Habis)+'</b><span>Di bawah buffer ('+R.Habis+' habis)</span></div><div><b>'+R.kode+'</b><span>Jenis barang dipantau</span></div><div><b>'+rp(R.nilaiBeli)+'</b><span>Perkiraan beli untuk menutup</span><br><small>'+fmtN(R.unitKurang)+' unit'+(R.tanpaHarga?' &middot; '+R.tanpaHarga+' tanpa harga':'')+'</small></div></div>'+
+   (R.tidakAda?'<div class="note err">'+R.tidakAda+' kode di paket tidak ada di sheet Barang. Perbaiki lewat Edit paket.</div>':'');
+  var pk=P.length?'<div class="tw"><table><thead><tr><th>Paket</th><th class="nm">Jumlah set</th><th class="nm">Jenis / unit per set</th><th>Bisa dipenuhi*</th><th>Aktif</th><th></th></tr></thead><tbody>'+P.map(function(p,i){
+    var ok=p.aktif&&p.bisaSet>=p.set,tx=p.items.length?(p.bisaSet+' dari '+p.set+' set'+(p.bisaSet<p.set&&p.bottleneck?' (terbatas: '+esc(p.bottleneck)+')':'')):'-';
+    return '<tr><td data-l="Paket"><b>'+esc(p.nama)+'</b>'+(p.kodeHilang?'<small style="color:var(--red,#c0392b)">'+p.kodeHilang+' kode tidak ditemukan</small>':'')+'<small>diubah '+esc(p.diubah||"-")+' oleh '+esc(p.oleh||"-")+'</small></td><td class="nm" data-l="Set">'+fmtN(p.set)+'</td><td class="nm" data-l="Isi">'+p.jenis+' / '+fmtN(p.unit)+'</td><td data-l="Bisa dipenuhi">'+(p.aktif?'<span class="bd '+(ok?"d":"b")+'">'+tx+'</span>':'<span class="note">nonaktif</span>')+'</td><td data-l="Aktif">'+(p.aktif?"Ya":"Tidak")+'</td>'+
+     '<td><button data-bfe="'+i+'">Edit</button> <button data-bfd="'+i+'">Duplikat</button> <button data-bfh="'+i+'">Hapus</button></td></tr>';}).join("")+'</tbody></table></div><div class="note">* Kolom "Bisa dipenuhi" menghitung tiap paket sendiri-sendiri. Status barang di bawah dihitung gabungan semua paket aktif, itu yang menentukan kekurangan sebenarnya.</div>':'<div class="card msg">Belum ada paket. Klik "Impor dari Excel" untuk memakai file kebutuhan Anda, atau "+ Paket baru".</div>';
+  var F=[["perlu","Perlu perhatian ("+(R.Kurang+R.Habis+R.Menipis)+")"],["kurang","Kurang / Habis ("+(R.Kurang+R.Habis)+")"],["menipis","Menipis ("+R.Menipis+")"],["aman","Aman ("+R.Aman+")"],["semua","Semua ("+R.kode+")"]];
+  var L=bfTersaring();
+  var tb=L.length?'<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Buffer</th><th class="nm">Stok bebas</th><th class="nm">Stok fisik</th><th class="nm">Kurang</th><th>Status</th><th class="nm">Nilai beli</th><th>Dipakai paket</th></tr></thead><tbody>'+L.slice(0,500).map(function(x){
+    return '<tr><td data-l="Barang"><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.tidakAda?' &middot; <span style="color:var(--red,#c0392b)">tidak ada di sheet Barang</span>':'')+'</small></td><td class="nm" data-l="Buffer">'+fmtN(x.buffer)+'</td><td class="nm" data-l="Stok bebas">'+fmtN(x.bebas)+'</td><td class="nm" data-l="Stok fisik">'+fmtN(x.fisik)+'</td><td class="nm" data-l="Kurang">'+(x.kurang?'<b style="color:var(--red,#c0392b)">'+fmtN(x.kurang)+'</b>':'0')+'</td><td data-l="Status">'+bfBd(x.status)+'</td><td class="nm" data-l="Nilai">'+(x.kurang?(x.nilai==null?"-":rp(x.nilai)):"")+'</td><td data-l="Paket"><small>'+x.paket.map(function(p){return esc(p.nama)+' ('+fmtN(p.qty)+'&times;'+fmtN(p.set)+')';}).join("<br>")+'</small></td></tr>';}).join("")+'</tbody></table></div>':'<div class="card msg">Tidak ada barang sesuai filter.</div>';
+  var logh=D.log&&D.log.length?'<details class="card"><summary><b>Riwayat perubahan paket ('+D.log.length+' terakhir)</b></summary><div class="tw"><table><thead><tr><th>Waktu</th><th>Oleh</th><th>Paket</th><th>Aksi</th><th>Rincian</th></tr></thead><tbody>'+D.log.map(function(l){return '<tr><td>'+esc(l.waktu)+'</td><td>'+esc(l.oleh)+'</td><td>'+esc(l.paket)+'</td><td>'+esc(l.aksi)+'</td><td>'+esc(l.rincian)+'</td></tr>';}).join("")+'</tbody></table></div></details>':'';
+  pane().innerHTML=head+warn+(BF.edit?bfEditHtml():"")+ring+pk+
+   '<div class="bar" style="margin-top:12px"><input id="bfq" placeholder="Cari kode, nama barang, atau paket..." value="'+esc(BF.q)+'"><button id="bfxls">Unduh Excel</button><button id="bfbeli">Unduh daftar beli</button></div>'+
+   '<div class="tabs">'+F.map(function(t){return '<button data-bff="'+t[0]+'" class="'+(BF.f===t[0]?"on":"")+'">'+esc(t[1])+'</button>';}).join("")+'</div><div class="note">Menampilkan '+Math.min(L.length,500)+' dari '+L.length+' barang.</div>'+tb+logh;
+  bfBind();
+}
+function bfBind(){
+  var $=function(i){return document.getElementById(i);};
+  if($("bfnew"))$("bfnew").onclick=function(){BF.edit={lama:"",nama:"",set:1,aktif:true,items:[{kode:"",nama:"",qty:1}]};drawBF();$("bfen").scrollIntoView({behavior:"smooth",block:"center"});};
+  if($("bfmail"))$("bfmail").onclick=function(){kirimAdmin($("bfmail"),{action:"adminBufferEmail"},null);};
+  if($("bfwx"))$("bfwx").onclick=function(){BF.warn=[];drawBF();};
+  if($("bfxl"))$("bfxl").onchange=function(){bfImpor(this);};
+  if($("bfxlb"))$("bfxlb").onclick=function(){$("bfxl").click();};
+  if($("bfq"))$("bfq").onkeydown=function(e){if(e.key==="Enter"){BF.q=this.value;drawBF();}};
+  if($("bfxls"))$("bfxls").onclick=function(){bfUnduh(false);};
+  if($("bfbeli"))$("bfbeli").onclick=function(){bfUnduh(true);};
+  document.querySelectorAll("[data-bff]").forEach(function(b){b.onclick=function(){BF.q=$("bfq").value;BF.f=b.getAttribute("data-bff");drawBF();};});
+  document.querySelectorAll("[data-bfe]").forEach(function(b){b.onclick=function(){var p=BF.d.paket[Number(b.getAttribute("data-bfe"))];BF.edit={lama:p.nama,nama:p.nama,set:p.set,aktif:p.aktif,items:p.items.map(function(x){return {kode:x.kode,nama:x.nama,qty:x.qty};})};drawBF();$("bfen").scrollIntoView({behavior:"smooth",block:"center"});};});
+  document.querySelectorAll("[data-bfd]").forEach(function(b){b.onclick=function(){var p=BF.d.paket[Number(b.getAttribute("data-bfd"))],n=prompt("Nama paket baru (salinan dari "+p.nama+"):",p.nama+" (salinan)");if(!n)return;kirimAdmin(b,{action:"adminBufferDuplikat",dari:p.nama,baru:n},loadBF);};});
+  document.querySelectorAll("[data-bfh]").forEach(function(b){b.onclick=function(){var p=BF.d.paket[Number(b.getAttribute("data-bfh"))];if(!confirm('Hapus paket "'+p.nama+'" beserta isinya? Tindakan ini tercatat di riwayat.'))return;kirimAdmin(b,{action:"adminBufferHapus",nama:p.nama},loadBF);};});
+  if(BF.edit)bfEditBind();
+}
+function bfEditHtml(){
+  var E=BF.edit;
+  return '<div class="card" id="bfen" style="border-color:var(--gold,#c9a227)"><b>'+(E.lama?'Edit paket: '+esc(E.lama):'Paket baru')+'</b>'+
+   '<div class="bar" style="margin-top:8px"><input id="bfnm" placeholder="Nama paket, mis. SL 1 Inch" value="'+esc(E.nama)+'" style="flex:2;min-width:200px"><label class="note">Jumlah set <input id="bfset" inputmode="decimal" value="'+esc(String(E.set).replace(".",","))+'" style="width:90px;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)"></label><label class="note"><input type="checkbox" id="bfak"'+(E.aktif?" checked":"")+'> Aktif (dihitung dalam buffer)</label></div>'+
+   '<div class="note">Isi paket per <b>1 set</b>. Ketik kode atau nama barang, pilih dari daftar. Barang yang sama ditulis dua kali akan dijumlahkan.</div>'+
+   '<datalist id="bfdl">'+(BF.d.master||[]).map(function(x){return '<option value="'+esc(x[0]+" | "+x[1])+'">';}).join("")+'</datalist>'+
+   '<div class="tw"><table><thead><tr><th>Barang (kode | nama)</th><th class="nm">Qty per set</th><th></th></tr></thead><tbody id="bfit">'+E.items.map(function(it,i){return bfRow(it,i);}).join("")+'</tbody></table></div>'+
+   '<div class="bar" style="margin-top:8px"><button id="bfadd">+ Tambah barang</button><button id="bfsave" class="primary">Simpan paket</button><button id="bfcancel">Batal</button></div></div>';
+}
+function bfRow(it,i){
+  var tx=it.kode?(it.kode+" | "+(it.nama||"")):(it.nama||"");
+  return '<tr data-i="'+i+'"><td><input class="bfk" list="bfdl" placeholder="Ketik kode atau nama barang" value="'+esc(tx)+'" style="width:100%;min-width:260px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"><small class="bfmsg"></small></td><td class="nm"><input class="bfq2" inputmode="decimal" value="'+esc(String(it.qty).replace(".",","))+'" style="width:80px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);text-align:right"></td><td><button class="bfdel" title="Hapus baris">&times;</button></td></tr>';
+}
+function bfBacaBaris(){
+  var rows=[];document.querySelectorAll("#bfit tr").forEach(function(tr){
+    var t=tr.querySelector(".bfk").value.trim(),q=tr.querySelector(".bfq2").value.trim().replace(",",".");
+    rows.push({teks:t,qty:q,tr:tr});
+  });return rows;
+}
+function bfResolve(t){
+  var m=bfMasterPeta(),kode=t.indexOf(" | ")>=0?t.split(" | ")[0].trim():t.trim(),h=m.k[kode.toUpperCase()];
+  if(!h)h=m.n[t.toLowerCase().replace(/[^a-z0-9]/g,"")];
+  return h?{kode:h[0],nama:h[1]}:null;
+}
+function bfEditBind(){
+  var $=function(i){return document.getElementById(i);};
+  function sinkron(){BF.edit.nama=$("bfnm").value;BF.edit.set=$("bfset").value;BF.edit.aktif=$("bfak").checked;BF.edit.items=bfBacaBaris().map(function(r){var h=r.teks?bfResolve(r.teks):null;return {kode:h?h.kode:"",nama:h?h.nama:r.teks,qty:r.qty||"1",_txt:r.teks};});}
+  $("bfadd").onclick=function(){sinkron();BF.edit.items.push({kode:"",nama:"",qty:1});drawBF();};
+  $("bfcancel").onclick=function(){BF.edit=null;drawBF();};
+  document.querySelectorAll(".bfdel").forEach(function(b){b.onclick=function(){sinkron();BF.edit.items.splice(Number(b.closest("tr").getAttribute("data-i")),1);if(!BF.edit.items.length)BF.edit.items.push({kode:"",nama:"",qty:1});drawBF();};});
+  document.querySelectorAll(".bfk").forEach(function(inp){inp.onchange=function(){var h=inp.value.trim()?bfResolve(inp.value):null,ms=inp.parentNode.querySelector(".bfmsg");if(h){inp.value=h.kode+" | "+h.nama;ms.textContent="";}else if(inp.value.trim()){ms.textContent="Barang tidak ditemukan di sheet Barang";ms.style.color="var(--red,#c0392b)";}};});
+  $("bfsave").onclick=function(){
+    var nm=$("bfnm").value.trim(),st=$("bfset").value.trim().replace(",",".");
+    if(!nm){toast("Nama paket wajib diisi.",true);return;}
+    if(st===""||isNaN(Number(st))||Number(st)<0){toast("Jumlah set tidak valid.",true);return;}
+    var items=[],bad=[];
+    bfBacaBaris().forEach(function(r){
+      if(!r.teks)return;var h=bfResolve(r.teks),q=Number(r.qty);
+      if(!h){bad.push(r.teks);return;}
+      if(!(q>0)){bad.push(r.teks+" (qty harus lebih dari 0)");return;}
+      items.push({kode:h.kode,qty:q});
+    });
+    if(bad.length){toast("Barang tidak valid: "+bad.slice(0,3).join("; "),true);return;}
+    if(!items.length){toast("Isi minimal satu barang.",true);return;}
+    var sb=$("bfsave");sb.disabled=true;
+    api({action:"adminBufferSimpan",lama:BF.edit.lama,nama:nm,set:Number(st),aktif:$("bfak").checked,items:items}).then(function(r){
+      toast(r.msg||(r.ok?"Tersimpan.":"Gagal."),!r.ok);sb.disabled=false;
+      if(r.ok){BF.warn=r.warn||[];BF.edit=null;loadBF();}
+    }).catch(function(){sb.disabled=false;toast("Gagal terhubung ke server.",true);});
+  };
+}
+function bfUnduh(beli){
+  var L=beli?BF.d.barang.filter(function(x){return x.kurang>0;}):bfTersaring();
+  if(!L.length){toast(beli?"Tidak ada barang yang kurang.":"Tidak ada baris pada filter ini.",true);return;}
+  var d=new Date(),p=function(n){return String(n).padStart(2,"0");},tg=d.getFullYear()+p(d.getMonth()+1)+p(d.getDate());
+  var H=["Kode Barang","Nama Barang","Satuan","Buffer","Stok bebas (Moka+Accurate)","Stok fisik (Moka+Accurate)","Stok Bekas (tidak dihitung)","Kurang","Status","Harga","Nilai beli (Rp)","Dipakai paket"];
+  var rows=[H].concat(L.map(function(x){return [x.kode,x.nama,x.satuan,x.buffer,x.bebas,x.fisik,x.bekas,x.kurang,x.status,x.harga==null?"":x.harga,x.nilai==null?"":x.nilai,x.paket.map(function(q){return q.nama+" ("+q.qty+"x"+q.set+")";}).join("; ")];}));
+  var sh=[{n:beli?"Daftar beli":"Buffer",rows:rows,w:[24,44,8,10,16,16,16,10,10,12,16,50]}];
+  if(!beli){var pr=[["Paket","Aktif","Jumlah set","Kode Barang","Nama Barang","Qty per set","Kebutuhan (qty x set)"]];BF.d.paket.forEach(function(q){q.items.forEach(function(it){pr.push([q.nama,q.aktif?"Ya":"Tidak",q.set,it.kode,it.nama,it.qty,it.butuh]);});});sh.push({n:"Isi paket",rows:pr,w:[20,8,10,24,44,12,18]});}
+  sh.push({n:"Keterangan",rows:[["Buffer paket"],["Diunduh",d.toLocaleString("id-ID")],["Aturan","Buffer = qty per set x jumlah set, gabungan semua paket aktif. Stok bebas = Moka + Accurate - alokasi proyek - permintaan berjalan. Bekas tidak dihitung."],["Menipis","stok bebas di bawah "+BF.d.pct+"% buffer"]],w:[16,90]});
+  if(unduhBanyak((beli?"daftar_beli_buffer_":"buffer_paket_")+tg+".xlsx",sh))toast("Excel siap: "+L.length+" barang.");
+}
+function bfImpor(inp){
+  var file=inp.files[0];inp.value="";if(!file)return;
+  bacaFileMentah(file,async function(a){
+    var sec=null,paket=[],sets={};
+    function t(v){return String(v==null?"":v).trim();}
+    function norm(s){return t(s).toLowerCase().replace(/\s+/g," ");}
+    a.forEach(function(r){
+      var A=t(r[0]),B=t(r[1]);
+      [A,B,t(r[2]),t(r[3])].forEach(function(c){var m=/kebutuhan\s+(.+?)\s+dikali\s+(\d+(?:[.,]\d+)?)\s*set/i.exec(c);if(m)sets[norm(m[1])]=Number(m[2].replace(",","."));});
+      var h=/^kebutuhan\s+(.+)$/i.exec(A);
+      if(h&&!/dikali/i.test(A)&&B===""){sec={nama:t(h[1]),items:[]};paket.push(sec);return;}
+      if(!sec||/^kode barang$/i.test(A)||!B)return;
+      var q=Number(String(r[3]).replace(",","."));if(!(q>0))return;
+      var kode=A;if(/^#|^0$/.test(kode)||/^(false|true)$/i.test(kode))kode="";
+      sec.items.push({kode:kode,nama:B,satuan:t(r[2]),qty:q});
+    });
+    paket=paket.filter(function(p){return p.items.length;});
+    if(!paket.length){toast("Blok 'Kebutuhan ...' tidak ditemukan. Judul blok harus diawali kata Kebutuhan, lalu baris Kode Barang | Nama Barang | Satuan | Qty.",true);return;}
+    paket.forEach(function(p){p.set=sets[norm(p.nama)]||0;});
+    var ring=paket.map(function(p){return "- "+p.nama+": "+p.items.length+" baris, "+(p.set?p.set+" set":"jumlah set tidak ditemukan (dipakai 1)");}).join("\n");
+    if(!confirm("Ditemukan "+paket.length+" paket:\n"+ring+"\n\nPaket yang namanya sama akan ditimpa. Lanjut impor?"))return;
+    try{
+      var r=await api({action:"adminBufferImpor",paket:paket});
+      toast(r.msg||(r.ok?"Selesai.":"Gagal."),!r.ok);BF.warn=r.warn||[];
+      if(r.ok)await loadBF();else drawBF();
+    }catch(e){toast("Gagal terhubung ke server.",true);}
+  });
+}
 /* ---- tab Master Barang: pengajuan barang baru dari departemen ---- */
 var MBD={rows:[],st:"Diajukan",q:"",sel:{}};
 async function loadMB(){

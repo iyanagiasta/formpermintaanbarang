@@ -88,6 +88,23 @@ html,body{background:#fff}
 .wrap{padding:0;overflow:visible}
 .sheet{box-shadow:none;margin:0}
 }
+
+.scanbtn{display:inline-flex;align-items:center;gap:6px}
+.scan-fab{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:50;border-radius:999px;padding:13px 18px;box-shadow:0 4px 14px rgba(0,0,0,.35);background:var(--accent);color:var(--accent-ink);border:0;font:inherit;font-weight:700;font-size:15px;cursor:pointer}
+body.cetak .scan-fab{display:none}
+.scan-lapis{position:fixed;inset:0;z-index:80;background:#000;display:flex;flex-direction:column;color:#fff}
+.scan-atas{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#0a2a43}
+.scan-atas b{flex:1}
+.scan-atas button{min-height:40px;padding:0 12px;border:0;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font:inherit;font-weight:600}
+.scan-video{position:relative;flex:1;min-height:0;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.scan-video video{width:100%;height:100%;object-fit:cover}
+.scan-bingkai{position:absolute;left:8%;right:8%;top:32%;height:36%;border:3px solid #2fd0c4;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.35);pointer-events:none}
+.scan-status{padding:10px 14px;text-align:center;font-weight:700;background:#12304a}
+.scan-status.ok{background:#17653a}.scan-status.salah{background:#8a1c28}
+.scan-alat{display:flex;gap:8px;padding:8px 12px;background:#12304a}
+.scan-alat button{flex:1;min-height:42px;border:0;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font:inherit;font-weight:600}
+.scan-tips{margin:0;padding:8px 14px 14px;font-size:.8rem;color:#b8cdd8;text-align:center;background:#12304a}
+.scan-jml{outline:3px solid var(--accent);outline-offset:-2px}
 </style>
 <style>
 #gate{position:fixed;inset:0;z-index:999;background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);display:none;align-items:center;justify-content:center;padding:16px}
@@ -153,12 +170,14 @@ html,body{background:#fff}
   </div>
 </div>
 <div class="tools">
+  <button class="btn scanbtn" onclick="scanBuka()">&#128247; Scan barang</button>
   <button class="btn" onclick="addRow()">+ Tambah baris barang</button>
   <button class="btn" onclick="resetForm()">Kosongkan form</button>
 </div>
 <div class="status">Isi normal menghasilkan PDF A5 landscape. Bila alasan atau catatan panjang, lembar otomatis memanjang dan PDF menjadi A4 portrait.</div>
 </div>
 
+<button type="button" class="scan-fab" onclick="scanBuka()">&#128247; Scan</button>
 <div id="toast" class="toast" style="display:none"></div>
 <div id="paste" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px">
   <div style="background:var(--bar);color:var(--bar-ink);border-radius:12px;padding:16px;width:min(560px,100%);max-height:90%;display:flex;flex-direction:column;gap:10px">
@@ -169,6 +188,339 @@ html,body{background:#fff}
   </div>
 </div>
 
+<script>
+/* ---------- Scan barcode barang (form permintaan): pemindai Code 128 tanpa pustaka luar ---------- */
+(function(){
+'use strict';
+  var C128P = ["212222","222122","222221","121223","121322","131222","122213","122312","132212","221213","221312","231212","112232","122132","122231","113222","123122","123221","223211","221132","221231","213212","223112","312131","311222","321122","321221","312212","322112","322211","212123","212321","232121","111323","131123","131321","112313","132113","132311","211313","231113","231311","112133","112331","132131","113123","113321","133121","313121","211331","231131","213113","213311","213131","311123","311321","331121","312113","312311","332111","314111","221411","431111","111224","111422","121124","121421","141122","141221","112214","112412","122114","122411","142112","142211","241211","221114","413111","241112","134111","111242","121142","121241","114212","124112","124211","411212","421112","421211","212141","214121","412121","111143","111341","131141","114113","114311","411113","411311","113141","114131","311141","411131","211412","211214","211232","233111"];
+  var C128M = null, C128R = null;
+  function c128Siap() {
+    if (C128M) { return; }
+    C128M = {}; C128R = {};
+    C128P.forEach(function (p, v) { C128M[p] = v; C128R[p.split('').reverse().join('')] = v; });
+  }
+  function simbol128(r, i, tabel) {      // baca 6 garis dari indeks i, kembalikan nilai simbol atau -1 (toleran terhadap kabur)
+    if (i + 6 > r.length) { return -1; }
+    var t = 0, k;
+    for (k = 0; k < 6; k++) { t += r[i + k]; }
+    var u = t / 11;
+    if (u < 0.8) { return -1; }
+    var w = [], sisa = [], jum = 0;
+    for (k = 0; k < 6; k++) { var x = r[i + k] / u, b = Math.min(4, Math.max(1, Math.round(x))); w.push(b); sisa.push(x - b); jum += b; }
+    var guard = 0;
+    while (jum !== 11 && guard++ < 3) {     // perbaiki pembulatan: ubah garis dengan sisa terbesar
+      var idx = -1, best = 0;
+      for (k = 0; k < 6; k++) {
+        var d = (jum < 11) ? sisa[k] : -sisa[k];
+        if (((jum < 11 && w[k] < 4) || (jum > 11 && w[k] > 1)) && d > best) { best = d; idx = k; }
+      }
+      if (idx < 0) { return -1; }
+      w[idx] += (jum < 11) ? 1 : -1; sisa[idx] += (jum < 11) ? -1 : 1; jum += (jum < 11) ? 1 : -1;
+    }
+    if (jum !== 11) { return -1; }
+    var v = tabel[w.join('')];
+    return v === undefined ? -1 : v;
+  }
+  function teks128(v) {                  // v = [start, data..., cek]
+    var set = v[0] === 105 ? 'C' : v[0] === 103 ? 'A' : 'B', out = '', i, x;
+    for (i = 1; i < v.length - 1; i++) {
+      x = v[i];
+      if (set === 'C') {
+        if (x < 100) { out += (x < 10 ? '0' : '') + x; } else if (x === 100) { set = 'B'; } else if (x === 101) { set = 'A'; } else { return null; }
+      } else if (x === 99) { set = 'C'; }
+      else if (x === 100 && set === 'A') { set = 'B'; }
+      else if (x === 101 && set === 'B') { set = 'A'; }
+      else if (x < 96 && !(set === 'A' && x >= 64)) { out += String.fromCharCode(set === 'A' ? x + 32 : x + 32); }
+      else { return null; }
+    }
+    return out;
+  }
+  function cekSum128(v) {
+    var s = v[0], i;
+    for (i = 1; i < v.length - 1; i++) { s += v[i] * i; }
+    return s % 103 === v[v.length - 1];
+  }
+  function dekodeGaris(r) {              // r = panjang garis bergantian mulai dari batang gelap
+    c128Siap();
+    var s, i, v;
+    for (s = 0; s + 12 <= r.length; s += 2) {
+      v = simbol128(r, s, C128M);
+      if (v < 103 || v > 105) { continue; }
+      if (s > 0) { var u0 = (r[s] + r[s + 1] + r[s + 2] + r[s + 3] + r[s + 4] + r[s + 5]) / 11; if (r[s - 1] < 3 * u0) { continue; } }
+      var vals = [v], pos = s + 6, ok = false;
+      while (vals.length < 70) {
+        var x = simbol128(r, pos, C128M);
+        if (x === -1) { break; }
+        if (x === 106) { ok = true; break; }
+        vals.push(x); pos += 6;
+      }
+      if (ok && vals.length >= 3 && cekSum128(vals)) { var t = teks128(vals); if (t) { return t; } }
+    }
+    return null;
+  }
+  function dekodeGarisBalik(r) {         // pembacaan dari kanan ke kiri
+    c128Siap();
+    var s, i;
+    for (s = 0; s + 13 <= r.length; s += 2) {
+      var t7 = 0, k, p7 = '', jum = 0;
+      for (k = 0; k < 7; k++) { t7 += r[s + k]; }
+      var u = t7 / 13; if (u < 1) { continue; }
+      for (k = 0; k < 7; k++) { var w = Math.round(r[s + k] / u); if (w < 1 || w > 4) { jum = -1; break; } jum += w; p7 += w; }
+      if (jum !== 13 || p7 !== '2111332') { continue; }
+      var vals = [], pos = s + 7, ok = false;
+      while (vals.length < 70) {
+        var x = simbol128(r, pos, C128R);
+        if (x === -1) { break; }
+        vals.push(x); pos += 6;
+        if (x >= 103 && x <= 105) { ok = true; break; }
+      }
+      if (!ok) { continue; }
+      vals.reverse();
+      if (vals.length >= 3 && cekSum128(vals)) { var t = teks128(vals); if (t) { return t; } }
+    }
+    return null;
+  }
+  function garisKeRun(g, n, bias) {            // ambang adaptif (titik tengah min-maks lokal) -> panjang garis gelap/terang bergantian
+    var B = 8, nb = Math.ceil(n / B), mn = new Float32Array(nb), mx = new Float32Array(nb), i, j;
+    for (j = 0; j < nb; j++) {
+      var lo = 255, hi = 0, e = Math.min(n, (j + 1) * B);
+      for (i = j * B; i < e; i++) { if (g[i] < lo) { lo = g[i]; } if (g[i] > hi) { hi = g[i]; } }
+      mn[j] = lo; mx[j] = hi;
+    }
+    var wb = Math.max(3, Math.round(n / B / 9)), pos = [], prevGelap = false, prevG = 0, prevT = 0;
+    for (i = 0; i < n; i++) {
+      var c = Math.floor(i / B), a = Math.max(0, c - wb), z = Math.min(nb - 1, c + wb), lo2 = 255, hi2 = 0;
+      for (j = a; j <= z; j++) { if (mn[j] < lo2) { lo2 = mn[j]; } if (mx[j] > hi2) { hi2 = mx[j]; } }
+      var t = lo2 + (hi2 - lo2) * (bias || 0.5), kontras = hi2 - lo2 >= 30, gelap = kontras && g[i] < t;
+      if (i > 0 && gelap !== prevGelap) {   // titik peralihan dengan interpolasi sub-piksel
+        var tt = (t + prevT) / 2, d = g[i] - prevG, f = d === 0 ? 0.5 : (tt - prevG) / d;
+        pos.push({ x: i - 1 + Math.max(0, Math.min(1, f)), gelap: gelap });
+      }
+      prevGelap = gelap; prevG = g[i]; prevT = t;
+    }
+    var runs = [], k = 0;
+    while (k < pos.length && !pos[k].gelap) { k++; }       // mulai dari awal batang gelap pertama
+    for (; k + 1 < pos.length; k++) { runs.push(pos[k + 1].x - pos[k].x); }
+    return runs;
+  }
+  function dekodeCitra(gray, w, h, info) {     // coba banyak garis mendatar di tengah gambar, dengan beberapa ambang
+    var y, hasil = null, langkah = Math.max(2, Math.round(h / 44)), ada = 0, bias = (info && info.cepat) ? [0.5] : [0.5, 0.42, 0.58], bi;
+    for (y = Math.round(h * 0.15); y < h * 0.85 && !hasil; y += langkah) {
+      var g = new Float32Array(w), x;
+      for (x = 0; x < w; x++) { g[x] = (gray[(y - 2) * w + x] + gray[(y - 1) * w + x] + gray[y * w + x] + gray[(y + 1) * w + x] + gray[(y + 2) * w + x]) / 5; }
+      for (bi = 0; bi < bias.length && !hasil; bi++) {
+        var r = garisKeRun(g, w, bias[bi]);
+        if (r.length < 20) { continue; }
+        ada++;
+        hasil = dekodeGaris(r);
+        if (!hasil) { hasil = dekodeGarisBalik(r); }
+      }
+    }
+    if (info) { info.garis = ada; }
+    return hasil;
+  }
+  function putar90(gray, w, h) {               // transpos: baris jadi kolom (untuk barcode tegak)
+    var o = new Uint8Array(w * h), x, y;
+    for (y = 0; y < h; y++) { for (x = 0; x < w; x++) { o[x * h + y] = gray[y * w + x]; } }
+    return o;
+  }
+
+  var S=null, BYK={}, BYID={}, PEND=null;
+  function kk(s){return String(s==null?"":s).trim().toLowerCase().replace(/[^a-z0-9]/g,"");}
+  window.scanBangunPeta=function(items){
+    BYK={};BYID={};
+    (items||[]).forEach(function(i){
+      var k=kk(i.kode); if(k)BYK[k]=i;
+      var d=String(i.idbc==null?"":i.idbc).trim(); if(d)BYID[d]=i;
+    });
+  };
+  function bunyi(ok){
+    try{if(navigator.vibrate)navigator.vibrate(ok?70:[60,60,60]);}catch(e){}
+    try{var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+      var ac=S&&S.ac?S.ac:(S?(S.ac=new AC()):new AC()),o=ac.createOscillator(),g=ac.createGain();
+      o.frequency.value=ok?1500:300;g.gain.value=.12;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+(ok?.12:.3));}catch(e){}
+  }
+  function stat(t,j){var s=document.getElementById("scanStatus");if(s){s.textContent=t;s.className="scan-status"+(j?" "+j:"");}}
+  function matikan(){
+    if(!S)return;
+    try{if(S.stream)S.stream.getTracks().forEach(function(t){t.stop();});}catch(e){}
+    S.stream=null;S.menyala=false;
+    try{if(S.video)S.video.srcObject=null;}catch(e){}
+  }
+  function tutup(){
+    if(!S)return;
+    S.tutup=true;matikan();
+    try{if(S.ac)S.ac.close();}catch(e){}
+    var l=document.getElementById("scanLapis");if(l)l.parentNode.removeChild(l);
+    document.body.style.overflow="";
+    S=null;
+  }
+  function cariItem(teks){
+    var t=String(teks).trim();
+    return BYID[t]||BYK[kk(t)]||null;
+  }
+  function barisKosong(){
+    var rs=document.querySelectorAll("#rows tr");
+    for(var i=0;i<rs.length;i++){if(!rs[i].querySelector(".nama").value.trim())return rs[i];}
+    return null;
+  }
+  function barisKode(kode){
+    var rs=document.querySelectorAll("#rows tr");
+    for(var i=0;i<rs.length;i++){if(kk(rs[i].querySelector(".kode").value)===kk(kode)&&kk(kode))return rs[i];}
+    return null;
+  }
+  function fokusJml(tr){
+    var j=tr.querySelector(".jml");
+    try{tr.scrollIntoView({block:"center"});}catch(e){}
+    j.classList.add("scan-jml");
+    j.addEventListener("blur",function f(){j.classList.remove("scan-jml");j.removeEventListener("blur",f);});
+    setTimeout(function(){try{j.focus();j.select();}catch(e){}},60);
+  }
+  function masukkan(it){
+    var tr=barisKode(it.kode),tambah=false;
+    if(tr){                                   // barang sudah ada di daftar: tambah 1
+      var j=tr.querySelector(".jml"),n=parseFloat(String(j.value).replace(",","."));
+      j.value=String((isNaN(n)?0:n)+1).replace(".",",");
+    }else{
+      tr=barisKosong();
+      if(!tr){addRow();tr=document.querySelector("#rows tr:last-child");}
+      var nm=tr.querySelector(".nama");nm.value=it.nama;
+      lookup(tr);
+      tr.querySelector(".jml").value="1";
+      tr.dataset.scan="1";
+      tambah=true;
+    }
+    renderStok(tr);
+    tr.querySelector(".jml").dispatchEvent(new Event("input",{bubbles:true}));
+    return {tr:tr,baru:tambah};
+  }
+  function hasil(teks){
+    S.blok=teks;S.blokSampai=Date.now()+1500;
+    var it=cariItem(teks);
+    if(!it){bunyi(false);stat('Kode "'+teks+'" tidak ada di daftar barang.',"salah");S.jeda=Date.now()+2500;return;}
+    bunyi(true);
+    var r=masukkan(it);
+    tutup();                                  // kamera mati supaya keyboard bisa muncul untuk isi jumlah
+    toast2((r.baru?"Ditambahkan: ":"Jumlah +1: ")+it.nama);
+    fokusJml(r.tr);
+    pasangEnter(r.tr);
+  }
+  function toast2(t){var e=document.getElementById("toast");if(!e)return;e.textContent=t;e.style.display="block";clearTimeout(toast2.t);toast2.t=setTimeout(function(){e.style.display="none";},2200);}
+  function pasangEnter(tr){
+    var j=tr.querySelector(".jml");
+    if(j.dataset.scanEnter)return;j.dataset.scanEnter="1";
+    j.addEventListener("keydown",function(ev){
+      if(ev.key==="Enter"){ev.preventDefault();j.blur();window.scanBuka();}
+    });
+  }
+  function bacaFoto(file){
+    stat("Membaca foto…","");
+    var url=URL.createObjectURL(file),img=new Image();
+    img.onload=function(){
+      var sk=Math.min(1,2000/Math.max(img.width,img.height)),w=Math.round(img.width*sk),h=Math.round(img.height*sk);
+      var k=document.createElement("canvas");k.width=w;k.height=h;
+      var cx=k.getContext("2d",{willReadFrequently:true});cx.drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+      var d=cx.getImageData(0,0,w,h).data,g=new Uint8Array(w*h),i;
+      for(i=0;i<w*h;i++){g[i]=(d[i*4]*77+d[i*4+1]*150+d[i*4+2]*29)>>8;}
+      var t=dekodeCitra(g,w,h,{})||dekodeCitra(putar90(g,w,h),h,w,{});
+      if(t&&S)hasil(t);else stat("Barcode di foto tidak terbaca. Ambil foto lebih dekat, barcode mendatar dan tajam.","salah");
+    };
+    img.onerror=function(){stat("Foto tidak bisa dibuka.","salah");};
+    img.src=url;
+  }
+  function nyala(){
+    if(!S||S.tutup||S.menyala)return;
+    S.menyala=true;
+    var video=S.video,senter=S.senter;
+    navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}},audio:false}).then(function(st){
+      if(!S||S.tutup){st.getTracks().forEach(function(t){t.stop();});return;}
+      S.stream=st;video.srcObject=st;
+      try{
+        var tr=st.getVideoTracks()[0],cap=tr.getCapabilities?tr.getCapabilities():{};
+        tr.addEventListener("ended",function(){if(S&&S.stream===st){S.menyala=false;S.stream=null;}});
+        if(cap.torch){senter.hidden=false;var on=false;senter.onclick=function(){on=!on;tr.applyConstraints({advanced:[{torch:on}]}).catch(function(){});};}
+        if(cap.focusMode&&cap.focusMode.indexOf("continuous")>=0){tr.applyConstraints({advanced:[{focusMode:"continuous"}]}).catch(function(){});}
+      }catch(e){}
+      var p=video.play();if(p&&p.catch)p.catch(function(){});
+      S.ct=-1;S.ctT=Date.now();
+      stat("Arahkan kamera ke barcode.","");
+      if(!S.berputar){S.berputar=true;putar(video);}
+    }).catch(function(e){
+      if(S)S.menyala=false;
+      var izin=e&&(e.name==="NotAllowedError"||e.name==="SecurityError");
+      stat(izin?"Izin kamera ditolak. Izinkan kamera untuk situs ini di pengaturan browser, lalu coba lagi.":"Kamera tidak bisa dibuka: "+((e&&e.message)||"tidak dikenal"),"salah");
+    });
+  }
+  function putar(video){
+    var kv=document.createElement("canvas"),cx=kv.getContext("2d",{willReadFrequently:true}),bd=null;
+    function tangkap(t){
+      if(!S)return;
+      if(S.blok&&t===S.blok){S.blokSampai=Date.now()+1500;return;}
+      if(t===S.terakhir)S.kuat++;else{S.terakhir=t;S.kuat=1;}
+      if(S.kuat>=2){S.kuat=0;S.terakhir="";hasil(t);}
+    }
+    function langkah(){
+      if(!S||S.tutup)return;
+      if(!S.menyala&&!S.stream)nyala();
+      if(S.stream){
+        if(video.paused){var pp=video.play();if(pp&&pp.catch)pp.catch(function(){});}
+        if(video.currentTime!==S.ct){S.ct=video.currentTime;S.ctT=Date.now();}
+        else if(Date.now()-S.ctT>3000){matikan();S.ctT=Date.now();nyala();setTimeout(langkah,400);return;}
+      }
+      if(Date.now()<S.jeda||video.readyState<2||!video.videoWidth){setTimeout(langkah,200);return;}
+      var w=Math.min(1280,video.videoWidth),h=Math.round(video.videoHeight*w/video.videoWidth);
+      kv.width=w;kv.height=h;
+      var tahap=Promise.resolve(null);
+      if(window.BarcodeDetector&&bd!==false){
+        if(!bd){try{bd=new window.BarcodeDetector({formats:["code_128"]});}catch(e){bd=false;}}
+        if(bd){tahap=Promise.race([bd.detect(video),new Promise(function(res){setTimeout(function(){res([]);},1500);})]).then(function(r){return r&&r.length?String(r[0].rawValue):null;}).catch(function(){return null;});}
+      }
+      tahap.then(function(t){
+        if(t)return t;
+        cx.drawImage(video,0,0,w,h);
+        var d=cx.getImageData(0,0,w,h).data,g=new Uint8Array(w*h),i;
+        for(i=0;i<w*h;i++){g[i]=(d[i*4]*77+d[i*4+1]*150+d[i*4+2]*29)>>8;}
+        S.bingkai=(S.bingkai||0)+1;
+        var inf={cepat:S.bingkai%2===1},hs=dekodeCitra(g,w,h,inf);
+        if(!hs&&S.bingkai%4===0){var inf2={cepat:true};hs=dekodeCitra(putar90(g,w,h),h,w,inf2);}
+        return hs;
+      }).then(function(t){
+        if(t)tangkap(t);
+        else if(S&&S.blok&&Date.now()>S.blokSampai)S.blok="";
+        if(S)setTimeout(langkah,60);
+      }).catch(function(){if(S)setTimeout(langkah,200);});
+    }
+    langkah();
+  }
+  window.scanBuka=function(){
+    if(S)return;
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){window.alert("Kamera tidak bisa dipakai di sini. Buka form lewat alamat https:// di Chrome (Android) atau Safari (iPhone).");return;}
+    if(!Object.keys(BYK).length){window.alert("Daftar barang belum termuat. Tunggu sebentar lalu coba lagi.");return;}
+    try{if(document.activeElement)document.activeElement.blur();}catch(e){}
+    S={tutup:false,jeda:0,terakhir:"",kuat:0,stream:null,ac:null,blok:"",blokSampai:0};
+    function E(tag,at,kids){var e=document.createElement(tag);for(var k in at){if(k==="text")e.textContent=at[k];else if(k==="onclick")e.onclick=at[k];else e.setAttribute(k,at[k]);}(kids||[]).forEach(function(c){e.appendChild(c);});return e;}
+    var video=E("video",{playsinline:"true",muted:"true",autoplay:"true"});video.muted=true;
+    var senter=E("button",{type:"button",id:"scanSenter",text:"Senter",hidden:"hidden"});
+    var lapis=E("div",{id:"scanLapis",class:"scan-lapis"},[
+      E("div",{class:"scan-atas"},[E("b",{text:"Scan barcode barang"}),senter,E("button",{type:"button",text:"Tutup",onclick:tutup})]),
+      E("div",{class:"scan-video"},[video,E("div",{class:"scan-bingkai"})]),
+      E("div",{id:"scanStatus",class:"scan-status",role:"status","aria-live":"polite",text:"Menyalakan kamera…"}),
+      E("div",{class:"scan-alat"},[
+        E("button",{type:"button",text:"Foto barcode",onclick:function(){document.getElementById("scanFoto").click();}}),
+        E("button",{type:"button",text:"Ketik kode",onclick:function(){var k=window.prompt("Ketik kode barang persis seperti di label:");if(k&&k.trim()&&S)hasil(k.trim());}}),
+        E("input",{type:"file",id:"scanFoto",accept:"image/*",capture:"environment",hidden:"hidden"})
+      ]),
+      E("p",{class:"scan-tips",text:"Arahkan barcode mendatar ke dalam bingkai, jarak 10 sampai 20 cm. Setelah terbaca, barang masuk ke daftar dan jumlah otomatis 1. Isi jumlah lalu tekan Enter untuk scan berikutnya."})
+    ]);
+    document.body.appendChild(lapis);
+    document.body.style.overflow="hidden";
+    document.getElementById("scanFoto").onchange=function(){var f=this.files&&this.files[0];this.value="";if(f)bacaFoto(f);};
+    S.video=video;S.senter=senter;
+    nyala();
+  };
+  window.scanTutup=tutup;
+})();
+</script>
 <script>
 var DB=new Map(); // nama(lowercase) -> {nama,kode,satuan}
 var ROWS=5;
@@ -741,6 +1093,7 @@ function loadNomor(){
   }).catch(function(e){el.placeholder="Nomor belum bisa dimuat: gagal terhubung ke backend";});
 }
 function applyBarang(items,label){
+  try{window.scanBangunPeta(items);}catch(e){}
   loadDB(toRows(items.map(function(i){return [i.nama,i.kode,i.satuan];})),label);
 }
 function loadBarang(){
@@ -750,7 +1103,7 @@ function loadBarang(){
   if(typeof API_URL==="undefined"||String(API_URL).indexOf("PASTE_")===0){info.textContent="API_URL belum diisi di index.html.";return;}
   var have=false;
   try{
-    var c=JSON.parse(localStorage.getItem("sctk_barang_v2")||"null");
+    var c=JSON.parse(localStorage.getItem("sctk_barang_v3")||"null");
     if(c&&c.items&&c.items.length){applyBarang(c.items,"sheet Barang (tersimpan)");have=true;}
   }catch(e){}
   if(!have)info.textContent="Memuat daftar barang dari sheet...";
@@ -760,7 +1113,7 @@ function loadBarang(){
       return;
     }
     applyBarang(r.items,"sheet Barang");
-    try{localStorage.setItem("sctk_barang_v2",JSON.stringify({t:Date.now(),items:r.items}));}catch(e){}
+    try{localStorage.setItem("sctk_barang_v3",JSON.stringify({t:Date.now(),items:r.items}));}catch(e){}
   }).catch(function(){
     if(!have)info.textContent="Gagal memuat daftar barang. Periksa internet lalu muat ulang halaman.";
   });

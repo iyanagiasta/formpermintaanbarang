@@ -100,7 +100,7 @@ async function load(first){
     if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
     DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
     var h=(location.hash||"").replace("#","");
-    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem","pengumuman","terima","pengajuan","accurate","masterbarang","komparasi"].indexOf(h)>=0){goTab(h);return;}
+    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem","pengumuman","terima","pengajuan","accurate","masterbarang","komparasi","baopname"].indexOf(h)>=0){goTab(h);return;}
     draw(r.now);paMuatRingkas();
   }catch(e){
     if(first)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");else toast("Gagal terhubung ke server.",true);
@@ -194,7 +194,7 @@ async function onAct(b){
 function pane(){return document.getElementById("pane")||app;}
 function tabsUI(){
   if(!document.getElementById("pane"))app.innerHTML='<div class="tabs" id="tabs"></div><div id="pane"></div>';
-  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["barangmati","Barang Mati"],["laporan","Laporan"],["accurate","Accurate"],["realisasi","Realisasi"],["pembelian","Pembelian"],["label","Label"],["masterbarang","Master Barang"],["komparasi","Komparasi"],["terima","Terima Barang"],["pengajuan","Pengajuan"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
+  document.getElementById("tabs").innerHTML=[["pantau","Pantauan BPB"],["serah","Serah Barang"],["stok","Stok & Harga"],["opname","Selisih Opname"],["proyek","Proyek"],["mutasi","Mutasi"],["barangmati","Barang Mati"],["laporan","Laporan"],["accurate","Accurate"],["realisasi","Realisasi"],["pembelian","Pembelian"],["label","Label"],["masterbarang","Master Barang"],["komparasi","Komparasi"],["baopname","BA Opname"],["terima","Terima Barang"],["pengajuan","Pengajuan"],["pengumuman","Pengumuman"],["sistem","Sistem"]].map(function(t){return '<button class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");
   paBadge();
   document.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){goTab(b.getAttribute("data-tab"));};});
 }
@@ -205,7 +205,7 @@ function goTab(t){
   TAB=t;
   if(t==="pantau"){load(false);return;}
   tabsUI();
-  if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="accurate")loadAccurate();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
+  if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="baopname")loadBA();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="laporan")loadLaporan();else if(t==="accurate")loadAccurate();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
   try{history.replaceState(null,"","#"+t);}catch(e){}
 }
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
@@ -544,6 +544,142 @@ function bacaFileMentah(file,cb){
   if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat.",true);return;}
   var fr=new FileReader();fr.onload=function(ev){try{var wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"});cb(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:"",raw:true}));}catch(e){toast("File tidak bisa dibaca. Gunakan .xlsx atau .csv.",true);}};fr.readAsArrayBuffer(file);
 }
+
+/* ---- tab BA Opname: selisih, keterangan penyelesaian, komparasi file perusahaan, berita acara ---- */
+var BA={daftar:null,penyebab:[],batasU:5,batasRp:100000,sesiId:"",res:null,rows:null,file:"",ket:{},ketSesi:{p:"",c:""},dirty:{},sesiDirty:false,f:"semua",q:""};
+function baTgl(s){var m=String(s||"").match(/^(\d{4})-(\d\d)-(\d\d)/);return m?m[3]+"/"+m[2]+"/"+m[1]:"-";}
+async function loadBA(){
+  pane().innerHTML='<div class="card msg">Memuat sesi opname...</div>';
+  try{
+    var r=await api({action:"adminOpnameBA"});
+    if(!r.ok){toast(r.msg||"Gagal.",true);return;}
+    BA.daftar=r.daftar||[];BA.penyebab=r.penyebab||[];BA.batasU=r.batasU;BA.batasRp=r.batasRp;
+    if(!BA.sesiId&&BA.daftar.length)BA.sesiId=BA.daftar[0].id;
+    if(BA.sesiId)await muatBA();else drawBA();
+  }catch(e){toast("Gagal terhubung ke server.",true);}
+}
+async function muatBA(){
+  var rows=BA.rows||(KP&&KP.rows)||null;
+  pane().innerHTML='<div class="card msg">Menyusun laporan'+(rows?" dan membandingkan dengan file perusahaan":"")+'...</div>';
+  try{
+    var r=await api({action:"adminOpnameBA",sesiId:BA.sesiId,rows:rows||undefined});
+    if(!r.ok){toast(r.msg||"Gagal.",true);BA.res=null;drawBA();return;}
+    BA.res=r;BA.dirty={};BA.sesiDirty=false;BA.ket={};
+    r.items.forEach(function(x){BA.ket[x.kode]={p:x.penyebab||"",c:x.catatan||""};});
+    BA.ketSesi={p:(r.ketSesi&&r.ketSesi.penyebab)||"",c:(r.ketSesi&&r.ketSesi.catatan)||""};
+    if(!BA.rows&&rows)BA.file=BA.file||KP.file||"file dari tab Komparasi";
+    drawBA();
+  }catch(e){toast("Gagal terhubung ke server.",true);drawBA();}
+}
+function baTersaring(){
+  var R=BA.res;if(!R)return [];var q=BA.q.toLowerCase();
+  return R.items.filter(function(x){
+    var k=BA.ket[x.kode]||{p:"",c:""},ada=!!(k.p||k.c);
+    if(BA.f==="besar"&&!x.besar)return false;
+    if(BA.f==="belum"&&(!x.besar||ada))return false;
+    if(BA.f==="plus"&&x.selisih<=0)return false;
+    if(BA.f==="minus"&&x.selisih>=0)return false;
+    return !q||(x.nama+" "+x.kode+" "+x.rak+" "+x.oleh).toLowerCase().indexOf(q)>=0;
+  });
+}
+function baBelum(){var n=0;if(!BA.res)return 0;BA.res.items.forEach(function(x){var k=BA.ket[x.kode]||{p:"",c:""};if(x.besar&&!k.p&&!k.c)n++;});return n;}
+function baKetTeks(x){var k=BA.ket[x.kode]||{p:"",c:""};return [k.p,k.c].filter(Boolean).join(" - ")||"Disamakan dengan hasil hitung (otomatis)";}
+function drawBA(){
+  var D=BA.daftar||[],R=BA.res;
+  var opt=D.map(function(s){return '<option value="'+esc(s.id)+'"'+(s.id===BA.sesiId?" selected":"")+'>'+esc(s.nama)+" ("+baTgl(s.tgl)+") - "+s.nSel+" selisih</option>";}).join("");
+  var head='<div class="card"><b>BA Opname: selisih, keterangan penyelesaian, dan komparasi</b><div class="note">Pilih sesi opname. Semua selisih otomatis berlabel <b>Disamakan dengan hasil hitung</b>. Isi keterangan khusus untuk selisih <b>besar</b> (lebih dari '+fmtN(BA.batasU)+' unit atau '+rp(BA.batasRp)+'). Unggah file perusahaan (Accurate + Moka) untuk membandingkan; file bisa diperbarui kapan saja, laporan dihitung ulang.</div>'+
+   '<div class="bar"><select id="basesi" style="min-width:240px;flex:1">'+(opt||'<option value="">Belum ada sesi opname</option>')+'</select>'+
+   '<label class="note">File perusahaan: <input type="file" id="bafile" accept=".xlsx,.xls,.csv"></label><span class="note" id="bafi">'+esc(BA.file||(KP&&KP.rows?"memakai file dari tab Komparasi":"belum ada file"))+'</span></div></div>';
+  if(!R){pane().innerHTML=head+(D.length?"":'<div class="card msg">Belum ada sesi opname di OpnameAntrean.</div>');bindBA();return;}
+  var T=R.ringkas,belum=baBelum(),ada=!!R.kpRingkas;
+  var ring='<div class="sum"><div><b>'+T.n+'</b><span>Barang selisih</span></div><div><b style="color:var(--grn,#1b8a3a)">+'+fmtN(T.plus)+'</b><span>Lebih (unit) &middot; '+rp(T.rpPlus)+'</span></div><div><b style="color:var(--red,#c0392b)">&minus;'+fmtN(T.minus)+'</b><span>Kurang (unit) &middot; '+rp(T.rpMinus)+'</span></div><div><b>'+T.besar+'</b><span>Selisih besar</span></div><div style="border-color:'+(belum?"var(--red,#c0392b)":"var(--line)")+'"><b style="color:'+(belum?"var(--red,#c0392b)":"inherit")+'">'+belum+'</b><span>Besar, belum berketerangan</span></div></div>'+
+   (T.tanpaHarga?'<div class="note">'+T.tanpaHarga+' barang belum punya harga, nilai Rp-nya belum terhitung.</div>':'');
+  var kpbox='';
+  if(ada){var K=R.kpRingkas,KT=K.total;kpbox='<div class="card"><b>Komparasi dengan file perusahaan</b> <span class="note">('+K.file+' barang di file; aturan sama dengan tab Komparasi: Gudang acuan, minus dikurangi dari Moka dulu baru Accurate, plus ke '+esc(K.lebih)+')</span><div class="sum" style="margin-top:8px"><div><b style="color:var(--red,#c0392b)">Moka &minus;'+fmtN(KT.rekMminus)+'</b><span>Kurangi Moka &middot; '+rp(KT.nMminus)+'</span></div><div><b style="color:var(--red,#c0392b)">Accurate &minus;'+fmtN(KT.rekAminus)+'</b><span>Kurangi Accurate &middot; '+rp(KT.nAminus)+'</span></div><div><b style="color:var(--grn,#1b8a3a)">Moka +'+fmtN(KT.rekMplus)+'</b><span>Tambah Moka &middot; '+rp(KT.nMplus)+'</span></div><div><b style="color:var(--grn,#1b8a3a)">Accurate +'+fmtN(KT.rekAplus)+'</b><span>Tambah Accurate &middot; '+rp(KT.nAplus)+'</span></div></div><div class="note">Angka ini untuk <b>seluruh file</b>. Kolom di tabel di bawah hanya untuk barang yang selisih di sesi ini. Komparasi hanya menghitung adjustment di sistem perusahaan; stok Gudang tidak berubah.</div></div>';}
+  var F=[["semua","Semua ("+T.n+")"],["besar","Selisih besar ("+T.besar+")"],["belum","Besar belum berketerangan ("+belum+")"],["plus","Lebih"],["minus","Kurang"]];
+  var L=baTersaring();
+  var optP=function(v){return '<option value="">(otomatis: disamakan dengan hasil hitung)</option>'+BA.penyebab.map(function(z){return '<option'+(z===v?" selected":"")+'>'+esc(z)+'</option>';}).join("")+(v&&BA.penyebab.indexOf(v)<0?'<option selected>'+esc(v)+'</option>':"");};
+  var thk=ada?'<th class="nm">File Accurate</th><th class="nm">File Moka</th><th class="nm">Adj. Moka</th><th class="nm">Adj. Accurate</th><th>Kasus</th>':'';
+  var tbl=L.length?'<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Sistem</th><th class="nm">Hitung</th><th class="nm">Selisih</th><th class="nm">Nilai</th><th>Penghitung</th><th>Penyebab dan catatan</th>'+thk+'</tr></thead><tbody>'+L.slice(0,400).map(function(x,i){
+    var k=BA.ket[x.kode]||{p:"",c:""},kos=!k.p&&!k.c,kp=x.kp||{};
+    var kc=ada?(kp.tidakAda?'<td colspan="5" class="note">Barang tidak ada di file</td>':'<td class="nm">'+fmtN(kp.fa)+'</td><td class="nm">'+fmtN(kp.fm)+'</td><td class="nm">'+kpSel(kp.rekM)+'</td><td class="nm">'+kpSel(kp.rekA)+'</td><td><small>'+esc(kp.kasus||"")+'</small></td>'):'';
+    return '<tr'+(x.besar&&kos?' style="outline:2px solid var(--red,#c0392b);outline-offset:-2px"':'')+'><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.rak?' &middot; '+esc(x.rak):'')+(x.besar?' &middot; <span style="color:var(--red,#c0392b)">BESAR</span>':'')+'</small></td>'+
+     '<td class="nm" data-l="Sistem">'+fmtN(x.sistem)+'</td><td class="nm" data-l="Hitung">'+fmtN(x.hitung)+'</td><td class="nm" data-l="Selisih">'+kpSel(x.selisih)+'</td><td class="nm" data-l="Nilai">'+(x.nilai==null?"-":rp(x.nilai))+'</td><td data-l="Penghitung">'+esc(x.oleh)+'</td>'+
+     '<td data-l="Keterangan" style="min-width:230px"><select data-bap="'+esc(x.kode)+'" style="width:100%">'+optP(k.p)+'</select><input data-bac="'+esc(x.kode)+'" placeholder="Catatan (opsional)" value="'+esc(k.c)+'" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"></td>'+kc+'</tr>';
+   }).join("")+'</tbody></table></div>':'<div class="card msg">Tidak ada baris sesuai filter.</div>';
+  pane().innerHTML=head+ring+kpbox+
+   '<div class="card"><b>Keterangan untuk seluruh sesi</b><div class="note">Berlaku untuk semua selisih yang tidak diberi keterangan khusus. Tercetak di berita acara.</div><textarea id="baks" rows="2" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit" placeholder="Mis. Selisih opname Oktober sudah disesuaikan, menunggu adjustment Accurate">'+esc(BA.ketSesi.c)+'</textarea></div>'+
+   '<div class="bar"><input id="baq" placeholder="Cari kode, nama, rak, penghitung..." value="'+esc(BA.q)+'"><button id="basv" class="primary">Simpan keterangan</button><button id="baxl">Unduh Excel</button><button id="baprn">Cetak berita acara</button></div>'+
+   '<div class="tabs">'+F.map(function(t){return '<button data-baf="'+t[0]+'" class="'+(BA.f===t[0]?"on":"")+'">'+esc(t[1])+'</button>';}).join("")+'</div>'+
+   '<div class="note">Menampilkan '+Math.min(L.length,400)+' dari '+L.length+' barang.</div>'+tbl;
+  bindBA();
+  document.getElementById("baq").onkeydown=function(e){if(e.key==="Enter"){BA.q=this.value;drawBA();}};
+  document.getElementById("baks").oninput=function(){BA.ketSesi.c=this.value;BA.sesiDirty=true;};
+  document.querySelectorAll("[data-baf]").forEach(function(b){b.onclick=function(){BA.q=document.getElementById("baq").value;BA.f=b.getAttribute("data-baf");drawBA();};});
+  document.querySelectorAll("[data-bap]").forEach(function(s){s.onchange=function(){var kd=s.getAttribute("data-bap");(BA.ket[kd]=BA.ket[kd]||{p:"",c:""}).p=s.value;BA.dirty[kd]=1;};});
+  document.querySelectorAll("[data-bac]").forEach(function(s){s.oninput=function(){var kd=s.getAttribute("data-bac");(BA.ket[kd]=BA.ket[kd]||{p:"",c:""}).c=s.value;BA.dirty[kd]=1;};});
+  document.getElementById("basv").onclick=baSimpan;
+  document.getElementById("baxl").onclick=baUnduh;
+  document.getElementById("baprn").onclick=baCetak;
+}
+function bindBA(){
+  var s=document.getElementById("basesi");if(s)s.onchange=function(){BA.sesiId=this.value;BA.res=null;muatBA();};
+  var f=document.getElementById("bafile");if(!f)return;
+  f.onchange=function(){
+    var file=this.files[0];if(!file)return;
+    bacaFileMentah(file,function(a){
+      var AL={kode:["kode barang","kode"],nama:["nama barang","nama"],acc:["stok accurate","stock accurate","qty accurate","accurate"],moka:["stok moka","stock moka","qty moka","moka"]},hb=-1,hd=[];
+      for(var q=0;q<Math.min(a.length,10)&&hb<0;q++){var h2=(a[q]||[]).map(function(x){return String(x).trim().toLowerCase();});if(AL.kode.some(function(n){return h2.indexOf(n)>=0;})){hb=q;hd=h2;}}
+      if(hb<0){toast("Baris judul dengan kolom 'Kode Barang' tidak ditemukan.",true);return;}
+      var m={};for(var k in AL){m[k]=-1;for(var j=0;j<AL[k].length&&m[k]<0;j++)m[k]=hd.indexOf(AL[k][j]);}
+      if(m.acc<0||m.moka<0){toast("Kolom tidak ditemukan: "+(m.acc<0?"Stok Accurate ":"")+(m.moka<0?"Stok Moka":""),true);return;}
+      function t(v){return String(v==null?"":v).trim();}
+      var rows=[];for(var i=hb+1;i<a.length;i++){var r=a[i],kd=t(r[m.kode]);if(!kd)continue;rows.push({kode:kd,nama:m.nama>=0?t(r[m.nama]):"",accurate:t(r[m.acc]),moka:t(r[m.moka])});}
+      if(!rows.length){toast("Tidak ada baris data.",true);return;}
+      BA.rows=rows;BA.file=file.name+" ("+rows.length+" baris, "+new Date().toLocaleDateString("id-ID")+")";
+      if(BA.res&&baAdaPerubahan()){baSimpan(true).then(muatBA);}else muatBA();
+    });
+  };
+}
+function baAdaPerubahan(){return BA.sesiDirty||Object.keys(BA.dirty).length>0;}
+async function baSimpan(diam){
+  if(!BA.res)return;
+  var items=Object.keys(BA.dirty).map(function(kd){var k=BA.ket[kd]||{p:"",c:""};return {kode:kd,penyebab:k.p,catatan:k.c};});
+  if(!items.length&&!BA.sesiDirty){if(diam!==true)toast("Tidak ada perubahan.");return;}
+  try{
+    var r=await api({action:"adminOpnameKetSimpan",sesiId:BA.sesiId,items:items,sesi:{penyebab:BA.ketSesi.p,catatan:BA.ketSesi.c}});
+    toast(r.msg||(r.ok?"Tersimpan.":"Gagal."),!r.ok);
+    if(r.ok){BA.dirty={};BA.sesiDirty=false;if(diam!==true)muatBA();}
+  }catch(e){toast("Gagal terhubung ke server.",true);}
+}
+function baUnduh(){
+  var R=BA.res;if(!R)return;var ada=!!R.kpRingkas;
+  var H=["Kode Barang","Nama Barang","Satuan","Rak","Stok Sistem","Hasil Hitung","Selisih","Harga","Nilai (Rp)","Penghitung","Status","Selisih besar?","Penyebab","Catatan","Penyelesaian"].concat(ada?["File Accurate","File Moka","Gudang Accurate","Gudang Moka","Adjustment Moka (+/-)","Adjustment Accurate (+/-)","Kasus komparasi","Analisis komparasi"]:[]);
+  var rows=[H].concat(R.items.map(function(x){var k=BA.ket[x.kode]||{p:"",c:""},kp=x.kp||{};return [x.kode,x.nama,x.satuan,x.rak,x.sistem,x.hitung,x.selisih,x.harga==null?"":x.harga,x.nilai==null?"":x.nilai,x.oleh,x.status,x.besar?"YA":"",k.p,k.c,baKetTeks(x)].concat(ada?(kp.tidakAda?["","","","","","","Tidak ada di file",""]:[kp.fa,kp.fm,kp.ga,kp.gm,kp.rekM,kp.rekA,kp.kasus||"",kp.analisis||""]):[]);}));
+  var T=R.ringkas,d=new Date(),ring=[["Berita Acara Stock Opname: "+R.sesi.nama],["Tanggal sesi",baTgl(R.sesi.tgl)],["Diunduh",d.toLocaleString("id-ID")],["Barang selisih",T.n],["Lebih (unit)",T.plus],["Kurang (unit)",T.minus],["Nilai lebih (Rp)",T.rpPlus],["Nilai kurang (Rp)",T.rpMinus],["Selisih besar",T.besar],["Selisih besar belum berketerangan",baBelum()],["Keterangan sesi",BA.ketSesi.c||""],["File perusahaan",ada?BA.file:"(tidak dibandingkan)"]];
+  if(unduhBanyak("BA_opname_"+String(R.sesi.nama).replace(/[^\w]+/g,"_")+".xlsx",[{n:"Selisih",rows:rows,w:[16,40,8,10,12,12,10,12,14,16,12,10,38,30,40,12,12,14,14,16,18,18,80]},{n:"Ringkasan",rows:ring,w:[34,60]}]))toast("Excel siap: "+R.items.length+" barang.");
+}
+function baCetak(){
+  var R=BA.res;if(!R)return;
+  var belum=baBelum();
+  if(belum&&!confirm(belum+" selisih besar belum diberi keterangan khusus. Tetap cetak berita acara?"))return;
+  var T=R.ringkas,ada=!!R.kpRingkas,KT=ada?R.kpRingkas.total:null,d=new Date();
+  var rows=R.items.map(function(x,i){var kp=x.kp||{};return '<tr><td>'+(i+1)+'</td><td><b>'+esc(x.nama)+'</b><br><small>'+esc(x.kode)+(x.rak?' / '+esc(x.rak):'')+'</small></td><td class="r">'+fmtN(x.sistem)+'</td><td class="r">'+fmtN(x.hitung)+'</td><td class="r"><b>'+(x.selisih>0?"+":"")+fmtN(x.selisih)+'</b></td><td class="r">'+(x.nilai==null?"-":rp(x.nilai))+'</td><td>'+esc(baKetTeks(x))+'</td>'+(ada?'<td class="r">'+(kp.tidakAda?"-":kpAdj(kp))+'</td>':'')+'</tr>';}).join("");
+  function kpAdj(kp){var p=[];if(kp.rekM)p.push("Moka "+(kp.rekM>0?"+":"")+fmtN(kp.rekM));if(kp.rekA)p.push("Acc "+(kp.rekA>0?"+":"")+fmtN(kp.rekA));return p.join("<br>")||"0";}
+  var h='<div id="baPrint"><div class="baact"><button onclick="window.print()">Cetak</button><button onclick="baTutupCetak()">Tutup</button></div><div class="bakertas">'+
+   '<div class="bah"><b>PT SARANA CATUR TIRTA KELOLA</b><br>BERITA ACARA STOCK OPNAME GUDANG</div>'+
+   '<table class="bai"><tr><td>Sesi opname</td><td>: '+esc(R.sesi.nama)+'</td><td>Tanggal sesi</td><td>: '+baTgl(R.sesi.tgl)+'</td></tr><tr><td>Tanggal cetak</td><td>: '+d.toLocaleDateString("id-ID")+'</td><td>File perusahaan</td><td>: '+(ada?esc(BA.file):"tidak dibandingkan")+'</td></tr></table>'+
+   '<p>Hasil hitung fisik dibandingkan dengan stok sistem. <b>'+T.n+' barang</b> berselisih: lebih <b>'+fmtN(T.plus)+' unit ('+rp(T.rpPlus)+')</b>, kurang <b>'+fmtN(T.minus)+' unit ('+rp(T.rpMinus)+')</b>. Stok Gudang disamakan dengan hasil hitung; kekurangan diambil dari Moka lebih dulu, kemudian Accurate.</p>'+
+   (ada?'<p><b>Komparasi dengan file perusahaan</b> ('+R.kpRingkas.file+' barang di file): kurangi Moka '+fmtN(KT.rekMminus)+' ('+rp(KT.nMminus)+'), kurangi Accurate '+fmtN(KT.rekAminus)+' ('+rp(KT.nAminus)+'), tambah Moka '+fmtN(KT.rekMplus)+', tambah Accurate '+fmtN(KT.rekAplus)+' ('+esc(R.kpRingkas.lebih)+' menerima kelebihan).</p>':'')+
+   (BA.ketSesi.c?'<p><b>Keterangan:</b> '+esc(BA.ketSesi.c).replace(/\n/g,"<br>")+'</p>':'')+
+   '<table class="bat"><thead><tr><th>No</th><th>Barang</th><th>Sistem</th><th>Hitung</th><th>Selisih</th><th>Nilai</th><th>Keterangan penyelesaian</th>'+(ada?'<th>Adjustment file perusahaan</th>':'')+'</tr></thead><tbody>'+rows+'</tbody></table>'+
+   '<div class="bats"><div><span>Dibuat oleh</span><i></i><b>Staff Gudang</b></div><div><span>Diperiksa</span><i></i><b>Manager Gudang</b></div><div><span>Mengetahui</span><i></i><b>Manager / Atasan</b></div></div></div></div>';
+  var old=document.getElementById("baPrint");if(old)old.remove();
+  var st=document.getElementById("baPrintCss");
+  if(!st){st=document.createElement("style");st.id="baPrintCss";st.textContent="#baPrint{position:fixed;inset:0;z-index:9999;background:#e9eef2;overflow:auto;color:#000}#baPrint .baact{position:sticky;top:0;display:flex;gap:8px;padding:10px;background:#0a2a43}#baPrint .baact button{padding:9px 16px;border-radius:8px;border:0;font-weight:700}#baPrint .bakertas{background:#fff;max-width:210mm;margin:12px auto;padding:14mm;font:12px/1.4 Arial,sans-serif;color:#000}#baPrint .bah{text-align:center;font-size:15px;margin-bottom:10px}#baPrint table{width:100%;border-collapse:collapse;border-radius:0!important;background:#fff!important;box-shadow:none!important;border:0}#baPrint .bai td{padding:2px 6px;vertical-align:top;background:#fff!important;color:#000!important;border:0!important}#baPrint .bat{border-radius:0!important}#baPrint .bat th,#baPrint .bat td{border-radius:0!important}#baPrint .bat th,#baPrint .bat td{border:1px solid #000;padding:4px 5px;vertical-align:top;color:#000;background:#fff}#baPrint .bat th{background:#e6e6e6}#baPrint .r{text-align:right;white-space:nowrap}#baPrint small{color:#333}#baPrint .bats{display:flex;gap:16px;margin-top:22px;page-break-inside:avoid}#baPrint .bats div{flex:1;text-align:center}#baPrint .bats i{display:block;height:60px;border-bottom:1px solid #000;margin:4px 0}#baPrint tr{page-break-inside:avoid}@media print{body.baon>*:not(#baPrint){display:none!important}body.baon{background:#fff!important}#baPrint{position:static;background:#fff;overflow:visible}#baPrint .baact{display:none}#baPrint .bakertas{margin:0;padding:0;max-width:none}@page{size:A4;margin:12mm}}";document.head.appendChild(st);}
+  var w=document.createElement("div");w.innerHTML=h;document.body.appendChild(w.firstChild);document.body.classList.add("baon");
+}
+function baTutupCetak(){var e=document.getElementById("baPrint");if(e)e.remove();document.body.classList.remove("baon");}
 /* ---- tab Master Barang: pengajuan barang baru dari departemen ---- */
 var MBD={rows:[],st:"Diajukan",q:"",sel:{}};
 async function loadMB(){

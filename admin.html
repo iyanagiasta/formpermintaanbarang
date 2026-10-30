@@ -603,6 +603,7 @@ function drawBA(){
   var ring='<div class="sum"><div><b>'+T.n+'</b><span>Barang selisih</span></div><div><b style="color:var(--grn,#1b8a3a)">+'+fmtN(T.plus)+'</b><span>Lebih (unit) &middot; '+rp(T.rpPlus)+'</span></div><div><b style="color:var(--red,#c0392b)">&minus;'+fmtN(T.minus)+'</b><span>Kurang (unit) &middot; '+rp(T.rpMinus)+'</span></div><div><b>'+T.besar+'</b><span>Selisih besar</span></div><div style="border-color:'+(belum?"var(--red,#c0392b)":"var(--line)")+'"><b style="color:'+(belum?"var(--red,#c0392b)":"inherit")+'">'+belum+'</b><span>Besar, belum berketerangan</span></div></div>'+
    (T.tanpaHarga?'<div class="note">'+T.tanpaHarga+' barang belum punya harga, nilai Rp-nya belum terhitung.</div>':'');
   var kpbox='';
+  var taksBox=(R.tak&&R.tak.length)?'<div class="card"><b>Barang belum diketahui keberadaannya ('+R.tak.length+')</b> <span class="note">Sudah dicari tetapi belum ketemu. Stok sistem TIDAK diubah. Nilai stok: '+rp(R.tak.reduce(function(a,x){return a+(x.nilai||0);},0))+'</span><div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Stok sistem</th><th class="nm">Nilai stok</th><th>Petugas</th><th>Catatan pencarian</th></tr></thead><tbody>'+R.tak.map(function(x){return '<tr><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.rak?' &middot; '+esc(x.rak):'')+'</small></td><td class="nm" data-l="Stok">'+fmtN(x.sistem)+'</td><td class="nm" data-l="Nilai">'+(x.nilai==null?'-':rp(x.nilai))+'</td><td data-l="Petugas">'+esc(x.oleh)+'</td><td data-l="Catatan">'+esc(x.catatan)+'</td></tr>';}).join('')+'</tbody></table></div></div>':'';
   if(ada){var K=R.kpRingkas,KT=K.total;kpbox='<div class="card"><b>Komparasi dengan file perusahaan</b> <span class="note">('+K.file+' barang di file; aturan sama dengan tab Komparasi: Gudang acuan, minus dikurangi dari Moka dulu baru Accurate, plus ke '+esc(K.lebih)+')</span><div class="sum" style="margin-top:8px"><div><b style="color:var(--red,#c0392b)">Moka &minus;'+fmtN(KT.rekMminus)+'</b><span>Kurangi Moka &middot; '+rp(KT.nMminus)+'</span></div><div><b style="color:var(--red,#c0392b)">Accurate &minus;'+fmtN(KT.rekAminus)+'</b><span>Kurangi Accurate &middot; '+rp(KT.nAminus)+'</span></div><div><b style="color:var(--grn,#1b8a3a)">Moka +'+fmtN(KT.rekMplus)+'</b><span>Tambah Moka &middot; '+rp(KT.nMplus)+'</span></div><div><b style="color:var(--grn,#1b8a3a)">Accurate +'+fmtN(KT.rekAplus)+'</b><span>Tambah Accurate &middot; '+rp(KT.nAplus)+'</span></div></div><div class="note">Angka ini untuk <b>seluruh file</b>. Kolom di tabel di bawah hanya untuk barang yang selisih di sesi ini. Komparasi hanya menghitung adjustment di sistem perusahaan; stok Gudang tidak berubah.</div></div>';}
   var F=[["semua","Semua ("+T.n+")"],["besar","Selisih besar ("+T.besar+")"],["belum","Besar belum berketerangan ("+belum+")"],["plus","Lebih"],["minus","Kurang"]];
   var L=baTersaring();
@@ -615,7 +616,7 @@ function drawBA(){
      '<td class="nm" data-l="Sistem">'+fmtN(x.sistem)+'</td><td class="nm" data-l="Hitung">'+fmtN(x.hitung)+'</td><td class="nm" data-l="Selisih">'+kpSel(x.selisih)+'</td><td class="nm" data-l="Nilai">'+(x.nilai==null?"-":rp(x.nilai))+'</td><td data-l="Penghitung">'+esc(x.oleh)+'</td>'+
      '<td data-l="Keterangan" style="min-width:230px"><select data-bap="'+esc(x.kode)+'" style="width:100%">'+optP(k.p)+'</select><input data-bac="'+esc(x.kode)+'" placeholder="Catatan (opsional)" value="'+esc(k.c)+'" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"></td>'+kc+'</tr>';
    }).join("")+'</tbody></table></div>':'<div class="card msg">Tidak ada baris sesuai filter.</div>';
-  pane().innerHTML=head+ring+kpbox+
+  pane().innerHTML=head+ring+taksBox+kpbox+
    '<div class="card"><b>Keterangan untuk seluruh sesi</b><div class="note">Berlaku untuk semua selisih yang tidak diberi keterangan khusus. Tercetak di berita acara.</div><textarea id="baks" rows="2" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit" placeholder="Mis. Selisih opname Oktober sudah disesuaikan, menunggu adjustment Accurate">'+esc(BA.ketSesi.c)+'</textarea></div>'+
    '<div class="bar"><input id="baq" placeholder="Cari kode, nama, rak, penghitung..." value="'+esc(BA.q)+'"><button id="basv" class="primary">Simpan keterangan</button><button id="baxl">Unduh Excel</button><button id="baprn">Cetak berita acara</button></div>'+
    '<div class="tabs">'+F.map(function(t){return '<button data-baf="'+t[0]+'" class="'+(BA.f===t[0]?"on":"")+'">'+esc(t[1])+'</button>';}).join("")+'</div>'+
@@ -665,7 +666,7 @@ function baUnduh(){
   var H=["Kode Barang","Nama Barang","Satuan","Rak","Stok Sistem","Hasil Hitung","Selisih","Harga","Nilai (Rp)","Penghitung","Status","Selisih besar?","Penyebab","Catatan","Penyelesaian"].concat(ada?["File Accurate","File Moka","Gudang Accurate","Gudang Moka","Adjustment Moka (+/-)","Adjustment Accurate (+/-)","Kasus komparasi","Analisis komparasi"]:[]);
   var rows=[H].concat(R.items.map(function(x){var k=BA.ket[x.kode]||{p:"",c:""},kp=x.kp||{};return [x.kode,x.nama,x.satuan,x.rak,x.sistem,x.hitung,x.selisih,x.harga==null?"":x.harga,x.nilai==null?"":x.nilai,x.oleh,x.status,x.besar?"YA":"",k.p,k.c,baKetTeks(x)].concat(ada?(kp.tidakAda?["","","","","","","Tidak ada di file",""]:[kp.fa,kp.fm,kp.ga,kp.gm,kp.rekM,kp.rekA,kp.kasus||"",kp.analisis||""]):[]);}));
   var T=R.ringkas,d=new Date(),ring=[["Berita Acara Stock Opname: "+R.sesi.nama],["Tanggal sesi",baTgl(R.sesi.tgl)],["Diunduh",d.toLocaleString("id-ID")],["Barang selisih",T.n],["Lebih (unit)",T.plus],["Kurang (unit)",T.minus],["Nilai lebih (Rp)",T.rpPlus],["Nilai kurang (Rp)",T.rpMinus],["Selisih besar",T.besar],["Selisih besar belum berketerangan",baBelum()],["Keterangan sesi",BA.ketSesi.c||""],["File perusahaan",ada?BA.file:"(tidak dibandingkan)"]];
-  if(unduhBanyak("BA_opname_"+String(R.sesi.nama).replace(/[^\w]+/g,"_")+".xlsx",[{n:"Selisih",rows:rows,w:[16,40,8,10,12,12,10,12,14,16,12,10,38,30,40,12,12,14,14,16,18,18,80]},{n:"Ringkasan",rows:ring,w:[34,60]}]))toast("Excel siap: "+R.items.length+" barang.");
+  if(unduhBanyak("BA_opname_"+String(R.sesi.nama).replace(/[^\w]+/g,"_")+".xlsx",[{n:"Selisih",rows:rows,w:[16,40,8,10,12,12,10,12,14,16,12,10,38,30,40,12,12,14,14,16,18,18,80]},{n:"Ringkasan",rows:ring,w:[34,60]}].concat(R.tak&&R.tak.length?[{n:"Belum diketahui",rows:[["Kode Barang","Nama Barang","Satuan","Rak","Stok Sistem","Nilai stok (Rp)","Petugas","Catatan pencarian"]].concat(R.tak.map(function(x){return [x.kode,x.nama,x.satuan,x.rak,x.sistem,x.nilai==null?"":x.nilai,x.oleh,x.catatan];})),w:[16,40,8,10,12,16,16,60]}]:[])))toast("Excel siap: "+R.items.length+" barang.");
 }
 function baCetak(){
   var R=BA.res;if(!R)return;
@@ -680,6 +681,7 @@ function baCetak(){
    '<p>Hasil hitung fisik dibandingkan dengan stok sistem. <b>'+T.n+' barang</b> berselisih: lebih <b>'+fmtN(T.plus)+' unit ('+rp(T.rpPlus)+')</b>, kurang <b>'+fmtN(T.minus)+' unit ('+rp(T.rpMinus)+')</b>. Stok Gudang disamakan dengan hasil hitung; kekurangan diambil dari Moka lebih dulu, kemudian Accurate.</p>'+
    (ada?'<p><b>Komparasi dengan file perusahaan</b> ('+R.kpRingkas.file+' barang di file): kurangi Moka '+fmtN(KT.rekMminus)+' ('+rp(KT.nMminus)+'), kurangi Accurate '+fmtN(KT.rekAminus)+' ('+rp(KT.nAminus)+'), tambah Moka '+fmtN(KT.rekMplus)+', tambah Accurate '+fmtN(KT.rekAplus)+' ('+esc(R.kpRingkas.lebih)+' menerima kelebihan).</p>':'')+
    (BA.ketSesi.c?'<p><b>Keterangan:</b> '+esc(BA.ketSesi.c).replace(/\n/g,"<br>")+'</p>':'')+
+   (R.tak&&R.tak.length?'<p><b>Barang belum diketahui keberadaannya ('+R.tak.length+' barang, nilai stok sistem '+rp(R.tak.reduce(function(a,x){return a+(x.nilai||0);},0))+'):</b> sudah dicari tetapi belum ketemu; stok sistem tidak diubah.</p><table class="bat"><thead><tr><th>No</th><th>Barang</th><th>Stok sistem</th><th>Nilai stok</th><th>Catatan pencarian</th></tr></thead><tbody>'+R.tak.map(function(x,i){return '<tr><td>'+(i+1)+'</td><td><b>'+esc(x.nama)+'</b><br><small>'+esc(x.kode)+(x.rak?' / '+esc(x.rak):'')+'</small></td><td class="r">'+fmtN(x.sistem)+'</td><td class="r">'+(x.nilai==null?'-':rp(x.nilai))+'</td><td>'+esc(x.catatan)+'</td></tr>';}).join('')+'</tbody></table><p></p>':'')+
    '<table class="bat"><thead><tr><th>No</th><th>Barang</th><th>Sistem</th><th>Hitung</th><th>Selisih</th><th>Nilai</th><th>Keterangan penyelesaian</th>'+(ada?'<th>Adjustment file perusahaan</th>':'')+'</tr></thead><tbody>'+rows+'</tbody></table>'+
    '<div class="bats"><div><span>Dibuat oleh</span><i></i><b>Staff Gudang</b></div><div><span>Diperiksa</span><i></i><b>Manager Gudang</b></div><div><span>Mengetahui</span><i></i><b>Manager / Atasan</b></div></div></div></div>';
   var old=document.getElementById("baPrint");if(old)old.remove();
@@ -1586,6 +1588,9 @@ async function loadOpname(id){
 }
 function opLolos(x){
   var f=OPFIL,st=x.status,s=x.selisih;
+  if(f.st=="tak"){if(st!=="Belum diketahui")return false;}
+  else if(f.st!=="semua"&&st==="Belum diketahui")return false;
+  if(f.arah&&st==="Belum diketahui")return false;
   if(f.st==="selisih"){if(!(s!==0&&st!=="Temuan"))return false;}
   else if(f.st==="kurang"){if(!(s<0&&st!=="Temuan"))return false;}
   else if(f.st==="lebih"){if(!(s>0&&st!=="Temuan"))return false;}
@@ -1603,9 +1608,10 @@ function opLolos(x){
   return true;
 }
 function opRingkas(rows){
-  var o={n:0,sesuai:0,sel:0,kurang:0,lebih:0,uK:0,uL:0,nK:0,nL:0,tanpaHarga:0,temuan:0};
+  var o={n:0,sesuai:0,sel:0,kurang:0,lebih:0,uK:0,uL:0,nK:0,nL:0,tanpaHarga:0,temuan:0,tak:0,nTak:0};
   rows.forEach(function(x){
     if(x.status==="Temuan"){o.temuan++;return;}
+    if(x.status==="Belum diketahui"){o.tak++;o.nTak+=x.nilaiStok||0;return;}
     o.n++;if(x.selisih===0){o.sesuai++;return;}
     o.sel++;
     if(x.selisih<0){o.kurang++;o.uK+=-x.selisih;if(x.nilai!=null)o.nK+=-x.nilai;else o.tanpaHarga++;}
@@ -1615,7 +1621,7 @@ function opRingkas(rows){
 }
 function opRekap(rows,kunci,label){
   var g={};
-  rows.forEach(function(x){if(x.status==="Temuan")return;var k=String(x[kunci]||"(kosong)"),o=g[k]||(g[k]={k:k,n:0,sesuai:0,sel:0,uK:0,uL:0,nK:0,nL:0});
+  rows.forEach(function(x){if(x.status==="Temuan"||x.status==="Belum diketahui")return;var k=String(x[kunci]||"(kosong)"),o=g[k]||(g[k]={k:k,n:0,sesuai:0,sel:0,uK:0,uL:0,nK:0,nL:0});
     o.n++;if(x.selisih===0)o.sesuai++;else{o.sel++;if(x.selisih<0){o.uK+=-x.selisih;if(x.nilai!=null)o.nK+=-x.nilai;}else{o.uL+=x.selisih;if(x.nilai!=null)o.nL+=x.nilai;}}});
   return Object.keys(g).map(function(k){var o=g[k];o.akurasi=o.n?Math.round(o.sesuai/o.n*1000)/10:0;return o;}).sort(function(a,b){return a.akurasi-b.akurasi||b.sel-a.sel;});
 }
@@ -1630,7 +1636,7 @@ async function opUnduhSemua(){
     var H=["Kode Barang","Nama Barang","Satuan","Rak","Keterangan","Sesi","Stok sistem saat dihitung","Hasil hitung","Selisih","Nilai selisih (Rp)","Status opname","Petugas","Waktu dihitung","Catatan","Stok gudang sekarang (Moka+Accurate)","Stok Bekas"];
     var rows=[H].concat(r.rows.map(function(x){return [x.kode,x.nama,x.satuan,x.rak,x.keterangan,x.sesi,x.snap,x.hitung,x.selisih,x.nilai,x.statusOpname,x.oleh,x.waktu,x.ket,x.stokSekarang,x.bekas];}));
     var R=r.ringkas,sh=[{n:"Semua barang",rows:rows,w:[24,44,8,12,16,24,14,12,10,16,14,16,18,30,18,12]},
-      {n:"Ringkasan",rows:[["Sesi opname",(r.sesi||[]).join("; ")],["Total barang di sheet Barang",R.total],["Sudah dihitung",R.sudah],["Belum dihitung",R.belum],["Barang temuan (belum terdaftar)",R.temuan],["Diunduh",d.toLocaleString("id-ID")],["Catatan","Hanya hitungan yang sudah terkirim ke Gudang yang terhitung. Barang yang dihitung di beberapa sesi terpilih menampilkan hitungan terbaru."]],w:[34,80]}];
+      {n:"Ringkasan",rows:[["Sesi opname",(r.sesi||[]).join("; ")],["Total barang di sheet Barang",R.total],["Sudah dihitung",R.sudah],["Belum dihitung",R.belum],["Belum diketahui keberadaannya (sudah dicari, belum ketemu)",R.belumDiketahui||0],["Barang temuan (belum terdaftar)",R.temuan],["Diunduh",d.toLocaleString("id-ID")],["Catatan","Hanya hitungan yang sudah terkirim ke Gudang yang terhitung. Barang yang dihitung di beberapa sesi terpilih menampilkan hitungan terbaru."]],w:[34,80]}];
     if(r.temuan&&r.temuan.length){sh.push({n:"Barang temuan",rows:[["Sesi","Kode temuan","Nama barang","Satuan","Lokasi","Jumlah","Petugas","Waktu","Catatan"]].concat(r.temuan.map(function(x){return [x.sesi,x.kode,x.nama,x.satuan,x.rak,x.hitung,x.oleh,x.waktu,x.ket];})),w:[24,16,40,8,14,10,16,18,30]});}
     if(unduhBanyak("opname_semua_barang_"+tg+".xlsx",sh))toast("Excel siap: "+R.sudah+" sudah dihitung, "+R.belum+" belum dihitung.");
   }catch(e){toast("Gagal terhubung ke server.",true);}
@@ -1638,14 +1644,14 @@ async function opUnduhSemua(){
 }
 function drawOpname(){
   var head='<div class="note">Hasil stock opname dari aplikasi Cari Barang masuk ke sini. Selisih = hasil hitung dikurangi stok sistem saat dihitung. Kekurangan diambil dari '+esc((OPMETA.otomatis||["Moka","Accurate"]).join(" lalu "))+'; kelebihan masuk ke '+esc(OPMETA.lebih||"Accurate")+'. Pada opname langsung, selisih diterapkan otomatis saat hitungan dikirim; yang berstatus Menunggu perlu Anda terapkan.</div>';
-  var list='<div class="bar">'+(OPS.length?OPS.map(function(x){var on=OPSEL.indexOf(x.id)>=0;return '<button class="chip'+(on?" on":"")+'" data-os="'+esc(x.id)+'">'+(on?"&#10003; ":"")+esc(x.nama)+' · '+x.menunggu+' menunggu</button>';}).join("")+'<button class="gh" id="osall">Pilih semua sesi</button><button class="gh" id="osno">Kosongkan</button>':'<span class="note">Belum ada hasil opname yang dikirim.</span>')+'</div>'+
+  var list='<div class="bar">'+(OPS.length?OPS.map(function(x){var on=OPSEL.indexOf(x.id)>=0;return '<button class="chip'+(on?" on":"")+'" data-os="'+esc(x.id)+'">'+(on?"&#10003; ":"")+esc(x.nama)+' · '+x.menunggu+' menunggu'+(x.tak?' · '+x.tak+' belum diketahui':'')+'</button>';}).join("")+'<button class="gh" id="osall">Pilih semua sesi</button><button class="gh" id="osno">Kosongkan</button>':'<span class="note">Belum ada hasil opname yang dikirim.</span>')+'</div>'+
    '<div class="bar"><button class="rm" id="otmx">Unduh temuan barang (Excel)</button><span class="note" style="margin:0">Barang temuan = barang yang ditemukan saat opname tetapi belum terdaftar. Unduhan ini mencakup semua sesi.</span></div>';
   if(!OPSEL.length){pane().innerHTML=head+list;bindOs();var ot=document.getElementById("otmx");if(ot)ot.onclick=opTemuan;var oa=document.getElementById("osall");if(oa)oa.onclick=function(){OPSEL=OPS.map(function(x){return x.id;});loadOpname();};var on=document.getElementById("osno");if(on)on.onclick=function(){OPSEL=[];drawOpname();};return;}
   var vis=[];OPR.forEach(function(x,i){if(opLolos(x))vis.push(i);});
   var rowsV=vis.map(function(i){return OPR[i];}),R=opRingkas(rowsV);
   var raks=Array.from(new Set(OPR.map(function(x){return String(x.rak||"");}).filter(Boolean))).sort(),olehs=Array.from(new Set(OPR.map(function(x){return String(x.oleh||"");}).filter(Boolean))).sort();
   var cnt=function(f){var n=0;OPR.forEach(function(x){var s=OPFIL.st;OPFIL.st=f;if(opLolos(x))n++;OPFIL.st=s;});return n;};
-  var SC=[["semua","Semua"],["selisih","Selisih saja"],["kurang","Kurang"],["lebih","Lebih"],["menunggu","Menunggu"],["diterapkan","Diterapkan"],["sesuai","Sesuai"],["temuan","Temuan"],["diabaikan","Diabaikan"]];
+  var SC=[["semua","Semua"],["selisih","Selisih saja"],["kurang","Kurang"],["lebih","Lebih"],["menunggu","Menunggu"],["diterapkan","Diterapkan"],["sesuai","Sesuai"],["temuan","Temuan"],["tak","Belum diketahui"],["diabaikan","Diabaikan"]];
   var fo=function(a,v,lab){return a.map(function(z){return '<option value="'+esc(z)+'"'+(z===v?" selected":"")+'>'+esc(z===""?lab:z)+'</option>';}).join("");};
   var filt='<div class="card"><div class="bar" style="margin:0 0 8px">'+SC.map(function(c){return '<button class="chip'+(OPFIL.st===c[0]?" on":"")+'" data-ost="'+c[0]+'">'+c[1]+' ('+cnt(c[0])+')</button>';}).join("")+'</div>'+
    '<div class="bar"><select id="ofa" title="Arah selisih">'+[["","Semua arah selisih"],["kurang","Hanya kurang (hitung < sistem)"],["lebih","Hanya lebih"],["sama","Hanya sama"]].map(function(z){return '<option value="'+z[0]+'"'+(OPFIL.arah===z[0]?" selected":"")+'>'+z[1]+'</option>';}).join("")+'</select>'+
@@ -1654,7 +1660,7 @@ function drawOpname(){
    '<input id="ofq" placeholder="Cari nama / kode / rak" value="'+esc(OPFIL.q)+'" style="flex:1;min-width:180px"><button class="gh" id="ofreset">Reset filter</button></div></div>';
   var kartu='<div class="sum"><div><b>'+R.n+'</b><span>Barang dihitung (sesuai filter)</span></div><div><b>'+R.akurasi+'%</b><span>Akurasi ('+R.sesuai+' sesuai)</span></div>'+
    '<div><b style="color:var(--red,#c0392b)">'+R.kurang+'</b><span>Selisih kurang</span><br><small>'+fmtN(R.uK)+' unit · '+rp(R.nK)+'</small></div><div><b style="color:var(--grn,#1b8a3a)">'+R.lebih+'</b><span>Selisih lebih</span><br><small>'+fmtN(R.uL)+' unit · '+rp(R.nL)+'</small></div>'+
-   '<div><b>'+R.temuan+'</b><span>Barang temuan</span></div>'+(R.tanpaHarga?'<div><b>'+R.tanpaHarga+'</b><span>Selisih tanpa harga (nilai belum lengkap)</span></div>':'')+'</div>';
+   '<div><b>'+R.temuan+'</b><span>Barang temuan</span></div>'+(R.tak?'<div><b style="color:var(--ambt,#b8760a)">'+R.tak+'</b><span>Belum diketahui keberadaannya</span><br><small>nilai stok '+rp(R.nTak)+' (stok tidak diubah)</small></div>':'')+(R.tanpaHarga?'<div><b>'+R.tanpaHarga+'</b><span>Selisih tanpa harga (nilai belum lengkap)</span></div>':'')+'</div>';
   var vbtn='<div class="bar">'+[["rinci","Rincian"],["rak","Rekap per rak"],["oleh","Rekap per petugas"],["dampak","Dampak ke stok (Moka/Accurate)"]].map(function(v){return '<button class="chip'+(OPVIEW===v[0]?" on":"")+'" data-ov="'+v[0]+'">'+v[1]+'</button>';}).join("")+
    '<button class="gh" id="opx">Unduh Excel (sesuai filter)</button><button class="gh" id="opall" title="Semua barang di sheet Barang dengan keterangan sudah / belum dihitung untuk sesi terpilih">Unduh semua barang (sudah / belum dihitung)</button><button class="gh" id="oph"'+(R.sel?"":" disabled")+'>Unduh daftar hitung ulang</button></div>';
   var isi;
@@ -1664,12 +1670,12 @@ function drawOpname(){
      '<table><thead><tr><th></th><th>Barang</th><th class="nm">Stok saat dihitung</th><th class="nm">Hasil hitung</th><th class="nm">Selisih</th><th class="nm">Nilai selisih</th><th class="nm">Stok gudang sekarang</th><th>Terapkan ke</th><th>Status</th></tr></thead><tbody>'+
      vis.map(function(i){var x=OPR[i],m=x.status==="Menunggu";
       return '<tr><td>'+(m?'<input type="checkbox" data-oc="'+i+'" checked>':'')+'</td><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.rak?' · rak '+esc(x.rak):'')+(OPSEL.length>1?' · '+esc(x.sesiNama):'')+(x.oleh?' · '+esc(x.oleh):'')+'</small></td>'+
-       '<td class="nm" data-l="Saat dihitung">'+fmtN(x.snap)+'</td><td class="nm" data-l="Hasil hitung">'+fmtN(x.hitung)+'</td>'+
-       '<td class="nm" data-l="Selisih"><b style="color:'+(x.selisih<0?"#c0392b":x.selisih>0?"#1b8a3a":"inherit")+'">'+(x.selisih>0?"+":"")+fmtN(x.selisih)+'</b></td>'+
-       '<td class="nm" data-l="Nilai">'+(x.nilai!=null?rp(x.nilai):"-")+'</td>'+
+       '<td class="nm" data-l="Saat dihitung">'+fmtN(x.snap)+'</td><td class="nm" data-l="Hasil hitung">'+(x.tak?'<span class="note">belum diketahui</span>':fmtN(x.hitung))+'</td>'+
+       '<td class="nm" data-l="Selisih">'+(x.tak?'-':'<b style="color:'+(x.selisih<0?"#c0392b":x.selisih>0?"#1b8a3a":"inherit")+'">'+(x.selisih>0?"+":"")+fmtN(x.selisih)+'</b>')+'</td>'+
+       '<td class="nm" data-l="Nilai">'+(x.tak?(x.nilaiStok!=null?'stok '+rp(x.nilaiStok):'-'):(x.nilai!=null?rp(x.nilai):"-"))+'</td>'+
        '<td class="nm" data-l="Sekarang">'+fmtN(x.sekarang)+(x.beda?'<small style="color:var(--ambt,#b8760a)">beda dari saat dihitung</small>':'')+'</td>'+
        '<td data-l="Terapkan ke">'+(m?'<select data-ou="'+i+'"><option value="Otomatis">Otomatis'+(x.d?' ('+SUMB.map(function(n,j){return x.d[j]?n+' '+(x.d[j]>0?"+":"")+x.d[j]:"";}).filter(Boolean).join(", ")+(x.potong>0?"; kurang "+fmtN(x.potong)+" tak bisa dipotong":"")+')':'')+'</option><option>Moka</option><option>Accurate</option><option value="SetHitung">Samakan dengan hasil hitung</option></select>':'<small>'+esc(x.ket)+'</small>')+'</td>'+
-       '<td data-l="Status"><span class="bd '+(x.status==="Diterapkan"?"a":x.status==="Menunggu"?"s":"l")+'">'+esc(x.status)+'</span></td></tr>';
+       '<td data-l="Status"><span class="bd '+(x.status==="Diterapkan"?"a":(x.status==="Menunggu"||x.status==="Belum diketahui")?"s":"l")+'">'+esc(x.status)+'</span></td></tr>';
      }).join("")+'</tbody></table>':'<div class="card msg">Tidak ada baris sesuai filter.</div>');
   }else if(OPVIEW==="dampak"){
     isi=opDampakFilter()+'<div id="dmres">'+(OPDMP?opDampakHtml(OPDMP):'<div class="card msg">Memuat laporan dampak...</div>')+'</div>';

@@ -1620,6 +1620,22 @@ function opRekap(rows,kunci,label){
   return Object.keys(g).map(function(k){var o=g[k];o.akurasi=o.n?Math.round(o.sesuai/o.n*1000)/10:0;return o;}).sort(function(a,b){return a.akurasi-b.akurasi||b.sel-a.sel;});
 }
 function opBacaFilter(){var g=function(i){var e=document.getElementById(i);return e?e.value:null;},m={arah:g("ofa"),minU:g("ofu"),minRp:g("ofr"),rak:g("ofk"),oleh:g("ofo"),q:g("ofq")};Object.keys(m).forEach(function(k){if(m[k]!==null)OPFIL[k]=m[k];});}
+async function opUnduhSemua(){
+  if(!OPSEL.length){toast("Pilih sesi opname dulu.",true);return;}
+  var bt=document.getElementById("opall");if(bt)bt.disabled=true;
+  try{
+    var r=await api({action:"adminOpnameSemua",sesi:OPSEL.join(",")});
+    if(!r.ok){toast(r.msg||"Gagal.",true);return;}
+    var d=new Date(),p2=function(n){return String(n).padStart(2,"0");},tg=d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate());
+    var H=["Kode Barang","Nama Barang","Satuan","Rak","Keterangan","Sesi","Stok sistem saat dihitung","Hasil hitung","Selisih","Nilai selisih (Rp)","Status opname","Petugas","Waktu dihitung","Catatan","Stok gudang sekarang (Moka+Accurate)","Stok Bekas"];
+    var rows=[H].concat(r.rows.map(function(x){return [x.kode,x.nama,x.satuan,x.rak,x.keterangan,x.sesi,x.snap,x.hitung,x.selisih,x.nilai,x.statusOpname,x.oleh,x.waktu,x.ket,x.stokSekarang,x.bekas];}));
+    var R=r.ringkas,sh=[{n:"Semua barang",rows:rows,w:[24,44,8,12,16,24,14,12,10,16,14,16,18,30,18,12]},
+      {n:"Ringkasan",rows:[["Sesi opname",(r.sesi||[]).join("; ")],["Total barang di sheet Barang",R.total],["Sudah dihitung",R.sudah],["Belum dihitung",R.belum],["Barang temuan (belum terdaftar)",R.temuan],["Diunduh",d.toLocaleString("id-ID")],["Catatan","Hanya hitungan yang sudah terkirim ke Gudang yang terhitung. Barang yang dihitung di beberapa sesi terpilih menampilkan hitungan terbaru."]],w:[34,80]}];
+    if(r.temuan&&r.temuan.length){sh.push({n:"Barang temuan",rows:[["Sesi","Kode temuan","Nama barang","Satuan","Lokasi","Jumlah","Petugas","Waktu","Catatan"]].concat(r.temuan.map(function(x){return [x.sesi,x.kode,x.nama,x.satuan,x.rak,x.hitung,x.oleh,x.waktu,x.ket];})),w:[24,16,40,8,14,10,16,18,30]});}
+    if(unduhBanyak("opname_semua_barang_"+tg+".xlsx",sh))toast("Excel siap: "+R.sudah+" sudah dihitung, "+R.belum+" belum dihitung.");
+  }catch(e){toast("Gagal terhubung ke server.",true);}
+  finally{if(bt)bt.disabled=false;}
+}
 function drawOpname(){
   var head='<div class="note">Hasil stock opname dari aplikasi Cari Barang masuk ke sini. Selisih = hasil hitung dikurangi stok sistem saat dihitung. Kekurangan diambil dari '+esc((OPMETA.otomatis||["Moka","Accurate"]).join(" lalu "))+'; kelebihan masuk ke '+esc(OPMETA.lebih||"Accurate")+'. Pada opname langsung, selisih diterapkan otomatis saat hitungan dikirim; yang berstatus Menunggu perlu Anda terapkan.</div>';
   var list='<div class="bar">'+(OPS.length?OPS.map(function(x){var on=OPSEL.indexOf(x.id)>=0;return '<button class="chip'+(on?" on":"")+'" data-os="'+esc(x.id)+'">'+(on?"&#10003; ":"")+esc(x.nama)+' · '+x.menunggu+' menunggu</button>';}).join("")+'<button class="gh" id="osall">Pilih semua sesi</button><button class="gh" id="osno">Kosongkan</button>':'<span class="note">Belum ada hasil opname yang dikirim.</span>')+'</div>'+
@@ -1640,7 +1656,7 @@ function drawOpname(){
    '<div><b style="color:var(--red,#c0392b)">'+R.kurang+'</b><span>Selisih kurang</span><br><small>'+fmtN(R.uK)+' unit · '+rp(R.nK)+'</small></div><div><b style="color:var(--grn,#1b8a3a)">'+R.lebih+'</b><span>Selisih lebih</span><br><small>'+fmtN(R.uL)+' unit · '+rp(R.nL)+'</small></div>'+
    '<div><b>'+R.temuan+'</b><span>Barang temuan</span></div>'+(R.tanpaHarga?'<div><b>'+R.tanpaHarga+'</b><span>Selisih tanpa harga (nilai belum lengkap)</span></div>':'')+'</div>';
   var vbtn='<div class="bar">'+[["rinci","Rincian"],["rak","Rekap per rak"],["oleh","Rekap per petugas"],["dampak","Dampak ke stok (Moka/Accurate)"]].map(function(v){return '<button class="chip'+(OPVIEW===v[0]?" on":"")+'" data-ov="'+v[0]+'">'+v[1]+'</button>';}).join("")+
-   '<button class="gh" id="opx">Unduh Excel (sesuai filter)</button><button class="gh" id="oph"'+(R.sel?"":" disabled")+'>Unduh daftar hitung ulang</button></div>';
+   '<button class="gh" id="opx">Unduh Excel (sesuai filter)</button><button class="gh" id="opall" title="Semua barang di sheet Barang dengan keterangan sudah / belum dihitung untuk sesi terpilih">Unduh semua barang (sudah / belum dihitung)</button><button class="gh" id="oph"'+(R.sel?"":" disabled")+'>Unduh daftar hitung ulang</button></div>';
   var isi;
   if(OPVIEW==="rinci"){
     var mn=vis.filter(function(i){return OPR[i].status==="Menunggu";});
@@ -1673,6 +1689,7 @@ function drawOpname(){
   var tm=null;["ofu","ofr","ofq"].forEach(function(i){var e=document.getElementById(i);e.oninput=function(){clearTimeout(tm);tm=setTimeout(function(){var pos=e.selectionStart;opBacaFilter();drawOpname();var n=document.getElementById(i);if(n){n.focus();try{n.setSelectionRange(pos,pos);}catch(x){}}},350);};});
   document.getElementById("ofreset").onclick=function(){OPFIL={st:"semua",arah:"",minU:"",minRp:"",rak:"",oleh:"",q:""};drawOpname();};
   var nama=function(){var n=OPSEL.length===1?(OPS.filter(function(x){return x.id===OPSEL[0];})[0]||{}).nama:OPSEL.length+"_sesi";return String(n||"opname").replace(/[^\w\-]+/g,"_")+"_"+tglIso(new Date());};
+  document.getElementById("opall").onclick=opUnduhSemua;
   document.getElementById("opx").onclick=function(){
     var H=["Sesi","Kode","Nama","Satuan","Rak","Stok saat dihitung","Hasil hitung","Selisih","Harga","Nilai selisih","Status","Petugas","Waktu hitung","Ditinjau","Keterangan"];
     var A=[H].concat(rowsV.map(function(x){return [x.sesiNama,x.kode,x.nama,x.satuan,x.rak,x.snap,x.hitung,x.selisih,x.harga==null?"":x.harga,x.nilai==null?"":x.nilai,x.status,x.oleh,x.waktu,x.ditinjau,x.ket];}));

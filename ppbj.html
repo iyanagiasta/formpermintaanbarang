@@ -28,6 +28,14 @@ button.ok{background:#1b8a3a}button.no{background:#c0392b}button:disabled{opacit
 .msg.err{color:#c0392b}.msg.good{color:#1b8a3a}
 .tag{display:inline-block;background:#e8f1f6;color:#0a2a43;border-radius:20px;padding:3px 10px;font-size:13px;font-weight:600}
 @media (prefers-color-scheme:dark){.tag{background:#23333c;color:#e6eef2}}
+.ppbox{position:fixed;z-index:10000;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-height:260px;overflow:auto}
+.ppit{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px;line-height:1.35}.ppit:hover{background:rgba(76,195,240,.14)}.ppit small{display:block;color:var(--mut,#7a8c97);font-size:12px}.ppft{text-align:center;font-weight:700;color:#1b6fa8}
+.ppin{position:static!important;width:auto!important;box-shadow:none;margin:-4px 0 12px;max-height:210px}
+.ppcap{font-size:12.5px;margin:-6px 0 10px;min-height:1px}
+.ppov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;display:flex;align-items:center;justify-content:center;padding:12px}
+.ppdl{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:16px;max-width:560px;width:100%;max-height:92vh;overflow:auto}
+.ppdl label{display:block;font-weight:700;margin:12px 0 4px;font-size:13px}.ppdl input,.ppdl textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font:600 15px "Segoe UI",Roboto,Arial,sans-serif}
+.ppdl .ppb{display:flex;gap:8px;margin-top:14px}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
@@ -57,17 +65,50 @@ function render(r){
    '<div class="row"><b>Nomor Dokumen</b><span>'+esc(d.doc)+'</span></div>'+
    '<div class="row"><b>'+(d.lama?"Proyek (form lama)":"Alasan")+'</b><span>'+esc(d.alasan)+'</span></div></div>'+
    '<div class="card" style="overflow-x:auto"><table><tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Sat</th><th>Jml</th></tr>'+rows+'</table></div>'+
-   '<div class="card"><b>Nomor PPBJ</b><input class="no" id="no" maxlength="60" autocomplete="off" placeholder="Ketik nomor PPBJ"><button class="ok" id="go" style="width:100%">Simpan Nomor PPBJ</button></div>';
+   '<div class="card"><b>Nomor PPBJ</b><input class="no" id="no" maxlength="60" autocomplete="off" placeholder="Ketik atau pilih proyek terdaftar"><div class="ppcap"></div><button class="ok" id="go" style="width:100%">Simpan Nomor PPBJ</button></div>';
   document.getElementById("go").onclick=send;
+  pasangProyek(document.getElementById("no"),function(){return PROY;},null,true);
 }
 
+var PROY=[];
+/* ---- pilihan proyek terdaftar (ketik untuk mencari; boleh juga ketik manual) ---- */
+function ppBox(){var b=document.getElementById("ppglobal");if(!b){b=document.createElement("div");b.id="ppglobal";b.className="ppbox";b.style.display="none";document.body.appendChild(b);window.addEventListener("scroll",function(e){if(!b.contains(e.target))b.style.display="none";},true);}return b;}
+function pasangProyek(inp,getList,onPick,inline){
+  if(inp.__pp)return;inp.__pp=1;
+  var semua=false,tm=null,ib=null;
+  function BX(){if(!inline)return ppBox();if(!ib){ib=document.createElement("div");ib.className="ppbox ppin";ib.style.display="none";var c=inp.nextElementSibling;(c&&c.classList.contains("ppcap")?c:inp).insertAdjacentElement("afterend",ib);}return ib;}
+  function ok(p){return p.status==="Aktif"||p.status==="Ditunda Sebentar";}
+  function cari(v){return (getList()||[]).filter(function(p){return semua||ok(p);}).filter(function(p){var h=(p.ppbj+" "+p.ket+" "+(p.dept||"")).toLowerCase(),t=String(v||"").toLowerCase().split(/\s+/).filter(Boolean);for(var i=0;i<t.length;i++)if(h.indexOf(t[i])<0)return false;return true;});}
+  function cap(){var el=inp.nextElementSibling;if(!el||!el.classList.contains("ppcap"))return;var v=String(inp.value||"").trim().toLowerCase();
+    if(!v){el.textContent="";return;}
+    var p=(getList()||[]).filter(function(x){return String(x.ppbj).toLowerCase()===v;})[0];
+    if(!p&&cari(v).length){el.innerHTML='<span style="color:#5b7a8c">Pilih proyek dari daftar di bawah, atau ketik nomor lengkap.</span>';return;}
+    el.innerHTML=p?'<span style="color:#1b8a3a">&#10003; Proyek terdaftar: <b>'+esc(p.ket)+'</b>'+(p.dept?' ('+esc(p.dept)+')':'')+'. Alasan permintaan akan disamakan dengan nama proyek ini.</span>':'<span style="color:#b8760a">Nomor ini belum terdaftar di daftar proyek, jadi nama proyek tidak terisi otomatis. Tetap bisa disimpan.</span>';}
+  function tampil(){
+    var box=BX(),r=inp.getBoundingClientRect(),L=cari(inp.value),jumlahSemua=(getList()||[]).length,v0=String(inp.value||"").trim().toLowerCase();
+    if(v0&&(getList()||[]).some(function(p){return String(p.ppbj).toLowerCase()===v0;})){box.style.display="none";return;}   /* nomor sudah persis salah satu proyek: tutup daftar */
+    if(!inline){box.style.left=Math.max(4,r.left)+"px";box.style.top=(r.bottom+2)+"px";box.style.width=Math.max(r.width,280)+"px";}
+    box.innerHTML=(L.length?L.slice(0,12).map(function(p,i){return '<div class="ppit" data-i="'+i+'"><b>'+esc(p.ppbj)+'</b> &middot; '+esc(p.ket)+'<small>'+esc(p.dept||"")+(p.dept?" &middot; ":"")+esc(p.status)+'</small></div>';}).join(""):'<div class="ppit" style="opacity:.7">'+(jumlahSemua?"Tidak ada proyek yang cocok. Boleh ketik nomor sendiri.":"Daftar proyek belum termuat atau masih kosong. Boleh ketik nomor sendiri.")+'</div>')+
+      (jumlahSemua?'<div class="ppit ppft" data-semua="1">'+(semua?"Hanya proyek aktif":"Tampilkan semua status")+'</div>':"");
+    box.__own=inp;box.style.display="block";
+    box.querySelectorAll("[data-i]").forEach(function(d){d.onpointerdown=function(e){e.preventDefault();var p=L[Number(d.getAttribute("data-i"))];inp.value=p.ppbj;box.style.display="none";cap();if(onPick)onPick(p);inp.dispatchEvent(new Event("change"));};});
+    var f=box.querySelector("[data-semua]");if(f)f.onpointerdown=function(e){e.preventDefault();semua=!semua;tampil();};
+  }
+  inp.addEventListener("focus",tampil);
+  inp.addEventListener("input",function(){tampil();cap();});
+  inp.addEventListener("blur",function(){clearTimeout(tm);tm=setTimeout(function(){var bx=BX();if(bx.__own===inp)bx.style.display="none";cap();},180);});
+  inp.__ppHapus=function(){BX().style.display="none";};
+  inp.addEventListener("keydown",function(e){if(e.key==="Escape")BX().style.display="none";});
+  cap();
+}
 function renderGrup(r){
   var rows=r.reqs.map(function(d,k){
     var it=d.items.map(function(i){return esc(i.nama)+" <small>("+esc(i.jumlah)+" "+esc(i.satuan)+")</small>";}).join("<br>");
     return '<div class="card"><div class="row"><b>'+(d.lama?"No. form manual":"No. BPB")+'</b><span>'+esc(d.doc)+' <span class="tag">'+d.hari+' hari</span></span></div><div class="row"><b>Peminta</b><span>'+esc(d.by)+' ('+esc(d.dept)+')</span></div><div class="row"><b>Tanggal</b><span>'+esc(d.tgl)+'</span></div><div class="row"><b>Alasan</b><span>'+esc(d.alasan)+'</span></div><div class="row"><b>Barang</b><span>'+it+'</span></div>'+
-      '<input class="no" data-id="'+esc(d.id)+'" maxlength="60" autocomplete="off" placeholder="Nomor PPBJ untuk '+esc(d.doc)+'"></div>';
+      '<input class="no" data-id="'+esc(d.id)+'" maxlength="60" autocomplete="off" placeholder="Ketik atau pilih proyek untuk '+esc(d.doc)+'"><div class="ppcap"></div></div>';
   }).join("");
   app.innerHTML='<div class="card"><p style="margin:0">Yth. <b>'+esc(r.pic)+'</b>, ada <b>'+r.reqs.length+' permintaan</b> yang menunggu Nomor PPBJ. Isi yang sudah siap, yang belum boleh dikosongkan, lalu klik Simpan.</p></div>'+rows+'<div class="card"><button class="ok" id="go" style="width:100%">Simpan Semua Nomor PPBJ</button></div>';
+  document.querySelectorAll("input.no").forEach(function(i){pasangProyek(i,function(){return PROY;},null,true);});
   document.getElementById("go").onclick=async function(){
     var isi=[];document.querySelectorAll("input.no").forEach(function(i){if(i.value.trim())isi.push({id:i.getAttribute("data-id"),no:i.value.trim()});});
     if(!isi.length){alert("Belum ada nomor PPBJ yang diisi.");return;}
@@ -91,14 +132,14 @@ async function send(){
     try{var gr=await api({action:"ppbjGrupInfo",g:q.get("g"),t:q.get("t")});
       if(!gr.ok){show(gr.msg||"Link tidak valid.","err");return;}
       if(!gr.reqs.length){show("Semua nomor PPBJ sudah terisi. Terima kasih.","good");return;}
-      renderGrup(gr);}catch(e){show("Gagal terhubung ke server. Periksa internet lalu muat ulang.","err");}
+      PROY=gr.proyek||[];renderGrup(gr);}catch(e){show("Gagal terhubung ke server. Periksa internet lalu muat ulang.","err");}
     return;
   }
   if(!q.get("id")||!q.get("t")){show("Link tidak lengkap.","err");return;}
   try{
     var r=await api({action:"info",kind:"ppbj",id:q.get("id"),t:q.get("t")});
     if(!r.ok){show(r.msg||"Link tidak valid.","err");return;}
-    render(r);
+    PROY=r.proyek||[];render(r);
   }catch(e){show("Gagal terhubung ke server. Periksa internet lalu muat ulang.","err");}
 })();
 </script>

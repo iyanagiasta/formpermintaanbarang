@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Laporan Gudang</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.top{background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;text-align:center;padding:14px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 16px Georgia,serif;letter-spacing:1.5px}.top div{margin-top:3px;font-size:11px;letter-spacing:2px;color:#e3c98f;font-weight:600}
+.wrap{max-width:1000px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+button{font:600 13px "Segoe UI",Roboto,Arial,sans-serif;padding:10px 16px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer}
+button.gh{background:transparent;color:var(--navy);border:1px solid var(--line)}
+@media (prefers-color-scheme:dark){button.gh{color:var(--ink)}}
+.msg{text-align:center;padding:30px;color:var(--mut)}.err{color:#b3261e}
+@media print{.top,.bar{display:none!important}.card{border:0;padding:0}}
+</style>
+</head>
+<body>
+<div class="top"><h1>LAPORAN GUDANG</h1><div>PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="wrap">
+ <div class="bar" id="bar" style="display:none"><button id="bx">Unduh Excel</button><button id="bp" class="gh">Cetak / Simpan PDF</button><span id="bk" style="align-self:center;color:var(--mut);font-size:12px"></span></div>
+ <div class="card" id="isi"><div class="msg">Memuat laporan...</div></div>
+</div>
+<script src="laporan.js"></script>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+(async function(){
+  var el=document.getElementById("isi"),t=(new URLSearchParams(location.search).get("t")||"").trim();
+  if(!t){el.innerHTML='<div class="msg err">Tautan tidak lengkap. Buka lewat tautan di email.</div>';return;}
+  try{
+    var r=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"laporanPublik",t:t})})).json();
+    if(!r.ok){el.innerHTML='<div class="msg err">'+LPR.esc(r.msg||"Tidak bisa dibuka.")+'</div>';return;}
+    LPR.render(el,r.data,r.info);document.title=(r.info.jenis==="Bulanan"?"Laporan Gudang "+r.info.periode:"Laporan Gudang")+" - SCTK";
+    document.getElementById("bar").style.display="flex";document.getElementById("bk").textContent="Tautan berlaku sampai "+r.berlaku;
+    document.getElementById("bx").onclick=function(){if(!LPR.excel(r.data,r.info,"laporan_gudang_"+r.info.dari+"_"+r.info.sampai+".xlsx"))alert("Pembaca Excel belum termuat. Periksa internet lalu muat ulang.");};
+    document.getElementById("bp").onclick=function(){window.print();};
+  }catch(e){el.innerHTML='<div class="msg err">Gagal memuat. Periksa koneksi lalu muat ulang halaman.</div>';}
+})();
+</script>
+</body>
+</html>

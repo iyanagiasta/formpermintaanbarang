@@ -49,7 +49,7 @@ h2{font-size:15px;margin:18px 0 6px}
 <div class="wrap" id="app"></div><div id="toast"></div>
 <script>
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
-var KODE="",PINADM="",INFO=null,LIST=[],TAB="cek",CEK=null,FORM=null,BUSY=false,app=document.getElementById("app");
+var KODE="",PINADM="",INFO=null,LIST=[],TAB="cek",CEK=null,FORM=null,TERAKHIR=null,BUSY=false,app=document.getElementById("app");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},6000);}
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
@@ -135,7 +135,7 @@ function formBaru(){return {ppbj:"",nama:"",dept:"",kategori:"",rows:[],ada:0,fi
 function viewIsi(){
   if(!FORM)FORM=formBaru();
   var f=FORM,box=document.getElementById("isi");
-  box.innerHTML='<div class="card"><b>Kebutuhan barang proyek</b><div class="note">Isi No PPBJ, nama proyek, dan <b>kategori Capex atau Opex</b> (menentukan alur persetujuan pembelian), lalu tambahkan barang (kode dan satuan terisi otomatis) atau impor dari Excel. Bila PPBJ sudah punya kebutuhan, isinya dimuat otomatis dan penyimpanan akan <b>mengganti seluruhnya</b> (versi lama tersimpan di riwayat).</div>'+
+  box.innerHTML=(TERAKHIR?'<div class="card" id="tsm" style="border-left:4px solid #1b8a3a"><b style="color:#1b8a3a">Tersimpan:</b> PPBJ <b>'+esc(TERAKHIR.ppbj)+'</b> &middot; '+esc(TERAKHIR.nama)+' &middot; '+TERAKHIR.n+' barang <small>('+esc(TERAKHIR.waktu)+')</small> <button class="gh" id="lihatT">Lihat yang baru disimpan</button></div>':'')+'<div class="card"><b>Kebutuhan barang proyek</b><div class="note">Isi No PPBJ, nama proyek, dan <b>kategori Capex atau Opex</b> (menentukan alur persetujuan pembelian), lalu tambahkan barang (kode dan satuan terisi otomatis) atau impor dari Excel. Bila PPBJ sudah punya kebutuhan, isinya dimuat otomatis dan penyimpanan akan <b>mengganti seluruhnya</b> (versi lama tersimpan di riwayat).</div>'+
    '<div class="fr"><input type="text" id="fp" list="dlp2" placeholder="No PPBJ" value="'+esc(f.ppbj)+'" style="width:210px"><datalist id="dlp2">'+opsiPpbj()+'</datalist><button class="gh" id="muat">Muat kebutuhan tersimpan</button></div>'+
    '<div class="fr"><input type="text" id="fn" placeholder="Nama proyek" value="'+esc(f.nama)+'" style="flex:1;min-width:220px"><select id="fd" style="width:170px" title="Departemen">'+opsiDept(f.dept)+'</select><select id="fk" title="Kategori anggaran (menentukan alur pembelian)"><option value="">Kategori: pilih</option><option value="Opex"'+(f.kategori==="Opex"?' selected':'')+'>Opex</option><option value="Capex"'+(f.kategori==="Capex"?' selected':'')+'>Capex</option></select></div>'+
    '<div class="fr"><input type="search" id="fs" placeholder="Cari nama atau kode barang untuk ditambahkan..." autocomplete="off" style="flex:1;min-width:240px"></div><div class="sres" id="sr"></div>'+
@@ -146,6 +146,7 @@ function viewIsi(){
   document.getElementById("fk").onchange=function(){f.kategori=this.value;};
   document.getElementById("fp").onchange=function(){f.ppbj=this.value;var p=LIST.filter(function(x){return x.ppbj===f.ppbj;})[0];if(p){if(!f.kategori&&p.kategori){f.kategori=p.kategori;document.getElementById("fk").value=f.kategori;}if(!f.nama){f.nama=p.nama||"";document.getElementById("fn").value=f.nama;}if(!f.dept){f.dept=p.dept||"";document.getElementById("fd").value=f.dept;}if(p.n&&!f.rows.length)muat();}};
   document.getElementById("muat").onclick=muat;
+  var lt=document.getElementById("lihatT");if(lt)lt.onclick=function(){document.getElementById("fp").value=TERAKHIR.ppbj;f.ppbj=TERAKHIR.ppbj;muat();};
   document.getElementById("ff").onchange=function(){if(this.files[0])bacaFile(this.files[0]);};
   document.getElementById("contoh").onclick=function(e){e.preventDefault();unduhContoh();};
   var tm=null,s=document.getElementById("fs");s.oninput=function(){clearTimeout(tm);var q=s.value.trim();if(q.length<2){document.getElementById("sr").innerHTML="";return;}tm=setTimeout(function(){cariBarang(q);},350);};
@@ -201,7 +202,14 @@ async function simpan(ganti){
       b.disabled=false;return;
     }
     toast(r.msg||(r.ok?"Tersimpan.":"Gagal."),!r.ok);
-    if(r.ok){var l=await api({action:"kbList"});if(l.ok){LIST=l.data;}f.ada=r.n;}
+    if(r.ok){
+      var l=await api({action:"kbList"});if(l.ok){LIST=l.data;}
+      var d=new Date(),p2=function(n){return String(n).padStart(2,"0");};
+      TERAKHIR={ppbj:f.ppbj,nama:f.nama,n:(r.n!=null?r.n:items.length),waktu:p2(d.getHours())+":"+p2(d.getMinutes())};
+      FORM=formBaru();viewIsi();   /* form dikosongkan, siap untuk proyek berikutnya */
+      var fpp=document.getElementById("fp");if(fpp)fpp.focus();
+      window.scrollTo(0,0);
+    }
   }catch(e){toast("Gagal terhubung ke server.",true);}
   b.disabled=false;
 }

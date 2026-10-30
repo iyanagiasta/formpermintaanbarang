@@ -1,111 +1,126 @@
-/* Kulit tema untuk halaman biasa (bukan dashboard). Muat SETELAH gaya halaman. Lembar kertas (.sheet) tetap putih. */
-html[data-tema=gelap]:root{
-  --bg:#050f1a;--bar:#0c2236;--bar-ink:#e8f3f8;--line:rgba(120,190,220,.22);--accent:#4cc3f0;--accent-ink:#04202c;--muted:#8fb0c2;
-  --ink:#e8f3f8;--card:#0e2438;--mut:#8fb0c2;--navy:#16688a;--gold:#d9b46a;color-scheme:dark}
+/* Tema Sistem Gudang SCTK - gaya dokumen kerja perusahaan air: datar, tegas, padat.
+   Satu sumber warna (variabel di bawah). Muat SETELAH gaya halaman. Lembar kertas (#sheet) tetap putih.
+   ATURAN KONTRAS: setiap latar punya pasangan teks yang dijamin >= 4.5:1; dicek otomatis (audit_kontras.js). */
 html[data-tema=terang]:root{
-  --bg:#eaf1f5;--bar:#ffffff;--bar-ink:#0b2133;--line:rgba(10,58,92,.18);--accent:#0f7fb0;--accent-ink:#fff;--muted:#52707f;
-  --ink:#0b2133;--card:#ffffff;--mut:#52707f;--navy:#0a3a5c;--gold:#a8812f;color-scheme:light}
-body.tema{background:var(--bg);color:var(--bar-ink);font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif}
-html[data-tema=gelap] body.tema{background:radial-gradient(900px 400px at 85% -5%,rgba(47,208,196,.14),transparent 70%),radial-gradient(700px 360px at 0% 0%,rgba(76,195,240,.1),transparent 70%),var(--bg)}
-/* kepala */
-.tbar,body.tema .top{position:relative;display:flex;align-items:center;gap:12px;padding:12px 16px;color:#e8f3f8;text-align:left;
-  background:linear-gradient(120deg,#05182a,#0a3556 55%,#0f6f93);border-bottom:3px solid var(--gold)}
-body.tema .top{display:block;text-align:center;padding:16px 56px}
-body.tema .top h1{margin:0;font:700 19px "Cormorant Garamond",Georgia,serif;letter-spacing:2px;text-transform:uppercase}
-body.tema .top div{margin-top:3px;font-size:10.5px;letter-spacing:2.2px;color:#e3c98f;font-weight:600}
-.tbar .tt b{display:block;font:700 19px "Cormorant Garamond",Georgia,serif;letter-spacing:2px;text-transform:uppercase}
-.tbar .tt small{display:block;font-size:10px;letter-spacing:2.2px;color:#e3c98f;font-weight:600;margin-top:1px}
-.lg{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);overflow:hidden}
-.lg img{width:100%;height:100%;object-fit:contain;padding:4px}.lg svg{width:22px;height:22px}.lg.ada svg{display:none}
-body.tema .top .lg{position:absolute;left:auto;right:56px;top:50%;transform:translateY(-50%);display:none}
-.tg{margin-left:auto;font-size:15px;line-height:1;padding:8px 11px;border-radius:99px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;cursor:pointer}
-.tg:hover{background:rgba(255,255,255,.2)}
+  --bg:#eef1f3;--bar:#ffffff;--bar-ink:#17232d;--line:#c3ccd3;--accent:#0b5f8f;--accent-ink:#ffffff;--muted:#4a5b68;
+  --ink:#17232d;--card:#ffffff;--mut:#4a5b68;--navy:#0b5f8f;--gold:#0b5f8f;--head:#0c3b57;--head-ink:#ffffff;--head-sub:#c9dde9;color-scheme:light;
+  --field:#ffffff;--zebra:rgba(11,95,143,.045);--hover:#e3eef5;
+  --ok-bg:#dff1e5;--ok-t:#14602f;--warn-bg:#fff0cf;--warn-t:#6b4300;--bad-bg:#fbe0e0;--bad-t:#8a1c1c;--info-bg:#dcebf5;--info-t:#0a4a70;--neu-bg:#e6e9ec;--neu-t:#37444e}
+html[data-tema=gelap]:root{
+  --bg:#11171c;--bar:#1a2229;--bar-ink:#e6edf1;--line:#35434d;--accent:#5bb0de;--accent-ink:#06202e;--muted:#9fb0bc;
+  --ink:#e6edf1;--card:#1a2229;--mut:#9fb0bc;--navy:#1d6b99;--gold:#1d6b99;--head:#0d1d28;--head-ink:#ffffff;--head-sub:#a9c2d2;color-scheme:dark;
+  --field:#10161b;--zebra:rgba(255,255,255,.035);--hover:#24323d;
+  --ok-bg:#12372a;--ok-t:#9be3b6;--warn-bg:#40320c;--warn-t:#f3d27c;--bad-bg:#46191d;--bad-t:#ffb4b4;--info-bg:#143247;--info-t:#a9d6f2;--neu-bg:#2a343c;--neu-t:#c5d1d9}
+/* variabel lama yang dipakai halaman */
+html[data-tema=terang]:root{--beli:#fbe0e0;--belit:#8a1c1c;--amb:#fff0cf;--ambt:#6b4300;--redbg:#fbe0e0;--redt:#8a1c1c;--red:#a82424;--grn:#14602f;--solid:#ffffff;--solid-ink:#17232d;--solid-sub:#4a5b68;--solid-hover:#e3eef5}
+html[data-tema=gelap]:root{--beli:#46191d;--belit:#ffb4b4;--amb:#40320c;--ambt:#f3d27c;--redbg:#46191d;--redt:#ffb4b4;--red:#ff9a9a;--grn:#7fd9a2;--solid:#1a2229;--solid-ink:#e6edf1;--solid-sub:#a9bac5;--solid-hover:#24323d}
+
+body.tema{background:var(--bg);color:var(--ink);font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;font-variant-numeric:tabular-nums}
+/* kepala halaman: pita datar, satu warna */
+.tbar,body.tema .top{position:relative;display:flex;align-items:center;gap:12px;padding:10px 16px;color:var(--head-ink);text-align:left;background:var(--head);border-bottom:0;background-image:none}
+body.tema .top{display:block;text-align:left;padding:12px 270px 12px 16px}
+body.tema .top h1{margin:0;font:700 16px/1.25 Inter,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:.6px;text-transform:uppercase;color:var(--head-ink)}
+body.tema .top div{margin-top:2px;font-size:11.5px;letter-spacing:.4px;color:var(--head-sub);font-weight:500}
+.tbar .tt b{display:block;font:700 16px/1.25 Inter,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:.6px;text-transform:uppercase;color:var(--head-ink)}
+.tbar .tt small{display:block;font-size:11.5px;letter-spacing:.4px;color:var(--head-sub);font-weight:500;margin-top:1px}
+.lg{flex:none;width:34px;height:34px;border-radius:3px;display:grid;place-items:center;background:#fff;border:0;overflow:hidden}
+.lg img{width:100%;height:100%;object-fit:contain;padding:3px}.lg svg{width:20px;height:20px}.lg.ada svg{display:none}
+body.tema .top .lg{display:none}
+.tg{margin-left:auto;font:600 12px Inter,"Segoe UI",Roboto,Arial,sans-serif;line-height:1;padding:8px 11px;border-radius:3px;border:1px solid rgba(255,255,255,.45);background:transparent;color:#fff;cursor:pointer}
+.tg:hover{background:rgba(255,255,255,.14)}
 body.tema .top .tg{position:absolute;right:12px;top:50%;transform:translateY(-50%);margin:0}
-@media(max-width:560px){body.tema .top{padding:14px 52px 14px 12px}}
-/* bilah aksi, tombol */
+body.tema .top .homebtn{position:absolute;right:118px;left:auto;top:50%;transform:translateY(-50%);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:3px;padding:7px 11px;background:transparent;font:600 12px Inter,"Segoe UI",Roboto,Arial,sans-serif;text-decoration:none}
+body.tema .top .homebtn:hover{background:rgba(255,255,255,.14)}
+@media(max-width:620px){body.tema .top{padding:10px 12px 10px 12px}body.tema .top .tg,body.tema .top .homebtn{position:static;transform:none;display:inline-block;margin:8px 8px 0 0}body.tema .top h1{font-size:15px}}
+/* bilah, tombol */
 body.tema .bar{background:var(--bar);border-bottom:1px solid var(--line);color:var(--bar-ink)}
 body.tema #pegbar{background:var(--bar);border-bottom:1px solid var(--line);color:var(--muted)}
-body.tema #pegbar input{background:rgba(127,160,180,.12);border:1px solid var(--line);color:var(--bar-ink)}
-body.tema .btn{border-radius:10px;border-color:var(--accent);color:var(--accent);transition:background .15s,transform .15s}
-body.tema .btn:hover{background:rgba(76,195,240,.12)}
-body.tema .btn.primary{background:linear-gradient(135deg,#2fd0c4,#4cc3f0);color:#04202c;border-color:transparent}
-body.tema .btn.primary:hover{filter:brightness(1.08)}
-html[data-tema=terang] body.tema .btn.primary{background:linear-gradient(135deg,#0a9d93,#0f7fb0);color:#fff}
-body.tema .dd{background:var(--bar);color:var(--bar-ink);border:1px solid var(--accent);border-radius:12px;box-shadow:0 14px 36px rgba(0,0,0,.45)}
-/* halaman berbentuk kartu (cari barang, master barang) */
-body.tema .card{background:var(--card);border:1px solid var(--line);border-radius:16px;color:var(--ink);backdrop-filter:blur(8px)}
-body.tema input.t,body.tema .card input,body.tema .card select,body.tema .card textarea{background:rgba(127,160,180,.1);border:1px solid var(--line);color:var(--ink);border-radius:10px}
-body.tema input:focus,body.tema select:focus,body.tema textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
-body.tema .card button:not(.gh):not(.sv):not(.rm){background:linear-gradient(135deg,#0f6f93,#16688a);color:#fff;border-radius:10px}
-body.tema button.gh{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:10px}
-body.tema button.sv{background:linear-gradient(135deg,#1b8a5a,#2fb57d);border-radius:10px}
+body.tema #pegbar input{background:var(--field);border:1px solid var(--line);color:var(--bar-ink)}
+body.tema .btn{border-radius:3px;border:1px solid var(--accent);color:var(--accent);background:transparent}
+body.tema .btn:hover{background:var(--hover)}
+body.tema .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);background-image:none}
+body.tema .btn.primary:hover{filter:brightness(1.07)}
+body.tema .dd{background:var(--solid);color:var(--solid-ink);border:1px solid var(--accent);border-radius:3px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+/* kartu, isian */
+body.tema .card{background:var(--card);border:1px solid var(--line);border-radius:4px;color:var(--ink);backdrop-filter:none;box-shadow:none}
+body.tema input.t,body.tema .card input,body.tema .card select,body.tema .card textarea{background:var(--field);border:1px solid var(--line);color:var(--ink);border-radius:3px}
+body.tema input:focus,body.tema select:focus,body.tema textarea:focus{outline:2px solid var(--accent);outline-offset:0}
+body.tema input::placeholder,body.tema textarea::placeholder{color:var(--muted);opacity:1}
+body.tema button{border-radius:3px;box-shadow:none}
+body.tema .card button:not(.gh):not(.sv):not(.rm):not(.chip){background:var(--navy);background-image:none;color:#fff;border-radius:3px}
+body.tema button.gh{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:3px}
+body.tema button.gh:hover{background:var(--hover)}
+body.tema button.sv{background:#17703a;background-image:none;color:#fff;border-radius:3px}
+body.tema button.rm{background:#9a5b00;color:#fff;border-radius:3px}
+body.tema button:disabled{opacity:.55}
+body.tema .tabs button{border-radius:3px}
 body.tema .tabs button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-body.tema .q div{background:rgba(127,160,180,.08);border-color:var(--line)}
-body.tema .bar{backdrop-filter:blur(8px)}
-html[data-tema=gelap] body.tema div.kode{background:#123524;color:#a8e0b5}
-html[data-tema=gelap] body.tema .mirip{background:#3a3010;color:#f2dc9b}
-html[data-tema=gelap] body.tema .al{background:#2a2412;color:#e8d9a8}
-html[data-tema=gelap] body.tema .bd.a,html[data-tema=gelap] body.tema .tag.ok{background:#12402a;color:#8be0ac}
-html[data-tema=gelap] body.tema .bd.s,html[data-tema=gelap] body.tema .tag.w{background:#41330c;color:#f2d27a}
-html[data-tema=gelap] body.tema .bd.b,html[data-tema=gelap] body.tema .tag.bad{background:#4a1b20;color:#ffb3b3}
-html[data-tema=gelap] body.tema .err{color:#ff8a8a}
+body.tema .q div{background:var(--field);border-color:var(--line)}
+/* status */
+body.tema div.kode{background:var(--ok-bg);color:var(--ok-t)}
+body.tema .mirip{background:var(--warn-bg);color:var(--warn-t)}
+body.tema .al{background:var(--warn-bg);color:var(--warn-t)}
+body.tema .bd,body.tema .tag{border-radius:3px}
+body.tema .bd.n{background:var(--info-bg);color:var(--info-t)}
+body.tema .bd.w,body.tema .bd.s,body.tema .tag.w{background:var(--warn-bg);color:var(--warn-t)}
+body.tema .bd.b,body.tema .tag.bad{background:var(--bad-bg);color:var(--bad-t)}
+body.tema .bd.d,body.tema .bd.a,body.tema .tag.ok{background:var(--ok-bg);color:var(--ok-t)}
+body.tema .bd.r,body.tema .bd.l{background:var(--neu-bg);color:var(--neu-t)}
+body.tema .err{color:var(--red)}
 body.tema .msg{color:var(--mut)}
-/* gerbang kode pegawai */
-#gate{background:radial-gradient(700px 400px at 80% 0%,rgba(47,208,196,.25),transparent 70%),linear-gradient(120deg,#04121f,#0a3556 60%,#0f6f93)!important}
-html[data-tema=gelap] #gate .gc{background:#0e2438;color:#e8f3f8;border:1px solid rgba(120,190,220,.25);border-top:3px solid #d9b46a;border-radius:20px}
-html[data-tema=gelap] #gate h2{color:#e8f3f8;font-family:"Cormorant Garamond",Georgia,serif;font-size:22px}
-html[data-tema=gelap] #gate p,html[data-tema=gelap] #gate a{color:#8fb0c2}
-html[data-tema=gelap] #gate input{background:rgba(255,255,255,.06);border-color:rgba(120,190,220,.3);color:#e8f3f8}
-html[data-tema=gelap] #gate button{background:linear-gradient(135deg,#2fd0c4,#4cc3f0);color:#04202c}
+/* gerbang kode */
+#gate{background:var(--bg)!important;background-image:none!important}
+body.tema #gate .gc{background:var(--card);color:var(--ink);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:4px;box-shadow:none}
+body.tema #gate h2{color:var(--ink);font:700 18px Inter,"Segoe UI",Roboto,Arial,sans-serif}
+body.tema #gate p,body.tema #gate a{color:var(--mut)}
+body.tema #gate input{background:var(--field);border:1px solid var(--line);color:var(--ink);border-radius:3px}
+body.tema #gate button{background:var(--accent);color:var(--accent-ink);border-radius:3px;background-image:none}
 @media print{.tbar,.tg,body.tema .top{display:none!important}html[data-tema] body.tema{background:#fff!important}}
-html[data-tema] body.tema{background-repeat:no-repeat;background-attachment:fixed}
-@media(max-width:560px){body.tema .top .homebtn{position:static;transform:none;display:inline-block;margin:0 0 8px}body.tema .top{padding:12px 52px 12px 12px;text-align:left}body.tema .top h1{font-size:17px;letter-spacing:1.5px}}
+/* tabel: rapat, angka rata kanan, garis tipis */
+body.tema table:not(.sheet table){color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:0}
+body.tema thead th:not(.sheet th){background:var(--navy);color:#fff;font-weight:600;letter-spacing:.2px;padding:7px 8px}
+body.tema td:not(.sheet td){padding:6px 8px;border-top:1px solid var(--line)}
+body.tema tbody tr:nth-child(even):not(.sheet tr){background:var(--zebra)}
+body.tema tr.grp td:not(.sheet td){background:var(--hover);color:var(--ink);border-top:2px solid var(--accent)}
+body.tema tr.grp td small{color:var(--mut)}
+body.tema td small:not(.sheet small){color:var(--mut)}
+body.tema .nm,body.tema td.n,body.tema th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+body.tema .sum div,body.tema .kpi div{border-radius:3px;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent)}
+body.tema .sum b{font-weight:700}
+body.tema .chip{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:3px}
+body.tema .chip:hover{border-color:var(--accent)}
+body.tema .chip.on,body.tema .card button.chip.on:not(.gh):not(.sv):not(.rm){background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+body.tema .card button.chip:not(.gh):not(.sv):not(.rm):not(.on){background:transparent;color:var(--ink);border:1px solid var(--line)}
+body.tema #toast{border-radius:3px;background:var(--head);color:#fff}
+body.tema #toast.bad{background:#9b2222;color:#fff}
+body.tema .ppdl,body.tema .ppbox{border-radius:4px}
+body.tema input:not([type=checkbox]):not([type=radio]),body.tema select,body.tema textarea{border-color:var(--line)}
+body.tema input:not([type=checkbox]):not([type=radio]):not(.t),body.tema select,body.tema textarea{background:var(--field);color:var(--ink)}
 
-/* variabel tambahan halaman PIC/atasan/admin (menimpa mode gelap bawaan sistem operasi) */
-html[data-tema=gelap]:root{--beli:#3a1d22;--belit:#f2b8bf;--amb:#3a321a;--ambt:#f0d98a;--redbg:#3a1d22;--redt:#f2b8bf;--red:#ff8a8a;--grn:#5fd18a}
-html[data-tema=terang]:root{--beli:#fde8e8;--belit:#8a1c28;--amb:#fff3cd;--ambt:#7a5b00;--redbg:#fde8e8;--redt:#8a1c28;--red:#c0392b;--grn:#1b8a3a}
-body.tema table{color:var(--ink)}
-body.tema thead th{background:var(--bar);color:var(--bar-ink)}
-html[data-tema=gelap] body.tema tbody tr:nth-child(even){background:rgba(127,160,180,.06)}
-body.tema input,body.tema select,body.tema textarea{border-color:var(--line)}
-html[data-tema=gelap] body.tema input:not([type=checkbox]):not([type=radio]),html[data-tema=gelap] body.tema select,html[data-tema=gelap] body.tema textarea{background:rgba(127,160,180,.1);color:var(--ink)}
-html[data-tema=gelap] body.tema .sheet input,html[data-tema=gelap] body.tema .sheet textarea,html[data-tema=gelap] body.tema .sheet select{background:#fff;color:#111}
-
-/* DAFTAR PENCARIAN / PREDIKSI: latar solid dan teks eksplisit di semua kombinasi tema (gelap, terang, mode OS) */
-html[data-tema=gelap]:root{--solid:#0e2438;--solid-ink:#e8f3f8;--solid-sub:#9fc0d2;--solid-hover:#17405e}
-html[data-tema=terang]:root{--solid:#ffffff;--solid-ink:#0b2133;--solid-sub:#52707f;--solid-hover:#dff1f8}
-body.tema .dd,body.tema .sl,body.tema #hpred,body.tema .cr .res,body.tema .pred{background:var(--solid)!important;color:var(--solid-ink)!important;border:1px solid var(--accent);border-radius:10px}
+/* DAFTAR PENCARIAN / PREDIKSI: latar solid dan teks eksplisit di semua tema */
+body.tema .dd,body.tema .sl,body.tema #hpred,body.tema .cr .res,body.tema .pred{background:var(--solid)!important;color:var(--solid-ink)!important;border:1px solid var(--accent);border-radius:3px}
 body.tema .dd .it,body.tema .sl button,body.tema .cr button.pk,body.tema #hpred>*,body.tema .pred>*{background:transparent!important;color:var(--solid-ink)!important;border-color:var(--line)!important;box-shadow:none}
 body.tema .dd .it small,body.tema .sl small,body.tema .cr small,body.tema #hpred small,body.tema .pred small{color:var(--solid-sub)!important;opacity:1}
 body.tema .dd .it:hover,body.tema .dd .it.on,body.tema .sl button:hover,body.tema .sl button.on,body.tema .cr button.pk:hover,body.tema #hpred>*:hover,body.tema .pred>*:hover{background:var(--solid-hover)!important;color:var(--solid-ink)!important}
 body.tema .dd .it.on small,body.tema .dd .it:hover small{color:var(--solid-sub)!important}
-/* kotak pilihan (select) dan isinya */
-html[data-tema=gelap] body.tema select{background-color:#12304a;color:#e8f3f8}
-html[data-tema=terang] body.tema select{background-color:#fff;color:#0b2133}
-html[data-tema=gelap] body.tema option,html[data-tema=gelap] body.tema optgroup{background:#0e2438;color:#e8f3f8}
-html[data-tema=terang] body.tema option,html[data-tema=terang] body.tema optgroup{background:#fff;color:#0b2133}
-
-/* pilihan select (dropdown bawaan browser): paksa gelap/terang agar daftar tidak putih berteks putih */
+body.tema .ppbox{background:var(--solid)!important;color:var(--solid-ink)!important;border:1px solid var(--accent)}
+body.tema .ppit{background:transparent;color:var(--solid-ink)!important;border-color:var(--line)}
+body.tema .ppit small{color:var(--solid-sub)!important}
+body.tema .ppit:hover{background:var(--solid-hover)}
+/* kotak pilihan (select) dan isinya: paksa pasangan terang/gelap agar daftar tidak putih berteks putih */
 html[data-tema=gelap] select,html[data-tema=gelap] option,html[data-tema=gelap] optgroup{color-scheme:dark!important}
 html[data-tema=terang] select,html[data-tema=terang] option,html[data-tema=terang] optgroup{color-scheme:light!important}
-html[data-tema=gelap] select{background-color:#12304a!important;color:#e8f3f8!important}
-html[data-tema=gelap] select option,html[data-tema=gelap] select optgroup{background-color:#0e2438!important;color:#e8f3f8!important}
-html[data-tema=gelap] select option:checked,html[data-tema=gelap] select option:hover{background-color:#1d5b82!important;color:#fff!important}
-html[data-tema=terang] select{background-color:#fff!important;color:#0b2133!important}
-html[data-tema=terang] select option,html[data-tema=terang] select optgroup{background-color:#fff!important;color:#0b2133!important}
-
-/* tombol pilihan (chip): yang aktif jelas berbeda dari yang tidak */
-body.tema .chip{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px}
-body.tema .chip:hover{border-color:var(--accent)}
-body.tema .chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
-body.tema .card button.chip:not(.gh):not(.sv):not(.rm){background:transparent;color:var(--ink);border:1px solid var(--line)}
-body.tema .card button.chip.on:not(.gh):not(.sv):not(.rm){background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
-
-/* Lembar bukti pengambilan barang (#sheet) selalu berupa kertas putih: isian harus gelap di tema gelap agar terbaca. */
+html[data-tema=gelap] select{background-color:#10161b!important;color:#e6edf1!important}
+html[data-tema=gelap] select option,html[data-tema=gelap] select optgroup{background-color:#1a2229!important;color:#e6edf1!important}
+html[data-tema=gelap] select option:checked,html[data-tema=gelap] select option:hover{background-color:#1d6b99!important;color:#fff!important}
+html[data-tema=terang] select{background-color:#fff!important;color:#17232d!important}
+html[data-tema=terang] select option,html[data-tema=terang] select optgroup{background-color:#fff!important;color:#17232d!important}
+/* Lembar bukti (#sheet) selalu kertas putih: isian harus gelap di tema gelap */
 html[data-tema=gelap] body.tema #sheet,html[data-tema=gelap] body.tema #sheet td,html[data-tema=gelap] body.tema #sheet th{color:#0d1f2d}
 html[data-tema=gelap] body.tema #sheet th{color:#fff}
 html[data-tema=gelap] body.tema #sheet input:not([type=checkbox]):not([type=radio]),html[data-tema=gelap] body.tema #sheet textarea,html[data-tema=gelap] body.tema #sheet select{color:#0d1f2d;-webkit-text-fill-color:#0d1f2d;caret-color:#0d1f2d;border-color:#9fb8c6}
 html[data-tema=gelap] body.tema #sheet .f input,html[data-tema=gelap] body.tema #sheet .sign input{background:#eef6fa}
 html[data-tema=gelap] body.tema #sheet td input,html[data-tema=gelap] body.tema #sheet .nm input{background:transparent}
 html[data-tema=gelap] body.tema #sheet textarea{background:#fff}
-html[data-tema=gelap] body.tema #sheet input::placeholder,html[data-tema=gelap] body.tema #sheet textarea::placeholder{color:#7b8d99;-webkit-text-fill-color:#7b8d99}
+html[data-tema=gelap] body.tema #sheet input::placeholder,html[data-tema=gelap] body.tema #sheet textarea::placeholder{color:#5f717d;-webkit-text-fill-color:#5f717d}
+html[data-tema=gelap] body.tema #sheet select{background-color:#fff!important;color:#0d1f2d!important}

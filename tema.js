@@ -1,12 +1,12 @@
 /* Tema bersama Sistem Gudang: tema gelap/terang, kepala halaman bermerek, tombol ganti tema. */
 (function(){
   var d=document,h=d.documentElement,K="sctk_tema";
-  function baca(){try{return localStorage.getItem(K)==="terang"?"terang":"gelap";}catch(e){return "gelap";}}
-  function pasang(t){h.setAttribute("data-tema",t);var b=d.getElementById("tema");if(b){b.innerHTML=t==="terang"?"&#127769;":"&#9728;";b.title=t==="terang"?"Ganti ke tema gelap":"Ganti ke tema terang";}}
+  function baca(){try{return localStorage.getItem(K)==="gelap"?"gelap":"terang";}catch(e){return "terang";}}
+  function pasang(t){h.setAttribute("data-tema",t);var b=d.getElementById("tema");if(b){b.textContent=t==="terang"?"Mode gelap":"Mode terang";b.title=t==="terang"?"Ganti ke tema gelap":"Ganti ke tema terang";}}
   pasang(baca());
   function ganti(){var t=h.getAttribute("data-tema")==="terang"?"gelap":"terang";try{localStorage.setItem(K,t);}catch(e){}pasang(t);}
   var LOGO='<span class="lg"><img src="logo.png" alt="" onerror="this.remove();this.parentNode&&0">'
-    +'<svg viewBox="0 0 24 24" fill="none" stroke="#4cc3f0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.2 6 10.5A6 6 0 0 1 6 13.5C6 9.2 12 3 12 3z"/></svg></span>';
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="#0b5f8f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.2 6 10.5A6 6 0 0 1 6 13.5C6 9.2 12 3 12 3z"/></svg></span>';
   function mulai(){
     var b=d.body;if(!b||b.hasAttribute("data-tanpa-tema"))return;
     b.classList.add("tema");
@@ -33,7 +33,7 @@
 (function(){
   var d=document,MIN=8;
   var st=d.createElement("style");
-  st.textContent=".tbox{overflow-x:auto;overflow-y:visible;position:relative;border-radius:12px;max-width:100%;-webkit-overflow-scrolling:touch}"+
+  st.textContent=".tbox{overflow-x:auto;overflow-y:visible;position:relative;border-radius:0;max-width:100%;-webkit-overflow-scrolling:touch}"+
    ".tbox.tv{max-height:72vh;overflow-y:auto}"+
    ".tbox>table{overflow:visible!important;margin:0}"+
    ".tbox.tv thead th{position:sticky;top:0;z-index:3;box-shadow:0 1px 0 rgba(0,0,0,.25)}"+
@@ -73,13 +73,13 @@
 (function(){
   var d=document;
   function mulai(){
-    var hb=d.querySelector("a.homebtn");if(!hb||d.getElementById("fabkembali"))return;if(!/admin/i.test(location.pathname))return;
+    var hb=d.querySelector("a.homebtn");if(!hb||d.getElementById("fabatas"))return;if(!/admin/i.test(location.pathname))return;
     var st=d.createElement("style");
-    st.textContent="#fabkembali,#fabatas{position:fixed;z-index:40;bottom:16px;font:700 13px 'Segoe UI',Roboto,Arial,sans-serif;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer;text-decoration:none;border:1px solid rgba(227,201,143,.7);background:#0a3a5c;color:#e3c98f}"+
+    st.textContent="#fabkembali,#fabatas{position:fixed;z-index:40;bottom:16px;font:700 13px 'Segoe UI',Roboto,Arial,sans-serif;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer;text-decoration:none;border:1px solid rgba(255,255,255,.5);background:#0c3b57;color:#fff}"+
      "#fabkembali{left:14px;padding:11px 16px}#fabatas{right:14px;width:42px;height:42px;display:none;align-items:center;justify-content:center;font-size:18px;padding:0}"+
-     "#fabkembali:hover,#fabatas:hover{background:#0f6f93;color:#fff}@media print{#fabkembali,#fabatas{display:none!important}}";
+     "#fabkembali:hover,#fabatas:hover{background:#0b5f8f;color:#fff}@media print{#fabkembali,#fabatas{display:none!important}}";
     d.head.appendChild(st);
-    var a=d.createElement("a");a.id="fabkembali";a.href=hb.getAttribute("href")||"dashboard.html";a.innerHTML="&larr; Halaman Utama";a.title="Kembali ke dashboard";d.body.appendChild(a);
+    
     var u=d.createElement("button");u.type="button";u.id="fabatas";u.innerHTML="&uarr;";u.title="Ke atas";u.onclick=function(){window.scrollTo({top:0,behavior:"smooth"});};d.body.appendChild(u);
     function cek(){u.style.display=(window.pageYOffset||d.documentElement.scrollTop)>500?"flex":"none";}
     window.addEventListener("scroll",cek,{passive:true});cek();

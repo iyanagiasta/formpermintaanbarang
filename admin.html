@@ -118,7 +118,7 @@ function filtered(){
   return DATA.filter(function(d){
     if(MODE==="setuju"&&!d.menunggu)return false;
     if(MODE==="ppbj"&&!d.ppbjBelum)return false;
-    if(q){var h=(d.doc+" "+d.id+" "+d.by+" "+(d.pic||"")+" "+d.dept+" "+d.status+" "+(d.menunggu?d.menunggu.nama:"")+" "+d.ppbj).toLowerCase();if(h.indexOf(q)<0)return false;}
+    if(q){var h=(d.doc+" "+d.id+" "+d.by+" "+(d.pic||"")+" "+d.dept+" "+d.status+" "+(d.menunggu?d.menunggu.nama:"")+" "+d.ppbj+" "+(d.alasan||"")+" "+(d.barang||"")).toLowerCase();if(h.indexOf(q)<0)return false;}
     return true;
   });
 }
@@ -155,7 +155,8 @@ function drawRows(){
     if(d.menunggu)acts+='<button class="rm" data-act="remind" data-jenis="persetujuan" data-id="'+esc(d.id)+'">Kirim pengingat persetujuan</button>';
     if(d.ppbjBelum)acts+='<button class="rm" data-act="remind" data-jenis="ppbj" data-id="'+esc(d.id)+'">Kirim pengingat PPBJ</button>';
     if(d.selesai&&!d.ditolak&&!d.diserahkan)acts+='<button class="sv" data-act="serahkan" data-id="'+esc(d.id)+'">Serahkan barang</button>';
-    return '<tr><td data-l="No BPB"><b>'+esc(d.doc||d.id)+'</b><small>'+esc(d.kirim)+'</small><small>'+esc(d.barang)+'</small></td>'+
+    var als=d.ditolak?"":('<small class="als" title="'+esc(d.alasan||"")+'">Alasan: <i>'+esc((d.alasan||"-").length>110?(d.alasan||"").slice(0,110)+"...":(d.alasan||"-"))+'</i> <a href="#" data-act="alasan" data-id="'+esc(d.id)+'">ubah</a>'+(d.proyekKet&&(d.alasan||"").indexOf(d.proyekKet)<0?' &middot; <a href="#" data-act="samakan" data-id="'+esc(d.id)+'">samakan dengan proyek</a>':'')+'</small>');
+    return '<tr><td data-l="No BPB"><b>'+esc(d.doc||d.id)+'</b><small>'+esc(d.kirim)+'</small><small>'+esc(d.barang)+'</small>'+als+'</td>'+
       '<td data-l="Pemohon">'+esc(d.by)+'<small>'+esc(d.dept)+'</small>'+(d.pic?'<small>PIC: <b>'+esc(d.pic)+'</b></small>':"")+'</td>'+
       '<td data-l="Status">'+statusBd(d)+'</td><td data-l="PPBJ">'+pp+'</td>'+
       '<td data-l="Pengingat terakhir"><small style="margin:0">'+(last.join("<br>")||"-")+'</small></td>'+
@@ -177,6 +178,13 @@ async function onAct(b){
     if(!no){toast("Isi Nomor PPBJ dulu.",true);return;}
     if(!confirm("Simpan Nomor PPBJ "+no+" untuk "+(d.doc||id)+"? Pengingat PPBJ akan berhenti."))return;
     body={action:"adminPpbj",id:id,no:no};
+  }else if(act==="alasan"){
+    var al2=prompt("Alasan / nama proyek untuk "+(d.doc||id)+":",d.alasan||"");
+    if(al2===null||!al2.trim())return;
+    body={action:"adminAlasan",id:id,alasan:al2.trim()};
+  }else if(act==="samakan"){
+    if(!confirm("Tambahkan nama proyek terdaftar di depan alasan "+(d.doc||id)+"?\n\nProyek: "+(d.proyekKet||"")+"\nAlasan lama tetap dipertahankan di belakangnya."))return;
+    body={action:"adminAlasan",id:id,samakan:true};
   }else if(act==="ubah"){
     var no2=prompt("Nomor PPBJ baru untuk "+(d.doc||id)+":",d.ppbj||"");
     if(no2===null||!no2.trim())return;

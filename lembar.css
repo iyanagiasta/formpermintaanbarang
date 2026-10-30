@@ -1,0 +1,30 @@
+/* Lembar bukti (Pengambilan / Pengembalian): gaya dokumen resmi perusahaan.
+   Kop surat dengan garis ganda, isian bergaris bawah, tabel buku besar, kotak tanda tangan bergaris tipis.
+   Lembar selalu kertas putih (juga di tema gelap) karena inilah yang dicetak dan dijadikan PDF. */
+.sheet{--navy:#0c3b57;--ink2:#0d1f2d;--rule:#7f97a6;--soft:#d5dee4;box-shadow:0 1px 3px rgba(0,0,0,.18),0 8px 24px rgba(0,0,0,.08)}
+/* kop surat */
+.sheet .head{height:auto;min-height:15.5mm;display:flex;flex-direction:column-reverse;justify-content:flex-end;text-align:left;background:#fff;color:var(--navy);padding:4mm 8mm 0;border-bottom:0;overflow:visible;position:relative}
+.sheet .head svg{display:none}
+.sheet .head .co{margin:0;padding-bottom:1.6mm;font:700 9.5pt/1.1 "Segoe UI",Roboto,Arial,sans-serif;letter-spacing:.8px;color:var(--navy);border-bottom:.55mm solid var(--navy);position:relative}
+.sheet .head .co::after{content:"";position:absolute;left:0;right:0;bottom:-1.3mm;border-bottom:.2mm solid var(--navy)}
+.sheet .head h1{margin:2.6mm 0 0;text-align:center;font:700 11.5pt/1.15 "Segoe UI",Roboto,Arial,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink2)}
+.sheet .body{padding-top:2mm}
+/* isian: label kecil kapital, garis bawah */
+.sheet .f label,.sheet .reason label{font-size:6.1pt;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#3f5868;margin-bottom:.2mm}
+.sheet .f input{height:5.4mm;border:0;border-bottom:.3mm solid var(--rule);border-radius:0;background:transparent;padding:0 .6mm;font-weight:600}
+.sheet .f input:focus,.sheet .reason textarea:focus{outline:0;background:#eef6fa;border-bottom-color:var(--navy)}
+.sheet .reason textarea{border:0;border-bottom:.3mm solid var(--rule);border-radius:0;background:transparent;padding:.8mm .6mm}
+/* tabel buku besar */
+.sheet table{border:0;border-top:.45mm solid var(--navy);border-bottom:.45mm solid var(--navy);border-radius:0;overflow:visible}
+.sheet th{background:transparent;color:var(--navy);font-size:6.6pt;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-right:0;border-bottom:.25mm solid var(--navy);height:5.6mm}
+.sheet td{border-top:.15mm solid var(--soft);border-right:.15mm solid var(--soft)}
+.sheet td:last-child{border-right:0}
+.sheet tbody tr:nth-child(even) td{background:transparent}
+.sheet td.stk{background:transparent!important}
+/* kotak tanda tangan */
+.sheet .box{border:.25mm solid var(--rule);border-radius:0;overflow:visible}
+.sheet .box .role{background:transparent;color:var(--navy);font-size:6.6pt;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:.9mm 0;border-bottom:.25mm solid var(--rule)}
+.sheet .box .nm{background:transparent;border-top:.15mm solid var(--soft)}
+html[data-tema=gelap] body.tema #sheet .f input,html[data-tema=gelap] body.tema #sheet .sign input,html[data-tema=gelap] body.tema #sheet .reason textarea,html[data-tema=gelap] body.tema #sheet textarea{background:transparent}
+html[data-tema=gelap] body.tema #sheet th{color:var(--navy)}
+@media print{.sheet{box-shadow:none}}

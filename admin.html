@@ -836,6 +836,60 @@ function bfImpor(inp){
     }catch(e){toast("Gagal terhubung ke server.",true);}
   });
 }
+/* ---- pencarian cepat untuk daftar (menyaring baris / kartu yang sudah tampil saat mengetik) ---- */
+var CARI_Q={};
+function cariNorm(s){return String(s==null?"":s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}
+/* teks yang dicari: daftar pilihan (select) hanya ikut dengan pilihan yang sedang terpilih, bukan semua opsinya */
+function cariTeks(e){
+  var c=e.cloneNode(true);
+  Array.prototype.forEach.call(c.querySelectorAll("select"),function(s){var o=s.options[s.selectedIndex];s.parentNode.replaceChild(document.createTextNode(o?" "+o.text+" ":" "),s);});
+  Array.prototype.forEach.call(c.querySelectorAll("script,style,datalist"),function(x){x.remove();});
+  return c.textContent;
+}
+function cariPasang(key,mode,o){
+  o=o||{};var p=pane(),inp=null,cnt=null;
+  var items=Array.prototype.slice.call(p.querySelectorAll(o.item||(mode==="card"?".card:not(.msg)":"table tbody tr:not(.grp)")));
+  if(o.skip)items=items.filter(function(e){return !o.skip(e);});
+  if(!items.length)return;
+  items.forEach(function(e){e.__t=cariNorm(cariTeks(e));e.__s=e.__t.replace(/[^a-z0-9]/g,"");});
+  if(o.input){inp=document.getElementById(o.input);if(!inp)return;}
+  else{
+    var anchor=o.before?o.before():(mode==="card"?items[0]:(function(){var t=p.querySelector("table");return t?(t.closest(".tw")||t):items[0];})());
+    if(!anchor||!anchor.parentNode)return;
+    var bar=document.createElement("div");bar.className="bar cari-cepat";
+    inp=document.createElement("input");inp.type="search";inp.autocomplete="off";inp.placeholder=o.ph||"Cari...";inp.setAttribute("aria-label",o.ph||"Cari");
+    cnt=document.createElement("span");cnt.className="note";cnt.style.margin="0";cnt.setAttribute("role","status");
+    bar.appendChild(inp);bar.appendChild(cnt);anchor.parentNode.insertBefore(bar,anchor);
+  }
+  function saring(){
+    var q=inp.value;CARI_Q[key]=q;
+    var tok=cariNorm(q).split(/\s+/).filter(Boolean),n=0;
+    items.forEach(function(e){
+      var ok=!tok.length||tok.every(function(t){var s=t.replace(/[^a-z0-9]/g,"");return e.__t.indexOf(t)>=0||(s!==""&&e.__s.indexOf(s)>=0);});
+      e.style.display=ok?"":"none";if(ok)n++;});
+    if(o.hideEmptyCard)Array.prototype.forEach.call(p.querySelectorAll(".card"),function(c){
+      var rs=c.querySelectorAll("table tbody tr");if(!rs.length)return;
+      c.style.display=Array.prototype.some.call(rs,function(r){return r.style.display!=="none";})?"":"none";});
+    Array.prototype.forEach.call(p.querySelectorAll("tr.grp"),function(g){
+      var nx=g.nextElementSibling,ada=false;while(nx&&!nx.classList.contains("grp")){if(nx.style.display!=="none"){ada=true;break;}nx=nx.nextElementSibling;}
+      g.style.display=ada||!tok.length?"":"none";});
+    if(cnt)cnt.innerHTML=!tok.length?(items.length+" "+(o.satuan||"baris")):(n?n+" dari "+items.length+" "+(o.satuan||"baris"):'<span style="color:var(--red,#c0392b)">Tidak ada yang cocok</span>');
+  }
+  inp.addEventListener("input",saring);
+  if(CARI_Q[key]&&!o.input)inp.value=CARI_Q[key];
+  if(inp.value)saring();else if(cnt)cnt.textContent=items.length+" "+(o.satuan||"baris");
+}
+(function(){
+  function bungkus(nama,fn){var f=window[nama];if(typeof f!=="function")return;window[nama]=function(){var r=f.apply(this,arguments);try{fn();}catch(e){if(window.console)console.warn("cari "+nama,e);}return r;};}
+  bungkus("drawProyek",function(){cariPasang("proyek","row",{ph:"Cari No PPBJ, nama proyek, departemen, atau status...",satuan:"proyek"});});
+  bungkus("drawSerah0",function(){cariPasang("serah","card",{item:".card[id^=sg-]",ph:"Cari No BPB, peminta, departemen, PPBJ, atau nama barang...",satuan:"permintaan"});});
+  bungkus("drawRekap",function(){cariPasang("rekap","row",{hideEmptyCard:true,before:function(){var t=pane().querySelector(".card table");return t?t.closest(".card"):null;},ph:"Cari No BPB, peminta, barang, atau PIC...",satuan:"permintaan"});});
+  bungkus("drawTerima",function(){cariPasang("terima","card",{ph:"Cari nomor dokumen, pengirim, departemen, proyek, atau barang...",satuan:"dokumen"});});
+  bungkus("drawPengajuan",function(){cariPasang("pengajuan","row",{ph:"Cari nomor, proyek, pengaju, atau status...",satuan:"pengajuan"});});
+  bungkus("drawMati",function(){cariPasang("mati","row",{ph:"Cari kode atau nama barang...",satuan:"barang"});});
+  bungkus("drawLaporan",function(){cariPasang("laporan","row",{ph:"Cari No PPBJ, nama proyek, atau departemen...",satuan:"baris"});});
+  bungkus("drawMutasi",function(){if(typeof MVIEW!=="undefined"&&MVIEW!=="rinci")return;cariPasang("mutasi","row",{input:"mq"});});
+})();
 /* ---- tab Master Barang: pengajuan barang baru dari departemen ---- */
 var MBD={rows:[],st:"Diajukan",q:"",sel:{}};
 async function loadMB(){
@@ -1269,7 +1323,7 @@ function drawMutasi(){
    '<select id="mz" title="Sumber">'+op([""].concat(SUMB),MF.sumber,{"":"Semua sumber"})+'</select></div>'+
    '<div class="bar"><select id="mdp" title="Departemen">'+op([""].concat((r.opsi||{}).dept||[]),MF.dept,{"":"Semua departemen"})+'</select>'+
    '<input id="mpy" list="mpyl" placeholder="Proyek / No PPBJ" value="'+esc(MF.proyek)+'"><datalist id="mpyl">'+(((r.opsi||{}).proyek)||[]).map(function(x){return '<option value="'+esc(x)+'">';}).join("")+'</datalist>'+
-   '<div style="position:relative;flex:1;min-width:200px"><input id="mq" autocomplete="off" placeholder="Kode atau nama barang" value="'+esc(MF.q)+'" style="width:100%"></div>'+
+   '<div style="position:relative;flex:1;min-width:200px"><input id="mq" autocomplete="off" placeholder="Kode, nama barang, No dokumen, PPBJ, keterangan (Enter = cari semua baris)" value="'+esc(MF.q)+'" style="width:100%"></div>'+
    '<button class="sv" id="mgo">Tampilkan</button><button class="gh" id="mrs">Reset</button><button class="gh" id="mcsv"'+(MUT.length?"":" disabled")+'>Unduh Excel (sesuai filter)</button></div></div>'+
    kartu+'<div class="bar">'+vbtn+'</div>'+(ring?'<div class="note">'+ring+'</div>':'')+
    '<div class="note">'+(MVIEW==="rinci"?'Menampilkan '+MUT.length+' dari '+r.total+' catatan (terbaru dulu). Harga = harga saat transaksi; tanda &asymp; = transaksi lama, memakai harga saat ini sebagai perkiraan.':'Rekap dihitung dari seluruh '+r.total+' catatan sesuai filter.')+'</div>'+isi;

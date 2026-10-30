@@ -47,12 +47,15 @@ body.tema input.t,body.tema .card input,body.tema .card select,body.tema .card t
 body.tema input:focus,body.tema select:focus,body.tema textarea:focus{outline:2px solid var(--accent);outline-offset:0}
 body.tema input::placeholder,body.tema textarea::placeholder{color:var(--muted);opacity:1}
 body.tema button{border-radius:3px;box-shadow:none}
-body.tema .card button:not(.gh):not(.sv):not(.rm):not(.chip){background:var(--navy);background-image:none;color:#fff;border-radius:3px}
+body.tema .card button:not(.gh):not(.sv):not(.rm):not(.chip){background:var(--accent);background-image:none;color:var(--accent-ink);border:1px solid var(--accent);border-radius:3px}
 body.tema button.gh{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:3px}
 body.tema button.gh:hover{background:var(--hover)}
-body.tema button.sv{background:#17703a;background-image:none;color:#fff;border-radius:3px}
-body.tema button.rm{background:#9a5b00;color:#fff;border-radius:3px}
-body.tema button:disabled{opacity:.55}
+body.tema button.sv,body.tema .card button.sv{background:var(--accent);background-image:none;color:var(--accent-ink);border:1px solid var(--accent);border-radius:3px}
+body.tema button.rm,body.tema .card button.rm{background:transparent;background-image:none;color:var(--accent);border:1px solid var(--accent);border-radius:3px}
+body.tema button.rm:hover{background:var(--hover)}
+body.tema button.rm.bahaya,body.tema .card button.rm.bahaya{color:var(--bad-t);border-color:var(--bad-t);background:transparent}
+body.tema button.rm.bahaya:hover{background:var(--bad-bg)}
+body.tema button:disabled,body.tema .card button:disabled{opacity:1;cursor:not-allowed;background:var(--neu-bg);color:var(--neu-t);border:1px solid var(--line)}
 body.tema .tabs button{border-radius:3px}
 body.tema .tabs button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 body.tema .q div{background:var(--field);border-color:var(--line)}
@@ -124,3 +127,35 @@ html[data-tema=gelap] body.tema #sheet td input,html[data-tema=gelap] body.tema 
 html[data-tema=gelap] body.tema #sheet textarea{background:#fff}
 html[data-tema=gelap] body.tema #sheet input::placeholder,html[data-tema=gelap] body.tema #sheet textarea::placeholder{color:#5f717d;-webkit-text-fill-color:#5f717d}
 html[data-tema=gelap] body.tema #sheet select{background-color:#fff!important;color:#0d1f2d!important}
+
+/* ===== B: kontrol form seragam (tinggi, huruf, jarak) ===== */
+body.tema :is(.card,.bar,.fr,.ppdl) :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]),select){height:36px;padding:0 10px;font:500 14px Inter,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.2}
+body.tema :is(.card,.bar,.fr,.ppdl) textarea{padding:8px 10px;font:500 14px/1.4 Inter,"Segoe UI",Roboto,Arial,sans-serif}
+body.tema :is(.card,.bar,.fr) button{min-height:36px;padding:0 14px;font:600 13px Inter,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.2}
+body.tema :is(.card,.bar,.fr) button.chip,body.tema .tabs button{min-height:32px;padding:0 12px}
+body.tema :is(.card,.bar,.fr) .sheet :is(input,button){height:auto;min-height:0}
+body.tema input[type=checkbox],body.tema input[type=radio]{accent-color:var(--accent);width:16px;height:16px;vertical-align:-3px}
+body.tema input[type=file]{font:500 13px Inter,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:transparent;border:0;padding:0;height:auto}
+body.tema input[type=file]::file-selector-button{font:600 13px Inter,"Segoe UI",Roboto,Arial,sans-serif;height:36px;padding:0 14px;margin-right:10px;border:1px solid var(--accent);border-radius:3px;background:transparent;color:var(--accent);cursor:pointer}
+body.tema input[type=file]::file-selector-button:hover{background:var(--hover)}
+body.tema .card{border-radius:4px}
+body.tema .card[style*="border"]{border-color:var(--line)!important}
+body.tema .note{line-height:1.45}
+/* ===== C: petunjuk dilipat ===== */
+details.pet{margin:4px 0 8px}
+details.pet>summary{display:inline-block;cursor:pointer;font:600 12.5px Inter,"Segoe UI",Roboto,Arial,sans-serif;color:var(--accent);padding:4px 0;list-style:none}
+details.pet>summary::-webkit-details-marker{display:none}
+details.pet>summary::before{content:"\25B8  "}
+details.pet[open]>summary::before{content:"\25BE  "}
+details.pet>.note{margin:2px 0 4px;padding:8px 10px;background:var(--hover);border-left:3px solid var(--accent);border-radius:0 3px 3px 0;color:var(--ink)}
+/* ===== D: kepala halaman di HP ===== */
+@media(max-width:620px){
+  body.tema .top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:10px 12px}
+  body.tema .top h1,body.tema .top div{order:1;flex:0 0 100%;margin:0}
+  body.tema .top .homebtn{order:2;margin:6px 0 0}
+  body.tema .top .tg{order:3;margin:6px 0 0}
+  body.tema .top .lg{display:none}
+}
+/* ===== E: kartu kode akses ===== */
+body.tema .card[style*="max-width:3"],body.tema .card[style*="max-width:4"]{margin-top:56px!important;border-top:4px solid var(--accent);padding:18px 18px 16px}
+body.tema .card[style*="max-width:3"] b,body.tema .card[style*="max-width:4"]>p>b{font-size:16px}

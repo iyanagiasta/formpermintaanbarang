@@ -6,20 +6,20 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Cari Barang - Gudang SCTK</title>
 <style>
-:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c}
+:root{--navy:#0a2a43;--gold:var(--accent,#0b5f8f);--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c}
 @media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
-.top{background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
-.top h1{margin:0;font:700 17px Georgia,serif;letter-spacing:1.5px}
-.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#e3c98f;font-weight:600}
+.top{background:#0c3b57;color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 17px Inter,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:1.5px}
+.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#c9dde9;font-weight:600}
 .wrap{max-width:900px;margin:0 auto;padding:14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
 input.t{width:100%;padding:12px;font:600 16px "Segoe UI",Roboto,Arial,sans-serif;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
 button{font:600 13px "Segoe UI",Roboto,Arial,sans-serif;padding:10px 14px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer}
 button.gh{background:transparent;color:var(--navy);border:1px solid var(--line)}
 @media (prefers-color-scheme:dark){button.gh{color:var(--ink)}}
-.msg{text-align:center;padding:22px;color:var(--mut)}.err{color:#c0392b}
+.msg{text-align:center;padding:22px;color:var(--mut)}.err{color:var(--red,#a82424)}
 .it b.n{font-size:15px}.it small{color:var(--mut)}
 .q{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 6px}
 .q div{flex:1;min-width:90px;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
@@ -29,9 +29,9 @@ button.gh{background:transparent;color:var(--navy);border:1px solid var(--line)}
 .al{margin:6px 0 0;padding:8px 10px;background:#fff8e6;border-left:3px solid var(--gold);border-radius:6px;font-size:13px;color:#4a3a10}
 @media (prefers-color-scheme:dark){.al{background:#2a2412;color:#e8d9a8}}
 .bar{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px;color:var(--mut);font-size:12px}
-.top{position:relative}.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#e3c98f;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:none;border:1px solid rgba(227,201,143,.55);border-radius:8px;padding:7px 11px;letter-spacing:0}.homebtn:hover,.homebtn:focus-visible{background:rgba(255,255,255,.12);outline:none}@media (max-width:640px){.top{padding-top:50px}.homebtn{top:10px;transform:none}}
+.top{position:relative}.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#c9dde9;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:none;border:1px solid rgba(227,201,143,.55);border-radius:8px;padding:7px 11px;letter-spacing:0}.homebtn:hover,.homebtn:focus-visible{background:rgba(255,255,255,.12);outline:none}@media (max-width:640px){.top{padding-top:50px}.homebtn{top:10px;transform:none}}
 </style>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
 <script src="tema.js"></script>
 </head>
@@ -49,7 +49,7 @@ async function api(b){
   return await r.json();
 }
 function loginView(msg){
-  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Kode akses pegawai</b></p>'+
+  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Kode akses pegawai</b></p><div class="note" style="margin-bottom:8px">Cari stok barang, lokasi rak, dan statusnya. Masukkan kode pegawai.</div>'+
    '<input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode pegawai"><div style="height:10px"></div>'+
    '<button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
   var i=document.getElementById("kd");i.focus();

@@ -86,3 +86,25 @@
   }
   if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",mulai);else mulai();
 })();
+
+/* Admin: petunjuk panjang (.note > 150 huruf) dilipat di balik "Petunjuk", tampil lagi dengan satu ketukan. */
+(function(){
+  var d=document,tm=0;
+  function lipat(){
+    if(!d.getElementById("tabs"))return;
+    var n=d.querySelectorAll(".note");
+    for(var i=0;i<n.length;i++){
+      var e=n[i];
+      if(e.id||e._pet||e.closest("details,table,.noprint,#sheet"))continue;
+      var tx=(e.textContent||"").trim();
+      if(tx.length<=150||/^(Menampilkan|Diperbarui)/i.test(tx))continue;
+      e._pet=1;
+      var dt=d.createElement("details");dt.className="pet";
+      var sm=d.createElement("summary");sm.textContent="Petunjuk";dt.appendChild(sm);
+      e.parentNode.insertBefore(dt,e);dt.appendChild(e);
+    }
+  }
+  function jadwal(){clearTimeout(tm);tm=setTimeout(lipat,80);}
+  function mulai(){lipat();try{new MutationObserver(jadwal).observe(d.body,{childList:true,subtree:true});}catch(e){}}
+  if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",mulai);else mulai();
+})();

@@ -7,13 +7,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <title>Kebutuhan dan Cek PPBJ - Gudang SCTK</title>
 <style>
-:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--red:#c0392b;--grn:#1b8a3a;--amb:#fff3cd;--ambt:#7a5b00;--redbg:#fde8e8;--redt:#8a1c28}
+:root{--navy:#0a2a43;--gold:var(--accent,#0b5f8f);--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--red:#c0392b;--grn:#1b8a3a;--amb:#fff3cd;--ambt:#7a5b00;--redbg:#fde8e8;--redt:#8a1c28}
 @media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--amb:#3a321a;--ambt:#f0d98a;--redbg:#3a1d22;--redt:#f2b8bf}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
-.top{position:relative;background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
-.top h1{margin:0;font:700 18px Georgia,serif;letter-spacing:1.5px}.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#e3c98f;font-weight:600}
-.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#e3c98f;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:none;border:1px solid rgba(227,201,143,.55);border-radius:8px;padding:7px 11px}
+.top{position:relative;background:#0c3b57;color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 18px Inter,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:1.5px}.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#c9dde9;font-weight:600}
+.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#c9dde9;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:none;border:1px solid rgba(227,201,143,.55);border-radius:8px;padding:7px 11px}
 @media (max-width:640px){.top{padding-top:50px}.homebtn{top:10px;transform:none}}
 .wrap{max-width:1150px;margin:0 auto;padding:14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
@@ -40,7 +40,7 @@ tr.lebih td{background:var(--redbg);color:var(--redt)}
 h2{font-size:15px;margin:18px 0 6px}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0a2a43;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:var(--red)}
 </style>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
 <script src="tema.js"></script>
 </head>
@@ -135,7 +135,7 @@ function formBaru(){return {ppbj:"",nama:"",dept:"",kategori:"",rows:[],ada:0,fi
 function viewIsi(){
   if(!FORM)FORM=formBaru();
   var f=FORM,box=document.getElementById("isi");
-  box.innerHTML=(TERAKHIR?'<div class="card" id="tsm" style="border-left:4px solid #1b8a3a"><b style="color:#1b8a3a">Tersimpan:</b> PPBJ <b>'+esc(TERAKHIR.ppbj)+'</b> &middot; '+esc(TERAKHIR.nama)+' &middot; '+TERAKHIR.n+' barang <small>('+esc(TERAKHIR.waktu)+')</small> <button class="gh" id="lihatT">Lihat yang baru disimpan</button></div>':'')+'<div class="card"><b>Kebutuhan barang proyek</b><div class="note">Isi No PPBJ, nama proyek, dan <b>kategori Capex atau Opex</b> (menentukan alur persetujuan pembelian), lalu tambahkan barang (kode dan satuan terisi otomatis) atau impor dari Excel. Bila PPBJ sudah punya kebutuhan, isinya dimuat otomatis dan penyimpanan akan <b>mengganti seluruhnya</b> (versi lama tersimpan di riwayat).</div>'+
+  box.innerHTML=(TERAKHIR?'<div class="card" id="tsm" style="border-left:4px solid #1b8a3a"><b style="color:var(--grn,#14602f)">Tersimpan:</b> PPBJ <b>'+esc(TERAKHIR.ppbj)+'</b> &middot; '+esc(TERAKHIR.nama)+' &middot; '+TERAKHIR.n+' barang <small>('+esc(TERAKHIR.waktu)+')</small> <button class="gh" id="lihatT">Lihat yang baru disimpan</button></div>':'')+'<div class="card"><b>Kebutuhan barang proyek</b><div class="note">Isi No PPBJ, nama proyek, dan <b>kategori Capex atau Opex</b> (menentukan alur persetujuan pembelian), lalu tambahkan barang (kode dan satuan terisi otomatis) atau impor dari Excel. Bila PPBJ sudah punya kebutuhan, isinya dimuat otomatis dan penyimpanan akan <b>mengganti seluruhnya</b> (versi lama tersimpan di riwayat).</div>'+
    '<div class="fr"><input type="text" id="fp" list="dlp2" placeholder="No PPBJ" value="'+esc(f.ppbj)+'" style="width:210px"><datalist id="dlp2">'+opsiPpbj()+'</datalist><button class="gh" id="muat">Muat kebutuhan tersimpan</button></div>'+
    '<div class="fr"><input type="text" id="fn" placeholder="Nama proyek" value="'+esc(f.nama)+'" style="flex:1;min-width:220px"><select id="fd" style="width:170px" title="Departemen">'+opsiDept(f.dept)+'</select><select id="fk" title="Kategori anggaran (menentukan alur pembelian)"><option value="">Kategori: pilih</option><option value="Opex"'+(f.kategori==="Opex"?' selected':'')+'>Opex</option><option value="Capex"'+(f.kategori==="Capex"?' selected':'')+'>Capex</option></select></div>'+
    '<div class="fr"><input type="search" id="fs" placeholder="Cari nama atau kode barang untuk ditambahkan..." autocomplete="off" style="flex:1;min-width:240px"></div><div class="sres" id="sr"></div>'+

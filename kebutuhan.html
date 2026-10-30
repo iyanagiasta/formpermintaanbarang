@@ -11,12 +11,12 @@
 <style>
 .sres{display:grid;gap:4px;margin:4px 0}.hs{display:block;text-align:left;width:100%;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;cursor:pointer}.hs:hover,.hs:focus-visible{border-color:var(--gold);outline:none}.hs small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 .rw{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:9px;margin-top:4px}.rr{display:flex;gap:8px;align-items:center;padding:7px 9px;border-top:1px solid var(--line)}.rr:first-child{border-top:0}.rr>span{flex:1;min-width:0}.rr small{display:block;color:var(--mut);font-size:12px}.rr input{width:84px;padding:6px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--ink);text-align:right}
-:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--beli:#fde8e8;--belit:#8a1c28}
+:root{--navy:#0a2a43;--gold:var(--accent,#0b5f8f);--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--beli:#fde8e8;--belit:#8a1c28}
 @media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--beli:#3a1d22;--belit:#f2b8bf}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
-.top{background:linear-gradient(120deg,#06203a,#0a3a5c 55%,#0f6f93);color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
-.top h1{margin:0;font:700 18px Georgia,serif;letter-spacing:1.5px}.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#e3c98f;font-weight:600}
+.top{background:#0c3b57;color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 18px Inter,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:1.5px}.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#c9dde9;font-weight:600}
 .wrap{max-width:1150px;margin:0 auto;padding:14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
 input.t,select,input[type=text]{padding:9px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
@@ -25,7 +25,7 @@ button{font:600 13px "Segoe UI",Roboto,Arial,sans-serif;padding:9px 13px;border:
 button:disabled{opacity:.5;cursor:default}button.gh{background:transparent;color:var(--navy);border:1px solid var(--line)}button.sv{background:#1b8a3a}button.gold{background:var(--gold)}
 @media (prefers-color-scheme:dark){button.gh{color:var(--ink)}}
 .fr{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
-.note{color:var(--mut);font-size:12px}.err{color:#c0392b}.msg{text-align:center;padding:22px;color:var(--mut)}
+.note{color:var(--mut);font-size:12px}.err{color:var(--red,#a82424)}.msg{text-align:center;padding:22px;color:var(--mut)}
 .blk{border-left:4px solid var(--gold)}
 .blk h3{margin:0 0 6px;font-size:14px}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
@@ -39,11 +39,11 @@ td small{display:block;color:var(--mut);font-size:11px}.nm{text-align:right;whit
 tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 .tag{display:inline-block;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700}.tag.w{background:#fff3cd;color:#7a5b00}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0a2a43;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:#c0392b}
-.top{position:relative}.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#e3c98f;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:none;border:1px solid rgba(227,201,143,.55);border-radius:8px;padding:7px 11px;letter-spacing:0}.homebtn:hover,.homebtn:focus-visible{background:rgba(255,255,255,.12);outline:none}@media (max-width:640px){.top{padding-top:50px}.homebtn{top:10px;transform:none}}
+.top{position:relative}.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#c9dde9;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:none;border:1px solid rgba(227,201,143,.55);border-radius:8px;padding:7px 11px;letter-spacing:0}.homebtn:hover,.homebtn:focus-visible{background:rgba(255,255,255,.12);outline:none}@media (max-width:640px){.top{padding-top:50px}.homebtn{top:10px;transform:none}}
 .at{display:flex;gap:8px;align-items:center;padding:7px 9px;border-top:1px solid var(--line)}.at:first-child{border-top:0}.at>span{flex:1;min-width:0;word-break:break-all}.at small{color:var(--mut)}
 .pgf{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:8px 0}.pgf label{display:block;font-size:12px;color:var(--mut)}.pgf input{width:100%}
 </style>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
 <script src="tema.js"></script>
 </head>
@@ -60,7 +60,7 @@ function rp(n){return n==null?"":"Rp "+Math.round(n).toLocaleString("id-ID");}
 var PINADM="";try{PINADM=sessionStorage.getItem("sctk_admin")||"";}catch(e){}
 async function api(b){b.kode=KODE;if(PINADM&&!KODE)b.pin=PINADM;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
 function loginView(msg){
-  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Kode akses PIC / atasan / gudang</b></p><input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode PIC"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
+  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Kode akses PIC / atasan / gudang</b></p><div class="note" style="margin-bottom:8px">Cek kebutuhan barang proyek terhadap stok gudang. Untuk PIC, atasan, dan gudang.</div><input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode PIC"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
   var i=document.getElementById("kd");i.focus();i.onkeydown=function(e){if(e.key==="Enter")masuk();};document.getElementById("go").onclick=masuk;
 }
 async function masuk(){
@@ -301,7 +301,7 @@ async function buatDokumen(ajukan){
       var r=await api({action:"pgjSubmit",proyek:HAS.input,pengaju:PGJ.pengaju,dept:PGJ.dept,email:PGJ.email,perihal:PGJ.perihal,tgl:PGJ.tgl,lampiran:bundle?bytesKeB64(bundle):"",lampiranNama:ATT.map(function(a){return a.file.name;})});
       inf.textContent="";
       if(!r.ok){toast(r.msg||"Gagal mengajukan.",true);document.getElementById("pg_r").innerHTML='<span class="err">'+esc(r.msg||"Gagal mengajukan.")+'</span>';}
-      else{LAST_PG=r;toast(r.msg);document.getElementById("pg_r").innerHTML='<b style="color:#1b8a3a">'+esc(r.msg)+'</b> Status dan PDF bertanda tangan bisa dilihat di daftar Pengajuan terbaru di bawah.';riwayatPgj();}
+      else{LAST_PG=r;toast(r.msg);document.getElementById("pg_r").innerHTML='<b style="color:var(--grn,#14602f)">'+esc(r.msg)+'</b> Status dan PDF bertanda tangan bisa dilihat di daftar Pengajuan terbaru di bawah.';riwayatPgj();}
     } else {
       inf.textContent="Menyusun PDF...";
       var bytes=await PengajuanPdf.buatPdf({data:data,ttd:[{nama:PGJ.pengaju},{},{},{},{}],status:"",lampiranNama:ATT.map(function(a){return a.file.name;}),lampiranBytes:bundle});

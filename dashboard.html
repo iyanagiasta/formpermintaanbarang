@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="id" data-tema="gelap">
+<html lang="id" data-tema="terang">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Sistem Gudang SCTK</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema.css">
-<script>try{document.documentElement.setAttribute("data-tema",localStorage.getItem("sctk_tema")==="terang"?"terang":"gelap");}catch(e){}</script>
+<script>try{document.documentElement.setAttribute("data-tema",localStorage.getItem("sctk_tema")==="gelap"?"gelap":"terang");}catch(e){}</script>
 </head>
 <body>
 <header class="hero">
@@ -18,7 +18,7 @@
       <div class="brand">
         <div class="logo">
           <img src="logo.png" alt="Logo PT Sarana Catur Tirta Kelola" onerror="this.remove();document.getElementById('lg').style.display='block'">
-          <svg id="lg" style="display:none" viewBox="0 0 24 24" fill="none" stroke="#4cc3f0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.2 6 10.5A6 6 0 0 1 6 13.5C6 9.2 12 3 12 3z"/><path d="M9.5 14.5a2.7 2.7 0 0 0 2.5 2"/></svg>
+          <svg id="lg" style="display:none" viewBox="0 0 24 24" fill="none" stroke="#0b5f8f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.2 6 10.5A6 6 0 0 1 6 13.5C6 9.2 12 3 12 3z"/><path d="M9.5 14.5a2.7 2.7 0 0 0 2.5 2"/></svg>
         </div>
         <div><h1>Sistem Gudang</h1><small>PT SARANA CATUR TIRTA KELOLA</small></div>
       </div>
@@ -42,6 +42,11 @@ var app=document.getElementById("app"),who=document.getElementById("who");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function st(k,v,sess){try{var s=sess?sessionStorage:localStorage;if(v===undefined)return s.getItem(k)||"";if(v===null)s.removeItem(k);else s.setItem(k,v);}catch(e){return "";}return "";}
 var ICON={
+ plus:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M12 12v6M9 15h6"/>',
+ keranjang:'<path d="M3 4h2l2.4 11h10.2L20 8H6.2"/><circle cx="9" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/>',
+ nota:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+ terima:'<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+ barcode:'<path d="M4 5v14M7 5v14M11 5v14M14 5v14M18 5v14M20 5v14"/>',
  form:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
  cari:'<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/>',
  kebutuhan:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 12l2 2 4-4"/>',
@@ -120,21 +125,24 @@ async function buka(aksi,btn){
 function keluar(){st("sctk_kode",null);st("sctk_pic",null);st("sctk_admin",null,true);tampilAwal();}
 /* ---- tampilan ---- */
 function big(aksi,ik,judul,ket,tag,adm){
-  return '<button class="big'+(adm?" adm":"")+'" type="button" data-aksi="'+aksi+'"><span class="go" aria-hidden="true">&#8594;</span>'+ikon(ik)+'<div><b>'+esc(judul)+'</b><small>'+esc(ket)+'</small></div><span class="tag'+(adm?" a":"")+'">&#128274; '+tag+'</span></button>';
+  return '<button class="big'+(adm?" adm":"")+'" type="button" data-aksi="'+aksi+'"><span class="hd">'+ikon(ik)+'<b>'+esc(judul)+'</b></span><small>'+esc(ket)+'</small><span class="tag'+(adm?" a":"")+'">Akses: '+tag+'</span></button>';
 }
 function kartu(){
-  return '<div class="pgm" id="pgm" role="region" aria-label="Pengumuman"></div><div class="sec"><h3>Layanan &middot; kode akses diminta saat layanan dibuka</h3></div><div class="menu">'+
-   big("minta","form","Permintaan Barang","Buat permintaan pengambilan barang harian. Persetujuan lewat email, tanpa kertas.","KODE PEGAWAI")+
-   big("cari","cari","Cari Barang","Lokasi gudang dan rak, foto barang dan rak, stok Moka dan Accurate, serta proyek yang memakai barang itu.","KODE PEGAWAI")+
-   big("kembali","kembali","Pengembalian Barang","Kembalikan barang sisa proyek ke gudang. Persetujuan sama dengan permintaan, stok bertambah setelah gudang menerima barang.","KODE PEGAWAI")+
-   big("masterbarang","form","Pengajuan Master Barang","Ajukan barang baru yang belum ada di daftar. Gudang menerima pengajuan lalu memasukkannya ke Accurate.","KODE PEGAWAI")+
-   big("kebutuhan","kebutuhan","Cek Kebutuhan Proyek","Unggah kebutuhan barang proyek baru. Hasilnya: pakai stok Moka, stok Accurate, atau beli, lengkap dengan harga stok.","KODE PIC / ATASAN")+
-   big("proyek","proyek","Kebutuhan dan Cek PPBJ","Simpan kebutuhan (RAB) proyek per No PPBJ, lalu cek barang apa saja yang sudah keluar, dikembalikan, dan masih diproses.","KODE PIC / ATASAN / GUDANG")+
-   big("beli","form","Pengajuan Pembelian","Ajukan pembelian UMO atau PPBJ (Capex/Opex). Persetujuan atasan, Pengadaan, Accounting lewat email dengan tanda tangan otomatis.","KODE PIC / ATASAN / GUDANG")+
-   big("realisasi","form","Realisasi Pembelian","Catat belanja atas UMO atau Capex yang sudah disetujui, bandingkan dengan pengajuan, lalu tutup realisasinya.","KODE PIC / ATASAN / GUDANG")+
-   big("pembelianku","form","Pembelian dan Penerimaan","Pengadaan mencatat pembelian dan surat jalan; Staff Gudang mengonfirmasi barang diterima fisik; Accounting mengesahkan pembelian darurat.","KODE PENGADAAN / ACCOUNTING / GUDANG")+
-   big("label","form","Cetak Label Barcode","Cetak label barcode dan label Tom & Jerry berisi nama barang, barcode, dan kotak Slow / Fast Moving.","KODE PIC / ATASAN / GUDANG")+
-   big("admin","admin","Admin Gudang","Pantauan persetujuan, serah barang, stok dan harga, opname, proyek, mutasi, laporan, dan cadangan.","KHUSUS ADMIN",true)+
+  return '<div class="pgm" id="pgm" role="region" aria-label="Pengumuman"></div><div class="sec"><h3>Permintaan dan stok</h3></div><div class="menu">'+
+   big("minta","form","Permintaan Barang","Buat permintaan pengambilan barang harian. Persetujuan lewat email, tanpa kertas.","kode pegawai")+
+   big("cari","cari","Cari Barang","Lokasi gudang dan rak, foto barang dan rak, stok Moka dan Accurate, serta proyek yang memakai barang itu.","kode pegawai")+
+   big("kembali","kembali","Pengembalian Barang","Kembalikan barang sisa proyek ke gudang. Persetujuan sama dengan permintaan, stok bertambah setelah gudang menerima barang.","kode pegawai")+
+   '</div>'+'<div class="sec"><h3>Proyek</h3></div><div class="menu">'+
+   big("kebutuhan","kebutuhan","Cek Kebutuhan Proyek","Unggah kebutuhan barang proyek baru. Hasilnya: pakai stok Moka, stok Accurate, atau beli, lengkap dengan harga stok.","PIC atau atasan")+
+   big("proyek","proyek","Kebutuhan dan Cek PPBJ","Simpan kebutuhan (RAB) proyek per No PPBJ, lalu cek barang apa saja yang sudah keluar, dikembalikan, dan masih diproses.","PIC, atasan, atau gudang")+
+   '</div>'+'<div class="sec"><h3>Pembelian</h3></div><div class="menu">'+
+   big("beli","keranjang","Pengajuan Pembelian","Ajukan pembelian UMO atau PPBJ (Capex/Opex). Persetujuan atasan, Pengadaan, Accounting lewat email dengan tanda tangan otomatis.","PIC, atasan, atau gudang")+
+   big("realisasi","nota","Realisasi Pembelian","Catat belanja atas UMO atau Capex yang sudah disetujui, bandingkan dengan pengajuan, lalu tutup realisasinya.","PIC, atasan, atau gudang")+
+   big("pembelianku","terima","Pembelian dan Penerimaan","Pengadaan mencatat pembelian dan surat jalan; Staff Gudang mengonfirmasi barang diterima fisik; Accounting mengesahkan pembelian darurat.","Pengadaan, Accounting, atau gudang")+
+   '</div>'+'<div class="sec"><h3>Alat dan administrasi</h3></div><div class="menu">'+
+   big("masterbarang","plus","Pengajuan Master Barang","Ajukan barang baru yang belum ada di daftar. Gudang menerima pengajuan lalu memasukkannya ke Accurate.","kode pegawai")+
+   big("label","barcode","Cetak Label Barcode","Cetak label barcode dan label Tom & Jerry berisi nama barang, barcode, dan kotak Slow / Fast Moving.","PIC, atasan, atau gudang")+
+   big("admin","admin","Admin Gudang","Pantauan persetujuan, serah barang, stok dan harga, opname, proyek, mutasi, laporan, dan cadangan.","khusus admin",true)+
    '</div>';
 }
 function pasangKartu(){
@@ -227,7 +235,7 @@ function tampilAwal(){
   var K=["Satu tempat untuk permintaan, stok, dan opname. Rapi, cepat, dan tanpa kertas.","Setiap barang tercatat, setiap tetes air bernilai. Mari kerja dengan teliti.","Gudang yang tertata adalah dasar pelayanan air yang andal.","Dari permintaan sampai penyerahan, semua terpantau dalam satu layar.","Data akurat hari ini, keputusan tepat esok hari."],i=0,e=document.getElementById("kata");
   setInterval(function(){i=(i+1)%K.length;e.style.opacity=0;setTimeout(function(){e.textContent=K[i];e.style.opacity=1;},500);},7000);
   var tb=document.getElementById("tema");
-  function ikTema(){tb.innerHTML=document.documentElement.getAttribute("data-tema")==="terang"?"&#127769;":"&#9728;";}
+  function ikTema(){tb.textContent=document.documentElement.getAttribute("data-tema")==="terang"?"Mode gelap":"Mode terang";}
   ikTema();tb.onclick=function(){var t=document.documentElement.getAttribute("data-tema")==="terang"?"gelap":"terang";document.documentElement.setAttribute("data-tema",t);try{localStorage.setItem("sctk_tema",t);}catch(x){}ikTema();};
 })();
 (function(){

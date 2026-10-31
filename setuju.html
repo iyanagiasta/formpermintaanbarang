@@ -32,6 +32,21 @@ button.ok{background:#1b8a3a}button.no{background:#c0392b}button:disabled{opacit
 .msg.err{color:var(--red,#a82424)}.msg.good{color:var(--grn,#14602f)}
 .tag{display:inline-block;background:#e8f1f6;color:#17588f;border-radius:20px;padding:3px 10px;font-size:13px;font-weight:600}
 @media (prefers-color-scheme:dark){.tag{background:#23333c;color:#e6eef2}}
+
+.kk{border-left:6px solid var(--navy)}
+.kk h2{margin:0 0 8px;font:700 16px "Segoe UI",Roboto,Arial,sans-serif}
+.kk ul{list-style:none;margin:0;padding:0}
+.kk li{display:flex;gap:8px;align-items:flex-start;padding:7px 10px;margin:6px 0;border-radius:8px;font-size:14px;line-height:1.35}
+.kk li b{flex:none;min-width:84px;font-size:12px;letter-spacing:.3px;text-transform:uppercase}
+.k-merah{background:#fde8e8;color:#8a1c28}.k-kuning{background:#fff3cd;color:#6b4300}.k-hijau{background:#e3f4e8;color:#14602f}.k-info,.k-abu{background:#e8f1f6;color:#2f4a5c}
+@media (prefers-color-scheme:dark){.k-merah{background:#46191d;color:#ffb4b4}.k-kuning{background:#3a3010;color:#f2dc9b}.k-hijau{background:#1d3a26;color:#a8e0b5}.k-info,.k-abu{background:#23333c;color:#cdd9e0}}
+html[data-tema=gelap] .k-merah{background:#46191d;color:#ffb4b4}html[data-tema=gelap] .k-kuning{background:#3a3010;color:#f2dc9b}html[data-tema=gelap] .k-hijau{background:#1d3a26;color:#a8e0b5}html[data-tema=gelap] .k-info,html[data-tema=gelap] .k-abu{background:#23333c;color:#cdd9e0}
+html[data-tema=terang] .k-merah{background:#fde8e8;color:#8a1c28}html[data-tema=terang] .k-kuning{background:#fff3cd;color:#6b4300}html[data-tema=terang] .k-hijau{background:#e3f4e8;color:#14602f}html[data-tema=terang] .k-info,html[data-tema=terang] .k-abu{background:#e8f1f6;color:#2f4a5c}
+.kchips{display:flex;flex-wrap:wrap;gap:6px}
+.kchip{display:inline-block;border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:600;line-height:1.3}
+tr.kd td{border-bottom:1px solid var(--line);padding:2px 6px 10px}
+tr.kd+tr td,tr.it td{border-top:0}
+.nilai{margin-top:8px;font-size:15px}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
@@ -51,11 +66,53 @@ async function api(b){
   var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});
   return await r.json();
 }
+
+function rp(n){return "Rp "+String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,".");}
+function fq(n){return String(Math.round(Number(n)*100)/100).replace(".",",");}
+function chip(t,teks){return '<span class="kchip k-'+t+'">'+({merah:"\u2715 ",kuning:"! ",hijau:"\u2713 ",abu:"\u2139 "}[t]||"")+esc(teks)+'</span>';}
+function chipsItem(k,it){
+  var c=[];
+  if(k.jenis==="Pengembalian"){
+    var kb=it.kembali||{};
+    c.push(chip(kb.status==="Sesuai"?"hijau":(kb.status==="Melebihi yang diserahkan"?"merah":"kuning"),kb.status==="Sesuai"?"Sesuai yang pernah diserahkan ("+fq(kb.serah)+")":(kb.status==="Melebihi yang diserahkan"?"Melebihi yang pernah diserahkan ("+fq(kb.serah)+")":kb.status)));
+  }else{
+    var s=it.stok||{};
+    if(s.status==="Cukup")c.push(chip("hijau","Stok cukup (bebas "+fq(s.bebas)+")"));
+    else if(s.status==="Terbatas")c.push(chip("kuning","Stok terbatas: bebas "+fq(s.bebas)+", diminta "+fq(it.q)));
+    else if(s.status==="Kurang")c.push(chip("merah","Stok bebas habis (diminta "+fq(it.q)+")"));
+    else if(s.status==="Tidak tercatat")c.push(chip("merah","Tidak ada di data stok"));
+    else if(s.status==="Baru")c.push(chip("abu","Barang baru, belum ada kode"));
+    var r=it.rab||{};
+    if(r.status==="Dalam RAB")c.push(chip("hijau","Dalam RAB (sisa "+fq(r.sisa)+" dari "+fq(r.rab)+")"));
+    else if(r.status==="Melebihi sisa RAB")c.push(chip("merah","Melebihi sisa RAB (sisa "+fq(r.sisa)+" dari "+fq(r.rab)+")"));
+    else if(r.status==="Di luar RAB")c.push(chip("kuning","Di luar RAB proyek"));
+    else if(r.status)c.push(chip("abu",r.status));
+    var p=it.pola;
+    if(p){
+      if(p.status==="Wajar")c.push(chip("hijau","Wajar bagi departemen ini (rata-rata "+fq(p.rata)+", "+p.n+"\u00d7)"));
+      else if(p.status==="Jauh di atas biasanya"||p.status==="Di atas biasanya")c.push(chip("kuning",p.status+" (rata-rata "+fq(p.rata)+", terbesar "+fq(p.maks)+", "+p.n+"\u00d7)"));
+      else if(p.status==="Pertama kali")c.push(chip("abu","Belum pernah diminta departemen ini (6 bulan)"));
+      else c.push(chip("abu","Riwayat departemen masih sedikit ("+p.n+"\u00d7, rata-rata "+fq(p.rata)+")"));
+    }
+  }
+  if(k.nilaiTampil&&it.subtotal!=null)c.push(chip("abu",fq(it.q)+" \u00d7 "+rp(it.harga)+" = "+rp(it.subtotal)));
+  else if(k.nilaiTampil&&k.jenis!=="Pengembalian"&&it.harga==null&&(it.stok||{}).status!=="Baru")c.push(chip("abu","Harga belum ada"));
+  return c.join("");
+}
+function kartuKeputusan(k){
+  if(!k)return "";
+  var lbl={merah:"Perhatikan",kuning:"Cek dulu",hijau:"Aman",info:"Info"};
+  var li=(k.ringkas||[]).map(function(x){return '<li class="k-'+x.t+'"><b>'+lbl[x.t]+'</b><span>'+esc(x.teks)+'</span></li>';}).join("");
+  var nilai=k.nilaiTampil&&k.nilai!=null?'<div class="nilai"><b>Perkiraan nilai: '+rp(k.nilai)+'</b>'+(k.tanpaHarga?' <small>('+k.tanpaHarga+' barang tanpa harga tidak dihitung)</small>':"")+'</div>':"";
+  var pr=k.proyek?'<div class="nilai" style="font-size:13px">Proyek: <b>'+esc(k.proyek.ket||k.proyek.ppbj)+'</b> ('+esc(k.proyek.ppbj)+', '+esc(k.proyek.status)+')</div>':"";
+  return '<div class="card kk"><h2>Kartu keputusan</h2><ul>'+li+'</ul>'+nilai+pr+'<div class="note" style="margin-top:10px">Ini bantuan membaca data, bukan pengganti penilaian Anda. Data stok, RAB, dan riwayat diambil dari sistem saat halaman ini dibuka.</div></div>';
+}
 function render(r){
   var CAD=!!r.cadangan; if(CAD)act="approve";
   var d=r.data,aksi=act==="reject"?"TOLAK":"SETUJUI";
   var cat=(d.cat||[]).map(function(x){return "\n\n"+esc(x.peran+(x.nama?" ("+x.nama+(x.waktu?", "+x.waktu:"")+")":"")+": "+x.teks);}).join("");
-  var rows=d.items.map(function(i,n){return "<tr><td>"+(n+1)+"</td><td>"+(i.kode==="BARU"?"<b style=\"color:#b8760a\">BARU</b> (belum ada kode)":esc(i.kode))+"</td><td>"+esc(i.nama)+"</td><td>"+esc(i.satuan)+"</td><td>"+esc(i.jumlah)+"</td></tr>";}).join("");
+  var K=r.keputusan||null;
+  var rows=d.items.map(function(i,n){return "<tr class=\"it\"><td>"+(n+1)+"</td><td>"+(i.kode==="BARU"?"<b style=\"color:var(--ambt,#6b4300)\">BARU</b> (belum ada kode)":esc(i.kode))+"</td><td>"+esc(i.nama)+"</td><td>"+esc(i.satuan)+"</td><td>"+esc(i.jumlah)+"</td></tr>"+(K&&K.items&&K.items[n]?"<tr class=\"kd\"><td></td><td colspan=\"4\"><div class=\"kchips\">"+chipsItem(K,K.items[n])+"</div></td></tr>":"");}).join("");
   app.innerHTML=
    '<div class="card"><span class="tag">'+esc(r.tahap)+'</span>'+
    (CAD?'<p style="margin:10px 0 4px">Halo <b>'+esc(r.cadangan)+'</b>, Anda penyetuju cadangan untuk <b>'+esc(r.approver)+'</b>. Persetujuan tercatat atas nama '+esc(r.approver)+', dan klik Anda dicatat sebagai pembantu. Mohon periksa ':'<p style="margin:10px 0 4px">Halo <b>'+esc(r.approver)+'</b>, mohon periksa ')+(d.jenis==='Pengembalian'?'pengembalian barang sisa proyek':'permintaan')+' berikut.</p>'+
@@ -67,6 +124,7 @@ function render(r){
    '<div class="row"><b>'+(d.jenis==='Pengembalian'?'Sisa Proyek (PPBJ)':'Nomor PPBJ')+'</b><span>'+esc(d.ppbj)+'</span></div>'+
    '<div class="row"><b>'+(d.jenis==='Pengembalian'?'Keterangan':'Alasan')+'</b><span>'+esc(d.alasan)+'</span></div>'+
    (cat?'<div class="note"><b>Catatan</b>'+cat+'</div>':"")+'</div>'+
+   kartuKeputusan(K)+
    '<div class="card" style="overflow-x:auto"><table><tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Sat</th><th>Jml</th></tr>'+rows+'</table></div>'+
    '<div class="card"><label for="cat"><b>Catatan Anda</b> (opsional)</label><textarea id="cat" maxlength="1000" placeholder="'+(act==="reject"?"Alasan penolakan atau informasi untuk pihak berikutnya":"Informasi tambahan untuk pihak berikutnya")+'"></textarea><div class="cnt" id="cnt">0 / 1000</div>'+
    '<div class="btns"><button class="'+(act==="reject"?"no":"ok")+'" id="go">Ya, '+aksi+'</button>'+

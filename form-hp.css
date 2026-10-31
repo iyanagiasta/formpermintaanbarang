@@ -1,0 +1,105 @@
+/* ===== Tampilan HP untuk Form Permintaan dan Form Pengembalian =====
+   Hanya berlaku bila body.hp (layar <= 700 px) dan BUKAN saat membuat PDF (body.cap) / mode cetak.
+   Desktop, hasil PDF, dan cetak tidak berubah. Data tetap di kolom yang sama (kartu = baris tabel yang sama). */
+.stp,.hp-ring,#hpbar{display:none}
+@media screen{
+body.hp:not(.cap):not(.cetak) .wrap{padding:8px 10px calc(92px + env(safe-area-inset-bottom,0px));overflow-x:visible}
+body.hp:not(.cap):not(.cetak) .bar{padding:8px 10px;gap:8px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+body.hp:not(.cap):not(.cetak) .bar .info{display:none}
+body.hp:not(.cap):not(.cetak) .bar .btn{flex:none;min-height:44px;white-space:nowrap}
+body.hp:not(.cap):not(.cetak) #sendBtn{display:none}
+body.hp:not(.cap):not(.cetak) #pegbar{padding:8px 10px;font-size:14px}
+body.hp:not(.cap):not(.cetak) #pegbar input{font-size:16px;min-height:44px;width:160px}
+body.hp:not(.cap):not(.cetak) #pegbar .btn{min-height:44px}
+body.hp:not(.cap):not(.cetak) .langkah{gap:4px;margin:0 0 8px;flex-direction:row;max-width:none}
+body.hp:not(.cap):not(.cetak) .langkah div{padding:6px 4px;font-size:11.5px;gap:5px;border-left-width:3px;flex-direction:column;text-align:center;align-items:center;line-height:1.2}
+body.hp:not(.cap):not(.cetak) .langkah div:before{width:20px;height:20px;font-size:11px}
+body.hp:not(.cap):not(.cetak) .langkah small{display:none}
+body.hp:not(.cap):not(.cetak) #sheet{width:100%;min-width:0;min-height:0;margin:0;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.2)}
+body.hp:not(.cap):not(.cetak) #sheet .head{padding:14px 14px 0;min-height:0}
+body.hp:not(.cap):not(.cetak) #sheet .head .kl{position:absolute;left:14px;top:12px;width:44px;height:44px}
+body.hp:not(.cap):not(.cetak) #sheet .head .co{margin-left:54px;font-size:11px;letter-spacing:.4px;padding-bottom:6px}
+body.hp:not(.cap):not(.cetak) #sheet .head .nd{position:static;display:block;margin:6px 0 0 54px;white-space:normal;text-align:left;font-size:12px}
+body.hp:not(.cap):not(.cetak) #sheet .head .nd b{font-size:13px}
+body.hp:not(.cap):not(.cetak) #sheet .head h1{font-size:15px;margin-top:22px;letter-spacing:.8px;padding-bottom:8px}
+body.hp:not(.cap):not(.cetak) #sheet .body{padding:10px 14px 14px}
+body.hp:not(.cap):not(.cetak) #sheet .meta{grid-template-columns:1fr 1.3fr;gap:12px;margin-bottom:12px}
+body.hp:not(.cap):not(.cetak) #sheet .meta .f{grid-column:1/-1}
+body.hp:not(.cap):not(.cetak) #sheet .meta .f:nth-child(4),body.hp:not(.cap):not(.cetak) #sheet .meta .f:nth-child(5){grid-column:auto}
+body.hp:not(.cap):not(.cetak) #sheet #doc,body.hp:not(.cap):not(.cetak) #sheet #tgl{font-size:16px;padding:0 8px;letter-spacing:-.2px}
+body.hp:not(.cap):not(.cetak) #sheet .f label,body.hp:not(.cap):not(.cetak) #sheet .reason label{font-size:12px;letter-spacing:.3px;margin-bottom:4px;color:#2f4a5c}
+body.hp:not(.cap):not(.cetak) #sheet .f input,body.hp:not(.cap):not(.cetak) #sheet .reason textarea{height:48px;font-size:16px;padding:0 12px;border:1px solid #9fb8c6;border-radius:10px;background:#fff;color:#0d1f2d;font-weight:600}
+body.hp:not(.cap):not(.cetak) #sheet .f input[readonly]{background:#eef3f6;color:#2f4a5c}
+body.hp:not(.cap):not(.cetak) #sheet .reason textarea{height:auto;min-height:92px;padding:10px 12px;line-height:1.35;font-weight:500}
+body.hp:not(.cap):not(.cetak) #sheet .f input:focus,body.hp:not(.cap):not(.cetak) #sheet .reason textarea:focus{outline:3px solid #1a6cab;outline-offset:1px;background:#fff}
+body.hp:not(.cap):not(.cetak) #sheet .reason{margin-top:12px}
+body.hp:not(.cap):not(.cetak) #sheet .cnt{font-size:12px}
+/* daftar barang -> kartu */
+body.hp:not(.cap):not(.cetak) #sheet table,body.hp:not(.cap):not(.cetak) #sheet tbody{display:block;border:0;width:100%}
+body.hp:not(.cap):not(.cetak) #sheet thead,body.hp:not(.cap):not(.cetak) #sheet colgroup{display:none}
+body.hp:not(.cap):not(.cetak) #rows tr{display:grid;grid-template-columns:30px 1fr 1fr 44px;column-gap:8px;row-gap:8px;padding:12px 10px 12px 12px;margin:0 0 12px;border:1px solid #b6cad6;border-left:7px solid #b6cad6;border-radius:12px;background:#fff;position:relative}
+body.hp:not(.cap):not(.cetak) #rows tr[data-lampu=hijau]{border-left-color:#1b8a3a}
+body.hp:not(.cap):not(.cetak) #rows tr[data-lampu=kuning]{border-left-color:#c98a00}
+body.hp:not(.cap):not(.cetak) #rows tr[data-lampu=merah]{border-left-color:#c0392b}
+body.hp:not(.cap):not(.cetak) #sheet #rows td{display:block;border:0!important;height:auto;padding:0;background:transparent!important;min-width:0}
+body.hp:not(.cap):not(.cetak) #sheet #rows td:nth-child(1){grid-column:1;grid-row:1;align-self:center;width:28px;height:28px;border-radius:50%;background:#1a6cab!important;color:#fff;font:700 13px/28px "Segoe UI",Arial,sans-serif;text-align:center}
+body.hp:not(.cap):not(.cetak) #rows td:nth-child(3){grid-column:2/4;grid-row:1}
+body.hp:not(.cap):not(.cetak) #rows td:nth-child(7){grid-column:4;grid-row:1}
+body.hp:not(.cap):not(.cetak) #rows td:nth-child(2){grid-column:2;grid-row:2}
+body.hp:not(.cap):not(.cetak) #rows td:nth-child(4){grid-column:3;grid-row:2}
+body.hp:not(.cap):not(.cetak) #rows td:nth-child(5){grid-column:1/5;grid-row:3;display:flex;align-items:center;gap:10px}
+body.hp:not(.cap):not(.cetak) #rows td:nth-child(6){grid-column:1/5;grid-row:4}
+body.hp:not(.cap):not(.cetak) #rows td:nth-child(2):before,body.hp:not(.cap):not(.cetak) #rows td:nth-child(4):before{display:block;font:700 11px "Segoe UI",Arial,sans-serif;letter-spacing:.4px;text-transform:uppercase;color:#3f5868;margin-bottom:3px}
+body.hp:not(.cap):not(.cetak) #rows td:nth-child(2):before{content:"Kode"}
+body.hp:not(.cap):not(.cetak) #rows td:nth-child(4):before{content:"Satuan"}
+body.hp:not(.cap):not(.cetak) #rows td:nth-child(5):before{content:"Jumlah";min-width:60px;font:700 12px "Segoe UI",Arial,sans-serif;text-transform:uppercase;letter-spacing:.4px;color:#3f5868;margin-right:auto}
+body.hp:not(.cap):not(.cetak) #rows input{height:46px;font-size:16px;padding:0 12px;border:1px solid #9fb8c6!important;border-radius:10px;background:#fff!important;color:#0d1f2d;text-align:left;width:100%}
+body.hp:not(.cap):not(.cetak) #rows input[readonly]{background:#eef3f6!important;color:#2f4a5c}
+body.hp:not(.cap):not(.cetak) #rows input.nama{font-weight:700}
+body.hp:not(.cap):not(.cetak) #rows input:focus{outline:3px solid #1a6cab;outline-offset:1px}
+body.hp:not(.cap):not(.cetak) #rows td.c input{text-align:left}
+body.hp:not(.cap):not(.cetak) #rows input.jml{width:84px;text-align:center;font:700 20px "Segoe UI",Arial,sans-serif;padding:0 4px}
+body.hp:not(.cap):not(.cetak) #rows .stp{display:inline-flex;align-items:center;justify-content:center;flex:none;width:46px;height:46px;border:1px solid #1a6cab;border-radius:50%;background:#fff;color:#1a6cab;font:700 26px/1 "Segoe UI",Arial,sans-serif;padding:0;cursor:pointer;touch-action:manipulation}
+body.hp:not(.cap):not(.cetak) #rows .stp:active{background:#1a6cab;color:#fff}
+body.hp:not(.cap):not(.cetak) #rows .del{height:46px;width:44px;border:1px solid #c9d3da;border-radius:10px;background:#fff;color:#b00020;font-size:24px;line-height:1}
+body.hp:not(.cap):not(.cetak) #rows .stinfo{font-size:13px;line-height:1.4;padding:8px 10px;background:#f4f8fb;border-radius:8px;color:#1f3a4d}
+body.hp:not(.cap):not(.cetak) #rows .stinfo:empty{display:none}
+body.hp:not(.cap):not(.cetak) #rows .stinfo .stbad,body.hp:not(.cap):not(.cetak) #rows .stinfo .stok{margin-top:3px}
+/* kartu terisi dilipat jadi satu baris ringkas */
+body.hp:not(.cap):not(.cetak) #rows tr.lipat{padding:8px 8px 8px 10px;row-gap:0}
+body.hp:not(.cap):not(.cetak) #sheet #rows tr.lipat td:nth-child(2),body.hp:not(.cap):not(.cetak) #sheet #rows tr.lipat td:nth-child(3),body.hp:not(.cap):not(.cetak) #sheet #rows tr.lipat td:nth-child(4),body.hp:not(.cap):not(.cetak) #sheet #rows tr.lipat td:nth-child(5),body.hp:not(.cap):not(.cetak) #sheet #rows tr.lipat td:nth-child(6){display:none}
+body.hp:not(.cap):not(.cetak) #sheet #rows td.hp-ring{display:none}
+body.hp:not(.cap):not(.cetak) #sheet #rows tr.lipat td.hp-ring{display:block;grid-column:2/4;grid-row:1}
+body.hp:not(.cap):not(.cetak) #rows .hp-ring button{display:block;width:100%;text-align:left;border:0;background:transparent;color:#0d1f2d;font:inherit;padding:2px 4px;min-height:44px;cursor:pointer}
+body.hp:not(.cap):not(.cetak) #rows .hp-ring b{display:block;font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.hp:not(.cap):not(.cetak) #rows .hp-ring span{display:block;font-size:13px;color:#2f4a5c;margin-top:2px}
+body.hp:not(.cap):not(.cetak) #rows tr.lipat .del{height:44px}
+/* penandatangan: daftar nama sederhana, area tanda tangan kosong disembunyikan */
+body.hp:not(.cap):not(.cetak) #sheet .sign{display:grid;grid-template-columns:1fr;gap:8px;margin-top:14px;padding-top:0}
+body.hp:not(.cap):not(.cetak) #sheet .box{display:grid;grid-template-columns:1fr 1.5fr;align-items:center;border:1px solid #c9d3da;border-radius:10px;overflow:hidden}
+body.hp:not(.cap):not(.cetak) #sheet .box .ttd{display:none}
+body.hp:not(.cap):not(.cetak) #sheet .box .role{background:#eef3f6!important;color:#2f4a5c!important;font-size:12px;letter-spacing:.2px;text-transform:none;padding:12px 10px;border:0;text-align:left;align-self:stretch;display:flex;align-items:center}
+body.hp:not(.cap):not(.cetak) #sheet .box .nm{height:auto;border:0;background:#fff;align-items:stretch;padding:0}
+body.hp:not(.cap):not(.cetak) #sheet .box .nm span{display:none}
+body.hp:not(.cap):not(.cetak) #sheet .box .nm input{height:44px;font-size:16px;text-align:left;padding:0 12px;font-weight:600}
+body.hp:not(.cap):not(.cetak) .tools{margin:4px 0 0;gap:8px}
+body.hp:not(.cap):not(.cetak) .tools .btn{min-height:44px;flex:1 1 140px}
+body.hp:not(.cap):not(.cetak) .tools .scanbtn,body.hp:not(.cap):not(.cetak) .scan-fab{display:none}
+body.hp:not(.cap):not(.cetak) .status{font-size:12px;padding:0 4px}
+body.hp:not(.cap):not(.cetak) .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+body.hp:not(.cap):not(.cetak) .dd .it{padding:14px 14px;font-size:15px}
+body.hp:not(.cap):not(.cetak) .dd .it small{font-size:12.5px}
+body.hp:not(.cap):not(.cetak) .dd{border-radius:12px}
+/* bilah bawah menempel */
+body.hp:not(.cap):not(.cetak) #hpbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:55;align-items:center;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:var(--bar);border-top:1px solid var(--line);box-shadow:0 -4px 14px rgba(0,0,0,.18)}
+body.hp:not(.cap):not(.cetak) #hpbar .hn{flex:1;min-width:0;font-size:13px;line-height:1.25;color:var(--bar-ink)}
+body.hp:not(.cap):not(.cetak) #hpbar .hn b{display:block;font-size:15px}
+body.hp:not(.cap):not(.cetak) #hpbar button{min-height:48px;padding:0 14px;border-radius:12px;border:1px solid var(--accent);background:transparent;color:var(--accent);font:700 14px "Segoe UI",Roboto,Arial,sans-serif;cursor:pointer;touch-action:manipulation}
+body.hp:not(.cap):not(.cetak) #hpbar button.pr{background:var(--accent);color:var(--accent-ink);min-width:96px}
+body.hp:not(.cap):not(.cetak) #hpbar button:disabled{opacity:.6}
+body.hp:not(.cap):not(.cetak) .ketik #hpbar{display:none}
+}
+@media screen{
+body.hp:not(.cap):not(.cetak) #rows tr.kosong{display:none}
+body.hp:not(.cap):not(.cetak) #rows td:nth-child(5):before{min-width:72px;margin-right:auto}
+}

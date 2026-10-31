@@ -31,3 +31,6 @@ html[data-tema] body #sheet tbody tr:hover td{background:transparent}
 @media (hover:none){html[data-tema] body button:not(:disabled):hover,html[data-tema] body a.btn:hover{box-shadow:none}}
 @media (prefers-reduced-motion:reduce){html[data-tema] body *{transition:none!important}}
 @media print{html[data-tema] body *{transition:none!important;box-shadow:none}}
+
+/* HP: tombol ganti tema cukup besar untuk disentuh */
+@media (max-width:700px){button#tema.tg{min-height:44px}}

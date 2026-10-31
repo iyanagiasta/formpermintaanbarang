@@ -32,6 +32,24 @@ button:disabled{opacity:.5;cursor:default}button.sv{background:#1b8a3a}button.gh
 .it{border-top:1px solid var(--line);padding:9px 0}.it:first-child{border-top:0}.it small{display:block;color:var(--mut);font-size:12px}
 .tag{display:inline-block;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700}.tag.ok{background:#dff3e4;color:#14612b}.tag.bad{background:#fde8e8;color:#8a1c28}.tag.w{background:#fff3cd;color:#7a5b00}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#17588f;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:#c0392b}
+
+/* ===== Tampilan HP: isian besar, tombol mudah disentuh, tombol Kirim menempel di bawah ===== */
+@media (max-width:700px){
+.wrap{padding:10px 10px 24px}
+.top{padding:12px 10px}
+.homebtn{min-height:44px;line-height:30px;font-size:14px;padding:6px 12px}
+#app .tabs button{flex:1;font-size:15px}
+input,select,textarea{min-height:48px;padding:10px 12px;border-radius:10px;font-size:16px}
+textarea{min-height:92px}
+label{font-size:13px;margin:12px 0 4px}
+#app button,.homebtn{min-height:46px;touch-action:manipulation}
+.bar2 button.gh{flex:1 1 100%}
+.it[data-r]{border:1px solid var(--line)!important;border-left:6px solid var(--navy)!important}
+.bahaya{min-height:44px}
+#kirimbar{position:sticky;bottom:0;z-index:5;margin:14px -14px -14px!important;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1px solid var(--line);border-radius:0 0 12px 12px;box-shadow:0 -4px 12px rgba(0,0,0,.12)}
+#kirimbar button{min-height:50px;font-size:16px}
+#toast{bottom:90px}
+}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
@@ -73,7 +91,7 @@ function form(sukses){
   '<div class="note">Isi satu barang per kartu. Satuan, kategori, dan jenis otomatis disalin dari barang di atasnya, tinggal diubah kalau berbeda.</div><div id="rows"></div>'+
   '<div class="bar2"><button class="gh" id="tambah" type="button">+ Tambah barang</button><button class="gh" id="tempel" type="button">Tempel banyak nama sekaligus</button></div>'+
   '<div id="tbox" hidden style="margin-top:8px"><label>Satu nama barang per baris</label><textarea id="tt" rows="6" placeholder="BEND COUPLER dn 4 Inch -- 110 mm GF&#10;ELBOW 90 dn 2 Inch&#10;..."></textarea><div class="note">Satuan, kategori, dan jenis diisi dari barang pertama di daftar, bisa diubah per kartu sesudahnya.</div><button class="sv" id="tpakai" type="button">Jadikan kartu</button></div>'+
-  '<div style="margin-top:14px"><button class="sv" id="kirim" style="width:100%">Kirim pengajuan</button></div></div>';
+  '<div id="kirimbar" style="margin-top:14px"><button class="sv" id="kirim" style="width:100%">Kirim pengajuan</button></div></div>';
   document.getElementById("dsat").innerHTML=META.satuan.map(function(x){return '<option value="'+esc(x)+'">';}).join("");
   document.getElementById("ddept").innerHTML=META.dept.map(function(x){return '<option value="'+esc(x)+'">';}).join("");
   document.getElementById("pem").value=ls("sctk_mb_pem");document.getElementById("dept").value=ls("sctk_mb_dept");document.getElementById("em").value=ls("sctk_mb_em");

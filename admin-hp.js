@@ -96,11 +96,26 @@
   function hargaAngka(raw) {      // sama dengan cara server membaca harga (adminHarga_)
     return Number(String(raw).replace(/[^\d.,-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."));
   }
+  var FULL = null, CHIP = "semua", LIMIT = 40;   // FULL = seluruh barang (diambil sekali bila chip penyaring dipakai)
+  var CHIPS = [["semua", "Semua"], ["kosong", "Kosong"], ["noharga", "Tanpa harga"], ["bekas", "Bekas"]];
+  function lolos(it, c) {
+    if (c === "kosong") return !(Number(it.total) > 0);
+    if (c === "noharga") return !it.harga;
+    if (c === "bekas") return (Number(it.q[0]) || 0) > 0;
+    return true;
+  }
+  function cocok(it, q) {
+    q = String(q || "").trim().toLowerCase(); if (!q) return true;
+    var h = (String(it.nama) + " " + String(it.kode)).toLowerCase();
+    return q.split(/\s+/).every(function (t) { return h.indexOf(t) >= 0; });
+  }
   function stokHP() {
-    if (!d.body.classList.contains("hpa") || window.TAB !== "stok") return;
+    if (!d.body.classList.contains("hpa") || window.TAB !== "stok") { CHIP = "semua"; return; }
     var pane = d.getElementById("pane"), sq = d.getElementById("sq");
     if (!pane || !sq || sq.getAttribute("data-hps")) return;
     sq.setAttribute("data-hps", "1");
+    var bar = sq.closest(".bar"), sm = pane.querySelector(":scope > .sum"), nt = pane.querySelector(":scope > .note:not(.hp-ringkas)");
+    var tb = pane.querySelector(":scope > table, :scope > .tbox"), wrap = tb ? (tb.closest(".tbox") || tb) : null;
     var alat = [];
     [].forEach.call(pane.children, function (c) {
       if (!c.classList || !c.classList.contains("card")) return;
@@ -108,44 +123,83 @@
       else if (c.querySelector("#uf,#xf,#hf,#thb,#sink,#rakt")) { c.classList.add("hp-alat"); alat.push(c); }
     });
     var sg = d.getElementById("sgo"); if (sg && sg.parentNode) sg.parentNode.classList.add("hp-sembunyi");
+    [sm, nt, wrap].forEach(function (x) { if (x) x.classList.add("hp-sembunyi"); });
+    var hs = d.getElementById("hs"); if (hs && hs.parentNode) hs.parentNode.classList.add("hp-sembunyi");
+    var sx = d.getElementById("sx"), scari = d.getElementById("scari");
+    /* kotak cari + chip menempel di atas */
+    var top = d.createElement("div"); top.className = "hp-top";
+    var r1 = d.createElement("div"); r1.className = "hp-r1";
+    if (bar && bar.parentNode) bar.parentNode.insertBefore(top, bar); else sq.parentNode.insertBefore(top, sq);
+    r1.appendChild(sq); if (scari) r1.appendChild(scari);
+    top.appendChild(r1);
+    var ch = d.createElement("div"); ch.className = "hp-chips"; ch.setAttribute("role", "group"); ch.setAttribute("aria-label", "Penyaring stok");
+    ch.innerHTML = CHIPS.map(function (c) { return '<button type="button" class="hp-chip' + (CHIP === c[0] ? " on" : "") + '" data-c="' + c[0] + '" aria-pressed="' + (CHIP === c[0]) + '">' + c[1] + '</button>'; }).join("");
+    top.appendChild(ch);
+    var rg = d.createElement("div"); rg.className = "note hp-ringkas"; top.appendChild(rg);
+    if (bar) bar.classList.add("hp-sembunyi");
+    var list = d.createElement("div"); list.id = "hpList"; top.parentNode.insertBefore(list, top.nextSibling);
+    var more = d.createElement("button"); more.type = "button"; more.className = "gh hp-lebih"; more.hidden = true; list.parentNode.insertBefore(more, list.nextSibling);
+    /* alat unggah di bawah daftar */
+    var bwh = d.createElement("div"); bwh.className = "hp-bawah"; more.parentNode.insertBefore(bwh, more.nextSibling);
+    if (sx) { sx.classList.add("hp-unduh"); bwh.appendChild(sx); }
     if (alat.length) {
       var tg = d.createElement("button"); tg.type = "button"; tg.className = "gh hp-alatbtn";
       var nyala = function () { return d.body.classList.contains("hp-alat-on"); };
       var teks = function () { tg.textContent = nyala() ? "Sembunyikan alat unggah & sinkron" : "Alat unggah, impor & sinkron (lebih nyaman di komputer)"; tg.setAttribute("aria-expanded", nyala() ? "true" : "false"); };
       tg.onclick = function () { d.body.classList.toggle("hp-alat-on"); teks(); };
-      teks();
-      var pertama = alat[0]; pertama.parentNode.insertBefore(tg, pertama);
+      teks(); bwh.appendChild(tg);
+      alat.forEach(function (c) { bwh.appendChild(c); });
     }
-    var bar = sq.closest(".bar"); if (bar) bar.classList.add("hp-s");
-    var sm = pane.querySelector(":scope > .sum"); if (sm) sm.classList.add("hp-s");
-    var t = pane.querySelector(":scope > table, :scope > .tbox > table");
-    if (!t) return;
-    t.classList.add("kartu", "hp-stok");
-    var wr = t.closest(".tbox"); if (wr) wr.classList.add("hp-wrap");
-    var rs = [].slice.call(t.querySelectorAll("tbody tr")), data = window.STOK || [];
-    rs.forEach(function (tr, i) {
-      var it = data[i], tds = tr.children, last = tds[tds.length - 1];
-      if (i >= MAKS_STOK) tr.classList.add("lebih");
-      if (!it) return;
-      var hg = tr.querySelector('td[data-l="Harga"]');
-      if (hg && !it.harga) { hg.classList.add("hp-nol"); hg.textContent = "Belum ada harga"; }
-      if (last) {
-        last.className = "hp-aksi"; last.setAttribute("data-l", "Aksi");
-        last.innerHTML = '<button type="button" class="gh" data-hk="' + i + '">Koreksi stok</button><button type="button" class="gh" data-hh="' + i + '">Ubah harga</button>';
+    var buka = -1, sumber = function () { return CHIP === "semua" ? (window.STOK || []) : (FULL || []); };
+    function ringkas(n) {
+      var R = window.STOKR, t = n + " barang";
+      if (CHIP !== "semua") t += " (" + (CHIPS.filter(function (c) { return c[0] === CHIP; })[0] || [0, ""])[1].toLowerCase() + ")";
+      if (R) t += " · nilai persediaan " + RP(R.nilaiTotal) + (R.tanpaHarga ? " · " + R.tanpaHarga + " belum ada harga" : "");
+      rg.textContent = t;
+    }
+    function gambar() {
+      var q = CHIP === "semua" ? "" : sq.value, data = sumber().filter(function (it) { return lolos(it, CHIP) && cocok(it, q); });
+      ringkas(data.length);
+      if (!data.length) { list.innerHTML = '<div class="card msg">Tidak ada barang.</div>'; more.hidden = true; return; }
+      var tampil = data.slice(0, LIMIT);
+      list.innerHTML = tampil.map(function (it, i) {
+        var kosong = !(Number(it.total) > 0), o = i === buka;
+        return '<div class="hp-row' + (o ? " buka" : "") + '"><button type="button" class="hp-l1" data-i="' + i + '" aria-expanded="' + o + '">' +
+          '<span class="hp-dot ' + (kosong ? "k" : "a") + '" aria-hidden="true"></span>' +
+          '<span class="hp-nm"><b>' + esc(it.nama) + '</b><small>' + esc(it.kode) + (kosong ? ' · <em class="hp-m">kosong</em>' : '') + (it.harga ? '' : ' · <em class="hp-m">belum ada harga</em>') + '</small></span>' +
+          '<span class="hp-tot">' + F(it.total) + '<small>' + esc(it.satuan || "") + '</small></span></button>' +
+          (o ? '<div class="hp-det"><div class="hp-g3">' + sumb().map(function (s, j) { return '<div><span>' + esc(s) + '</span><b>' + F(it.q[j]) + '</b></div>'; }).join("") + '</div>' +
+            '<div class="hp-hg"><span>Harga</span><b>' + (it.harga ? RP(it.harga) : "belum ada") + '</b></div>' +
+            '<div class="hp-bt"><button type="button" class="gh" data-k="' + i + '">Koreksi stok</button><button type="button" class="gh" data-h="' + i + '">Ubah harga</button></div></div>' : '') + '</div>';
+      }).join("");
+      more.hidden = data.length <= LIMIT; more.textContent = "Tampilkan lagi (" + (data.length - LIMIT) + " barang)";
+      list.__d = tampil;
+    }
+    more.onclick = function () { LIMIT += 40; gambar(); };
+    list.addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest("button"); if (!b || !list.__d) return;
+      var i = b.getAttribute("data-i"), k = b.getAttribute("data-k"), h = b.getAttribute("data-h");
+      if (i !== null) { buka = (buka === +i) ? -1 : +i; gambar(); var r = list.querySelectorAll(".hp-row")[+i]; if (buka >= 0 && r) { try { r.scrollIntoView({ block: "nearest" }); } catch (x) { /* abaikan */ } } }
+      else if (k !== null && list.__d[+k]) koreksiStok(list.__d[+k]);
+      else if (h !== null && list.__d[+h]) ubahHarga(list.__d[+h]);
+    });
+    async function pakaiChip(c) {
+      if (c !== "semua" && !FULL) {
+        ch.setAttribute("aria-busy", "true"); rg.textContent = "Memuat seluruh barang...";
+        try { var r = await window.api({ action: "adminStokList", q: "", hanyaStok: false, semua: true }); if (r && r.ok) FULL = r.data || []; } catch (x) { FULL = null; }
+        ch.removeAttribute("aria-busy");
+        if (!FULL) { if (typeof window.toast === "function") window.toast("Gagal memuat seluruh barang. Periksa sinyal lalu coba lagi.", true); c = "semua"; }
       }
-    });
-    t.addEventListener("click", function (e) {
-      var b = e.target.closest && e.target.closest("button"); if (!b) return;
-      var k = b.getAttribute("data-hk"), h = b.getAttribute("data-hh");
-      if (k !== null && data[+k]) koreksiStok(data[+k]);
-      else if (h !== null && data[+h]) ubahHarga(data[+h]);
-    });
-    if (rs.length > MAKS_STOK) {
-      var bt = d.createElement("button"); bt.type = "button"; bt.className = "hp-lebih gh";
-      bt.textContent = "Tampilkan semua (" + rs.length + ")";
-      bt.onclick = function () { var s2 = t.classList.toggle("semua"); bt.textContent = s2 ? "Ringkas" : "Tampilkan semua (" + rs.length + ")"; };
-      var wb = t.closest(".tbox") || t; wb.parentNode.insertBefore(bt, wb.nextSibling);
+      CHIP = c; buka = -1; LIMIT = 40;
+      [].forEach.call(ch.querySelectorAll(".hp-chip"), function (x) { var on = x.getAttribute("data-c") === c; x.classList.toggle("on", on); x.setAttribute("aria-pressed", on); });
+      gambar();
     }
+    ch.addEventListener("click", function (e) { var b = e.target.closest && e.target.closest("button"); if (b) pakaiChip(b.getAttribute("data-c")); });
+    /* cari: tanpa chip -> pencarian server seperti biasa; dengan chip -> menyaring daftar di layar */
+    sq.addEventListener("input", function () { if (CHIP !== "semua") { buka = -1; gambar(); } });
+    sq.onkeydown = function (e) { if (e.key === "Enter") { if (CHIP === "semua") window.loadStok(); else { sq.blur(); gambar(); } } };
+    if (scari) scari.onclick = function () { if (CHIP === "semua") window.loadStok(); else gambar(); };
+    if (CHIP !== "semua") { if (FULL) gambar(); else pakaiChip(CHIP); } else gambar();
   }
   function tutupSheet() { var o = d.getElementById("hpSheet"); if (o) o.remove(); d.removeEventListener("keydown", escSheet); }
   function escSheet(e) { if (e.key === "Escape") tutupSheet(); }
@@ -205,7 +259,7 @@
       el.querySelector("#hsK").onclick = function () { form({ s: sm2, q: String(q).replace(".", ","), a: al }); };
       el.querySelector("#hsY").onclick = function () {
         if (typeof window.kirimAdmin !== "function") return;
-        window.kirimAdmin(this, { action: "adminKoreksi", kode: item.kode, sumber: sm2, qty: String(q), alasan: al }, async function () { tutupSheet(); await window.loadStok(); });
+        window.kirimAdmin(this, { action: "adminKoreksi", kode: item.kode, sumber: sm2, qty: String(q), alasan: al }, async function () { FULL = null; tutupSheet(); await window.loadStok(); });
       };
     }
     form();
@@ -243,7 +297,7 @@
       el.querySelector("#hsK").onclick = function () { form(raw); };
       el.querySelector("#hsY").onclick = function () {
         if (typeof window.kirimAdmin !== "function") return;
-        window.kirimAdmin(this, { action: "adminHarga", rows: [{ kode: item.kode, nama: item.nama, harga: raw }] }, async function () { tutupSheet(); await window.loadStok(); });
+        window.kirimAdmin(this, { action: "adminHarga", rows: [{ kode: item.kode, nama: item.nama, harga: raw }] }, async function () { FULL = null; tutupSheet(); await window.loadStok(); });
       };
     }
     form();

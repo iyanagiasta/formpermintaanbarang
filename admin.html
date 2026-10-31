@@ -97,6 +97,7 @@ td small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
+<link rel="stylesheet" href="admin-hp.css">
 <script src="cari-pintar.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
@@ -135,6 +136,7 @@ async function load(first){
     DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
     var h=(location.hash||"").replace("#","");
     if(first&&h&&h!=="pantau"&&tabAda(h)){goTab(h);return;}
+    if(first&&!h&&window.matchMedia&&matchMedia("(max-width:700px)").matches){goTab("kerja");return;}
     draw(r.now);paMuatRingkas();
   }catch(e){
     if(first)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");else toast("Gagal terhubung ke server.",true);
@@ -2001,6 +2003,7 @@ function bindOs(){pane().querySelectorAll("[data-os]").forEach(function(b){b.onc
   if(saved){PIN=saved;load(true);}else loginView("");
 })();
 </script>
+<script src="admin-hp.js"></script>
 <script src="admin-pintas.js"></script>
 </body>
 </html>

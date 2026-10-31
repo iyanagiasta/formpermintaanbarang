@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="id" data-tema="terang">
-<head>
+<head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
@@ -42,6 +42,7 @@ var app=document.getElementById("app"),who=document.getElementById("who");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function st(k,v,sess){try{var s=sess?sessionStorage:localStorage;if(v===undefined)return s.getItem(k)||"";if(v===null)s.removeItem(k);else s.setItem(k,v);}catch(e){return "";}return "";}
 var ICON={
+ serahtanda:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="m9 11 2 2 4-4"/>',
  kimia:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M7.5 15h9"/>',
  plus:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M12 12v6M9 15h6"/>',
  keranjang:'<path d="M3 4h2l2.4 11h10.2L20 8H6.2"/><circle cx="9" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/>',
@@ -121,6 +122,7 @@ async function buka(aksi,btn){
     else if(aksi==="pembelianku"){if(await pastikanPic())location.href="pengadaan.html";}
     else if(aksi==="label"){if(await pastikanPic())location.href="label.html";}
     else if(aksi==="kimia"){location.href="kimia.html";}
+    else if(aksi==="tandaserah"){if(await pastikanPic())location.href="tandaserah.html";}
     else if(aksi==="admin"){if(await pastikanAdmin())location.href="admin.html";}
   }finally{if(btn)btn.disabled=false;}
 }
@@ -135,6 +137,7 @@ function kartu(){
    big("cari","cari","Cari Barang","Lokasi gudang dan rak, foto barang dan rak, stok Moka dan Accurate, serta proyek yang memakai barang itu.","kode pegawai")+
    big("kembali","kembali","Pengembalian Barang","Kembalikan barang sisa proyek ke gudang. Persetujuan sama dengan permintaan, stok bertambah setelah gudang menerima barang.","kode pegawai")+
    big("kimia","kimia","Opname Bahan Kimia","Catat stok akhir, penerimaan, dan foto tangki bahan kimia tiap bulan. Sistem menghitung pemakaian dan memeriksa kejanggalan.","operator kimia")+
+   big("tandaserah","serahtanda","Tandai Penyerahan Barang","Catat saat barang diserahkan ke peminta setelah PIC menyetujui. Hanya penanda waktu untuk KPI gudang; stok tidak berubah.","Staff Gudang atau admin")+
    '</div>'+'<div class="sec"><h3>Proyek</h3></div><div class="menu">'+
    big("kebutuhan","kebutuhan","Cek Kebutuhan Proyek","Unggah kebutuhan barang proyek baru. Hasilnya: pakai stok Moka, stok Accurate, atau beli, lengkap dengan harga stok.","PIC atau atasan")+
    big("proyek","proyek","Kebutuhan dan Cek PPBJ","Simpan kebutuhan (RAB) proyek per No PPBJ, lalu cek barang apa saja yang sudah keluar, dikembalikan, dan masih diproses.","PIC, atasan, atau gudang")+

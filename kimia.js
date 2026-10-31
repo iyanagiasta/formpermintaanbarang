@@ -11,7 +11,7 @@ var KM=(function(){
   function tglTxt(t){return t&&/^\d{4}-\d{2}-\d{2}$/.test(t)?t.slice(8)+"/"+t.slice(5,7)+"/"+t.slice(0,4):(t||"");}
   function css(){
     if(document.getElementById("kmcss"))return;var s=document.createElement("style");s.id="kmcss";
-    s.textContent=".km .tw{overflow-x:auto;max-width:100%}.km .grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}.km .stbox{border:1px solid var(--line,#ccd);border-radius:4px;padding:10px;background:var(--card,#fff)}"+
+    s.textContent=".km .tw{overflow-x:auto;max-width:100%}@media (max-width:820px){.km td,.km td.n{white-space:normal;text-align:left}.km table{width:100%;min-width:0}}.km .grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}.km .stbox{border:1px solid var(--line,#ccd);border-radius:4px;padding:10px;background:var(--card,#fff)}"+
     ".km .stbox h4{margin:0 0 6px;font-size:14px}.km .stbox label{display:block;font-size:12px;color:var(--mut,#567);margin:6px 0 2px}.km .stbox input,.km .stbox select{width:100%}"+
     ".km .lv{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;letter-spacing:.3px;margin-right:6px}.km .lv.blok{background:var(--bad-bg,#fbe0e0);color:var(--bad-t,#8a1c1c)}.km .lv.warn{background:var(--warn-bg,#fff0cf);color:var(--warn-t,#6b4300)}.km .lv.ok{background:var(--ok-bg,#dff1e5);color:var(--ok-t,#14602f)}.km .lv.info{background:var(--info-bg,#dcebf5);color:var(--info-t,#0a4a70)}"+
     ".km .tm{border:1px solid var(--line,#ccd);border-left:4px solid var(--warn-t,#6b4300);border-radius:3px;padding:10px 12px;margin:8px 0;background:var(--card,#fff)}.km .tm.blok{border-left-color:var(--bad-t,#8a1c1c)}.km .tm.done{border-left-color:var(--ok-t,#14602f)}"+
@@ -36,10 +36,11 @@ var KM=(function(){
   function kgStok(b,d){var t=0,tk=d.tangki||{};Object.keys(tk).forEach(function(k){t+=pn(tk[k])*(b.faktor||0);});return {kem:pn(d.kemasan)*(b.kgKem||0),lepas:pn(d.lepas),lar:t,total:pn(d.kemasan)*(b.kgKem||0)+pn(d.lepas)+t};}
 
   /* ---------- tampilan ---------- */
+  function labelTabel(root){root.querySelectorAll("table").forEach(function(t){var th=[].map.call(t.querySelectorAll("thead th"),function(x){return x.textContent.trim();});if(!th.length)return;t.querySelectorAll("tbody tr").forEach(function(tr){[].forEach.call(tr.children,function(td,i){if(td.tagName==="TD"&&!td.hasAttribute("data-l")&&th[i]&&!td.hasAttribute("colspan"))td.setAttribute("data-l",th[i]);});});});}
   function render(){
     var h='<div class="km">'+kepala();
     if(TAB==="bulanan")h+=bulanan();else if(TAB==="banding")h+='<div id="kmbd"></div>';else if(TAB==="param")h+='<div id="kmpr"></div>';
-    h+='</div>';el.innerHTML=h;pasang();
+    h+='</div>';el.innerHTML=h;pasang();labelTabel(el);
     if(TAB==="banding")loadBanding();if(TAB==="param")loadParam();
     if(TAB==="bulanan")muatFoto();
   }
@@ -60,7 +61,7 @@ var KM=(function(){
     var H=S.hasil,h="";
     // waktu hitung
     var b=H.bulan,ed=!final();
-    h+='<div class="card"><p style="margin:0 0 8px"><b>Waktu hitung stok</b> <span class="note">Patokan: tanggal 30, pukul 14:00. Catat apakah dihitung sebelum atau sesudah kiriman di hari yang sama.</span></p>'+
+    h+='<div class="card"><p style="margin:0 0 8px"><b>Waktu hitung stok</b> <span class="note">Patokan: hari terakhir bulan (30/31) pada jam kerja, bukan hari Sabtu. Catat apakah dihitung sebelum atau sesudah kiriman di hari yang sama.</span></p>'+
      '<div class="fr"><label class="fl">Tanggal</label><input type="date" id="kmtg" value="'+E(b.tglHitung)+'"'+(ed?"":" disabled")+' min="'+P+'-01" max="'+P+'-31"><label class="fl">Jam</label><input type="time" id="kmjm" value="'+E(b.jam)+'"'+(ed?"":" disabled")+'>'+
      '<select id="kmur"'+(ed?"":" disabled")+'><option value="">Tidak ada kiriman di hari itu</option><option value="sebelum"'+(b.urutan==="sebelum"?" selected":"")+'>Dihitung SEBELUM kiriman masuk</option><option value="sesudah"'+(b.urutan==="sesudah"?" selected":"")+'>Dihitung SESUDAH kiriman masuk</option></select>'+
      (ed?'<button id="kmwk" class="sv">Simpan</button>':'')+'</div></div>';
@@ -118,7 +119,7 @@ var KM=(function(){
        '<div class="fr"><label class="fl">Tertulis di SJ</label><input type="text" inputmode="decimal" data-pf="sjVol" placeholder="Volume SJ" value="'+E(f.sjVol)+'" style="width:110px"><select data-pf="sjSat">'+sats.map(function(s){return '<option'+(s===f.sjSat?" selected":"")+'>'+E(s)+'</option>';}).join("")+'</select>'+
        '<label class="fl">Diterima</label><input type="text" inputmode="decimal" data-pf="vol" placeholder="Volume diterima" value="'+E(f.vol)+'" style="width:130px"><select data-pf="sat">'+sats.map(function(s){return '<option'+(s===f.sat?" selected":"")+'>'+E(s)+'</option>';}).join("")+'</select>'+
        (f.sat==="Liter"?'<input type="text" inputmode="decimal" data-pf="bj" placeholder="BJ (kosong = '+String(b.faktor||"").replace(".",",").slice(0,7)+')" value="'+E(f.bj)+'" style="width:140px">':'')+'<span class="pv" id="kmpvt"></span></div>'+
-       '<div class="fr"><select data-pf="supplier"><option value="">- pilih supplier -</option>'+S.param.supplier.map(function(s){return '<option'+(s===f.supplier?" selected":"")+'>'+E(s)+'</option>';}).join("")+'</select><button class="gh" id="kmsup">+ Supplier baru</button>'+
+       '<div class="fr"><select data-pf="supplier"><option value="">- pilih supplier -</option>'+S.param.supplier.map(function(s){return '<option'+(s===f.supplier?" selected":"")+'>'+E(s)+'</option>';}).join("")+'</select>'+(adm()?'<button class="gh" id="kmsup">+ Supplier baru</button>':'<span class="note">Supplier tidak ada di daftar? Minta admin gudang menambahkannya.</span>')+'<button class="gh" id="kmlast" title="Isi supplier dan satuan seperti penerimaan terakhir bahan ini">Pakai isian terakhir</button>'+
        '<input type="text" data-pf="catatan" placeholder="Catatan (opsional)" value="'+E(f.catatan)+'" style="flex:1;min-width:160px"></div><div class="fr"><button class="sv" id="kmps">'+(f.id?'Simpan perubahan':'Tambah penerimaan')+'</button>'+(f.id?'<button class="gh" id="kmpc">Batal ubah</button>':'')+'</div></div>';}
     return h+'</div>';
   }
@@ -159,9 +160,10 @@ var KM=(function(){
       box.addEventListener("input",function(){var d=baca();draft[kode]=d;var k=kgStok(b,d);box.querySelector("[data-pv]").innerHTML=nf(k.total)+" kg"+(k.lar?" <small>(kemasan "+nf(k.kem)+" + lepas "+nf(k.lepas)+" + larutan "+nf(k.lar)+")</small>":"");});
       var sv=box.querySelector("[data-ss]");if(sv)sv.onclick=async function(){var d=baca();sv.disabled=true;var r=await api({action:"kimiaStokSimpan",periode:P,kode:kode,kemasan:d.kemasan,lepas:d.lepas,tangki:d.tangki,ket:d.ket});sv.disabled=false;T(r.msg||"Gagal",!r.ok);if(r.ok){delete draft[kode];muat();}};});
     // penerimaan
-    qa("[data-pf]").forEach(function(i){var k=i.getAttribute("data-pf");i.addEventListener(i.tagName==="SELECT"||i.type==="date"?"change":"input",function(){var f=fRow();f[k]=i.value;if(k==="kode"){f.sat="Kg";f.sjSat="Kg";f.bj="";}if(k==="sat"||k==="kode"){var pos=0;render();return;}pvTerima();});});
+    qa("[data-pf]").forEach(function(i){var k=i.getAttribute("data-pf");i.addEventListener(i.tagName==="SELECT"||i.type==="date"?"change":"input",function(){var f=fRow();f[k]=i.value;if(k==="kode"){f.sat="Kg";f.sjSat="Kg";f.bj="";var tl=(S.terakhir||{})[f.kode];if(tl&&!f.id){if(tl.supplier&&S.param.supplier.indexOf(tl.supplier)>=0)f.supplier=tl.supplier;if(tl.sat)f.sat=tl.sat;if(tl.sjSat)f.sjSat=tl.sjSat;if(tl.bj)f.bj=tl.bj;}}if(k==="sat"||k==="kode"){var pos=0;render();return;}pvTerima();});});
     pvTerima();
     var ps=q("#kmps");if(ps)ps.onclick=async function(){var f=fRow();ps.disabled=true;var r=await api({action:"kimiaTerimaSimpan",periode:P,id:f.id,tanggal:f.tanggal,kode:f.kode,noSJ:f.noSJ,sjVol:f.sjVol,sjSat:f.sjSat,vol:f.vol,sat:f.sat,bj:f.bj,supplier:f.supplier,faktur:f.faktur,catatan:f.catatan});ps.disabled=false;T(r.msg||"Gagal",!r.ok);if(r.ok){form=null;muat();}};
+    var ll=q("#kmlast");if(ll)ll.onclick=function(){var f=fRow(),tl=(S.terakhir||{})[f.kode];if(!tl){T("Belum ada penerimaan sebelumnya untuk bahan ini.",true);return;}if(tl.supplier&&S.param.supplier.indexOf(tl.supplier)>=0)f.supplier=tl.supplier;if(tl.sat)f.sat=tl.sat;if(tl.sjSat)f.sjSat=tl.sjSat;if(tl.bj)f.bj=tl.bj;render();};
     var pc=q("#kmpc");if(pc)pc.onclick=function(){form=null;render();};
     qa("[data-pu]").forEach(function(b){b.onclick=function(){var x=S.hasil.penerimaan.filter(function(y){return y.id===b.getAttribute("data-pu");})[0];form={id:x.id,tanggal:x.tanggal,kode:x.kode,noSJ:x.noSJ,sjVol:x.sjVol,sjSat:x.sjSat||"Kg",vol:x.vol,sat:x.sat,bj:x.bj||"",supplier:x.supplier,faktur:x.faktur,catatan:x.catatan};render();var f=el.querySelector("[data-pf=tanggal]");if(f)f.scrollIntoView({block:"center"});};});
     qa("[data-pb]").forEach(function(b){b.onclick=async function(){var a=prompt("Alasan membatalkan baris penerimaan ini (wajib):");if(!a)return;var r=await api({action:"kimiaTerimaBatal",periode:P,id:b.getAttribute("data-pb"),alasan:a});T(r.msg||"Gagal",!r.ok);if(r.ok)muat();};});
@@ -181,13 +183,21 @@ var KM=(function(){
   /* ---------- perbandingan ---------- */
   async function loadBanding(){
     var box=el.querySelector("#kmbd");box.innerHTML='<div class="card msg">Memuat...</div>';
-    var fin=S.periodeDaftar.filter(function(x){return x.status==="Final";}).slice(0,6),rs=[];
+    var fin=S.periodeDaftar.filter(function(x){return x.status==="Final";}).slice(0,12).reverse(),rs=[];
     for(var i=0;i<fin.length;i++){var r=await api({action:"kimiaPeriode",periode:fin[i].p});if(r.ok)rs.push(r);}
     if(!rs.length){box.innerHTML='<div class="card msg">Belum ada bulan Final.</div>';return;}
     var kd={};rs.forEach(function(r){r.hasil.bahan.forEach(function(b){if(b.ada)kd[b.kode]=b.nama;});});
     var h='<div class="card"><b>Pemakaian per bulan (kg)</b><div class="tw"><table><thead><tr><th>Bahan</th>'+rs.map(function(r){return '<th class="n">'+blnTxt(r.periode)+'</th>';}).join("")+'</tr></thead><tbody>'+
-     Object.keys(kd).map(function(k){return '<tr><td><b>'+E(kd[k])+'</b></td>'+rs.map(function(r){var b=r.hasil.bahan.filter(function(x){return x.kode===k;})[0];return '<td class="n">'+(b&&b.pemakaian!=null?nf(b.pemakaian):"-")+'<small>'+(b&&b.rata!=null?nf(b.rata)+"/hari":"")+'</small></td>';}).join("")+'</tr>';}).join("")+'</tbody></table></div></div>';
-    box.innerHTML=h;
+     Object.keys(kd).map(function(k){return '<tr><td><b>'+E(kd[k])+'</b></td>'+rs.map(function(r){var b=r.hasil.bahan.filter(function(x){return x.kode===k;})[0];return '<td class="n">'+(b&&b.pemakaian!=null?nf(b.pemakaian):"-")+'<small>'+(b&&b.rata!=null?nf(b.rata)+"/hari":"")+'</small></td>';}).join("")+'</tr>';}).join("")+'</tbody></table></div></div>'+tren(rs,kd);
+    box.innerHTML=h;labelTabel(box);
+  }
+  function tren(rs,kd){
+    var h='<div class="card"><b>Tren pemakaian (kg)</b><p class="note">Tiap bahan memakai skala sendiri. Batang menunjukkan pemakaian per bulan Final.</p><div class="grid2">';
+    Object.keys(kd).forEach(function(k){
+      var v=rs.map(function(r){var b=r.hasil.bahan.filter(function(x){return x.kode===k;})[0];return {p:r.periode,y:b&&b.pemakaian!=null?b.pemakaian:null};}),mx=Math.max.apply(null,v.map(function(x){return x.y||0;}))||1,W=300,Hh=120,bw=Math.min(34,(W-20)/v.length-6),svg='';
+      v.forEach(function(x,i){var bh=x.y==null?0:Math.max(2,(Hh-34)*x.y/mx),bx=10+i*((W-20)/v.length)+3,by=Hh-18-bh;svg+='<rect x="'+bx+'" y="'+by+'" width="'+bw+'" height="'+bh+'" rx="2" fill="var(--accent,#0b5f8f)"></rect><text x="'+(bx+bw/2)+'" y="'+(by-3)+'" text-anchor="middle" font-size="9" fill="currentColor">'+(x.y==null?"-":nf(x.y,0))+'</text><text x="'+(bx+bw/2)+'" y="'+(Hh-5)+'" text-anchor="middle" font-size="9" fill="currentColor">'+BLN[Number(x.p.slice(5,7))-1].slice(0,3)+'</text>';});
+      h+='<div class="stbox"><h4>'+E(kd[k])+'</h4><svg viewBox="0 0 '+W+' '+Hh+'" width="100%" role="img" aria-label="Tren pemakaian '+E(kd[k])+'" style="color:var(--ink,#0d1f2d)">'+svg+'</svg></div>';});
+    return h+'</div></div>';
   }
 
   /* ---------- parameter (admin) ---------- */
@@ -200,7 +210,7 @@ var KM=(function(){
     h+='<div class="card"><b>Supplier</b><div class="fr">'+r.supplier.map(function(t){return '<button class="chip '+(t.aktif?"on":"")+'" data-tl="supplier|'+E(t.nama)+'|'+(t.aktif?1:0)+'" title="Klik untuk '+(t.aktif?"nonaktifkan":"aktifkan")+'">'+E(t.nama)+(t.aktif?"":" (nonaktif)")+'</button>';}).join("")+'<button class="gh" id="kmsn">+ Supplier</button></div></div>';
     h+='<div class="card"><b>Operator</b><p class="note">Setiap operator punya kode sendiri; semua isian dan foto tercatat atas namanya. Kode tidak ditampilkan; isi kode baru untuk menggantinya.</p><div class="tw"><table><thead><tr><th>Nama</th><th>Status</th><th></th></tr></thead><tbody>'+
      (r.operator.length?r.operator.map(function(o){return '<tr><td><b>'+E(o.nama)+'</b></td><td>'+(o.aktif?'<span class="bd d">aktif</span>':'<span class="bd l">nonaktif</span>')+'</td><td><div class="act" style="flex-direction:row"><button class="gh" data-ok="'+E(o.nama)+'">Ganti kode</button><button class="gh" data-oa="'+E(o.nama)+'|'+(o.aktif?1:0)+'">'+(o.aktif?"Nonaktifkan":"Aktifkan")+'</button></div></td></tr>';}).join(""):'<tr><td colspan="3" class="msg">Belum ada operator.</td></tr>')+'</tbody></table></div><div class="fr"><input type="text" id="kmon" placeholder="Nama operator" style="width:180px"><input type="text" id="kmok" placeholder="Kode (min. 5 karakter)" style="width:180px"><button class="sv" id="kmoa">Tambah operator</button></div></div>';
-    box.innerHTML=h;
+    box.innerHTML=h;labelTabel(box);
     box.querySelector("#kmbn").onclick=function(){bahanForm(null);};
     box.querySelectorAll("[data-be]").forEach(function(b){b.onclick=function(){bahanForm(param.bahan.filter(function(x){return x.kode===b.getAttribute("data-be");})[0]);};});
     box.querySelectorAll("[data-tl]").forEach(function(b){b.onclick=async function(){var a=b.getAttribute("data-tl").split("|");var rr=await api({action:"kimiaListSimpan",jenis:a[0],nama:a[1],aktif:a[2]!=="1"});T(rr.msg||"Gagal",!rr.ok);if(rr.ok)muat();};});
@@ -224,6 +234,7 @@ var KM=(function(){
 
   /* ---------- Excel & cetak (admin) ---------- */
   function periodeTxt(){var H=S.hasil,b=H.bulan,a=Number(P.slice(5,7));return "Periode 1 - "+(b.tglHitung&&b.tglHitung.slice(0,7)===P?Number(b.tglHitung.slice(8)):H.hari)+" "+BLN[a-1]+" "+P.slice(0,4)+(b.jam?" pukul "+b.jam+" WIB":"");}
+  function pengisi(){var o={};S.hasil.bahan.forEach(function(r){if(r.stok&&r.stok.oleh&&!/^(admin|Impor)/i.test(r.stok.oleh))o[r.stok.oleh]=1;});return Object.keys(o).join(", ");}
   function excel(){
     if(typeof XLSX==="undefined"){T("Pustaka Excel belum termuat. Periksa internet lalu muat ulang.",true);return;}
     var H=S.hasil,wb=XLSX.utils.book_new(),NF="#,##0.00";
@@ -234,7 +245,7 @@ var KM=(function(){
      ["No","Nama Barang","Saldo Awal (kg)","Penerimaan (kg)","Stok Akhir (kg)","Pemakaian (kg)","Rata-rata per hari (kg)","Pemakaian bulan lalu (kg)","Selisih rata-rata vs bulan lalu (%)","Perhitungan"]];
     rows.forEach(function(r,i){R.push([i+1,r.nama,r.saldoAwal,r.penerimaan,r.stokAkhir==null?"":r.stokAkhir,r.pemakaian==null?"":r.pemakaian,r.rata==null?"":r.rata,r.prevPemakaian==null?"":r.prevPemakaian,r.deltaPct==null?"":r.deltaPct,ket(r)]);});
     R.push([],["Saldo awal diambil dari stok akhir bulan "+(H.prevPeriode?blnTxt(H.prevPeriode):"(tidak ada)")+" yang sudah Final."],["Stok akhir = stok kemasan di gudang + stok larutan di tangki (liter x faktor konversi)."],[],[],
-     ["Dibuat oleh (operator)","","Diperiksa (Admin Gudang)","","Mengetahui (Accounting)"],[],[],[ "( "+Object.keys(H.bahan.reduce(function(o,r){if(r.stok&&r.stok.oleh)o[r.stok.oleh]=1;return o;},{})).join(", ")+" )","","( "+(final()&&S.finalOleh?S.finalOleh:"................")+" )","","( ................ )"]);
+     ["Staff Produksi","","Auditor","","Staff Gudang"],[],[],[ "( "+(pengisi()||"................")+" )","","( ................ )","","( "+(final()&&S.finalOleh?S.finalOleh:"................")+" )"]);
     add("Ringkasan",R,[5,38,16,16,16,16,18,20,22,60],[2,3,4,5,6,7,8]);
     // penerimaan
     var PR=[["DATA PENERIMAAN BAHAN KIMIA"],[periodeTxt()],[],["No","Tanggal","Nama Barang","No Surat Jalan","Volume SJ","Sat SJ","Volume Terima","Sat Terima","BJ / Faktor","Kg","Supplier","No Faktur","Dicatat oleh","Catatan"]],no=0;
@@ -281,7 +292,7 @@ var KM=(function(){
      "<h2>Penerimaan</h2>"+tb(["Tanggal","Bahan","No SJ","Diterima","Kg","Supplier","Dicatat"],H.penerimaan.map(function(x){return "<tr><td>"+tglTxt(x.tanggal)+"</td><td>"+E(x.nama)+"</td><td>"+E(x.noSJ)+'</td><td class="n">'+nf(x.vol)+" "+E(x.sat)+'</td><td class="n">'+nf(x.kg)+"</td><td>"+E(x.supplier)+"</td><td>"+E(x.oleh)+"</td></tr>";}).join("")||'<tr><td colspan="7">Tidak ada.</td></tr>')+
      "<h2>Stok akhir</h2>"+tb(["Bahan","Kemasan","Kg lepas","Larutan tangki (liter)","Kg kemasan","Kg larutan","Total kg","Keterangan"],rows.filter(function(r){return r.stok;}).map(function(r){var s=r.stok;return "<tr><td>"+E(r.nama)+"</td><td>"+(s.kemasan?s.kemasan+" "+E(r.kemasan):"-")+'</td><td class="n">'+nf(s.lepas)+"</td><td>"+E(Object.keys(s.tangki).map(function(k){return k+": "+nf(s.tangki[k],0);}).join("; ")||"-")+'</td><td class="n">'+nf(s.kgKemasan)+'</td><td class="n">'+nf(s.kgLarutan)+'</td><td class="n"><b>'+nf(s.total)+"</b></td><td>"+E(s.ket)+"</td></tr>";}).join(""))+
      (H.temuan.length?"<h2>Temuan dan konfirmasi</h2>"+tb(["Temuan","Uraian","Jawaban / konfirmasi"],H.temuan.map(function(t){return "<tr><td>"+E(t.judul)+" <small>"+E(t.bahan)+"</small></td><td>"+E(t.uraian)+"</td><td>"+E(t.jawab||"-")+(t.jawabOleh?" <small>("+E(t.jawabOleh)+")</small>":"")+"</td></tr>";}).join("")):"")+
-     (ft?"<h2>Foto</h2>"+ft:"")+'<div class="ttd"><div>Dibuat oleh<br><br><br><br>( operator )</div><div>Diperiksa<br><br><br><br>( '+E(final()&&S.finalOleh?S.finalOleh:"Admin Gudang")+' )</div><div>Mengetahui<br><br><br><br>( Accounting )</div></div></body></html>';
+     (ft?"<h2>Foto</h2>"+ft:"")+'<div class="ttd"><div>Staff Produksi<br><br><br><br>( '+E(pengisi()||"................")+' )</div><div>Auditor<br><br><br><br>( ................ )</div><div>Staff Gudang<br><br><br><br>( '+E(final()&&S.finalOleh?S.finalOleh:"................")+' )</div></div></body></html>';
     w.document.open();w.document.write(d);w.document.close();setTimeout(function(){w.focus();w.print();},400);
   }
   return {mount:mount,muat:muat};

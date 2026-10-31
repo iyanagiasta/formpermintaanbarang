@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
+<head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="pdfbukti.js"></script>
 <script src="laporan.js"></script>
 <script src="admin-kerja.js"></script>
 <script src="kimia.js"></script>
+<script src="kpi.js"></script>
+<script src="tanda.js"></script>
 <title>Admin Gudang - Pantauan No BPB</title>
 <style>
 :root{--navy:#0a2a43;--gold:var(--accent,#0b5f8f);--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c}
@@ -285,7 +287,7 @@ async function onAct(b){
 
 function pane(){return document.getElementById("pane")||app;}
 var MENU=[["Harian",[["kerja","Daftar Kerja"],["pantau","Pantauan BPB"],["serah","Serah Barang"],["terima","Terima Barang"],["mutasi","Mutasi"]]],
- ["Stok",[["stok","Stok & Harga"],["opname","Selisih Opname"],["kimia","Opname Kimia"],["baopname","BA Opname"],["kedaluwarsa","Kedaluwarsa"],["buffer","Buffer Paket"],["barangmati","Barang Mati"],["accurate","Accurate"],["komparasi","Komparasi"]]],
+ ["Stok",[["stok","Stok & Harga"],["opname","Selisih Opname"],["kimia","Opname Kimia"],["kpi","KPI Gudang"],["baopname","BA Opname"],["kedaluwarsa","Kedaluwarsa"],["buffer","Buffer Paket"],["barangmati","Barang Mati"],["accurate","Accurate"],["komparasi","Komparasi"]]],
  ["Proyek & Pembelian",[["proyek","Proyek"],["pengajuan","Pengajuan"],["pembelian","Pembelian \u2197"],["realisasi","Realisasi \u2197"]]],
  ["Laporan",[["laporan","Laporan"],["lapatasan","Laporan Atasan"],["telusur","Telusur"]]],
  ["Data & Sistem",[["masterbarang","Master Barang"],["label","Label \u2197"],["pengumuman","Pengumuman"],["sistem","Sistem"]]]];
@@ -310,7 +312,7 @@ function goTab(t){
   TAB=t;
   if(t==="pantau"){load(false);return;}
   tabsUI();
-  if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="baopname")loadBA();else if(t==="buffer")loadBF();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="kimia")KM.mount(pane());else if(t==="laporan")loadLaporan();else if(t==="kerja")loadKerja();else if(t==="lapatasan")loadLapAtasan();else if(t==="telusur")loadTelusur();else if(t==="kedaluwarsa")loadKdl();else if(t==="accurate")loadAccurate();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
+  if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="baopname")loadBA();else if(t==="buffer")loadBF();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="kimia")KM.mount(pane());else if(t==="kpi")KPI.mount(pane());else if(t==="laporan")loadLaporan();else if(t==="kerja")loadKerja();else if(t==="lapatasan")loadLapAtasan();else if(t==="telusur")loadTelusur();else if(t==="kedaluwarsa")loadKdl();else if(t==="accurate")loadAccurate();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
   try{history.replaceState(null,"","#"+t);}catch(e){}
 }
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
@@ -1228,6 +1230,7 @@ function drawSerah(oto){
   drawSerah0(oto);
   pane().insertAdjacentHTML("afterbegin",'<div class="bar"><button class="rm" id="lmgo">Input barang keluar lama (form manual)</button><span class="note" style="margin:0">Untuk proyek yang sudah jalan dan barangnya sudah keluar lewat form kertas.</span></div>');
   document.getElementById("lmgo").onclick=function(){LM={rows:[],nama:"",hasil:null,izin:false};viewLama();};
+  var tb=document.createElement("div");tb.id="tdsbox";pane().insertBefore(tb,pane().children[1]||null);TDS.mount(tb);
 }
 function viewLama(){
   var h=LM.hasil,rows=LM.rows;
@@ -1430,6 +1433,7 @@ function drawSerah0(oto){
     }).join("");
     return '<div class="card" id="sg-'+esc(g.id)+'"><b>'+esc(g.doc)+'</b> <small>'+esc(g.kirim)+'</small><div class="note">'+(g.staff?'Tercatat diserahkan oleh Staff Gudang <b>'+esc(g.staff)+'</b> (dicatat admin). ':'')+esc(g.by)+' · '+esc(g.dept)+(g.pic?' · PIC '+esc(g.pic):'')+(g.ppbj?' · PPBJ '+esc(g.ppbj):'')+'</div>'+
      '<table><thead><tr><th>Barang</th><th class="nm">Diminta</th>'+SUMB.map(function(x){return '<th class="nm">Stok '+esc(x)+'</th>';}).join("")+SUMB.map(function(x){return '<th>Ambil '+esc(x)+'</th>';}).join("")+'<th>Di luar stok</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+     '<details class="pet"><summary>Waktu sebenarnya (opsional, untuk KPI)</summary><div class="fr"><label class="fl">Barang diserahkan pada</label><input type="datetime-local" id="sw'+gi+'"><label class="fl">Barang baru siap sejak</label><input type="datetime-local" id="sk'+gi+'"></div><div class="note">Isi "diserahkan pada" bila Anda mencatat belakangan dari kejadian aslinya. Isi "siap sejak" bila barang harus menunggu pembelian: waktu tunggu itu tidak dihitung sebagai keterlambatan gudang.</div></details>'+
      '<div class="fr"><input type="text" id="sc'+gi+'" maxlength="300" placeholder="Catatan penyerahan (opsional)" style="flex:1;min-width:200px"><button class="sv" data-sg="'+gi+'">Tandai Diserahkan</button></div></div>';
   }).join("");
   if(SERAH_FOKUS){var fe=document.getElementById("sg-"+SERAH_FOKUS);SERAH_FOKUS="";if(fe){fe.style.outline="2px solid var(--accent)";try{fe.scrollIntoView({block:"start"});}catch(e){}}}
@@ -1442,7 +1446,7 @@ function drawSerah0(oto){
     });
     if(tot<=0&&!confirm("Semua jumlah kosong. Tandai diserahkan dengan 0 barang?"))return;
     if(!confirm("Tandai "+g.doc+" sudah diserahkan? Stok akan berkurang sesuai isian."))return;
-    kirimAdmin(b,{action:"adminSerah",id:g.id,items:items,catatan:(document.getElementById("sc"+gi)||{}).value||""},loadSerah);
+    kirimAdmin(b,{action:"adminSerah",id:g.id,items:items,catatan:(document.getElementById("sc"+gi)||{}).value||"",waktuSebenarnya:(document.getElementById("sw"+gi)||{}).value||"",barangSiapSejak:(document.getElementById("sk"+gi)||{}).value||""},loadSerah);
   };});
 }
 /* ---- tab Mutasi ---- */

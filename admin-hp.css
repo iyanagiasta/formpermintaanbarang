@@ -1,4 +1,4 @@
-/* Admin di HP (layar <= 700 px): bilah bawah + kartu untuk daftar kerja ("Hari ini"). Komputer, cetak, dan PDF tidak berubah. */
+/* Admin di HP (layar <= 700 px): bilah bawah + kartu untuk daftar kerja ("Hari ini") dan Stok & Harga (+ layar koreksi). Komputer, cetak, dan PDF tidak berubah. */
 #abar{display:none}
 @media (max-width:700px){
   body.hpa{padding-bottom:84px}
@@ -31,5 +31,55 @@
   body.hpa .lp .hp-lebih{display:block;width:100%;margin:4px 0 10px}
   body.hpa .lp .card{scroll-margin-top:12px}
   body.hpa #kj_x{display:none}
+
+  /* Stok & Harga */
+  body.hpa .hp-sembunyi{display:none!important}
+  body.hpa .hp-alat{display:none}
+  body.hpa.hp-alat-on .hp-alat:not(.hp-sembunyi){display:block}
+  body.hpa .hp-alatbtn{display:block;width:100%;margin:6px 0 10px;text-align:left}
+  body.hpa .bar.hp-s{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  body.hpa .bar.hp-s #sq{flex:1 1 100%;min-width:0;width:100%}
+  body.hpa .bar.hp-s button{flex:1 1 auto}
+  body.hpa #pane .sum.hp-s{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  body.hpa .hp-wrap,body.hpa .tbox:has(>table.hp-stok){max-height:none!important;overflow:visible!important}
+  body.hpa table.hp-stok{display:block;width:100%;min-width:0!important}
+  body.hpa table.hp-stok thead{display:none}
+  body.hpa table.hp-stok tbody{display:block}
+  body.hpa table.hp-stok tr{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 6px;border:1px solid var(--line,#c3ccd3);border-radius:12px;margin:8px 0;background:var(--card,#fff);padding:8px 6px}
+  body.hpa table.hp-stok tr.lebih{display:none}
+  body.hpa table.hp-stok.semua tr.lebih{display:grid}
+  body.hpa table.hp-stok td{display:block;border:0;padding:3px 6px;text-align:center;min-width:0;word-break:break-word}
+  body.hpa table.hp-stok td::before{content:attr(data-l);display:block;color:var(--mut,#3d4e5a);font-size:12px;font-weight:600}
+  body.hpa table.hp-stok td:first-child{grid-column:1/-1;text-align:left;font-size:15px}
+  body.hpa table.hp-stok td:first-child::before{display:none}
+  body.hpa table.hp-stok td:first-child small{display:block;font-weight:400;color:var(--mut,#3d4e5a);font-size:12.5px}
+  body.hpa table.hp-stok td[data-l="Harga"]{grid-column:span 2}
+  body.hpa table.hp-stok td[data-l^="Nilai"]{display:none}
+  body.hpa table.hp-stok td.hp-nol{color:var(--red,#a82424);font-weight:700}
+  body.hpa table.hp-stok td.hp-aksi{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:8px}
+  body.hpa table.hp-stok td.hp-aksi::before{display:none}
+  body.hpa table.hp-stok td.hp-aksi button{min-height:48px}
+  body.hpa .hp-lebih{display:block;width:100%;margin:4px 0 10px}
 }
+/* layar koreksi / ubah harga (lembar dari bawah) */
+#hpSheet{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center}
+#hpSheet .hs-k{background:var(--card,#fff);color:var(--ink,#17232d);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom,0));border-top:4px solid var(--gold,#b8975a);font:15px "Segoe UI",Roboto,Arial,sans-serif}
+#hpSheet .hs-j{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:17px}
+#hpSheet .hs-x{border:1px solid var(--line,#c3ccd3);background:transparent;color:inherit;border-radius:8px;font-size:24px;line-height:1;min-width:44px;min-height:44px;cursor:pointer}
+#hpSheet .hs-n b{display:block;font-size:16px}
+#hpSheet .hs-n small{display:block;color:var(--mut,#3d4e5a);font-size:13px}
+#hpSheet label{display:block;margin:12px 0 4px;font-weight:700;font-size:13.5px}
+#hpSheet select,#hpSheet input{width:100%;box-sizing:border-box;min-height:48px;font-size:16px;padding:8px 10px}
+#hpSheet .hs-ket{margin:8px 0;color:var(--mut,#3d4e5a);font-size:13.5px}
+#hpSheet .hs-err{margin:8px 0 0;min-height:1.2em;color:var(--red,#a82424);font-weight:700;font-size:14px}
+#hpSheet .hs-tanya{margin:12px 0 8px;font-size:17px;line-height:1.4}
+#hpSheet .hs-dr{display:flex;align-items:center;justify-content:center;gap:12px;font-size:22px;font-weight:800;padding:12px 8px;border:1px solid var(--line,#c3ccd3);border-radius:12px;margin:6px 0 10px;flex-wrap:wrap}
+#hpSheet .hs-dr i{font-style:normal;color:var(--mut,#3d4e5a)}
+#hpSheet .hs-dr em{font-style:normal;font-size:15px;padding:2px 8px;border-radius:10px;border:1px solid currentColor}
+#hpSheet .hs-dr em.plus{color:var(--grn,#14602f)}
+#hpSheet .hs-dr em.min{color:var(--red,#a82424)}
+#hpSheet .hs-peringatan{margin:8px 0;padding:8px 10px;border:1px solid var(--gold,#b8975a);border-radius:8px;font-size:13.5px}
+#hpSheet .hs-t{display:flex;gap:10px;margin-top:14px}
+#hpSheet .hs-t button{flex:1 1 0;min-height:52px;font-size:16px;font-weight:700}
+@media print{#hpSheet{display:none!important}}
 @media print{#abar{display:none!important}body.hpa{padding-bottom:0}}

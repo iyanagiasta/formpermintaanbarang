@@ -7,11 +7,12 @@ html[data-tema] body.tema{background-color:var(--bg);background-image:linear-gra
 .langkah div:before{counter-increment:l;content:counter(l);flex:none;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:12px;font-weight:700}
 .langkah small{display:block;font-weight:400;color:var(--muted);font-size:11px}
 /* kop lembar */
-.sheet .head .kl{position:absolute;left:8mm;top:4mm;width:12mm;height:12mm}
+/* logo di kiri, setinggi kop; garis ganda baru mulai SESUDAH logo sehingga tidak pernah menimpa */
+.sheet .head .kl{position:absolute;left:8mm;top:3.2mm;width:13.5mm;height:13.5mm;z-index:2}
 .sheet .head .kl img{width:100%;height:100%;object-fit:contain}
-.sheet .head .co{padding-left:15mm;padding-bottom:2.2mm;min-height:10mm;display:flex;align-items:flex-end}.sheet .head h1{margin-top:3.4mm}
-.sheet .head .nd{z-index:3;position:absolute;right:8mm;top:5mm;text-align:right;font:600 6.4pt/1.3 "Segoe UI",Arial,sans-serif;color:#1b6ca8;letter-spacing:.4px}
-.sheet .head .nd b{display:block;font-size:7.4pt;color:#0c3b57}
+.sheet .head .co{margin-left:16mm}
+.sheet .head .nd{z-index:3;position:absolute;right:8mm;top:4.6mm;white-space:nowrap;text-align:right;font:600 6.4pt/1.3 "Segoe UI",Arial,sans-serif;color:#1b6ca8;letter-spacing:.4px}
+.sheet .head .nd b{display:inline;font-size:7.4pt;color:#0c3b57;margin-right:1.6mm}
 .sheet{--navy:#17588f;--gold:#1a6cab;--pale:#eef6fc}
 .sheet:before{content:"";position:absolute;left:0;right:0;top:0;height:2.2mm;background:linear-gradient(90deg,#1b6ca8,#1a6cab 60%,#6db6e8)}
 .sheet th{background:#1f6fae;color:#fff}

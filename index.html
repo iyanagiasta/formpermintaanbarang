@@ -854,13 +854,11 @@ function loadGudang(){
 }
 function proyekOpts(q){
   if(!PROYEK.length)return [];
-  var t=String(q||"").toLowerCase().split(/\s+/).filter(Boolean),out=[];
-  PROYEK.forEach(function(p){
-    var hay=(p.ppbj+" "+p.ket+" "+p.dept).toLowerCase();
-    for(var i=0;i<t.length;i++){if(hay.indexOf(t[i])<0)return;}
+  var out=[],hs=CARI.proyek(PROYEK,q,30);
+  hs.hasil.forEach(function(p){
     out.push({label:p.ppbj+" — "+p.ket,sub:(p.dept?p.dept+" · ":"")+p.status,value:"Proyek "+p.ket+" (PPBJ "+p.ppbj+")",p:p});
   });
-  return out.slice(0,30);
+  return out;
 }
 
 /* ===== Departemen & manager ===== */
@@ -895,7 +893,7 @@ combo(document.getElementById("alasan"),proyekOpts,function(it){
 });
 combo(elPic,function(q){
   var k=q.trim().toLowerCase();
-  return picList().filter(function(n){return !k||n.toLowerCase().indexOf(k)>=0;}).map(function(n){return {label:n,sub:"PIC "+elDept.value.trim(),value:n};});
+  return picList().filter(function(n){return !k||n.toLowerCase().indexOf(k)>=0||!!CARI.skor(n,k);}).map(function(n){return {label:n,sub:"PIC "+elDept.value.trim(),value:n};});
 },syncPic);
 elPic.addEventListener("input",syncPic);
 elPic.addEventListener("change",function(){checkPic();});
@@ -909,14 +907,14 @@ function loadPic(){
 }
 combo(elDept,function(q){
   var k=q.trim().toLowerCase();
-  return DEPTS.filter(function(d){return !k||d.n.toLowerCase().indexOf(k)>=0;}).map(function(d){return {label:d.n,sub:"Manager: "+d.m,value:d.n};});
+  return DEPTS.filter(function(d){return !k||d.n.toLowerCase().indexOf(k)>=0||!!CARI.skor(d.n,k);}).map(function(d){return {label:d.n,sub:"Manager: "+d.m,value:d.n};});
 },autoManager);
 elDept.addEventListener("input",autoManager);
 elDept.addEventListener("change",autoManager);
 elAts.addEventListener("input",function(){elAts.dataset.auto="0";});
 combo(elAts,function(q){
   var k=q.trim().toLowerCase(),cur=findDept(elDept.value);
-  var list=DEPTS.filter(function(d){return !k||d.m.toLowerCase().indexOf(k)>=0;});
+  var list=DEPTS.filter(function(d){return !k||d.m.toLowerCase().indexOf(k)>=0||!!CARI.skor(d.m,k);});
   if(cur&&!k)list=[cur];
   return list.map(function(d){return {label:d.m,sub:"Manager "+d.n,value:d.m};});
 },function(){elAts.dataset.auto="0";});

@@ -88,6 +88,12 @@ td small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 .mnbtn{display:none;width:100%;text-align:left;background:var(--navy);color:#fff;border:0;border-radius:3px;padding:11px 12px;font-weight:600}
 @media (max-width:860px){.adm{grid-template-columns:minmax(0,1fr)}.side{position:static;max-height:none;overflow:visible}.mnbtn{display:block}#mnbox{display:none;max-height:70vh;overflow:auto}.side.buka #mnbox{display:block}}
 @media print{.side{display:none}.adm{display:block}}
+.smmin{display:block;width:calc(100% - 16px);margin:8px;padding:6px 8px;border:1px solid var(--line);background:transparent;color:var(--mut);border-radius:3px;cursor:pointer;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-align:left}
+.smmin:hover{background:var(--hover,#e3eef5);color:var(--ink)}
+#smbuka{display:none;position:fixed;left:0;top:90px;z-index:45;border:1px solid var(--accent);border-left:0;background:var(--accent);color:var(--accent-ink);border-radius:0 6px 6px 0;padding:10px 12px;font:700 13px "Segoe UI",Roboto,Arial,sans-serif;cursor:pointer;box-shadow:2px 2px 8px rgba(0,0,0,.25)}
+#smbuka:hover{filter:brightness(.9)}
+@media (min-width:861px){.adm.tutup{grid-template-columns:minmax(0,1fr)}.adm.tutup .side{display:none}.adm.tutup~#smbuka,body.smtutup #smbuka{display:block}}
+@media (max-width:860px){.smmin{display:none}}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
@@ -128,7 +134,7 @@ async function load(first){
     if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
     DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
     var h=(location.hash||"").replace("#","");
-    if(first&&h&&h!=="pantau"&&["serah","stok","proyek","mutasi","opname","laporan","sistem","pengumuman","terima","pengajuan","accurate","masterbarang","komparasi","baopname","buffer","kerja","lapatasan","telusur","kedaluwarsa"].indexOf(h)>=0){goTab(h);return;}
+    if(first&&h&&h!=="pantau"&&tabAda(h)){goTab(h);return;}
     draw(r.now);paMuatRingkas();
   }catch(e){
     if(first)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");else toast("Gagal terhubung ke server.",true);
@@ -200,12 +206,12 @@ function pasangProyek(inp,getList,onPick,inline){
   var semua=false,tm=null,ib=null;
   function BX(){if(!inline)return ppBox();if(!ib){ib=document.createElement("div");ib.className="ppbox ppin";ib.style.display="none";var c=inp.nextElementSibling;(c&&c.classList.contains("ppcap")?c:inp).insertAdjacentElement("afterend",ib);}return ib;}
   function ok(p){return p.status==="Aktif"||p.status==="Ditunda Sebentar";}
-  function cari(v){return (getList()||[]).filter(function(p){return semua||ok(p);}).filter(function(p){var h=(p.ppbj+" "+p.ket+" "+(p.dept||"")).toLowerCase(),t=String(v||"").toLowerCase().split(/\s+/).filter(Boolean);for(var i=0;i<t.length;i++)if(h.indexOf(t[i])<0)return false;return true;});}
+  function cari(v){var L=(getList()||[]).filter(function(p){return semua||ok(p);});return String(v||"").trim()?CARI.proyek(L,v,60).hasil:L;}
   function cap(){var el=inp.nextElementSibling;if(!el||!el.classList.contains("ppcap"))return;var v=String(inp.value||"").trim().toLowerCase();
     if(!v){el.textContent="";return;}
     var p=(getList()||[]).filter(function(x){return String(x.ppbj).toLowerCase()===v;})[0];
     if(!p&&cari(v).length){el.innerHTML='<span style="color:var(--mut,#4a5b68)">Pilih proyek dari daftar di bawah, atau ketik nomor lengkap.</span>';return;}
-    el.innerHTML=p?'<span style="color:var(--grn,#14602f)">&#10003; Proyek terdaftar: <b>'+esc(p.ket)+'</b>'+(p.dept?' ('+esc(p.dept)+')':'')+'. Alasan permintaan akan disamakan dengan nama proyek ini.</span>':'<span style="color:#b8760a">Nomor ini belum terdaftar di daftar proyek, jadi nama proyek tidak terisi otomatis. Tetap bisa disimpan.</span>';}
+    el.innerHTML=p?'<span style="color:var(--grn,#14602f)">&#10003; Proyek terdaftar: <b>'+esc(p.ket)+'</b>'+(p.dept?' ('+esc(p.dept)+')':'')+'. Alasan permintaan akan disamakan dengan nama proyek ini.</span>':'<span style="color:var(--ambt,#8a5a00)">Nomor ini belum terdaftar di daftar proyek, jadi nama proyek tidak terisi otomatis. Tetap bisa disimpan.</span>';}
   function tampil(){
     var box=BX(),r=inp.getBoundingClientRect(),L=cari(inp.value),jumlahSemua=(getList()||[]).length,v0=String(inp.value||"").trim().toLowerCase();
     if(v0&&(getList()||[]).some(function(p){return String(p.ppbj).toLowerCase()===v0;})){box.style.display="none";return;}   /* nomor sudah persis salah satu proyek: tutup daftar */
@@ -294,16 +300,27 @@ var MENU=[["Harian",[["kerja","Daftar Kerja"],["pantau","Pantauan BPB"],["serah"
  ["Laporan",[["laporan","Laporan"],["lapatasan","Laporan Atasan"],["telusur","Telusur"]]],
  ["Data & Sistem",[["masterbarang","Master Barang"],["label","Label \u2197"],["pengumuman","Pengumuman"],["sistem","Sistem"],["panduan","Panduan"]]]];
 function namaTab(t){var n=t;MENU.forEach(function(g){g[1].forEach(function(x){if(x[0]===t)n=x[1];});});return n;}
+function tabAda(h){var ok=false;MENU.forEach(function(g){g[1].forEach(function(x){if(x[0]===h&&h!=="pembelian"&&h!=="realisasi"&&h!=="label")ok=true;});});return ok;}
 function cepatCari(v){
   v=String(v||"").trim();if(!v)return;
-  if(/ppbj|\//i.test(v)){TL.mode="ppbj";TL.ppbj=v;TL.cek=null;goTab("telusur");setTimeout(cariPpbjTL,60);}
+  if(/ppbj|\//i.test(v)){
+    var go=function(x){TL.mode="ppbj";TL.ppbj=x;TL.cek=null;goTab("telusur");setTimeout(cariPpbjTL,60);};
+    var pk=v.replace(/^\s*ppbj\s*[:\-]?\s*/i,"");
+    (typeof ensureProyek==="function"?ensureProyek():Promise.resolve()).then(function(){var L=(typeof PROC!=="undefined"&&PROC)||[];var ex=L.filter(function(p){return String(p.ppbj).toLowerCase()===pk.toLowerCase();})[0];if(ex||!L.length){go(ex?ex.ppbj:v);return;}var h=CARI.proyek(L,pk,5,true).hasil;go(h.length?h[0].ppbj:v);}).catch(function(){go(v);});
+  }
   else{TL.mode="barang";TL.q=v;TL.det=null;TL.hasil=null;goTab("telusur");setTimeout(cariBarangTL,60);}
 }
 function tabsUI(){
-  if(!document.getElementById("pane"))app.innerHTML='<div class="adm"><nav class="side" id="side"><button type="button" class="mnbtn" id="mnbtn"></button><div id="mnbox"><div class="mcari"><input id="qcepat" placeholder="Cari barang / No PPBJ" autocomplete="off"></div><div id="tabs"></div></div></nav><div id="pane"></div></div>';
+  if(!document.getElementById("pane"))app.innerHTML='<div class="adm"><nav class="side" id="side"><button type="button" class="mnbtn" id="mnbtn"></button><div id="mnbox"><button type="button" class="smmin" id="smmin" title="Sembunyikan menu agar layar lebih lebar">&laquo; Minimalkan menu</button><div class="mcari"><input id="qcepat" placeholder="Cari barang / No PPBJ" autocomplete="off"></div><div id="tabs"></div></div></nav><div id="pane"></div></div>';
   document.getElementById("tabs").innerHTML=MENU.map(function(g){return '<div class="mgt">'+g[0]+'</div>'+g[1].map(function(t){return '<button type="button" class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");}).join("");
   var mb=document.getElementById("mnbtn");mb.textContent="Menu: "+namaTab(TAB)+"  \u25BE";mb.onclick=function(){document.getElementById("side").classList.toggle("buka");};
   var qc=document.getElementById("qcepat");qc.onkeydown=function(e){if(e.key==="Enter"){var v=qc.value;qc.value="";document.getElementById("side").classList.remove("buka");cepatCari(v);}};
+  (function(){var K="sctk_menu_admin",adm=document.querySelector(".adm"),bk=document.getElementById("smbuka");
+    if(!bk){bk=document.createElement("button");bk.type="button";bk.id="smbuka";bk.textContent="\u2630 Menu";bk.setAttribute("aria-label","Buka menu admin");document.body.appendChild(bk);}
+    function pasang(t){adm.classList.toggle("tutup",t);document.body.classList.toggle("smtutup",t);}
+    var v=null;try{v=localStorage.getItem(K);}catch(e){}pasang(v==="min"&&window.innerWidth>860);
+    document.getElementById("smmin").onclick=function(){try{localStorage.setItem(K,"min");}catch(e){}pasang(true);};
+    bk.onclick=function(){try{localStorage.setItem(K,"buka");}catch(e){}pasang(false);};})();
   paBadge();
   try{PDN.tombol();}catch(e){}
   document.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){document.getElementById("side").classList.remove("buka");goTab(b.getAttribute("data-tab"));};});
@@ -991,7 +1008,7 @@ function cariPasang(key,mode,o){
       g.style.display=ada||!tok.length?"":"none";});
     if(cnt)cnt.innerHTML=!tok.length?(items.length+" "+(o.satuan||"baris")):(n?n+" dari "+items.length+" "+(o.satuan||"baris")+(nm?" (termasuk "+nm+" yang mirip ketikan Anda)":""):'<span style="color:var(--red,#c0392b)">Tidak ada yang cocok</span>');
   }
-  inp.addEventListener("input",saring);
+  var tmS=null;inp.addEventListener("input",items.length>300?function(){clearTimeout(tmS);tmS=setTimeout(saring,120);}:saring);
   if(CARI_Q[key]&&!o.input)inp.value=CARI_Q[key];
   if(inp.value)saring();else if(cnt)cnt.textContent=items.length+" "+(o.satuan||"baris");
 }
@@ -1091,7 +1108,7 @@ function paTampil(){
     if(PAF.dari&&x.tgl<PAF.dari)return false;
     if(PAF.sampai&&x.tgl>PAF.sampai)return false;
     if(PAF.acc&&!(x.qacc>0))return false;
-    if(q&&(x.doc+" "+x.proyek+" "+x.ppbj+" "+x.noTrans+" "+x.jenis).toLowerCase().indexOf(q)<0)return false;
+    if(q&&!cocokQ(x.doc+" "+x.proyek+" "+x.ppbj+" "+x.noTrans+" "+x.jenis,q))return false;
     return true;
   });
 }
@@ -1781,7 +1798,7 @@ function opLolos(x){
   var mr=Number(String(f.minRp).replace(/[^\d.,-]/g,"").replace(/\./g,"").replace(",","."));if(f.minRp!==""&&!isNaN(mr)){if(x.nilai==null||Math.abs(x.nilai)<mr)return false;}
   if(f.rak&&String(x.rak||"")!==f.rak)return false;
   if(f.oleh&&String(x.oleh||"")!==f.oleh)return false;
-  if(f.q){var h=(x.nama+" "+x.kode+" "+(x.rak||"")).toLowerCase(),t=f.q.toLowerCase().split(/\s+/).filter(Boolean);for(var i=0;i<t.length;i++)if(h.indexOf(t[i])<0)return false;}
+  if(f.q&&!cocokQ(x.nama+" "+x.kode+" "+(x.rak||""),f.q))return false;
   return true;
 }
 function opRingkas(rows){

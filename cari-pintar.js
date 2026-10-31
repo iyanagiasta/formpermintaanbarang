@@ -39,7 +39,10 @@ var CARI = (function () {
   function skorToken(q, it) {
     FZ = 0;
     if (q === it) return 1;
-    if (ANGKA.test(q) || ANGKA.test(it)) return 0;           // angka harus persis (3 inch tidak sama dengan 4 inch)
+    if (ANGKA.test(q) || ANGKA.test(it)) {                    // angka harus persis (3 inch tidak sama dengan 4 inch); nol di depan diabaikan (14 = 014)
+      if (ANGKA.test(q) && ANGKA.test(it) && q.replace(/^0+(?=\d)/, '') === it.replace(/^0+(?=\d)/, '')) return 0.99;
+      return 0;
+    }
     var sq = squeeze(q), si = squeeze(it);
     if (sq === si) return 0.97;
     if (q.length >= 2 && it.indexOf(q) === 0) return 0.92;
@@ -63,6 +66,15 @@ var CARI = (function () {
     }
     FZ = 0; return 0;
   }
+  var MEMO = null, MEMF = null;
+  function st(q, i) {   // skor token dengan memori selama satu pencarian (kosakata barang/proyek banyak yang berulang)
+    if (!MEMO) return skorToken(q, i);
+    var mq = MEMO[q], mf = MEMF[q];
+    if (mq === undefined) { mq = MEMO[q] = {}; mf = MEMF[q] = {}; }
+    var m = mq[i];
+    if (m !== undefined) { FZ = mf[i]; return m; }
+    m = skorToken(q, i); mq[i] = m; mf[i] = FZ; return m;
+  }
   function tokItem(h) {
     var c = CACHE[h]; if (c) return c;
     if (NCACHE > 40000) { CACHE = {}; NCACHE = 0; }
@@ -73,16 +85,17 @@ var CARI = (function () {
     var qt = typeof q === 'string' ? tokens(q) : q;
     if (!qt.length) return {s: 1, m: false};
     var it = tokItem(String(hay == null ? '' : hay)), tot = 0, kuat = true, urut = true, pos = -1;
-    var nq = 0;
+    var nq = 0, j2 = it.j2;
+    if (!j2) { j2 = []; for (var z = 0; z + 1 < it.length; z++) j2.push(it[z] + it[z + 1]); j2.push(''); it.j2 = j2; }
     for (var i = 0; i < qt.length; i++) {
       var best = 0, bj = -1, pakai = 1, j, v, bf = 0;
-      for (j = 0; j < it.length; j++) { v = skorToken(qt[i], it[j]); if (v > best) { best = v; bj = j; bf = FZ; if (v === 1) break; } }
+      for (j = 0; j < it.length; j++) { v = st(qt[i], it[j]); if (v > best) { best = v; bj = j; bf = FZ; if (v === 1) break; } }
       if (best < 0.6 && qt[i].length >= 3) { // kata dipecah/disambung: "base plat" ~ "baseplat", "sil tep" ~ "seal tape"
-        for (j = 0; j + 1 < it.length; j++) { v = skorToken(qt[i], it[j] + it[j + 1]) * 0.97; if (v > best) { best = v; bj = j; bf = FZ; } }
+        for (j = 0; j + 1 < j2.length; j++) { v = st(qt[i], j2[j]) * 0.97; if (v > best) { best = v; bj = j; bf = FZ; } }
         if (i + 1 < qt.length && !ANGKA.test(qt[i]) && !ANGKA.test(qt[i + 1])) {
           var gb = qt[i] + qt[i + 1];
-          for (j = 0; j < it.length; j++) { v = skorToken(gb, it[j]) * 0.95; if (v > best) { best = v; bj = j; pakai = 2; bf = FZ; } }
-          for (j = 0; j + 1 < it.length; j++) { v = skorToken(gb, it[j] + it[j + 1]) * 0.95; if (v > best) { best = v; bj = j; pakai = 2; bf = FZ; } }
+          for (j = 0; j < it.length; j++) { v = st(gb, it[j]) * 0.95; if (v > best) { best = v; bj = j; pakai = 2; bf = FZ; } }
+          for (j = 0; j + 1 < j2.length; j++) { v = st(gb, j2[j]) * 0.95; if (v > best) { best = v; bj = j; pakai = 2; bf = FZ; } }
         }
       }
       if (best < 0.6) return null;
@@ -96,15 +109,20 @@ var CARI = (function () {
   /** Saring + urutkan. teks(x) = teks yang dicari milik x. Hasil persis lebih dulu; yang mirip hanya ditambahkan bila hasil persis sedikit. */
   function saring(list, q, teks, maks) {
     var qt = tokens(q), n = list.length, i, p = [], m = [];
+    MEMO = {}; MEMF = {};
+    try {
     if (!qt.length) { return {hasil: list.slice(0, maks || list.length), mirip: 0, persis: list.length}; }
     for (i = 0; i < n; i++) { var r = skor(teks ? teks(list[i]) : list[i], qt); if (r) { (r.m ? m : p).push({x: list[i], s: r.s, i: i}); } }
     function urut(a, b) { return b.s - a.s || a.i - b.i; }
+    } finally { MEMO = null; MEMF = null; }
     p.sort(urut); m.sort(urut);
     var lim = maks || 200, outP = p.slice(0, lim), outM = p.length < 8 ? m.slice(0, Math.min(8, lim - outP.length)) : [];
     return {hasil: outP.map(function (z) { return z.x; }).concat(outM.map(function (z) { return z.x; })), persis: outP.length, mirip: outM.length};
   }
   function cocok(hay, q) { return !!skor(hay, q); }
-  return {norm: norm, tokens: tokens, skor: skor, saring: saring, cocok: cocok, sinonim: sinonim};
+  /** Daftar proyek: teks yang dicari = No PPBJ + nama + departemen (+ status bila ikutkanStatus). */
+  function proyek(list, q, maks, ikutkanStatus) { return saring(list, q, function (p) { return (p.ppbj || '') + ' ' + (p.ket || p.nama || '') + ' ' + (p.dept || '') + (ikutkanStatus ? ' ' + (p.status || '') : ''); }, maks); }
+  return {norm: norm, tokens: tokens, skor: skor, saring: saring, cocok: cocok, proyek: proyek, sinonim: sinonim};
 })();
 
 window.CARI=CARI;

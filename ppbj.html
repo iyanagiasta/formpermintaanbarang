@@ -39,7 +39,7 @@ button.ok{background:#1b8a3a}button.no{background:#c0392b}button:disabled{opacit
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="tema.js"></script>
+<script src="cari-pintar.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -79,12 +79,12 @@ function pasangProyek(inp,getList,onPick,inline){
   var semua=false,tm=null,ib=null;
   function BX(){if(!inline)return ppBox();if(!ib){ib=document.createElement("div");ib.className="ppbox ppin";ib.style.display="none";var c=inp.nextElementSibling;(c&&c.classList.contains("ppcap")?c:inp).insertAdjacentElement("afterend",ib);}return ib;}
   function ok(p){return p.status==="Aktif"||p.status==="Ditunda Sebentar";}
-  function cari(v){return (getList()||[]).filter(function(p){return semua||ok(p);}).filter(function(p){var h=(p.ppbj+" "+p.ket+" "+(p.dept||"")).toLowerCase(),t=String(v||"").toLowerCase().split(/\s+/).filter(Boolean);for(var i=0;i<t.length;i++)if(h.indexOf(t[i])<0)return false;return true;});}
+  function cari(v){var L=(getList()||[]).filter(function(p){return semua||ok(p);});return String(v||"").trim()?CARI.proyek(L,v,60).hasil:L;}
   function cap(){var el=inp.nextElementSibling;if(!el||!el.classList.contains("ppcap"))return;var v=String(inp.value||"").trim().toLowerCase();
     if(!v){el.textContent="";return;}
     var p=(getList()||[]).filter(function(x){return String(x.ppbj).toLowerCase()===v;})[0];
     if(!p&&cari(v).length){el.innerHTML='<span style="color:var(--mut,#4a5b68)">Pilih proyek dari daftar di bawah, atau ketik nomor lengkap.</span>';return;}
-    el.innerHTML=p?'<span style="color:var(--grn,#14602f)">&#10003; Proyek terdaftar: <b>'+esc(p.ket)+'</b>'+(p.dept?' ('+esc(p.dept)+')':'')+'. Alasan permintaan akan disamakan dengan nama proyek ini.</span>':'<span style="color:#b8760a">Nomor ini belum terdaftar di daftar proyek, jadi nama proyek tidak terisi otomatis. Tetap bisa disimpan.</span>';}
+    el.innerHTML=p?'<span style="color:var(--grn,#14602f)">&#10003; Proyek terdaftar: <b>'+esc(p.ket)+'</b>'+(p.dept?' ('+esc(p.dept)+')':'')+'. Alasan permintaan akan disamakan dengan nama proyek ini.</span>':'<span style="color:var(--ambt,#8a5a00)">Nomor ini belum terdaftar di daftar proyek, jadi nama proyek tidak terisi otomatis. Tetap bisa disimpan.</span>';}
   function tampil(){
     var box=BX(),r=inp.getBoundingClientRect(),L=cari(inp.value),jumlahSemua=(getList()||[]).length,v0=String(inp.value||"").trim().toLowerCase();
     if(v0&&(getList()||[]).some(function(p){return String(p.ppbj).toLowerCase()===v0;})){box.style.display="none";return;}   /* nomor sudah persis salah satu proyek: tutup daftar */

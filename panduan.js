@@ -35,6 +35,10 @@ var PDN=(function(){
     function skor(x,w,bobot){var n=0;if(x.j.indexOf(w)>=0)n+=5;if(x.y.indexOf(w)>=0)n+=4;if(x.r.indexOf(w)>=0)n+=3;if(x.b.indexOf(w)>=0)n+=1;return n*bobot;}
     var hasil=IDX.map(function(x){var tot=0,semua=true;toks.forEach(function(w){var n=skor(x,w,1);if(!n){alt.forEach(function(a){n=Math.max(n,skor(x,a,.7));});}if(!n)semua=false;tot+=n;});alt.forEach(function(a){tot+=skor(x,a,.25);});return {x:x,t:tot,semua:semua};}).filter(function(h){return h.t>0;});
     var kuat=hasil.filter(function(h){return h.semua;});if(kuat.length)hasil=kuat;
+    if(!kuat.length&&window.CARI){ /* salah ketik: cari yang mirip pada judul, sinonim, ringkasan */
+      var mir=[];IDX.forEach(function(x){var r=CARI.skor(x.j+" "+x.y+" "+x.r,q);if(r)mir.push({x:x,t:r.s,semua:true,mirip:true});});
+      if(mir.length)hasil=mir;
+    }
     hasil.sort(function(a,b){return b.t-a.t;});return hasil.slice(0,14).map(function(h){return {x:h.x,toks:toks.concat(alt)};});
   }
   function cuplik(x,toks){var t=x.raw,l=x.b,p=-1;for(var i=0;i<toks.length&&p<0;i++)p=l.indexOf(toks[i]);if(p<0)return E(x.s.ringkas||"");var a=Math.max(0,p-60),z=Math.min(t.length,p+110);var sn=(a>0?"...":"")+t.slice(a,z)+(z<t.length?"...":"");return sorot(E(sn),toks);}

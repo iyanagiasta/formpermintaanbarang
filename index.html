@@ -637,7 +637,7 @@ function addRow(){
   tb.appendChild(tr);
   tr.querySelector(".nama").addEventListener("input",function(){lookup(tr);});
   tr.querySelector(".nama").addEventListener("change",function(){lookup(tr);});
-  combo(tr.querySelector(".nama"),itemOpts,function(){lookup(tr);renderStok(tr);});
+  combo(tr.querySelector(".nama"),itemOpts,function(){lookup(tr);renderStok(tr);if(window.A2)A2.catat(tr.querySelector(".kode").value,tr.querySelector(".nama").value);});
   tr.querySelector(".nama").addEventListener("input",function(){renderStok(tr);});
   tr.querySelector(".nama").addEventListener("change",function(){renderStok(tr);});
   tr.querySelector(".jml").addEventListener("input",function(){renderStok(tr);});
@@ -774,7 +774,8 @@ function itemOpts(q){
   if(!DB.size)return [];
   if(!DBL||DBL.n!==DB.size){var l=[];DB.forEach(function(it){l.push(it);});DBL={n:DB.size,l:l};}
   var r=CARI.saring(DBL.l,q,function(it){return it.nama+" "+it.kode;},200),out=[];
-  r.hasil.forEach(function(it,i){
+  var hs=window.A2?A2.urut(q,r.hasil,r.persis):r.hasil;
+  hs.forEach(function(it,i){
     if(r.mirip&&i===r.persis)out.push({sep:r.persis?"Mirip dengan ketikan Anda:":"Mungkin maksud Anda:"});
     out.push({label:it.nama,sub:[it.kode,it.satuan].filter(Boolean).join(" · "),value:it.nama});
   });
@@ -864,7 +865,7 @@ function proyekOpts(q){
 /* ===== Departemen & manager ===== */
 var DEPTS=[{n:"RM",m:"Fizi"},{n:"Distribusi",m:"Reza"},{n:"Sales",m:"Reza"},{n:"Produksi",m:"Asep"}];
 var elDept=document.getElementById("dept"),elAts=document.getElementById("atasan");
-function findDept(v){var k=norm(v);if(!k)return null;for(var i=0;i<DEPTS.length;i++){if(norm(DEPTS[i].n)===k)return DEPTS[i];}return null;}
+function findDept(v){var k=norm(window.A2?A2.kanon(v):v);if(!k)return null;for(var i=0;i<DEPTS.length;i++){if(norm(DEPTS[i].n)===k)return DEPTS[i];}return null;}
 function autoGrow(el){if(!el)return;el.style.height="auto";el.style.height=Math.max(el.scrollHeight+2,0)+"px";}
 function bindGrow(id){
   var el=document.getElementById(id),c=document.getElementById("cnt_"+id);
@@ -907,7 +908,7 @@ function loadPic(){
 }
 combo(elDept,function(q){
   var k=q.trim().toLowerCase();
-  return DEPTS.filter(function(d){return !k||d.n.toLowerCase().indexOf(k)>=0||!!CARI.skor(d.n,k);}).map(function(d){return {label:d.n,sub:"Manager: "+d.m,value:d.n};});
+  return DEPTS.filter(function(d){return !k||d.n.toLowerCase().indexOf(k)>=0||!!CARI.skor(d.n,k)||(window.A2&&A2.alias(d.n,k));}).map(function(d){return {label:d.n,sub:"Manager: "+d.m,value:d.n};});
 },autoManager);
 elDept.addEventListener("input",autoManager);
 elDept.addEventListener("change",autoManager);
@@ -1096,10 +1097,13 @@ async function kirim(){
   if(window.__sentNo&&!confirm("Permintaan ini sudah terkirim dengan nomor "+window.__sentNo+". Kirim lagi sebagai permintaan BARU?"))return;
   var btn=document.getElementById("sendBtn");btn.disabled=true;btn.textContent="Mengirim...";
   try{
-    var r=await api({action:"submit",kode:KODEPEG,by:g("by"),dept:g("dept"),tgl:g("tgl"),ppbj:g("ppbj"),email:g("email"),alasan:g("alasan"),pic:picOk,cat:g("cat"),items:items});
+    var muat={action:"submit",kode:KODEPEG,by:g("by"),dept:g("dept"),tgl:g("tgl"),ppbj:g("ppbj"),email:g("email"),alasan:g("alasan"),pic:picOk,cat:g("cat"),items:items};
+    if(window.A2){A2.mulai();muat.ck=A2.kunci(muat);}
+    var r=await api(muat);
     toast(r.msg||"Selesai.",!!r.ok);
     if(r.ok&&r.nomor){document.getElementById("doc").value=r.nomor;window.__sentNo=r.nomor;}
-  }catch(e){toast("Gagal terhubung ke server. Periksa internet lalu coba lagi.",false);}
+    if(r.ok&&window.A2)A2.selesai();
+  }catch(e){toast("Gagal terhubung ke server. Periksa internet lalu coba lagi.",false);if(window.A2)A2.gagal();}
   finally{btn.disabled=false;btn.textContent="Kirim Permintaan";}
 }
 
@@ -1217,6 +1221,7 @@ function loadBarang(){
   });
 }
 </script>
+<script src="form-a2.js"></script>
 <script src="form-hp.js"></script>
 </body>
 </html>

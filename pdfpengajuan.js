@@ -39,7 +39,7 @@
     doc.setTitle("Pengajuan Kebutuhan Barang Proyek " + (d.nomor || "")); doc.setCreator("Gudang SCTK");
     var F = await doc.embedFont(L.StandardFonts.Helvetica), FB = await doc.embedFont(L.StandardFonts.HelveticaBold), FT = await doc.embedFont(L.StandardFonts.TimesRomanBold);
     var PW = 841.89, PH = 595.28, M = 28.3, CW = PW - 2 * M, page, y;
-    var NAVY = hex("#0a2a43"), GOLD = hex("#b8975a"), PALE = hex("#eef6fa"), LINE = hex("#b6cad6"), BORD = hex("#9fb8c6"), INK = hex("#0d1f2d"), MUT = hex("#5b6b75"), ALT = hex("#f5fafc");
+    var NAVY = hex("#17588f"), GOLD = hex("#b8975a"), PALE = hex("#eef6fa"), LINE = hex("#b6cad6"), BORD = hex("#9fb8c6"), INK = hex("#0d1f2d"), MUT = hex("#5b6b75"), ALT = hex("#f5fafc");
     var pages = [];
     function baru(first) {
       page = doc.addPage([PW, PH]); pages.push(page); y = PH - M;
@@ -162,7 +162,7 @@
     doc.setTitle("Pengajuan Pembelian " + (d.nomor || "")); doc.setCreator("Gudang SCTK");
     var F = await doc.embedFont(L.StandardFonts.Helvetica), FB = await doc.embedFont(L.StandardFonts.HelveticaBold), FT = await doc.embedFont(L.StandardFonts.TimesRomanBold);
     var PW = 841.89, PH = 595.28, M = 28.3, CW = PW - 2 * M, page, y;
-    var NAVY = hex("#0a2a43"), GOLD = hex("#b8975a"), PALE = hex("#eef6fa"), LINE = hex("#b6cad6"), BORD = hex("#9fb8c6"), INK = hex("#0d1f2d"), MUT = hex("#5b6b75"), ALT = hex("#f5fafc"), RED = rgb(.75, .22, .17);
+    var NAVY = hex("#17588f"), GOLD = hex("#b8975a"), PALE = hex("#eef6fa"), LINE = hex("#b6cad6"), BORD = hex("#9fb8c6"), INK = hex("#0d1f2d"), MUT = hex("#5b6b75"), ALT = hex("#f5fafc"), RED = rgb(.75, .22, .17);
     var pages = [];
     function baru(first) { page = doc.addPage([PW, PH]); pages.push(page); y = PH - M; if (first) kepala(); }
     function kepala() {

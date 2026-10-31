@@ -20,7 +20,7 @@
   async function gambarDokumen(doc, d, sig, fonts) {
     var L = W.PDFLib, rgb = L.rgb, F = fonts.F, FB = fonts.FB, FT = fonts.FT, kembali = d.jenis === "Pengembalian";
     var PW = 595.28, PH = 841.89, M = 34, CW = PW - 2 * M, page, y;
-    var NAVY = hex("#0a2a43"), GOLD = hex("#b8975a"), PALE = hex("#eef6fa"), BORD = hex("#9fb8c6"), INK = hex("#0d1f2d"), MUT = hex("#5b6b75"), ALT = hex("#f5fafc");
+    var NAVY = hex("#17588f"), GOLD = hex("#b8975a"), PALE = hex("#eef6fa"), BORD = hex("#9fb8c6"), INK = hex("#0d1f2d"), MUT = hex("#5b6b75"), ALT = hex("#f5fafc");
     function kotak(x, yy, w, h, o) { page.drawRectangle(Object.assign({ x: x, y: yy, width: w, height: h, borderColor: BORD, borderWidth: .6 }, o || {})); }
     function teks(t, x, yy, size, font, color, o) { page.drawText(asc(t), Object.assign({ x: x, y: yy, size: size, font: font || F, color: color || INK }, o || {})); }
     function mulai() {

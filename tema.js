@@ -6,7 +6,7 @@
   pasang(baca());
   function ganti(){var t=h.getAttribute("data-tema")==="terang"?"gelap":"terang";try{localStorage.setItem(K,t);}catch(e){}pasang(t);}
   var LOGO='<span class="lg"><img src="logo.png" alt="" onerror="this.remove();this.parentNode&&0">'
-    +'<svg viewBox="0 0 24 24" fill="none" stroke="#0b5f8f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.2 6 10.5A6 6 0 0 1 6 13.5C6 9.2 12 3 12 3z"/></svg></span>';
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="#1a6cab" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.2 6 10.5A6 6 0 0 1 6 13.5C6 9.2 12 3 12 3z"/></svg></span>';
   function mulai(){
     var b=d.body;if(!b||b.hasAttribute("data-tanpa-tema"))return;
     b.classList.add("tema");
@@ -75,9 +75,9 @@
   function mulai(){
     var hb=d.querySelector("a.homebtn");if(!hb||d.getElementById("fabatas"))return;if(!/admin/i.test(location.pathname))return;
     var st=d.createElement("style");
-    st.textContent="#fabkembali,#fabatas{position:fixed;z-index:40;bottom:16px;font:700 13px 'Segoe UI',Roboto,Arial,sans-serif;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer;text-decoration:none;border:1px solid rgba(255,255,255,.5);background:#0c3b57;color:#fff}"+
+    st.textContent="#fabkembali,#fabatas{position:fixed;z-index:40;bottom:16px;font:700 13px 'Segoe UI',Roboto,Arial,sans-serif;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer;text-decoration:none;border:1px solid rgba(255,255,255,.5);background:#1b6ca8;color:#fff}"+
      "#fabkembali{left:14px;padding:11px 16px}#fabatas{right:14px;width:42px;height:42px;display:none;align-items:center;justify-content:center;font-size:18px;padding:0}"+
-     "#fabkembali:hover,#fabatas:hover{background:#0b5f8f;color:#fff}@media print{#fabkembali,#fabatas{display:none!important}}";
+     "#fabkembali:hover,#fabatas:hover{background:#1a6cab;color:#fff}@media print{#fabkembali,#fabatas{display:none!important}}";
     d.head.appendChild(st);
     
     var u=d.createElement("button");u.type="button";u.id="fabatas";u.innerHTML="&uarr;";u.title="Ke atas";u.onclick=function(){window.scrollTo({top:0,behavior:"smooth"});};d.body.appendChild(u);

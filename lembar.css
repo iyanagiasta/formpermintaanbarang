@@ -1,7 +1,7 @@
 /* Lembar bukti (Pengambilan / Pengembalian): gaya dokumen resmi perusahaan.
    Kop surat dengan garis ganda, isian bergaris bawah, tabel buku besar, kotak tanda tangan bergaris tipis.
    Lembar selalu kertas putih (juga di tema gelap) karena inilah yang dicetak dan dijadikan PDF. */
-.sheet{--navy:#0c3b57;--ink2:#0d1f2d;--rule:#7f97a6;--soft:#d5dee4;box-shadow:0 1px 3px rgba(0,0,0,.18),0 8px 24px rgba(0,0,0,.08)}
+.sheet{--navy:#1b6ca8;--ink2:#0d1f2d;--rule:#7f97a6;--soft:#d5dee4;box-shadow:0 1px 3px rgba(0,0,0,.18),0 8px 24px rgba(0,0,0,.08)}
 /* kop surat */
 .sheet .head{height:auto;min-height:15.5mm;display:flex;flex-direction:column-reverse;justify-content:flex-end;text-align:left;background:#fff;color:var(--navy);padding:4mm 8mm 0;border-bottom:0;overflow:visible;position:relative}
 .sheet .head svg{display:none}

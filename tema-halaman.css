@@ -2,13 +2,13 @@
    Satu sumber warna (variabel di bawah). Muat SETELAH gaya halaman. Lembar kertas (#sheet) tetap putih.
    ATURAN KONTRAS: setiap latar punya pasangan teks yang dijamin >= 4.5:1; dicek otomatis (audit_kontras.js). */
 html[data-tema=terang]:root{
-  --bg:#eef1f3;--bar:#ffffff;--bar-ink:#17232d;--line:#c3ccd3;--accent:#0b5f8f;--accent-ink:#ffffff;--muted:#4a5b68;
-  --ink:#17232d;--card:#ffffff;--mut:#4a5b68;--navy:#0b5f8f;--gold:#0b5f8f;--head:#0c3b57;--head-ink:#ffffff;--head-sub:#c9dde9;color-scheme:light;
-  --field:#ffffff;--zebra:rgba(11,95,143,.045);--hover:#e3eef5;
+  --bg:#eef1f3;--bar:#ffffff;--bar-ink:#17232d;--line:#c3ccd3;--accent:#1a6cab;--accent-ink:#ffffff;--muted:#4a5b68;
+  --ink:#17232d;--card:#ffffff;--mut:#4a5b68;--navy:#1a6cab;--gold:#1a6cab;--head:#1b6ca8;--head-ink:#ffffff;--head-sub:#e8f3fb;color-scheme:light;
+  --field:#ffffff;--zebra:rgba(31,120,184,.045);--hover:#e3eef5;
   --ok-bg:#dff1e5;--ok-t:#14602f;--warn-bg:#fff0cf;--warn-t:#6b4300;--bad-bg:#fbe0e0;--bad-t:#8a1c1c;--info-bg:#dcebf5;--info-t:#0a4a70;--neu-bg:#e6e9ec;--neu-t:#37444e}
 html[data-tema=gelap]:root{
-  --bg:#11171c;--bar:#1a2229;--bar-ink:#e6edf1;--line:#35434d;--accent:#5bb0de;--accent-ink:#06202e;--muted:#9fb0bc;
-  --ink:#e6edf1;--card:#1a2229;--mut:#9fb0bc;--navy:#1d6b99;--gold:#1d6b99;--head:#0d1d28;--head-ink:#ffffff;--head-sub:#a9c2d2;color-scheme:dark;
+  --bg:#11171c;--bar:#1a2229;--bar-ink:#e6edf1;--line:#35434d;--accent:#6bbcf0;--accent-ink:#06202e;--muted:#9fb0bc;
+  --ink:#e6edf1;--card:#1a2229;--mut:#9fb0bc;--navy:#2878ad;--gold:#2878ad;--head:#14405f;--head-ink:#ffffff;--head-sub:#a9c2d2;color-scheme:dark;
   --field:#10161b;--zebra:rgba(255,255,255,.035);--hover:#24323d;
   --ok-bg:#12372a;--ok-t:#9be3b6;--warn-bg:#40320c;--warn-t:#f3d27c;--bad-bg:#46191d;--bad-t:#ffb4b4;--info-bg:#143247;--info-t:#a9d6f2;--neu-bg:#2a343c;--neu-t:#c5d1d9}
 /* variabel lama yang dipakai halaman */
@@ -115,7 +115,7 @@ html[data-tema=gelap] select,html[data-tema=gelap] option,html[data-tema=gelap] 
 html[data-tema=terang] select,html[data-tema=terang] option,html[data-tema=terang] optgroup{color-scheme:light!important}
 html[data-tema=gelap] select{background-color:#10161b!important;color:#e6edf1!important}
 html[data-tema=gelap] select option,html[data-tema=gelap] select optgroup{background-color:#1a2229!important;color:#e6edf1!important}
-html[data-tema=gelap] select option:checked,html[data-tema=gelap] select option:hover{background-color:#1d6b99!important;color:#fff!important}
+html[data-tema=gelap] select option:checked,html[data-tema=gelap] select option:hover{background-color:#2878ad!important;color:#fff!important}
 html[data-tema=terang] select{background-color:#fff!important;color:#17232d!important}
 html[data-tema=terang] select option,html[data-tema=terang] select optgroup{background-color:#fff!important;color:#17232d!important}
 /* Lembar bukti (#sheet) selalu kertas putih: isian harus gelap di tema gelap */

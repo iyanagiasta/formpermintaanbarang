@@ -10,12 +10,12 @@
 <style>
 .sres{display:grid;gap:4px;margin:4px 0}.hs{display:block;text-align:left;width:100%;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;cursor:pointer}.hs:hover,.hs:focus-visible{border-color:var(--gold);outline:none}.hs small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 .rw{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:9px;margin-top:4px}.rr{display:flex;gap:8px;align-items:center;padding:7px 9px;border-top:1px solid var(--line)}.rr:first-child{border-top:0}.rr>span{flex:1;min-width:0}.rr small{display:block;color:var(--mut);font-size:12px}.rr input{width:84px;padding:6px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--ink);text-align:right}
-:root{--navy:#0a2a43;--gold:var(--accent,#0b5f8f);--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--beli:#fde8e8;--belit:#8a1c28}
+:root{--navy:#17588f;--gold:var(--accent,#1a6cab);--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--beli:#fde8e8;--belit:#8a1c28}
 @media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--beli:#3a1d22;--belit:#f2b8bf}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
-.top{background:#0c3b57;color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
-.top h1{margin:0;font:700 18px Inter,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:1.5px}.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#c9dde9;font-weight:600}
+.top{background:#1b6ca8;color:#fff;text-align:center;padding:16px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 18px Inter,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:1.5px}.top div{margin-top:4px;font-size:11px;letter-spacing:2px;color:#e8f3fb;font-weight:600}
 .wrap{max-width:1150px;margin:0 auto;padding:14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
 input.t,select,input[type=text]{padding:9px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
@@ -37,8 +37,8 @@ th{background:var(--navy);color:#fff;text-align:left;padding:8px;font-size:12px;
 td small{display:block;color:var(--mut);font-size:11px}.nm{text-align:right;white-space:nowrap}
 tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 .tag{display:inline-block;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700}.tag.w{background:#fff3cd;color:#7a5b00}
-#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0a2a43;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:#c0392b}
-.top{position:relative}.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#c9dde9;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:none;border:1px solid rgba(227,201,143,.55);border-radius:8px;padding:7px 11px;letter-spacing:0}.homebtn:hover,.homebtn:focus-visible{background:rgba(255,255,255,.12);outline:none}@media (max-width:640px){.top{padding-top:50px}.homebtn{top:10px;transform:none}}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#17588f;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:#c0392b}
+.top{position:relative}.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#e8f3fb;font:600 12px "Segoe UI",Roboto,Arial,sans-serif;text-decoration:none;border:1px solid rgba(227,201,143,.55);border-radius:8px;padding:7px 11px;letter-spacing:0}.homebtn:hover,.homebtn:focus-visible{background:rgba(255,255,255,.12);outline:none}@media (max-width:640px){.top{padding-top:50px}.homebtn{top:10px;transform:none}}
 .at{display:flex;gap:8px;align-items:center;padding:7px 9px;border-top:1px solid var(--line)}.at:first-child{border-top:0}.at>span{flex:1;min-width:0;word-break:break-all}.at small{color:var(--mut)}
 .pgf{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:8px 0}.pgf label{display:block;font-size:12px;color:var(--mut)}.pgf input{width:100%}
 </style>
@@ -62,7 +62,8 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="tema.js"></script>
+<script src="cari-pintar.js"></script><script src="tema.js"></script>
+<link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
 <div class="top"><a class="homebtn" href="dashboard.html">&larr; Halaman Utama</a><h1>CETAK LABEL</h1><div>LABEL TOM &amp; JERRY · KERTAS A4</div></div>
@@ -239,7 +240,7 @@ function baris(b){var st=STOKADA&&b.stok!=null?fmtStok(b.stok):"";return {kode:b
 function tambahBrg(b){var ada=PILIH.filter(function(x){return x.kode===b.kode;})[0];if(ada)ada.n++;else PILIH.push(baris(b));}
 function saran(q){
   var h=document.getElementById("hasil"),t=String(q||"").trim().toLowerCase().split(/\s+/).filter(Boolean);if(!t.length){h.hidden=true;return;}
-  var hit=BARANG.filter(function(b){var s=(b.nama+" "+b.kode).toLowerCase();return t.every(function(z){return s.indexOf(z)>=0;});}).slice(0,40);
+  var hit=CARI.saring(BARANG,q,function(b){return b.nama+" "+b.kode;},40).hasil;
   h.hidden=!hit.length;
   h.innerHTML=hit.map(function(b,i){var ada=PILIH.some(function(x){return x.kode===b.kode;});return '<div class="pk" style="display:flex;gap:8px;align-items:center;padding:8px 10px;border-top:1px solid var(--line)"><div style="flex:1;min-width:0">'+esc(b.nama)+'<small>'+esc(b.kode)+(b.satuan?' · '+esc(b.satuan):'')+'</small></div><button class="gh" data-i="'+i+'" style="white-space:nowrap">'+(ada?'Sudah di list (+1)':'Tambahkan ke list cetak')+'</button></div>';}).join("")+'<div style="padding:8px 10px;border-top:1px solid var(--line)"><button class="sv" id="addall">Tambahkan semua hasil ('+hit.length+')</button></div>';
   h.querySelectorAll("[data-i]").forEach(function(bt){bt.onclick=function(e){e.stopPropagation();tambahBrg(hit[Number(bt.getAttribute("data-i"))]);bt.textContent="Sudah di list (+1)";gPilih();toast("Masuk list cetak.");};});
@@ -247,7 +248,7 @@ function saran(q){
 }
 function gPilih(){
   var d=document.getElementById("dipilih");if(!d)return;
-  d.innerHTML=PILIH.length?'<div class="tw"><table><thead><tr><th>Nama di label (boleh diubah)</th><th>Kode / rak</th><th class="nm">Stok di label</th><th class="nm">Jumlah label</th><th></th></tr></thead><tbody>'+PILIH.map(function(x,i){return '<tr><td><input type="text" class="nmi" value="'+esc(x.nama)+'" data-n="'+i+'" style="width:100%;min-width:180px;padding:7px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit"></td><td>'+esc(x.kode)+'<br><input type="text" data-rk="'+i+'" value="'+esc(x.rak||'')+'" placeholder="rak" style="width:90px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit;font-size:12px"></td><td class="nm"><input class="qy" type="text" inputmode="decimal" value="'+esc(x.stok)+'" data-s2="'+i+'" style="'+(x.stok!==x.stokSis?'border-color:var(--accent,#0b5f8f);':'')+'"><small>'+(STOKADA?(x.stok!==x.stokSis?'diubah (sistem '+esc(x.stokSis||'-')+')':'sesuai data'):'')+'</small></td><td class="nm"><input class="qy" type="number" min="1" max="500" value="'+x.n+'" data-q="'+i+'"></td><td><button class="gh" data-x="'+i+'">Hapus</button></td></tr>';}).join("")+'</tbody></table></div><div class="note" id="tot">Total '+totalLabel()+' label, kira-kira '+Math.ceil((totalLabel()+Math.max(0,Math.round(S.mulai)-1))/Math.max(1,perLembar(S)))+' lembar.</div>':'<div class="note" style="margin-top:8px">Belum ada barang dipilih.</div>';
+  d.innerHTML=PILIH.length?'<div class="tw"><table><thead><tr><th>Nama di label (boleh diubah)</th><th>Kode / rak</th><th class="nm">Stok di label</th><th class="nm">Jumlah label</th><th></th></tr></thead><tbody>'+PILIH.map(function(x,i){return '<tr><td><input type="text" class="nmi" value="'+esc(x.nama)+'" data-n="'+i+'" style="width:100%;min-width:180px;padding:7px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit"></td><td>'+esc(x.kode)+'<br><input type="text" data-rk="'+i+'" value="'+esc(x.rak||'')+'" placeholder="rak" style="width:90px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit;font-size:12px"></td><td class="nm"><input class="qy" type="text" inputmode="decimal" value="'+esc(x.stok)+'" data-s2="'+i+'" style="'+(x.stok!==x.stokSis?'border-color:var(--accent,#1a6cab);':'')+'"><small>'+(STOKADA?(x.stok!==x.stokSis?'diubah (sistem '+esc(x.stokSis||'-')+')':'sesuai data'):'')+'</small></td><td class="nm"><input class="qy" type="number" min="1" max="500" value="'+x.n+'" data-q="'+i+'"></td><td><button class="gh" data-x="'+i+'">Hapus</button></td></tr>';}).join("")+'</tbody></table></div><div class="note" id="tot">Total '+totalLabel()+' label, kira-kira '+Math.ceil((totalLabel()+Math.max(0,Math.round(S.mulai)-1))/Math.max(1,perLembar(S)))+' lembar.</div>':'<div class="note" style="margin-top:8px">Belum ada barang dipilih.</div>';
   d.querySelectorAll("[data-q]").forEach(function(i){i.oninput=function(){var v=Math.max(1,Math.min(500,Math.round(Number(i.value))||1));PILIH[Number(i.getAttribute("data-q"))].n=v;var n=document.getElementById("tot");if(n)n.textContent="Total "+totalLabel()+" label, kira-kira "+Math.ceil((totalLabel()+Math.max(0,Math.round(S.mulai)-1))/Math.max(1,perLembar(S)))+" lembar.";};});
   d.querySelectorAll("[data-rk]").forEach(function(i){i.oninput=function(){PILIH[Number(i.getAttribute("data-rk"))].rak=i.value;};});
   d.querySelectorAll("[data-n]").forEach(function(i){i.oninput=function(){PILIH[Number(i.getAttribute("data-n"))].nama=i.value;};});

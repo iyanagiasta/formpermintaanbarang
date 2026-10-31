@@ -3,7 +3,7 @@ var TDS=(function(){
   var el=null,D=null;
   function E(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
   function css(){if(document.getElementById("tdscss"))return;var s=document.createElement("style");s.id="tdscss";
-    s.textContent=".tds .tdd{border:1px solid var(--line,#ccd);border-left:4px solid var(--accent,#0b5f8f);border-radius:4px;padding:10px 12px;margin:8px 0;background:var(--card,#fff)}.tds .tdd.tl{border-left-color:#a82424}.tds .tdd .ts{font-size:12px;color:var(--mut,#567);margin:3px 0}.tds .tdd label{font-size:12px;color:var(--mut,#567)}.tds .tdd input[type=datetime-local]{max-width:210px}";document.head.appendChild(s);}
+    s.textContent=".tds .tdd{border:1px solid var(--line,#ccd);border-left:4px solid var(--accent,#1a6cab);border-radius:4px;padding:10px 12px;margin:8px 0;background:var(--card,#fff)}.tds .tdd.tl{border-left-color:#a82424}.tds .tdd .ts{font-size:12px;color:var(--mut,#567);margin:3px 0}.tds .tdd label{font-size:12px;color:var(--mut,#567)}.tds .tdd input[type=datetime-local]{max-width:210px}";document.head.appendChild(s);}
   async function muat(){
     css();el.innerHTML='<div class="card msg">Memuat penanda penyerahan...</div>';
     var r;try{r=await api({action:"tandaList"});}catch(e){el.innerHTML='<div class="card msg err">Gagal terhubung ke server.</div>';return;}

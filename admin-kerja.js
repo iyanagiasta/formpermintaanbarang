@@ -52,11 +52,11 @@ function drawTelusur(){
 async function cariBarangTL(){
   var q=document.getElementById("tl_q").value.trim();TL.q=q;TL.det=null;if(!q)return;
   var r=await api({action:"adminTelusurCari",q:q});if(!r.ok){toast(r.msg||"Gagal",true);return;}
-  TL.hasil=r.rows;if(r.rows.length===1){await bukaBarangTL(r.rows[0].kode);return;}drawTLHasil();
+  TL.hasil=r.rows;if(r.rows.length===1&&!r.rows[0].mirip){await bukaBarangTL(r.rows[0].kode);return;}drawTLHasil();
 }
 function drawTLHasil(){
   var h=document.getElementById("tl_h");if(!h)return;
-  h.innerHTML=TL.hasil.length?'<div class="card">'+TL.hasil.map(function(x,i){return '<div style="padding:8px 0;border-top:'+(i?'1px solid var(--line)':'0')+';cursor:pointer" data-kb="'+esc(x.kode)+'"><b>'+esc(x.nama)+'</b> <span class="note">'+esc(x.kode)+' &middot; stok '+LPR.nf(x.stok)+' '+esc(x.satuan)+'</span></div>';}).join("")+'</div>':'<div class="card msg">Tidak ada barang yang cocok.</div>';
+  h.innerHTML=TL.hasil.length?'<div class="card">'+(TL.hasil.every(function(x){return x.mirip;})?'<div class="note" style="margin:0 0 6px">Tidak ada yang persis. Mungkin maksud Anda:</div>':'')+TL.hasil.map(function(x,i){return '<div style="padding:8px 0;border-top:'+(i?'1px solid var(--line)':'0')+';cursor:pointer" data-kb="'+esc(x.kode)+'"><b>'+esc(x.nama)+'</b>'+(x.mirip?' <span class="note">(mirip ketikan Anda)</span>':'')+' <span class="note">'+esc(x.kode)+' &middot; stok '+LPR.nf(x.stok)+' '+esc(x.satuan)+'</span></div>';}).join("")+'</div>':'<div class="card msg">Tidak ada barang yang cocok.</div>';
   h.querySelectorAll("[data-kb]").forEach(function(d){d.onclick=function(){bukaBarangTL(d.getAttribute("data-kb"));};});
 }
 async function bukaBarangTL(kode){

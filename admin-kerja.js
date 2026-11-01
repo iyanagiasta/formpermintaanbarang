@@ -30,7 +30,8 @@ function drawKerja(){
 }
 
 /* ===== KOTAK PENGINGAT WHATSAPP (admin menyalin pesan formal + tautan, lalu mengirim sendiri; email tidak berubah) ===== */
-var PW=null;
+var PW=null,PWT="rinci";
+try{PWT=localStorage.getItem("sctk_pw_tingkat")==="ringkas"?"ringkas":"rinci";}catch(e){}
 async function kotakPengingat(){
   var el=document.getElementById("pw_k");if(!el)return;
   el.innerHTML='<div class="card noprint"><p class="note" style="margin:0">Memuat Kotak Pengingat...</p></div>';
@@ -38,39 +39,50 @@ async function kotakPengingat(){
   if(!r.ok){el.innerHTML="";return;}
   PW=r;drawKotakPengingat();
 }
+function pwJeda(jam){return jam!==null&&jam!==undefined&&PW&&jam<PW.jedaJam;}
+function pwJamTeks(j){return j<1?"kurang dari 1 jam":j<24?Math.round(j)+" jam":Math.round(j/24)+" hari";}
 function drawKotakPengingat(){
   var el=document.getElementById("pw_k");if(!el||!PW)return;
-  var r=PW,h='<div class="card noprint"><p style="margin:0 0 4px"><b>Kotak Pengingat WhatsApp</b> <span class="tag g">BARU</span></p><p class="note" style="margin:0 0 8px">Salin pesan formal beserta tautannya, lalu kirim sendiri lewat WhatsApp. Pengingat email otomatis tidak berubah. <b>Tautan gabungan</b> memuat semua permintaan yang kini menunggu satu orang (berlaku '+r.hariTautan+' hari; membuat yang baru mencabut yang lama). <b>Satuan</b> memakai tautan yang sama dengan email.</p>';
+  var r=PW,h='<div class="card noprint"><p style="margin:0 0 4px"><b>Kotak Pengingat WhatsApp</b> <span class="tag g">BARU</span></p><p class="note" style="margin:0 0 8px">Salin pesan formal beserta tautannya, lalu tempel dan kirim sendiri lewat WhatsApp. Pengingat email otomatis tidak berubah. <b>Tautan gabungan</b> memuat semua permintaan yang kini menunggu satu orang (berlaku '+r.hariTautan+' hari; membuat yang baru mencabut yang lama). <b>Satuan</b> memakai tautan yang sama dengan email.</p>'+
+   '<div class="fr" style="align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span class="note" style="margin:0">Isi pesan:</span><button class="'+(PWT==="rinci"?"sv":"gh")+'" data-pt="rinci">Rinci</button><button class="'+(PWT==="ringkas"?"sv":"gh")+'" data-pt="ringkas">Ringkas</button><span style="flex:1"></span><button class="gh" id="pw_rekap">Salin rekap status (tanpa tautan, aman untuk grup)</button></div>';
   if(!r.orang.length&&!r.ppbj.length)h+='<div class="msg">Tidak ada permintaan yang sedang menunggu persetujuan atau PPBJ.</div>';
   r.orang.forEach(function(o,i){
-    h+='<div style="padding:9px 0;border-top:1px solid var(--line)"><div class="fr" style="align-items:center;gap:8px;flex-wrap:wrap"><b>'+esc(o.sapaan)+' '+esc(o.nama)+'</b><span class="tag">'+esc(o.peran)+'</span><span class="note" style="margin:0">'+o.jumlah+' menunggu &middot; terlama '+esc(String(o.terlama))+' hari'+(o.terakhir?' &middot; terakhir diingatkan '+esc(o.terakhir):'')+'</span>'+
-      (o.terdaftar?'<button class="sv" data-pg="'+i+'">Salin pesan gabungan</button>':'<span class="tag r">belum terdaftar di sheet Pengguna</span>')+'</div>'+
-      (o.terdaftar?'<details style="margin-top:4px"><summary class="note" style="cursor:pointer">Per dokumen ('+o.jumlah+')</summary>'+o.items.map(function(x){return '<div class="fr" style="align-items:center;gap:8px;padding:3px 0"><span style="flex:1;min-width:150px"><b>'+esc(x.doc)+'</b> <small>'+esc(x.dept)+' &middot; '+esc(x.pemohon)+' &middot; menunggu '+esc(x.lama)+'</small></span><button class="gh" data-ps="'+esc(x.id)+'">Salin satuan</button></div>';}).join("")+'</details>':'')+'</div>';
+    h+='<div style="padding:9px 0;border-top:1px solid var(--line)"><div class="fr" style="align-items:center;gap:8px;flex-wrap:wrap"><b>'+esc(o.sapaan)+' '+esc(o.nama)+'</b><span class="tag">'+esc(o.peran)+'</span><span class="note" style="margin:0">'+o.jumlah+' menunggu &middot; terlama '+esc(String(o.terlama))+' hari'+(o.lewat?' &middot; <b style="color:var(--red,#a82424)">'+o.lewat+' lewat batas</b>':'')+(o.terakhir?' &middot; terakhir diingatkan '+esc(o.terakhir):'')+'</span>'+
+      (o.terdaftar?'<button class="sv" data-pg="'+i+'">Salin pesan gabungan</button>'+(o.eskalasi?'<button class="gh" data-pe="'+i+'" title="Pesan informasi ke atasan, tanpa tautan setuju">Salin eskalasi ke '+esc(o.eskalasi)+'</button>':''):'<span class="tag r">belum terdaftar di sheet Pengguna</span>')+'</div>'+
+      (o.terdaftar?'<details style="margin-top:4px"><summary class="note" style="cursor:pointer">Per dokumen ('+o.jumlah+')</summary>'+o.items.map(function(x,k){return '<div class="fr" style="align-items:center;gap:8px;padding:3px 0"><span style="flex:1;min-width:150px"><b>'+esc(x.doc)+'</b> <small>'+esc(x.dept)+' &middot; '+esc(x.pemohon)+' &middot; menunggu '+esc(x.lama)+'</small></span><button class="gh" data-ps="'+i+':'+k+'">Salin satuan</button></div>';}).join("")+'</details>':'')+'</div>';
   });
   if(r.ppbj.length){
-    h+='<div style="padding:9px 0;border-top:1px solid var(--line)"><b>No PPBJ belum diisi ('+r.ppbj.length+')</b>'+r.ppbj.map(function(x){return '<div class="fr" style="align-items:center;gap:8px;padding:3px 0"><span style="flex:1;min-width:150px"><b>'+esc(x.doc)+'</b> <small>'+esc(x.dept)+' &middot; '+esc(x.pemohon)+' &middot; '+x.hari+' hari &middot; ke '+esc(x.nama)+(x.terakhir?' &middot; terakhir diingatkan '+esc(x.terakhir):'')+'</small></span><button class="gh" data-pp="'+esc(x.id)+'">Salin pesan PPBJ</button></div>';}).join("")+'</div>';
+    h+='<div style="padding:9px 0;border-top:1px solid var(--line)"><b>No PPBJ belum diisi ('+r.ppbj.length+')</b>'+r.ppbj.map(function(x,k){return '<div class="fr" style="align-items:center;gap:8px;padding:3px 0"><span style="flex:1;min-width:150px"><b>'+esc(x.doc)+'</b> <small>'+esc(x.dept)+' &middot; '+esc(x.pemohon)+' &middot; '+x.hari+' hari &middot; ke '+esc(x.nama)+(x.terakhir?' &middot; terakhir diingatkan '+esc(x.terakhir):'')+'</small></span><button class="gh" data-pp="'+k+'">Salin pesan PPBJ</button></div>';}).join("")+'</div>';
   }
   el.innerHTML=h+'</div>';
-  el.querySelectorAll("[data-pg]").forEach(function(b){b.onclick=function(){pwPesan({jenis:"gabungan",key:r.orang[Number(b.getAttribute("data-pg"))].key},b);};});
-  el.querySelectorAll("[data-ps]").forEach(function(b){b.onclick=function(){pwPesan({jenis:"satuan",id:b.getAttribute("data-ps")},b);};});
-  el.querySelectorAll("[data-pp]").forEach(function(b){b.onclick=function(){pwPesan({jenis:"ppbj",id:b.getAttribute("data-pp")},b);};});
+  el.querySelectorAll("[data-pt]").forEach(function(b){b.onclick=function(){PWT=b.getAttribute("data-pt");try{localStorage.setItem("sctk_pw_tingkat",PWT);}catch(e){}drawKotakPengingat();};});
+  document.getElementById("pw_rekap").onclick=function(){pwPesan({jenis:"rekap"},this);};
+  el.querySelectorAll("[data-pg]").forEach(function(b){b.onclick=function(){var o=r.orang[Number(b.getAttribute("data-pg"))];
+    if(pwJeda(o.terakhirJam)&&!confirm(o.nama+" baru diingatkan "+pwJamTeks(o.terakhirJam)+" lalu. Tetap buat pesan baru? (tautan gabungan yang lama akan dicabut)"))return;
+    pwPesan({jenis:"gabungan",key:o.key},b);};});
+  el.querySelectorAll("[data-pe]").forEach(function(b){b.onclick=function(){pwPesan({jenis:"eskalasi",key:r.orang[Number(b.getAttribute("data-pe"))].key},b);};});
+  el.querySelectorAll("[data-ps]").forEach(function(b){b.onclick=function(){var p=b.getAttribute("data-ps").split(":"),x=r.orang[Number(p[0])].items[Number(p[1])];
+    if(pwJeda(x.terakhirJam)&&!confirm(x.doc+" baru diingatkan "+pwJamTeks(x.terakhirJam)+" lalu. Tetap salin pesan?"))return;
+    pwPesan({jenis:"satuan",id:x.id},b);};});
+  el.querySelectorAll("[data-pp]").forEach(function(b){b.onclick=function(){var x=r.ppbj[Number(b.getAttribute("data-pp"))];
+    if(pwJeda(x.terakhirJam)&&!confirm(x.doc+" baru diingatkan "+pwJamTeks(x.terakhirJam)+" lalu. Tetap salin pesan?"))return;
+    pwPesan({jenis:"ppbj",id:x.id},b);};});
 }
 async function pwPesan(req,btn){
-  req.action="adminPengingatPesan";if(btn)btn.disabled=true;
+  req.action="adminPengingatPesan";req.tingkat=PWT;if(btn)btn.disabled=true;
   var r;try{r=await api(req);}catch(e){toast("Gagal terhubung.",true);if(btn)btn.disabled=false;return;}
   if(btn)btn.disabled=false;
   if(!r.ok){toast(r.msg||"Gagal",true);kotakPengingat();return;}
   var o=document.getElementById("pw_o");if(!o)return;
-  o.innerHTML='<div class="card noprint"><p style="margin:0 0 6px"><b>Pesan siap kirim</b> <span class="note" style="margin:0 6px">'+esc(r.msg||"")+(r.sampai?' Tautan berlaku sampai '+esc(r.sampai)+'.':'')+' Pesan boleh Anda ubah dulu.</span></p><textarea id="pw_t" style="width:100%;min-height:230px;font:14px/1.45 inherit">'+esc(r.teks)+'</textarea><div class="fr" style="margin-top:8px"><button id="pw_s" class="sv">Salin pesan</button><a id="pw_w" class="gh" style="padding:9px 14px;border:1px solid var(--line);border-radius:8px;text-decoration:none" target="_blank" rel="noopener">Buka WhatsApp</a><button id="pw_c" class="gh">Tutup</button></div></div>';
+  o.innerHTML='<div class="card noprint"><p style="margin:0 0 6px"><b>Pesan siap salin</b> <span class="note" style="margin:0 6px">'+esc(r.msg||"")+(r.sampai?' Tautan berlaku sampai '+esc(r.sampai)+'.':'')+' Pesan boleh Anda ubah dulu.</span></p><textarea id="pw_t" style="width:100%;min-height:280px;font:14px/1.45 inherit">'+esc(r.teks)+'</textarea><div class="fr" style="margin-top:8px"><button id="pw_s" class="sv">Salin pesan</button><button id="pw_c" class="gh">Tutup</button></div></div>';
   var ta=document.getElementById("pw_t");
-  function wa(){document.getElementById("pw_w").href="https://wa.me/?text="+encodeURIComponent(ta.value);}wa();ta.oninput=wa;
   document.getElementById("pw_s").onclick=function(){
     var ok=false;try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value);ok=true;}}catch(e){}
     if(!ok){ta.select();try{ok=document.execCommand("copy");}catch(e){}}
     toast(ok?"Pesan disalin. Tempel di WhatsApp.":"Tidak bisa menyalin otomatis; blok teks lalu salin manual.",!ok);};
   document.getElementById("pw_c").onclick=function(){o.innerHTML="";};
   o.scrollIntoView({behavior:"smooth",block:"start"});
-  kotakPengingat();
+  if(req.jenis!=="rekap"&&req.jenis!=="eskalasi")kotakPengingat();
 }
 
 /* ===== TELUSUR ===== */

@@ -9,6 +9,7 @@
 <script src="pdfbukti.js"></script>
 <script src="laporan.js"></script>
 <script src="admin-kerja.js"></script>
+<script src="admin-mutasi.js"></script>
 <script src="kimia.js"></script>
 <script src="kpi.js"></script>
 <script src="tanda.js"></script>
@@ -33,7 +34,7 @@ button.rm{background:#b8760a}button.sv{background:#1b8a3a}button.gh{background:t
 .chip{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:6px 12px}
 .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 .bar input{flex:1;min-width:150px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
-.sum{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.ks{cursor:pointer;text-decoration:underline dotted}.ks:hover{color:var(--accent,#1a6cab)}tr.dd{cursor:pointer}tr.dd:hover td{background:var(--solid-hover,#dff1f8)}.sum{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
 .sum div{flex:1;min-width:130px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
 .sum b{display:block;font-size:22px}.sum span{color:var(--mut);font-size:12px}
 table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
@@ -1537,7 +1538,7 @@ function mfPeriode(k){var t=new Date(),y=t.getFullYear(),m=t.getMonth();
 function mfPreset(){try{return JSON.parse(localStorage.getItem("sctk_mpreset")||"[]");}catch(e){return [];}}
 function mfSimpanPreset(){var n=prompt("Nama preset filter (mis. Bulan ini - Moka - Keluar):");if(!n)return;mfBaca();var a=mfPreset().filter(function(p){return p.n!==n;});var f=Object.assign({},MF);delete f.dari;delete f.sampai;a.push({n:n,f:f});try{localStorage.setItem("sctk_mpreset",JSON.stringify(a));}catch(e){}drawMutasi();}
 async function loadMutasi(pakai){
-  if(!pakai)mfBaca();
+  if(!pakai){mfBaca();if(window.MX)MX.catatan=MX.parse(MF,MR&&MR.opsi);}
   if(!MF.dari){var t=new Date();MF.dari=tglIso(new Date(t.getFullYear(),t.getMonth(),1));MF.sampai=tglIso(t);}
   pane().innerHTML='<div class="card msg">Memuat...</div>';
   try{
@@ -1548,16 +1549,17 @@ async function loadMutasi(pakai){
 }
 function drawMutasi(){
   var r=MR;if(!r)return;
+  if(window.MX&&MX.ada(MVIEW)){MX.gambar();return;}
   var JN=["","Serah","Pembelian","Pengembalian","Opname","Koreksi","Unggah Stok","Unggah Stok (dinolkan)"],JL={"":"Semua jenis","Serah":"Barang keluar (serah)","Pembelian":"Barang masuk (pembelian)","Pengembalian":"Pengembalian / kembalian"};
   var op=function(a,v,lab){return a.map(function(x){return '<option value="'+esc(x)+'"'+(x===v?" selected":"")+'>'+esc(lab&&lab[x]!=null?lab[x]:(x||"Semua"))+'</option>';}).join("");};
   var pre=mfPreset();
   var ring=Object.keys(r.ringkas||{}).map(function(j){var o=r.ringkas[j];return '<span class="chip">'+esc(j)+': <b>'+o.n+'</b></span>';}).join(" ");
-  var kartu='<div class="sum"><div><b>'+r.total+'</b><span>Catatan sesuai filter</span></div><div><b>'+rp(r.nilaiKeluar)+'</b><span>Nilai barang keluar (serah)</span></div><div><b>'+rp(r.nilaiMasuk)+'</b><span>Nilai barang masuk (pembelian + pengembalian)</span></div><div><b>'+rp(r.nilaiPenyesuaian)+'</b><span>Penyesuaian bersih (opname, koreksi, unggah)</span></div><div><b>'+r.tanpaHarga+'</b><span>Catatan tanpa harga (tidak dinilai)</span></div></div>';
-  var vbtn=[["rinci","Rincian"],["dept","Per departemen"],["proyek","Per proyek / PPBJ"],["barang","Per barang"]].map(function(v){return '<button class="chip'+(MVIEW===v[0]?" on":"")+'" data-mv="'+v[0]+'">'+v[1]+'</button>';}).join("");
+  var kartu='<div class="sum"><div data-sm="semua"><b>'+r.total+'</b><span>Catatan sesuai filter</span></div><div data-sm="keluar"><b>'+rp(r.nilaiKeluar)+'</b><span>Nilai barang keluar (serah)</span></div><div data-sm="masuk"><b>'+rp(r.nilaiMasuk)+'</b><span>Nilai barang masuk (pembelian + pengembalian)</span></div><div><b>'+rp(r.nilaiPenyesuaian)+'</b><span>Penyesuaian bersih (opname, koreksi, unggah)</span></div><div><b>'+r.tanpaHarga+'</b><span>Catatan tanpa harga (tidak dinilai)</span></div></div>';
+  var vbtn=[["rinci","Rincian"],["dept","Per departemen"],["proyek","Per proyek / PPBJ"],["barang","Per barang"]].map(function(v){return '<button class="chip'+(MVIEW===v[0]?" on":"")+'" data-mv="'+v[0]+'">'+v[1]+'</button>';}).join("")+(window.MX?'<span class="note" style="margin:0 4px">|</span>'+MX.tombol(MVIEW):"");
   var isi;
   if(MVIEW==="rinci"){
     isi=(MUT.length?'<table><thead><tr><th>Waktu</th><th>Barang</th><th>Jenis</th><th>Sumber</th><th class="nm">Qty</th><th class="nm">Harga</th><th class="nm">Nilai</th><th class="nm">Saldo</th><th>Referensi / Dept / Proyek</th><th>Keterangan</th><th></th></tr></thead><tbody>'+
-     MUT.map(function(m){return '<tr><td data-l="Waktu">'+esc(m.waktu)+'</td><td data-l="Barang"><b>'+esc(m.nama)+'</b><small>'+esc(m.kode)+'</small></td><td data-l="Jenis">'+esc(m.jenis)+'</td><td data-l="Sumber">'+esc(m.sumber)+'</td>'+
+     MUT.map(function(m){return '<tr><td data-l="Waktu">'+esc(m.waktu)+'</td><td data-l="Barang">'+(window.MX?MX.ksLink(m.kode,m.nama):'<b>'+esc(m.nama)+'</b><small>'+esc(m.kode)+'</small>')+'</td><td data-l="Jenis">'+esc(m.jenis)+'</td><td data-l="Sumber">'+esc(m.sumber)+'</td>'+
       '<td class="nm" data-l="Qty"><b style="color:'+(m.qty<0?"var(--red,#a82424)":"var(--grn,#14602f)")+'">'+(m.qty>0?"+":"")+fmtN(m.qty)+'</b></td>'+
       '<td class="nm" data-l="Harga">'+(m.harga!=null?(m.est?'<span title="Harga saat ini (transaksi lama belum merekam harga)">&asymp; ':'<span>')+rp(m.harga)+'</span>':'-')+'</td>'+
       '<td class="nm" data-l="Nilai">'+(m.nilai!=null?rp(m.nilai):(m.sumber==="Bekas"?'<small>tidak dinilai</small>':'-'))+'</td>'+
@@ -1565,7 +1567,7 @@ function drawMutasi(){
       '<td>'+(m.ref?'<button class="gh" data-cetak="'+esc(m.ref)+'">Bukti</button>':'')+'</td></tr>';}).join("")+'</tbody></table>':'<div class="card msg">Tidak ada mutasi sesuai filter.</div>');
   }else{
     var L=(r.rekap||{})[MVIEW]||[];
-    isi=L.length?'<table><thead><tr><th>'+({dept:"Departemen",proyek:"Proyek / PPBJ",barang:"Barang"})[MVIEW]+'</th><th class="nm">Catatan</th><th class="nm">Qty bersih</th><th class="nm">Nilai bersih</th></tr></thead><tbody>'+L.map(function(x){return '<tr><td data-l="Kelompok"><b>'+esc(x.k)+'</b></td><td class="nm" data-l="Catatan">'+x.n+'</td><td class="nm" data-l="Qty">'+fmtN(x.qty)+'</td><td class="nm" data-l="Nilai">'+rp(x.nilai)+'</td></tr>';}).join("")+'</tbody></table><div class="note">30 teratas menurut nilai. Nilai negatif = barang keluar. Bekas tidak dinilai.</div>':'<div class="card msg">Tidak ada data.</div>';
+    isi=L.length?'<table><thead><tr><th>'+({dept:"Departemen",proyek:"Proyek / PPBJ",barang:"Barang"})[MVIEW]+'</th><th class="nm">Catatan</th><th class="nm">Qty bersih</th><th class="nm">Nilai bersih</th></tr></thead><tbody>'+L.map(function(x){return '<tr class="dd" data-dd="'+esc(x.k)+'" title="Klik untuk melihat rinciannya"><td data-l="Kelompok"><b>'+esc(x.k)+'</b></td><td class="nm" data-l="Catatan">'+x.n+'</td><td class="nm" data-l="Qty">'+fmtN(x.qty)+'</td><td class="nm" data-l="Nilai">'+rp(x.nilai)+'</td></tr>';}).join("")+'</tbody></table><div class="note">30 teratas menurut nilai. Nilai negatif = barang keluar. Bekas tidak dinilai.</div>':'<div class="card msg">Tidak ada data.</div>';
   }
   pane().innerHTML=
    '<div class="card"><div class="bar" style="margin:0 0 8px">'+[["hari","Hari ini"],["7","7 hari"],["bulan","Bulan ini"],["lalu","Bulan lalu"],["tahun","Tahun ini"]].map(function(p){return '<button class="chip" data-mp="'+p[0]+'">'+p[1]+'</button>';}).join("")+
@@ -1578,10 +1580,11 @@ function drawMutasi(){
    '<input id="mpy" list="mpyl" placeholder="Proyek / No PPBJ" value="'+esc(MF.proyek)+'"><datalist id="mpyl">'+(((r.opsi||{}).proyek)||[]).map(function(x){return '<option value="'+esc(x)+'">';}).join("")+'</datalist>'+
    '<div style="position:relative;flex:1;min-width:200px"><input id="mq" autocomplete="off" placeholder="Kode, nama barang, No dokumen, PPBJ, keterangan (Enter = cari semua baris)" value="'+esc(MF.q)+'" style="width:100%"></div>'+
    '<button class="sv" id="mgo">Tampilkan</button><button class="gh" id="mrs">Reset</button><button class="gh" id="mcsv"'+(MUT.length?"":" disabled")+'>Unduh Excel (sesuai filter)</button></div></div>'+
-   kartu+'<div class="bar">'+vbtn+'</div>'+(ring?'<div class="note">'+ring+'</div>':'')+
+   kartu+(window.MX?MX.bar():"")+'<div class="bar">'+vbtn+'</div>'+(ring?'<div class="note">'+ring+'</div>':'')+
    '<div class="note">'+(MVIEW==="rinci"?'Menampilkan '+MUT.length+' dari '+r.total+' catatan (terbaru dulu). Harga = harga saat transaksi; tanda &asymp; = transaksi lama, memakai harga saat ini sebagai perkiraan.':'Rekap dihitung dari seluruh '+r.total+' catatan sesuai filter.')+'</div>'+isi;
+  if(window.MX)MX.pasang();
   document.getElementById("mgo").onclick=function(){loadMutasi();};
-  document.getElementById("mrs").onclick=function(){MF={dari:"",sampai:"",jenis:"",sumber:"",arah:"",dept:"",proyek:"",q:""};loadMutasi(true);};
+  document.getElementById("mrs").onclick=function(){if(window.MX)MX.catatan="";MF={dari:"",sampai:"",jenis:"",sumber:"",arah:"",dept:"",proyek:"",q:""};loadMutasi(true);};
   document.getElementById("mps").onclick=mfSimpanPreset;
   pane().querySelectorAll("[data-mp]").forEach(function(b){b.onclick=function(){mfBaca();mfPeriode(b.getAttribute("data-mp"));};});
   pane().querySelectorAll("[data-mv]").forEach(function(b){b.onclick=function(){mfBaca();MVIEW=b.getAttribute("data-mv");drawMutasi();};});

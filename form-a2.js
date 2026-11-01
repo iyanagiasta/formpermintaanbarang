@@ -1,4 +1,4 @@
-/* A2 untuk Form Permintaan: (1) paket sekali klik (departemen yang diizinkan, bawaan RM), (2) draf otomatis di perangkat ini,
+/* A2 untuk Form Permintaan: (1) paket sekali klik (semua departemen, untuk PPBJ terdaftar, mengikuti sisa RAB), (2) draf otomatis di perangkat ini,
    (3) kirim ulang yang tidak membuat permintaan ganda, (4) sinonim dari sheet Sinonim + pencarian yang mengingat pilihan.
    Tidak mengubah isi lembar cetak/PDF: semua tampilan baru berkelas "nop" dan berada di luar lembar. */
 (function () {
@@ -84,40 +84,60 @@
 
   /* ---------- paket sekali klik ---------- */
   var tools = d.querySelector(".tools"), pak = d.createElement("div");
+  var INFO0 = "Isi paket diisi ke tabel, paling banyak sebesar sisa RAB proyek. Jumlahnya masih bisa diubah, dan baris yang tidak perlu bisa dihapus sebelum dikirim.";
   pak.id = "a2paket"; pak.className = "a2box nop"; pak.style.display = "none";
   pak.innerHTML = '<b>Paket</b><select id="a2pk" aria-label="Pilih paket"></select>' +
     '<label>Jumlah set <input id="a2set" type="number" min="1" max="99" value="1" inputmode="numeric"></label>' +
     '<button class="btn" id="a2pakai" type="button">Pakai paket</button>' +
-    '<span class="a2i" id="a2pinfo">Semua barang paket diisi ke tabel. Jumlahnya masih bisa diubah, dan baris yang tidak perlu bisa dihapus sebelum dikirim.</span>';
+    '<span class="a2i" id="a2pinfo"></span><span class="a2i" id="a2pdet" style="display:none"></span><span class="a2i" id="a2pwarn" style="display:none;color:var(--ambt,#6b4300);font-weight:600"></span>';
   if (tools) tools.parentNode.insertBefore(pak, tools);
-  var PAK = [], pakKey = "";
+  var PAK = [], pakKey = "", ppbjLalu = "", SISA = {};
+  function ppbjNilai() { var e = $("ppbj"); return e ? String(e.value || "").trim() : ""; }
+  function tampilPaket(boleh, msg) {
+    var sel = $("a2pk");
+    sel.style.display = boleh ? "" : "none"; $("a2set").parentNode.style.display = boleh ? "" : "none";
+    $("a2pakai").disabled = !boleh; $("a2pinfo").textContent = boleh ? INFO0 : msg;
+  }
+  function muatPaket(ppbj) {
+    return api({ action: "paket", kode: window.KODEPEG || "", ppbj: ppbj });
+  }
   function segarPaket() {
-    var dept = kanon($("dept").value), kode = window.KODEPEG || "";
-    if (!dept || !kode) { pak.style.display = "none"; PAK = []; pakKey = ""; return; }
-    var key = kode + "|" + nrm(dept);
+    var kode = window.KODEPEG || "", ppbj = ppbjNilai();
+    if (!kode || !ppbj) { pak.style.display = "none"; PAK = []; pakKey = ""; ppbjLalu = ppbj; return; }
+    if (ppbj !== ppbjLalu) { ppbjLalu = ppbj; return; }   /* tunggu isian PPBJ stabil satu putaran */
+    var key = kode + "|" + nrm(ppbj);
     if (key === pakKey) return;
     pakKey = key;
-    api({ action: "paket", kode: kode, dept: dept }).then(function (r) {
+    muatPaket(ppbj).then(function (r) {
       if (key !== pakKey) return;
-      PAK = (r && r.ok && r.boleh && r.data) ? r.data : [];
+      var ok = !!(r && r.ok && r.boleh && r.data && r.data.length);
+      PAK = ok ? r.data : [];
       var sel = $("a2pk"); sel.innerHTML = PAK.map(function (p, i) { return '<option value="' + i + '">' + esc(p.nama) + " (" + p.items.length + " jenis barang)</option>"; }).join("");
-      pak.style.display = PAK.length ? "" : "none";
+      $("a2pdet").style.display = "none"; $("a2pdet").textContent = "";
+      tampilPaket(ok, (r && r.msg) || (r && r.ok && r.boleh ? "Belum ada paket aktif di Buffer Paket." : "Paket belum bisa dipakai."));
+      pak.style.display = "";
     }).catch(function () { pakKey = ""; });
   }
   setInterval(segarPaket, 1500);
-  $("dept").addEventListener("input", function () { setTimeout(segarPaket, 400); });
+  $("ppbj") && $("ppbj").addEventListener("input", function () { pakKey = ""; });
   function barisIsi() { var n = 0; $("rows").querySelectorAll("tr").forEach(function (tr) { if (tr.querySelector(".nama").value.trim()) n++; }); return n; }
-  function pakai() {
-    var P = PAK[Number($("a2pk").value)]; if (!P) return;
-    var sets = Math.max(1, Math.min(99, parseInt($("a2set").value, 10) || 1));
+  function terapPaket(P, sets, ppbj) {
     var byKode = {}; DB.forEach(function (it) { if (it.kode) byKode[String(it.kode).trim().toUpperCase()] = it; });
-    var tambah = 0, baru = [], penuh = 0;
+    var tambah = 0, baru = [], penuh = 0, habis = [], luar = [], susut = [];
+    SISA = {};
     P.items.forEach(function (it) {
-      var qty = Math.round(it.qty * sets * 1000) / 1000, db = byKode[String(it.kode || "").trim().toUpperCase()], nama = db ? db.nama : it.nama;
+      var base = Math.round(it.qty * sets * 1000) / 1000, db = byKode[String(it.kode || "").trim().toUpperCase()], nama = db ? db.nama : it.nama;
       var rs = [].slice.call($("rows").querySelectorAll("tr"));
       var tr = rs.filter(function (r) { return nrm(r.querySelector(".nama").value) === nrm(nama); })[0], lama = 0;
       if (tr) { lama = parseFloat(String(tr.querySelector(".jml").value).replace(",", ".")) || 0; }
-      else {
+      var qty = base;
+      if (it.diRab) {
+        SISA[nrm(nama)] = { sisa: it.sisa, rab: it.rab };
+        var ruang = Math.max(0, Math.round((it.sisa - lama) * 1000) / 1000);
+        if (ruang <= 0) { habis.push(nama + " (RAB " + it.rab + ", sisa 0)"); return; }
+        if (ruang < base) { qty = ruang; susut.push(nama + ": paket " + base + ", sisa RAB " + ruang + ", diisi " + ruang); }
+      } else { luar.push(nama); }
+      if (!tr) {
         tr = rs.filter(function (r) { return !r.querySelector(".nama").value.trim(); })[0];
         if (!tr) {
           if (barisIsi() >= MAX_ITEM) { penuh++; return; }
@@ -130,13 +150,45 @@
       j.value = String(v).replace(".", ","); fire(j, "input"); fire(j, "change");
       tambah++;
     });
-    var m = 'Paket "' + P.nama + '" (' + sets + " set): " + tambah + " barang diisi.";
+    var m = 'Paket "' + P.nama + '" untuk PPBJ ' + ppbj + " (" + sets + " set): " + tambah + " barang diisi.";
+    if (habis.length) m += " " + habis.length + " barang tidak diisi karena RAB habis.";
+    if (luar.length) m += " " + luar.length + " barang di luar RAB (ditandai).";
     if (baru.length) m += " " + baru.length + " barang tidak ada di daftar barang (ditandai BARU, isi satuannya).";
     if (penuh) m += " " + penuh + " barang tidak muat (maksimal " + MAX_ITEM + " per permintaan).";
+    var det = [];
+    if (susut.length) det.push("Disesuaikan dengan sisa RAB: " + susut.join("; ") + ".");
+    if (habis.length) det.push("RAB habis, tidak diisi: " + habis.join("; ") + ".");
+    if (luar.length) det.push("Di luar RAB proyek (tetap diisi sesuai paket): " + luar.join("; ") + ".");
+    var dt = $("a2pdet"); dt.textContent = det.join(" "); dt.style.display = det.length ? "" : "none";
     ping(m, !penuh);
+    cekLebih();
     simpanSegera();
   }
+  function pakai() {
+    var P0 = PAK[Number($("a2pk").value)]; if (!P0) return;
+    var sets = Math.max(1, Math.min(99, parseInt($("a2set").value, 10) || 1)), ppbj = ppbjNilai(), btn = $("a2pakai");
+    btn.disabled = true;
+    muatPaket(ppbj).then(function (r) {   /* ambil sisa RAB terbaru tepat saat klik */
+      btn.disabled = false;
+      if (!r || !r.ok || !r.boleh) { ping((r && r.msg) || "Paket belum bisa dimuat. Coba lagi.", false); return; }
+      PAK = r.data;
+      var P = PAK.filter(function (p) { return p.nama === P0.nama; })[0];
+      if (!P) { ping('Paket "' + P0.nama + '" sudah tidak aktif.', false); return; }
+      terapPaket(P, sets, ppbj);
+    }).catch(function () { btn.disabled = false; ping("Koneksi bermasalah, paket belum diisi. Coba lagi.", false); });
+  }
   $("a2pakai").addEventListener("click", pakai);
+  /* peringatan (tidak memblokir) bila jumlah barang paket melebihi sisa RAB */
+  function cekLebih() {
+    var w = [];
+    $("rows").querySelectorAll("tr").forEach(function (tr) {
+      var s = SISA[nrm(tr.querySelector(".nama").value)]; if (!s) return;
+      var q = parseFloat(String(tr.querySelector(".jml").value).replace(",", ".")) || 0;
+      if (q > s.sisa + 1e-9) w.push(tr.querySelector(".nama").value.trim() + " (diminta " + q + ", sisa RAB " + s.sisa + ")");
+    });
+    var e = $("a2pwarn"); e.textContent = w.length ? "Melebihi sisa RAB: " + w.join("; ") + ". Boleh tetap dikirim, penyetuju akan melihatnya." : ""; e.style.display = w.length ? "" : "none";
+  }
+  d.addEventListener("input", function (ev) { if (ev.target && ev.target.classList && ev.target.classList.contains("jml")) cekLebih(); }, true);
 
   /* ---------- draf otomatis ---------- */
   var FIELD = ["by", "dept", "pic", "ppbj", "email", "alasan", "cat"];

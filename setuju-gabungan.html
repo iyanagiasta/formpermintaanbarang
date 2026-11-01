@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Persetujuan Gabungan - SCTK</title>
+<style>
+:root{--navy:#17588f;--gold:var(--accent,#1a6cab);--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#4a5b68}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:15px}
+.top{background:#1b6ca8;color:#fff;text-align:center;padding:18px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 18px Inter,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:1.5px}
+.top div{margin-top:4px;font-size:12px;letter-spacing:2px;color:#e8f3fb;font-weight:600}
+.wrap{max-width:680px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.row{display:flex;gap:8px;padding:4px 0;border-bottom:1px dashed var(--line)}
+.row:last-of-type{border-bottom:0}
+.row b{flex:0 0 96px;color:var(--mut)}
+.row span{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.mut{color:var(--mut);font-size:13px}
+.tag{display:inline-block;background:#e8f1f6;color:#17588f;border-radius:20px;padding:2px 10px;font-size:12.5px;font-weight:600;margin-right:4px}
+.tag.w{background:#fff3cd;color:#6b4300}
+@media (prefers-color-scheme:dark){.tag{background:#23333c;color:#e6eef2}.tag.w{background:#3a3010;color:#f2dc9b}}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+th{background:var(--navy);color:#fff;padding:6px;text-align:left;font-weight:600}
+td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
+details{margin-top:8px}summary{cursor:pointer;color:var(--navy);font-weight:600}
+@media (prefers-color-scheme:dark){summary{color:#9fd0f2}}
+input.cat{width:100%;font:14px "Segoe UI",Roboto,Arial,sans-serif;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);margin-top:10px}
+.btns{display:flex;gap:10px;margin-top:10px}
+button{flex:1;font:700 15px "Segoe UI",Roboto,Arial,sans-serif;padding:13px;border:0;border-radius:10px;color:#fff;cursor:pointer}
+button.ok{background:#1b8a3a}button.no{background:#c0392b}button:disabled{opacity:.5;cursor:default}
+.all{border-left:6px solid #1b8a3a}
+.msg{text-align:center;font-size:17px;padding:26px 10px}
+.msg.err{color:var(--red,#a82424)}.msg.good{color:var(--grn,#14602f)}
+.hasil{background:#e3f4e8;color:#14602f;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:14px;white-space:pre-wrap}
+.hasil.g{background:#fde8e8;color:#8a1c28}
+@media (prefers-color-scheme:dark){.hasil{background:#1d3a26;color:#a8e0b8}.hasil.g{background:#46191d;color:#ffb4b4}}
+</style>
+<link rel="stylesheet" href="tema-halaman.css">
+<script src="tema.js"></script>
+<link rel="stylesheet" href="gaya-baru.css">
+</head>
+<body>
+<div class="top"><h1>PERSETUJUAN GABUNGAN</h1><div>PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="wrap" id="app"><div class="msg">Memuat daftar persetujuan...</div></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+var q=new URLSearchParams(location.search),T=(q.get("t")||"").trim(),app=document.getElementById("app"),D=null,NOTE="";
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function fq(n){return String(Math.round(Number(n)*100)/100).replace(".",",");}
+async function api(b){var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+function kunci(b){document.querySelectorAll("button,input").forEach(function(x){x.disabled=b;});}
+function render(){
+  var n=D.items.length,h="";
+  if(NOTE)h+=NOTE;
+  if(!n){app.innerHTML=h+'<div class="card msg good">Tidak ada lagi permintaan yang menunggu '+esc(D.sapaan)+' '+esc(D.nama)+'.<br>Terima kasih.</div>';return;}
+  h+='<div class="card"><b>Yth. '+esc(D.sapaan)+' '+esc(D.nama)+'</b><div class="mut">'+esc(D.peran)+' &middot; '+n+' permintaan menunggu persetujuan &middot; tautan berlaku sampai '+esc(D.berlaku)+'</div></div>';
+  if(n>1){
+    var bt=Math.min(n,D.maks);
+    h+='<div class="card all"><b>Setujui sekaligus</b><div class="mut">'+(n>D.maks?'Diproses '+D.maks+' permintaan teratas setiap kali ditekan; sisanya tetap menunggu. ':'')+'Hanya permintaan yang masih menunggu Anda yang diproses. Untuk menolak atau memeriksa satu per satu, gunakan tombol di tiap permintaan di bawah.</div>'+
+     '<input class="cat" id="ca" maxlength="300" placeholder="Catatan untuk semua (opsional)"><div class="btns"><button class="ok" id="all">Setujui semua ('+bt+')</button></div></div>';
+  }
+  D.items.forEach(function(x,i){
+    var rows=x.items.map(function(b,k){return '<tr><td>'+(k+1)+'</td><td>'+esc(b.kode)+'</td><td>'+esc(b.nama)+'</td><td>'+esc(b.sat)+'</td><td>'+fq(b.jml)+'</td></tr>';}).join("");
+    h+='<div class="card" data-i="'+i+'"><div><span class="tag">'+esc(x.jenis)+'</span><span class="tag w">menunggu '+esc(x.lama)+'</span></div>'+
+     '<div class="row"><b>Dokumen</b><span><strong>'+esc(x.doc)+'</strong></span></div><div class="row"><b>Pemohon</b><span>'+esc(x.pemohon)+'</span></div><div class="row"><b>Departemen</b><span>'+esc(x.dept)+'</span></div>'+
+     '<div class="row"><b>No PPBJ</b><span>'+esc(x.ppbj||"-")+'</span></div><div class="row"><b>Alasan</b><span>'+esc(x.alasan||"-")+'</span></div><div class="row"><b>Dikirim</b><span>'+esc(x.kirim)+'</span></div>'+
+     '<details><summary>Lihat barang ('+x.items.length+')</summary><div style="overflow-x:auto"><table><tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Sat</th><th>Jml</th></tr>'+rows+'</table></div></details>'+
+     '<input class="cat" maxlength="300" placeholder="Catatan (opsional)" data-c="'+i+'"><div class="btns"><button class="ok" data-a="approve" data-i="'+i+'">Setujui</button><button class="no" data-a="reject" data-i="'+i+'">Tolak</button></div></div>';
+  });
+  app.innerHTML=h;
+  var all=document.getElementById("all");if(all)all.onclick=function(){
+    var n2=Math.min(D.items.length,D.maks);if(!confirm("Setujui "+n2+" permintaan sekaligus?"))return;
+    kirim({mode:"semua",cat:document.getElementById("ca").value});};
+  app.querySelectorAll("button[data-a]").forEach(function(b){b.onclick=function(){
+    var i=Number(b.getAttribute("data-i")),x=D.items[i],a=b.getAttribute("data-a"),c=app.querySelector('input[data-c="'+i+'"]').value;
+    if(a==="reject"&&!confirm("Tolak "+x.doc+"? Pemohon akan diberi tahu."))return;
+    kirim({mode:"satu",id:x.id,act:a,cat:c});};});
+}
+async function kirim(p){
+  kunci(true);p.action="setujuGabAksi";p.t=T;
+  try{
+    var r=await api(p);
+    if(!r.ok){NOTE='<div class="hasil g">'+esc(r.msg||"Gagal.")+'</div>';
+      var i=await api({action:"setujuGabInfo",t:T});if(i.ok)D.items=i.items;}
+    else{D.items=r.items;var s=r.msg+(r.tertunda?' '+r.tertunda+' permintaan lagi masih menunggu; tekan lagi bila perlu.':'');
+      if(r.gagal)s+="\n"+r.hasil.filter(function(h){return !h.ok;}).map(function(h){return h.doc+": "+h.msg;}).join("\n");
+      NOTE='<div class="hasil'+(r.gagal?' g':'')+'">'+esc(s)+'</div>';}
+  }catch(e){NOTE='<div class="hasil g">Gagal terhubung ke server. Periksa internet lalu coba lagi; periksa dulu apakah permintaan sudah terproses.</div>';}
+  render();window.scrollTo({top:0,behavior:"smooth"});
+}
+(async function(){
+  if(!T){app.innerHTML='<div class="card msg err">Tautan tidak lengkap. Buka lewat tautan yang dikirim Gudang.</div>';return;}
+  try{
+    var r=await api({action:"setujuGabInfo",t:T});
+    if(!r.ok){app.innerHTML='<div class="card msg err">'+esc(r.msg||"Tautan tidak bisa dibuka.")+'</div>';return;}
+    D=r;render();
+  }catch(e){app.innerHTML='<div class="card msg err">Gagal terhubung ke server. Periksa internet lalu muat ulang halaman.</div>';}
+})();
+</script>
+</body>
+</html>

@@ -37,8 +37,39 @@ var LPR=(function(){
     if(r.tanpaHargaStok>0)p.push(r.tanpaHargaStok+' barang berstok belum punya harga, jadi tidak masuk nilai.');
     return p.length?'<ul class="pr">'+p.map(function(x){return '<li>'+x+'</li>';}).join("")+'</ul>':'<div class="kosong">Tidak ada hal yang perlu perhatian khusus pada periode ini.</div>';
   }
+  function pct(b){return b&&b.persen!=null?' <small style="color:'+(b.selisih>0?'#14612b':'#8a1c28')+'">'+(b.selisih>=0?'&#9650; ':'&#9660; ')+Math.abs(b.persen)+'% vs bulan lalu</small>':'';}
+  function tlTeks(t){return t.map(function(a){return a.tahap+" "+a.waktu+(a.oleh?" ("+a.oleh+")":"");}).join(" > ");}
+  function kondisi(d,info){
+    var k=d.kondisi,r=d.ringkas,u=k.umur,bd=k.banding||{},db=k.dataBersih||{};
+    var h='<div class="lp"><h2>Kondisi Gudang</h2><div class="sub">PT Sarana Catur Tirta Kelola &middot; data langsung, dihitung '+esc(k.dibuat)+' &middot; bulan berjalan '+esc(tgl(info.dari))+' s/d '+esc(tgl(info.sampai))+'</div>';
+    h+='<div style="border-left:4px solid var(--accent,#1a6cab);background:var(--card,#fff);border-radius:8px;padding:10px 14px;margin:6px 0 12px;font-size:15px;line-height:1.5">'+esc(k.kalimat)+'</div>';
+    h+='<div class="kpi">'+
+     '<div><b>'+juta(r.nilaiStok)+'</b><span>Nilai persediaan ('+r.sku+' barang)'+pct(bd.ada?bd.nilaiStok:null)+'</span></div>'+
+     '<div><b>'+juta(r.nilaiKeluar)+'</b><span>Pemakaian bulan ini'+pct(bd.ada?bd.nilaiKeluar:null)+'</span></div>'+
+     '<div class="'+(k.proyekRisiko.length?'bad':'ok')+'"><b>'+k.proyekRisiko.length+'</b><span>Proyek berisiko (RAB &ge;90% atau melebihi)</span></div>'+
+     '<div class="'+(u.terlambat?'bad':'ok')+'"><b>'+u.terlambat+' / '+u.jumlah+'</b><span>Permintaan terlambat / berjalan</span></div>'+
+     '<div class="'+((r.akurasiOpname!=null&&r.akurasiOpname<95)?'bad':'ok')+'"><b>'+(r.akurasiOpname!=null?r.akurasiOpname+'%':'-')+'</b><span>Akurasi opname bulan ini</span></div>'+
+     '<div class="'+(db.ok?'ok':'bad')+'"><b>'+(db.ok?'Bersih':((db.tanpaPpbj||0)+(db.melebihiRab||0)+(db.diluarRab||0)+(db.tanpaHarga||0))+' catatan')+'</b><span>Kepercayaan data</span></div></div>';
+    if(!bd.ada)h+='<div class="mut">'+esc(bd.catatan||"")+'</div>';
+    if(!db.ok){var cs=[];if(db.tanpaPpbj)cs.push(db.tanpaPpbj+" baris barang keluar tanpa No PPBJ");if(db.melebihiRab)cs.push(db.melebihiRab+" barang keluar melebihi RAB");if(db.diluarRab)cs.push(db.diluarRab+" barang keluar di luar RAB");if(db.tanpaHarga)cs.push(db.tanpaHarga+" barang berstok belum punya harga (tidak masuk nilai)");h+='<div class="mut">Catatan data: '+esc(cs.join("; "))+'.</div>';}
+    h+='<h3>Proyek berisiko</h3>'+tbl(["No PPBJ","Proyek","Dept","% RAB terpakai","Barang melebihi RAB","Di luar RAB"],["t","t","t","n","n","n"],k.proyekRisiko.map(function(p){return [p.ppbj,p.proyek,p.dept,p.persen,p.melebihi,p.diluar];}),15,"Tidak ada proyek aktif yang mendekati batas RAB.");
+    h+='<h3>Umur permintaan yang belum diserahkan</h3><div class="mut">Hitungan hari sejak cap waktu terakhir di log sistem. Batas: tahap persetujuan '+u.batasSetuju+' hari, siap diserahkan '+u.batasSerah+' hari. Setiap baris memuat garis waktu bercap dari log.</div>'+
+     tbl(["Tahap","Jumlah","Terlambat","Rata-rata (hari)","Terlama (hari)"],["t","n","n","n","n"],u.rata.map(function(a){return [a.tahap,a.jumlah,a.terlambat,a.rata,a.maks];}),8,"Tidak ada permintaan yang berjalan.");
+    if(u.daftar.length){
+      h+='<div class="tw"><table><thead><tr><th>Dokumen</th><th>Pemohon / Dept</th><th>Tahap sekarang</th><th>Dipegang</th><th class="n">Hari di tahap</th><th class="n">Umur total</th><th>Status</th></tr></thead><tbody>';
+      u.daftar.slice(0,60).forEach(function(o){
+        h+='<tr><td><b>'+esc(o.doc)+'</b></td><td>'+esc(o.pemohon)+'<br><small>'+esc(o.dept)+(o.ppbj?' &middot; '+esc(o.ppbj):'')+'</small></td><td>'+esc(o.status)+'</td><td>'+esc(o.pihak)+'</td><td class="n">'+nf(o.hariTahap)+'</td><td class="n">'+nf(o.umur)+'</td><td>'+(o.terlambat?'<span class="tag r">Terlambat</span>':'<span class="tag g">Dalam batas</span>')+'</td></tr>'+
+         '<tr><td colspan="7" style="border-top:0;padding:0 7px 7px"><details><summary class="mut" style="cursor:pointer">Garis waktu (bukti dari log)</summary><ol style="margin:4px 0 0 18px;padding:0;font-size:12.5px">'+o.timeline.map(function(a){return '<li>'+esc(a.tahap)+' &mdash; '+esc(a.waktu)+(a.oleh?' &middot; '+esc(a.oleh):'')+'</li>';}).join("")+'</ol></details></td></tr>';});
+      h+='</tbody></table></div>';
+      if(u.daftar.length>60)h+='<div class="mut">+ '+(u.daftar.length-60)+' permintaan lagi - lengkapnya ada di file Excel.</div>';
+    }
+    if(u.tanpaCatatan)h+='<div class="mut">'+u.tanpaCatatan+' permintaan lama tidak punya cap waktu kirim, jadi umurnya tidak dihitung (tidak ditebak).</div>';
+    h+='<div class="mut" style="margin-top:8px">Segel data: <b>'+esc(k.segel)+'</b> &mdash; sidik jari isi data pada saat dihitung ('+esc(k.dibuat)+'). Dua orang yang melihat data yang sama akan melihat segel yang sama; ini bukan tanda tangan digital.</div></div>';
+    return h;
+  }
   function render(el,d,info){
     injectCss();
+    if(d.kondisi&&info.jenis==="Live"){el.innerHTML=kondisi(d,info)+'<div class="lp"><div class="mut" style="margin-top:14px">Rincian lengkap (stok, material per proyek, opname, kedaluwarsa, mutasi) ada di file Excel. Tekan Unduh Excel di bagian atas.</div></div>';return;}
     var r=d.ringkas,L=d.layanan||{},judul=info.jenis==="Bulanan"?"Laporan Gudang Bulanan":info.jenis==="2 Mingguan"?"Ringkasan Gudang 2 Mingguan":"Laporan Gudang";
     var h='<div class="lp"><h2>'+esc(judul)+'</h2><div class="sub">PT Sarana Catur Tirta Kelola &middot; Periode '+esc(tgl(info.dari))+' s/d '+esc(tgl(info.sampai))+' &middot; dibuat '+esc(info.dibuat)+' &middot; nilai memakai '+esc(d.meta.harga)+'</div>';
     h+='<div class="kpi">'+
@@ -72,10 +103,18 @@ var LPR=(function(){
     if(typeof XLSX==="undefined")return false;
     var r=d.ringkas,L=d.layanan||{},wb=XLSX.utils.book_new();
     function add(n,rows,w){var ws=XLSX.utils.aoa_to_sheet(rows);if(w)ws["!cols"]=w.map(function(x){return {wch:x};});ws["!freeze"]={xSplit:0,ySplit:1};XLSX.utils.book_append_sheet(wb,ws,n.slice(0,31));}
-    var R=[["Laporan Gudang - PT Sarana Catur Tirta Kelola"],["Jenis",info.jenis],["Periode",tgl(info.dari)+" s/d "+tgl(info.sampai)],["Dibuat",info.dibuat],["Dasar nilai",d.meta.harga],[],["RINGKASAN","Nilai / Jumlah"],
+    var R=[["Laporan Gudang - PT Sarana Catur Tirta Kelola"],["Jenis",info.jenis==="Live"?"Kondisi Gudang (data langsung)":info.jenis],["Periode",tgl(info.dari)+" s/d "+tgl(info.sampai)],["Dibuat",info.dibuat],["Dasar nilai",d.meta.harga],[],["RINGKASAN","Nilai / Jumlah"],
       ["Nilai barang keluar",r.nilaiKeluar],["Nilai barang masuk",r.nilaiMasuk],["Nilai stok saat ini",r.nilaiStok],["Jumlah barang berstok",r.sku],["Dokumen serah",r.dokSerah],["Permintaan masuk",r.permintaan],["Permintaan ditolak",r.ditolak],
       ["Stok kritis (barang)",r.kritis],["Perkiraan nilai pembelian",r.nilaiBeli],["Barang mati >90 hari (barang)",r.mati],["Nilai barang mati",r.nilaiMati],["Kedaluwarsa sudah lewat (batch)",r.kedaluwarsaLewat],["Kedaluwarsa <=30 hari (batch)",r.kedaluwarsa30],
       ["Akurasi opname %",r.akurasiOpname==null?"":r.akurasiOpname],["Keluar tanpa No PPBJ (baris)",r.tanpaPpbj],["Keluar melebihi RAB (barang)",r.melebihiRab],["Keluar di luar RAB (barang)",r.diluarRab],["Barang berstok tanpa harga",r.tanpaHargaStok]];
+    if(d.kondisi){var k=d.kondisi,u=k.umur,bd=k.banding||{};
+      add("Kondisi Gudang",[["Kondisi Gudang - PT Sarana Catur Tirta Kelola"],["Dihitung",k.dibuat],["Segel data",k.segel],[],["Kesimpulan"],[k.kalimat],[],["INDIKATOR","Nilai","Bulan lalu","Selisih","Persen"],
+        ["Nilai persediaan",r.nilaiStok,bd.ada?bd.nilaiStok.lalu:"",bd.ada?bd.nilaiStok.selisih:"",bd.ada&&bd.nilaiStok.persen!=null?bd.nilaiStok.persen:""],
+        ["Pemakaian bulan ini (nilai keluar)",r.nilaiKeluar,bd.ada?bd.nilaiKeluar.lalu:"",bd.ada?bd.nilaiKeluar.selisih:"",bd.ada&&bd.nilaiKeluar.persen!=null?bd.nilaiKeluar.persen:""],
+        ["Nilai barang mati",r.nilaiMati,bd.ada?bd.nilaiMati.lalu:"",bd.ada?bd.nilaiMati.selisih:"",bd.ada&&bd.nilaiMati.persen!=null?bd.nilaiMati.persen:""],
+        ["Proyek berisiko",k.proyekRisiko.length],["Permintaan berjalan",u.jumlah],["Permintaan terlambat",u.terlambat],["Akurasi opname %",r.akurasiOpname==null?"":r.akurasiOpname]],[36,18,16,14,10]);
+      add("Umur Permintaan",[["Dokumen","Pemohon","Departemen","No PPBJ","Tahap sekarang","Dipegang","Hari di tahap","Umur total (hari)","Batas (hari)","Status","Garis waktu (cap dari log)"]].concat(u.daftar.map(function(o){return [o.doc,o.pemohon,o.dept,o.ppbj,o.status,o.pihak,o.hariTahap,o.umur,o.batas,o.terlambat?"Terlambat":"Dalam batas",tlTeks(o.timeline)];})),[14,16,12,14,22,18,12,14,10,14,90]);
+      add("Proyek Berisiko",[["No PPBJ","Proyek","Dept","% RAB terpakai","Barang melebihi RAB","Di luar RAB"]].concat(k.proyekRisiko.map(function(p){return [p.ppbj,p.proyek,p.dept,p.persen,p.melebihi,p.diluar];})),[14,30,10,14,18,12]);}
     add("Ringkasan",R,[38,22]);
     add("Stok Kritis",[["Kode","Barang","Satuan","Status","Buffer","Stok bebas","Kurang","Harga","Perkiraan nilai"]].concat(d.kritis),[14,36,8,10,10,10,10,12,14]);
     add("Perlu Dibeli",[["Kode","Barang","Satuan","Kebutuhan proyek","Stok bebas","Kurang","Harga","Perkiraan nilai"]].concat(d.beli),[14,36,8,14,10,10,12,14]);

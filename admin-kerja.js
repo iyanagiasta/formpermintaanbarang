@@ -12,7 +12,7 @@ async function loadKerja(){
   KJ=r;drawKerja();
 }
 function drawKerja(){
-  var r=KJ,tag={merah:"r",kuning:"y",biru:"",ok:"g"},h='<div class="bar noprint"><button id="kj_r">Muat ulang</button><button id="kj_x" class="gh">Unduh daftar kerja (Excel)</button><span class="note">Diperbarui '+esc(r.waktu)+' &middot; '+r.total+' hal, '+r.nMerah+' mendesak</span></div>';
+  var r=KJ,tag={merah:"r",kuning:"y",biru:"",ok:"g"},h='<div class="bar noprint"><button id="kj_r">Muat ulang</button><button id="kj_x" class="gh">Unduh daftar kerja (Excel)</button><span class="note">Diperbarui '+esc(r.waktu)+' &middot; '+r.total+' hal, '+r.nMerah+' mendesak</span></div><div id="pw_k"></div><div id="pw_o"></div>';
   h+='<div class="sum">'+r.items.map(function(i){return '<div><b>'+i.n+'</b><span>'+esc(i.judul)+'</span></div>';}).join("")+'</div>';
   r.items.forEach(function(i){
     if(!i.n)return;
@@ -20,12 +20,57 @@ function drawKerja(){
   });
   if(!r.total)h+='<div class="card msg">Tidak ada pekerjaan tertunda. Semua beres.</div>';
   pane().innerHTML=kwrap(h);
+  kotakPengingat();
   document.getElementById("kj_r").onclick=loadKerja;
   document.getElementById("kj_x").onclick=function(){
     var sh=[{n:"Ringkasan",rows:[["Daftar kerja gudang",r.waktu],[],["Pekerjaan","Jumlah","Tingkat"]].concat(r.items.map(function(i){return [i.judul,i.n,i.tingkat];})),w:[48,10,12]}];
     r.items.forEach(function(i){if(i.n)sh.push({n:i.judul.replace(/[\\\/\?\*\[\]:]/g,"").slice(0,31),rows:[i.kolom].concat(i.rows),w:i.kolom.map(function(){return 22;})});});
     if(unduhBanyak("daftar_kerja_"+tglIso(new Date())+".xlsx",sh))toast("Daftar kerja siap diunduh.");
   };
+}
+
+/* ===== KOTAK PENGINGAT WHATSAPP (admin menyalin pesan formal + tautan, lalu mengirim sendiri; email tidak berubah) ===== */
+var PW=null;
+async function kotakPengingat(){
+  var el=document.getElementById("pw_k");if(!el)return;
+  el.innerHTML='<div class="card noprint"><p class="note" style="margin:0">Memuat Kotak Pengingat...</p></div>';
+  var r;try{r=await api({action:"adminPengingatDaftar"});}catch(e){el.innerHTML="";return;}
+  if(!r.ok){el.innerHTML="";return;}
+  PW=r;drawKotakPengingat();
+}
+function drawKotakPengingat(){
+  var el=document.getElementById("pw_k");if(!el||!PW)return;
+  var r=PW,h='<div class="card noprint"><p style="margin:0 0 4px"><b>Kotak Pengingat WhatsApp</b> <span class="tag g">BARU</span></p><p class="note" style="margin:0 0 8px">Salin pesan formal beserta tautannya, lalu kirim sendiri lewat WhatsApp. Pengingat email otomatis tidak berubah. <b>Tautan gabungan</b> memuat semua permintaan yang kini menunggu satu orang (berlaku '+r.hariTautan+' hari; membuat yang baru mencabut yang lama). <b>Satuan</b> memakai tautan yang sama dengan email.</p>';
+  if(!r.orang.length&&!r.ppbj.length)h+='<div class="msg">Tidak ada permintaan yang sedang menunggu persetujuan atau PPBJ.</div>';
+  r.orang.forEach(function(o,i){
+    h+='<div style="padding:9px 0;border-top:1px solid var(--line)"><div class="fr" style="align-items:center;gap:8px;flex-wrap:wrap"><b>'+esc(o.sapaan)+' '+esc(o.nama)+'</b><span class="tag">'+esc(o.peran)+'</span><span class="note" style="margin:0">'+o.jumlah+' menunggu &middot; terlama '+esc(String(o.terlama))+' hari'+(o.terakhir?' &middot; terakhir diingatkan '+esc(o.terakhir):'')+'</span>'+
+      (o.terdaftar?'<button class="sv" data-pg="'+i+'">Salin pesan gabungan</button>':'<span class="tag r">belum terdaftar di sheet Pengguna</span>')+'</div>'+
+      (o.terdaftar?'<details style="margin-top:4px"><summary class="note" style="cursor:pointer">Per dokumen ('+o.jumlah+')</summary>'+o.items.map(function(x){return '<div class="fr" style="align-items:center;gap:8px;padding:3px 0"><span style="flex:1;min-width:150px"><b>'+esc(x.doc)+'</b> <small>'+esc(x.dept)+' &middot; '+esc(x.pemohon)+' &middot; menunggu '+esc(x.lama)+'</small></span><button class="gh" data-ps="'+esc(x.id)+'">Salin satuan</button></div>';}).join("")+'</details>':'')+'</div>';
+  });
+  if(r.ppbj.length){
+    h+='<div style="padding:9px 0;border-top:1px solid var(--line)"><b>No PPBJ belum diisi ('+r.ppbj.length+')</b>'+r.ppbj.map(function(x){return '<div class="fr" style="align-items:center;gap:8px;padding:3px 0"><span style="flex:1;min-width:150px"><b>'+esc(x.doc)+'</b> <small>'+esc(x.dept)+' &middot; '+esc(x.pemohon)+' &middot; '+x.hari+' hari &middot; ke '+esc(x.nama)+(x.terakhir?' &middot; terakhir diingatkan '+esc(x.terakhir):'')+'</small></span><button class="gh" data-pp="'+esc(x.id)+'">Salin pesan PPBJ</button></div>';}).join("")+'</div>';
+  }
+  el.innerHTML=h+'</div>';
+  el.querySelectorAll("[data-pg]").forEach(function(b){b.onclick=function(){pwPesan({jenis:"gabungan",key:r.orang[Number(b.getAttribute("data-pg"))].key},b);};});
+  el.querySelectorAll("[data-ps]").forEach(function(b){b.onclick=function(){pwPesan({jenis:"satuan",id:b.getAttribute("data-ps")},b);};});
+  el.querySelectorAll("[data-pp]").forEach(function(b){b.onclick=function(){pwPesan({jenis:"ppbj",id:b.getAttribute("data-pp")},b);};});
+}
+async function pwPesan(req,btn){
+  req.action="adminPengingatPesan";if(btn)btn.disabled=true;
+  var r;try{r=await api(req);}catch(e){toast("Gagal terhubung.",true);if(btn)btn.disabled=false;return;}
+  if(btn)btn.disabled=false;
+  if(!r.ok){toast(r.msg||"Gagal",true);kotakPengingat();return;}
+  var o=document.getElementById("pw_o");if(!o)return;
+  o.innerHTML='<div class="card noprint"><p style="margin:0 0 6px"><b>Pesan siap kirim</b> <span class="note" style="margin:0 6px">'+esc(r.msg||"")+(r.sampai?' Tautan berlaku sampai '+esc(r.sampai)+'.':'')+' Pesan boleh Anda ubah dulu.</span></p><textarea id="pw_t" style="width:100%;min-height:230px;font:14px/1.45 inherit">'+esc(r.teks)+'</textarea><div class="fr" style="margin-top:8px"><button id="pw_s" class="sv">Salin pesan</button><a id="pw_w" class="gh" style="padding:9px 14px;border:1px solid var(--line);border-radius:8px;text-decoration:none" target="_blank" rel="noopener">Buka WhatsApp</a><button id="pw_c" class="gh">Tutup</button></div></div>';
+  var ta=document.getElementById("pw_t");
+  function wa(){document.getElementById("pw_w").href="https://wa.me/?text="+encodeURIComponent(ta.value);}wa();ta.oninput=wa;
+  document.getElementById("pw_s").onclick=function(){
+    var ok=false;try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value);ok=true;}}catch(e){}
+    if(!ok){ta.select();try{ok=document.execCommand("copy");}catch(e){}}
+    toast(ok?"Pesan disalin. Tempel di WhatsApp.":"Tidak bisa menyalin otomatis; blok teks lalu salin manual.",!ok);};
+  document.getElementById("pw_c").onclick=function(){o.innerHTML="";};
+  o.scrollIntoView({behavior:"smooth",block:"start"});
+  kotakPengingat();
 }
 
 /* ===== TELUSUR ===== */
@@ -179,14 +224,19 @@ function drawLapAtasan(){
   var r=LA.data,t=new Date(),d1=tglIso(new Date(t.getTime()-14*86400000)),d2=tglIso(new Date(t.getTime()-86400000));
   var h='<div class="card"><p style="margin:0"><b>Laporan otomatis:</b> '+(r.otomatis?'<span class="tag g">AKTIF</span>':'<span class="tag y">BELUM AKTIF</span>')+' <span class="note">'+(r.otomatis?'Pemicu terakhir: '+esc(r.terakhir||"belum berjalan"):'Jalankan fungsi aktifkanLaporanOtomatis sekali di editor Apps Script. Bulanan dibuat hari kerja pertama tiap bulan pukul 09.00, ringkasan 2 mingguan tiap 14 hari.')+'</span></p>'+
    '<p class="note" style="margin:6px 0 0">Laporan hanya <b>dibuat</b> otomatis. Pengiriman ke atasan tetap Anda lakukan sendiri dengan tombol Kirim. Tautan berlaku '+r.hariTautan+' hari dan bisa dicabut.</p></div>';
+  h+='<div class="card noprint"><p style="margin:0 0 6px"><b>Kondisi Gudang (data langsung)</b> <span class="tag g">BARU</span></p><p class="note" style="margin:0 0 8px">Satu halaman untuk atasan: kesimpulan, nilai stok dan pemakaian dibanding bulan lalu, proyek berisiko, umur permintaan beserta garis waktu bercap dari log. Selalu data terbaru (disegarkan tiap 5 menit). Atasan cukup membuka tautan baca-saja dan bisa mengunduh Excel, tanpa PIN dan tanpa bisa mengubah apa pun.</p><div class="fr"><button id="kn_l" class="sv">Lihat sekarang</button><button id="kn_s" class="gh">Segarkan data</button><button id="kn_t" class="gh">Buat tautan baca-saja untuk atasan</button><button id="kn_pw" class="gh">Pengingat WhatsApp (Daftar Kerja)</button></div><div id="kn_o"></div></div>';
   h+='<div class="card noprint"><p style="margin:0 0 6px"><b>Buat laporan</b></p><div class="fr"><button id="la_b" class="sv">Bulanan (bulan lalu)</button><span class="note">atau rentang bebas:</span><input type="date" id="la_d1" value="'+d1+'"><input type="date" id="la_d2" value="'+d2+'"><button id="la_k" class="gh">Buat laporan periode ini</button><button id="la_m" class="gh">Buat ringkasan 2 mingguan</button></div></div>';
   h+='<div id="la_v"></div>';
   h+='<div class="card"><p style="margin:0 0 8px"><b>Laporan tersimpan</b> <span class="note">Isi laporan dibekukan saat dibuat. "Buat ulang" memperbarui data dan memakai harga terbaru.</span></p>'+(r.daftar.length?'<div class="tw"><table><thead><tr><th>Laporan</th><th>Dibuat</th><th class="n">Nilai keluar</th><th class="n">Nilai stok</th><th class="noprint">Tindakan</th></tr></thead><tbody>'+r.daftar.map(function(x){
     return '<tr><td><b>'+esc(x.jenis)+'</b><small>'+esc(x.periode)+'</small></td><td>'+esc(x.dibuat)+'<small>oleh '+esc(x.oleh)+'</small></td><td class="n">'+LPR.rp((x.ringkas||{}).nilaiKeluar)+'</td><td class="n">'+LPR.rp((x.ringkas||{}).nilaiStok)+'</td>'+
     '<td class="noprint"><div class="act"><button data-lv="'+esc(x.id)+'">Lihat</button><button data-lx="'+esc(x.id)+'" class="gh">Unduh Excel</button><button data-lk="'+esc(x.id)+'" class="sv">Kirim ke atasan</button><button data-lu="'+esc(x.id)+'" class="gh">Buat ulang</button></div></td></tr>';}).join("")+'</tbody></table></div>':'<div class="msg">Belum ada laporan. Klik "Bulanan (bulan lalu)" untuk mencoba.</div>')+'</div>';
   h+='<div class="card"><p style="margin:0 0 8px"><b>Tautan terkirim</b></p>'+(r.tautan.length?'<div class="tw"><table><thead><tr><th>Laporan</th><th>Dikirim ke</th><th>Waktu</th><th>Berlaku s/d</th><th class="n">Dibuka</th><th>Status</th><th class="noprint"></th></tr></thead><tbody>'+r.tautan.map(function(x){
-    return '<tr><td>'+esc(x.id)+'</td><td>'+esc(x.email)+'</td><td>'+esc(x.dikirim)+'</td><td>'+esc(x.sampai)+'</td><td class="n">'+x.dibuka+'x</td><td>'+(x.dicabut?'<span class="tag r">Dicabut</span>':x.aktif?'<span class="tag g">Aktif</span>':'<span class="tag y">Kedaluwarsa</span>')+'</td><td class="noprint">'+(x.aktif?'<button data-lc="'+x.tid+'" class="rm bahaya">Cabut</button>':'')+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="msg">Belum ada tautan dikirim.</div>')+'</div>';
+    return '<tr><td>'+(x.id==='LIVE'?'<b>Kondisi Gudang</b><small>data langsung</small>':esc(x.id))+'</td><td>'+esc(x.email)+'</td><td>'+esc(x.dikirim)+'</td><td>'+esc(x.sampai)+'</td><td class="n">'+x.dibuka+'x</td><td>'+(x.dicabut?'<span class="tag r">Dicabut</span>':x.aktif?'<span class="tag g">Aktif</span>':'<span class="tag y">Kedaluwarsa</span>')+'</td><td class="noprint">'+(x.aktif?'<button data-lc="'+x.tid+'" class="rm bahaya">Cabut</button>':'')+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="msg">Belum ada tautan dikirim.</div>')+'</div>';
   pane().innerHTML=kwrap(h);
+  document.getElementById("kn_l").onclick=function(){lihatKondisi(false);};
+  document.getElementById("kn_s").onclick=function(){lihatKondisi(true);};
+  document.getElementById("kn_t").onclick=buatTautanKondisi;
+  document.getElementById("kn_pw").onclick=function(){goTab("kerja");};
   document.getElementById("la_b").onclick=function(){buatLap({jenis:"Bulanan"});};
   document.getElementById("la_k").onclick=function(){buatLap({jenis:"Khusus",dari:document.getElementById("la_d1").value,sampai:document.getElementById("la_d2").value});};
   document.getElementById("la_m").onclick=function(){buatLap({jenis:"2 Mingguan",dari:document.getElementById("la_d1").value,sampai:document.getElementById("la_d2").value});};
@@ -196,6 +246,27 @@ function drawLapAtasan(){
   pane().querySelectorAll("[data-lu]").forEach(function(b){b.onclick=function(){buatLap({ulang:b.getAttribute("data-lu")});};});
   pane().querySelectorAll("[data-lc]").forEach(function(b){b.onclick=async function(){if(!confirm("Cabut tautan ini? Atasan tidak bisa membukanya lagi."))return;var c=await api({action:"adminLaporanCabut",tid:b.getAttribute("data-lc")});toast(c.msg||"Gagal",!c.ok);loadLapAtasan();};});
 }
+async function lihatKondisi(paksa){
+  var v=document.getElementById("la_v");toast("Menghitung kondisi gudang... bisa 10-60 detik.");
+  var r;try{r=await api({action:"adminKondisiGet",paksa:!!paksa});}catch(e){toast("Gagal terhubung.",true);return;}
+  if(!r.ok){toast(r.msg||"Gagal",true);return;}
+  var nama="kondisi_gudang_"+r.info.sampai+".xlsx";
+  v.innerHTML='<div class="card"><div class="bar noprint"><button id="kn_x">Unduh Excel</button><button id="kn_p" class="gh">Cetak / PDF</button><button id="kn_c" class="gh">Tutup</button></div><div id="kn_i"></div></div>';
+  LPR.render(document.getElementById("kn_i"),r.data,r.info);
+  document.getElementById("kn_x").onclick=function(){if(!LPR.excel(r.data,r.info,nama))toast("Pembaca Excel belum termuat.",true);};
+  document.getElementById("kn_p").onclick=function(){window.print();};document.getElementById("kn_c").onclick=function(){v.innerHTML="";};
+  v.scrollIntoView({behavior:"smooth",block:"start"});
+}
+async function buatTautanKondisi(){
+  var lb=prompt("Untuk siapa tautan ini? (catatan agar mudah dicabut nanti, mis. Pak GM)","Atasan");if(lb===null)return;
+  var r=await api({action:"adminKondisiTautan",label:lb.trim()});
+  if(!r.ok){toast(r.msg||"Gagal",true);return;}
+  var o=document.getElementById("kn_o");
+  o.innerHTML='<div style="margin-top:10px"><b>Tautan baca-saja (berlaku sampai '+esc(r.sampai)+')</b><div class="fr" style="margin-top:6px"><input id="kn_u" readonly style="flex:1;min-width:220px" value="'+esc(r.link)+'"><button id="kn_y" class="sv">Salin</button></div><p class="note" style="margin:6px 0 0">Kirim tautan ini ke atasan lewat WhatsApp atau email. Tautan lengkap hanya tampil sekali ini; kalau hilang, buat yang baru dan cabut yang lama di daftar "Tautan terkirim" (buka ulang tab ini agar daftarnya terbarui).</p></div>';
+  document.getElementById("kn_y").onclick=function(){var i=document.getElementById("kn_u");i.select();try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand("copy");}toast("Tautan disalin.");};
+  loadLapAtasanDiam();
+}
+async function loadLapAtasanDiam(){try{var r=await api({action:"adminLaporanDaftar"});if(r.ok)LA.data=r;}catch(e){}}
 async function buatLap(req){
   req.action="adminLaporanBuat";toast("Membuat laporan... bisa 10-60 detik.");
   var r;try{r=await api(req);}catch(e){toast("Gagal terhubung.",true);return;}

@@ -41,9 +41,9 @@ var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1
   try{
     var r=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"laporanPublik",t:t})})).json();
     if(!r.ok){el.innerHTML='<div class="msg err">'+LPR.esc(r.msg||"Tidak bisa dibuka.")+'</div>';return;}
-    LPR.render(el,r.data,r.info);document.title=(r.info.jenis==="Bulanan"?"Laporan Gudang "+r.info.periode:"Laporan Gudang")+" - SCTK";
+    LPR.render(el,r.data,r.info);document.title=(r.info.jenis==="Live"?"Kondisi Gudang":r.info.jenis==="Bulanan"?"Laporan Gudang "+r.info.periode:"Laporan Gudang")+" - SCTK";if(r.info.jenis==="Live")document.querySelector(".top h1").textContent="KONDISI GUDANG";
     document.getElementById("bar").style.display="flex";document.getElementById("bk").textContent="Tautan berlaku sampai "+r.berlaku;
-    document.getElementById("bx").onclick=function(){if(!LPR.excel(r.data,r.info,"laporan_gudang_"+r.info.dari+"_"+r.info.sampai+".xlsx"))alert("Pembaca Excel belum termuat. Periksa internet lalu muat ulang.");};
+    document.getElementById("bx").onclick=function(){if(!LPR.excel(r.data,r.info,(r.info.jenis==="Live"?"kondisi_gudang_"+r.info.sampai:"laporan_gudang_"+r.info.dari+"_"+r.info.sampai)+".xlsx"))alert("Pembaca Excel belum termuat. Periksa internet lalu muat ulang.");};
     document.getElementById("bp").onclick=function(){window.print();};
   }catch(e){el.innerHTML='<div class="msg err">Gagal memuat. Periksa koneksi lalu muat ulang halaman.</div>';}
 })();

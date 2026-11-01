@@ -10,6 +10,7 @@
 <script src="laporan.js"></script>
 <script src="admin-kerja.js"></script>
 <script src="admin-mutasi.js"></script>
+<script src="admin-laporan2.js"></script>
 <script src="kimia.js"></script>
 <script src="kpi.js"></script>
 <script src="tanda.js"></script>
@@ -1133,7 +1134,7 @@ function drawMB(){
   };
 }
 /* ---- tab Accurate: penyesuaian persediaan ke Accurate ---- */
-var PA={rows:[],ring:null},PAF={status:"Belum",jenis:"",ppbj:"",dari:"",sampai:"",q:"",acc:false},PAS={};
+var PA={rows:[],ring:null},PAF={tahan:"",status:"Belum",jenis:"",ppbj:"",dari:"",sampai:"",q:"",acc:false},PAS={};
 function paMuatRingkas(){
   api({action:"adminPaRingkas"}).then(function(r){if(r&&r.ok){PA.ring=r.ringkas;paBadge();}}).catch(function(){});
 }
@@ -1158,6 +1159,8 @@ function paTampil(){
     if(PAF.dari&&x.tgl<PAF.dari)return false;
     if(PAF.sampai&&x.tgl>PAF.sampai)return false;
     if(PAF.acc&&!(x.qacc>0))return false;
+    if(PAF.tahan==="siap"&&!x.siap)return false;
+    if(PAF.tahan==="tahan"&&!x.tahan)return false;
     if(q&&!cocokQ(x.doc+" "+x.proyek+" "+x.ppbj+" "+x.noTrans+" "+x.jenis,q))return false;
     return true;
   });
@@ -1169,13 +1172,16 @@ function drawAccurate(){
     var merah=x.status==="Belum"&&x.umur>R.batas;
     return '<tr><td><input type="checkbox" data-pk="'+esc(x.key)+'"'+(PAS[x.key]?" checked":"")+'></td><td data-l="Tanggal">'+esc(x.tgl)+'</td><td data-l="Dokumen"><b>'+esc(x.doc)+'</b><small>'+esc(x.jenis)+'</small></td>'+
       '<td data-l="No PPBJ">'+(x.ppbj?'<b>'+esc(x.ppbj)+'</b>':'<span class="bd w">belum ada</span>')+'</td><td data-l="Proyek">'+esc(x.proyek||"-")+'</td><td class="nm" data-l="Barang / Qty">'+x.n+' / '+fmtN(x.qty)+'</td><td data-l="Sumber stok">'+esc(x.sumber||"-")+'</td>'+
-      '<td data-l="Status">'+(x.status==="Sudah"?'<span class="bd d">Sudah</span><small>'+esc(x.noTrans)+'</small><small>'+esc(x.tglIn)+(x.oleh?" - "+esc(x.oleh):"")+'</small>':'<span class="bd '+(merah?"b":"w")+'">Belum</span><small>'+x.umur+' hari</small>')+'</td></tr>';
+      '<td data-l="Status">'+(x.status==="Sudah"?'<span class="bd d">Sudah</span><small>'+esc(x.noTrans)+'</small><small>'+esc(x.tglIn)+(x.oleh?" - "+esc(x.oleh):"")+'</small>':'<span class="bd '+(merah?"b":"w")+'">Belum</span><small>'+x.umur+' hari</small>'+(x.tahan?'<span class="bd b" title="Belum bisa diinput ke Accurate">Tertahan</span><small style="color:var(--red,#a82424)">'+esc(x.tahan)+(x.lintas?' &middot; <b>lintas bulan</b>':"")+'</small>':'<span class="bd d">Siap diinput</span>')+(x.nilai!=null?'<small>Rp '+fmtN(x.nilai)+'</small>':""))+'</td></tr>';
   }).join("");
   var jenisOp=["","Barang Keluar","Pengembalian Masuk","Selisih Opname"].map(function(j){return '<option value="'+esc(j)+'"'+(PAF.jenis===j?" selected":"")+'>'+(j||"Semua jenis")+'</option>';}).join("");
   var ppSet={};PA.rows.forEach(function(x){if(x.ppbj)ppSet[x.ppbj]=1;});
   var ppOp='<option value="">Semua PPBJ</option><option value="__kosong"'+(PAF.ppbj==="__kosong"?" selected":"")+'>(PPBJ belum ada)</option>'+Object.keys(ppSet).sort().map(function(p){return '<option value="'+esc(p)+'"'+(PAF.ppbj===p?" selected":"")+'>'+esc(p)+'</option>';}).join("");
   pane().innerHTML=
    '<div class="sum"><div><b'+(R.belum?' style="color:'+(R.lewatBatas?"var(--red,#a82424)":"var(--warn-t,#6b4300)")+'"':"")+'>'+R.belum+'</b><span>Belum disesuaikan ke Accurate</span></div><div><b>'+R.tertua+' hari</b><span>Dokumen tertua yang belum</span></div><div><b'+(R.lewatBatas?' style="color:var(--red,#c0392b)"':"")+'>'+R.lewatBatas+'</b><span>Lewat batas '+R.batas+' hari</span></div><div><b>'+R.sudah+'</b><span>Sudah diinput</span></div></div>'+
+   '<div class="bar"><span class="note" style="margin:0">Kesiapan:</span>'+[["","Semua"],["siap","Siap diinput ("+(R.siap==null?0:R.siap)+")"],["tahan","Tertahan ("+(R.tertahan||0)+")"]].map(function(o){return '<button class="chip'+(PAF.tahan===o[0]?" on":"")+'" data-pt="'+o[0]+'">'+o[1]+'</button>';}).join("")+'<button class="gh" id="pajb" title="Barang yang membuat stok Accurate di sistem berbeda dengan Accurate asli">Penjelas selisih stok Accurate</button><button class="gh" id="pakp" title="Lengkapi No PPBJ lewat pengingat">Buka Kotak Pengingat PPBJ</button></div>'+
+   (R.tertahan?'<div class="note" style="border-left:3px solid var(--red,#a82424);padding-left:8px">'+R.tertahan+' dokumen belum bisa diinput ke Accurate karena No PPBJ belum ada atau belum terdaftar di sheet Proyek'+(R.tertahanLintasBulan?'; <b>'+R.tertahanLintasBulan+'</b> di antaranya dari bulan sebelumnya (akan terlambat masuk pembukuan bulan itu)':"")+'. Lengkapi lewat Kotak Pengingat PPBJ.</div>':"")+
+   '<div id="lxjb"></div>'+
    '<div class="bar"><select id="pas">'+[["Belum","Belum diinput"],["Sudah","Sudah diinput"],["","Semua status"]].map(function(o){return '<option value="'+o[0]+'"'+(PAF.status===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select>'+
    '<select id="paj">'+jenisOp+'</select><select id="pap" style="max-width:240px">'+ppOp+'</select><label class="fl">Dari <input type="date" id="pad" value="'+esc(PAF.dari)+'"></label><label class="fl">Sampai <input type="date" id="paz" value="'+esc(PAF.sampai)+'"></label>'+
    '<input id="paq" placeholder="Cari dokumen / proyek / No transaksi" value="'+esc(PAF.q)+'"><label class="fl"><input type="checkbox" id="paa"'+(PAF.acc?" checked":"")+'> hanya yang ada bagian dari stok Accurate</label><button class="gh" id="par">Segarkan</button></div>'+
@@ -1188,6 +1194,8 @@ function drawAccurate(){
   $("pas").onchange=function(){PAF.status=this.value;drawAccurate();};$("paj").onchange=function(){PAF.jenis=this.value;drawAccurate();};$("pap").onchange=function(){PAF.ppbj=this.value;drawAccurate();};
   $("pad").onchange=function(){PAF.dari=this.value;drawAccurate();};$("paz").onchange=function(){PAF.sampai=this.value;drawAccurate();};
   $("paa").onchange=function(){PAF.acc=this.checked;drawAccurate();};$("par").onclick=loadAccurate;
+  document.querySelectorAll("[data-pt]").forEach(function(b){b.onclick=function(){PAF.tahan=b.getAttribute("data-pt");drawAccurate();};});
+  if($("pajb"))$("pajb").onclick=function(){LX.jembatan(this);};if($("pakp"))$("pakp").onclick=function(){goTab("kerja");};
   $("paq").onkeydown=function(e){if(e.key==="Enter"){PAF.q=this.value;drawAccurate();}};$("paq").onchange=function(){PAF.q=this.value;drawAccurate();};
   $("pall").onchange=function(){var on=this.checked;vis.slice(0,500).forEach(function(x){if(on)PAS[x.key]=1;else delete PAS[x.key];});drawAccurate();};
   document.querySelectorAll("[data-pk]").forEach(function(c){c.onchange=function(){var k=c.getAttribute("data-pk");if(c.checked)PAS[k]=1;else delete PAS[k];$("pasel").textContent=paTerpilih().length+" dokumen dipilih";};});
@@ -1200,6 +1208,8 @@ async function paTandai(btn,aksi){
   var sel=paTerpilih();if(!sel.length){toast("Pilih dokumen dulu.",true);return;}
   var no=document.getElementById("pano").value.trim();
   if(aksi==="sudah"&&!no){toast("Isi nomor transaksi penyesuaian Accurate dulu.",true);return;}
+  var nTh=sel.filter(function(x){return x.tahan;}).length;
+  if(aksi==="sudah"&&nTh&&!confirm(nTh+" dari dokumen terpilih masih TERTAHAN (No PPBJ belum ada atau belum terdaftar). Accurate biasanya menolak dokumen seperti itu. Tetap tandai sudah diinput?"))return;
   if(!confirm((aksi==="sudah"?"Tandai "+sel.length+" dokumen sudah diinput ke Accurate dengan nomor "+no+"?":"Kembalikan "+sel.length+" dokumen ke status Belum?")))return;
   await kirimAdmin(btn,{action:"adminPaTandai",keys:sel.map(function(x){return x.key;}),aksi:aksi,noTrans:no,cat:document.getElementById("pact").value.trim()},async function(){PAS={};await loadAccurate();});
 }
@@ -1767,8 +1777,9 @@ async function loadSistem(){
   }catch(e){pane().innerHTML='<div class="card msg">Gagal terhubung ke server.</div>';}
 }
 async function loadLaporan(){
+  if(window.LX&&LX.S.view!=="proyek")return LX.muat();
   var dari=(document.getElementById("ld")||{}).value,sampai=(document.getElementById("ls")||{}).value;
-  if(dari===undefined){var t=new Date(),a=new Date(t.getFullYear(),t.getMonth(),1);dari=tglIso(a);sampai=tglIso(t);}
+  if(dari===undefined){var t=new Date(),a=new Date(t.getFullYear(),t.getMonth(),1);dari=(window.LX&&LX.S.dari)||tglIso(a);sampai=(window.LX&&LX.S.sampai)||tglIso(t);}
   pane().innerHTML='<div class="card msg">Memuat...</div>';
   try{
     var r=await api({action:"adminLaporan",dari:dari,sampai:sampai});
@@ -1784,13 +1795,14 @@ function drawLaporan(r,dari,sampai){
     if(x.dept!==last){body+='<tr class="grp"><td colspan="5"><b>'+esc(x.dept)+'</b> <small>Subtotal Rp '+fmtN(perDept[x.dept])+'</small></td></tr>';last=x.dept;}
     body+='<tr><td data-l="Proyek"><b>'+esc(x.ppbj)+'</b>'+(x.proyek?'<small>'+esc(x.proyek)+'</small>':"")+'</td><td class="nm" data-l="Baris">'+x.baris+'</td><td class="nm" data-l="Bekas (tidak dinilai)">'+fmtN(x.bekas)+'</td><td class="nm" data-l="Nilai (Moka+Accurate)"><b>Rp '+fmtN(x.nilai)+'</b></td><td data-l="Catatan">'+(x.tanpaHarga?'<small style="color:var(--red,#c0392b)">'+x.tanpaHarga+' baris tanpa harga</small>':"")+(x.kembali?'<small style="color:var(--grn,#14612b)">'+x.kembali+' barang dikembalikan (nilai sudah dikurangi)</small>':"")+'</td></tr>';
   });
-  pane().innerHTML=
+  pane().innerHTML=(window.LX?LX.bar():"")+
    '<div class="bar"><label class="fl">Dari <input type="date" id="ld" value="'+esc(dari)+'"></label><label class="fl">Sampai <input type="date" id="ls" value="'+esc(sampai)+'"></label><button class="gh" id="lgo">Tampilkan</button><button class="gh" id="lxl"'+(rows.length?"":" disabled")+'>Unduh Excel</button></div>'+
    '<div class="sum"><div><b>Rp '+fmtN(T.nilai||0)+'</b><span>Nilai pemakaian (Moka + Accurate)</span></div><div><b>'+(T.baris||0)+'</b><span>Baris barang diserahkan</span></div><div><b>'+fmtN(T.bekas||0)+'</b><span>Qty Bekas (tidak dinilai)</span></div><div><b>'+(T.tanpaHarga||0)+'</b><span>Baris tanpa harga</span></div><div><b>'+(T.kembali||0)+'</b><span>Barang sisa proyek dikembalikan</span></div></div>'+
    '<div class="bar"><b>Barang keluar untuk Accurate</b><span class="note" style="margin:0 8px">Penyesuaian persediaan: semua barang yang diambil pada rentang di atas</span><button class="gh" id="lbk">Unduh Barang Keluar</button></div>'+
    '<div class="note">Nilai memakai harga saat barang diserahkan. Pengembalian sisa proyek yang sudah diterima gudang mengurangi nilai proyek asalnya (dihitung dengan harga saat ini). Permintaan tanpa PPBJ dikelompokkan sebagai "Tanpa Proyek".</div>'+
    (rows.length?'<table><thead><tr><th>Proyek (PPBJ)</th><th class="nm">Baris</th><th class="nm">Bekas</th><th class="nm">Nilai</th><th>Catatan</th></tr></thead><tbody>'+body+'</tbody></table>':'<div class="card msg">Belum ada barang diserahkan pada rentang ini.</div>');
-  document.getElementById("lgo").onclick=loadLaporan;
+  if(window.LX)LX.pasangBar(pane(),LX.muat);
+  document.getElementById("lgo").onclick=function(){if(window.LX){LX.S.dari=document.getElementById("ld").value;LX.S.sampai=document.getElementById("ls").value;}loadLaporan();};
   document.getElementById("lbk").onclick=async function(){
     var b=this;b.disabled=true;
     try{

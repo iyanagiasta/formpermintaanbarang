@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Laporan Pemakaian - SCTK</title>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--navy:#17588f;--gold:var(--accent,#1a6cab);--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#4a5b68;--red:#a82424;--grn:#14602f}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--red:#ff9a9a;--grn:#8fdca8}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:15px}
+.top{background:#1b6ca8;color:#fff;text-align:center;padding:18px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 18px Inter,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:1.5px}
+.top div{margin-top:4px;font-size:12px;letter-spacing:2px;color:#e8f3fb;font-weight:600}
+.wrap{max-width:1040px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.mut{color:var(--mut);font-size:13px}
+.sum{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.sum div{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:8px;padding:10px}
+.sum b{display:block;font-size:20px}.sum span{color:var(--mut);font-size:12px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+th{background:var(--navy);color:#fff;padding:6px;text-align:left;font-weight:600;white-space:nowrap}
+td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
+.nm{text-align:right;white-space:nowrap}
+td small{display:block;color:var(--mut);font-size:12px}
+h2{font-size:16px;margin:18px 0 6px}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+button{font:700 14px "Segoe UI",Roboto,Arial,sans-serif;padding:10px 16px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer}
+button.gh{background:transparent;color:var(--navy);border:1px solid var(--navy)}
+@media (prefers-color-scheme:dark){button.gh{color:#9fd0f2;border-color:#9fd0f2}}
+.msg{text-align:center;font-size:17px;padding:26px 10px}
+.msg.err{color:var(--red)}
+@media (max-width:640px){.wrap{padding:10px}.sum b{font-size:17px}}
+@media print{.btns,.noprint{display:none}body{background:#fff}}
+</style>
+<link rel="stylesheet" href="tema-halaman.css">
+<script src="tema.js"></script>
+<link rel="stylesheet" href="gaya-baru.css">
+</head>
+<body>
+<div class="top"><h1>LAPORAN PEMAKAIAN BARANG</h1><div>PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="wrap" id="app"><div class="msg">Memuat data mutasi...</div></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+var q=new URLSearchParams(location.search),T=(q.get("t")||"").trim(),app=document.getElementById("app"),R=null;
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function fq(n){return String(Math.round(Number(n)*100)/100).replace(".",",");}
+function rp(n){return n==null?"-":(n<0?"-":"")+"Rp "+Math.round(Math.abs(n)).toLocaleString("id-ID");}
+function tg(s){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||""));return m?m[3]+"/"+m[2]+"/"+m[1]:String(s||"");}
+async function api(b){var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+function pc(o){return !o||o.persen==null?"-":(o.persen>=0?"&#9650; +":"&#9660; ")+o.persen+"%";}
+function tabel(kep,baris,rata){return '<div class="tw"><table><thead><tr>'+kep.map(function(k,i){return '<th'+(rata.indexOf(i)>=0?' class="nm"':'')+'>'+k+'</th>';}).join("")+'</tr></thead><tbody>'+baris.join("")+'</tbody></table></div>';}
+function render(){
+  var d=R.data,f=R.filter,T_=d.total,B=d.banding,h="";
+  h+='<div class="card"><b>'+esc(R.label||"Laporan pemakaian barang")+'</b><div class="mut">Periode '+tg(f.dari)+' s.d. '+tg(f.sampai)+(f.otomatis?' (bulan berjalan, ikut berubah tiap bulan)':'')+' &middot; data per '+esc(R.dibuat)+' &middot; tautan berlaku sampai '+esc(R.berlaku)+'</div><p style="margin:8px 0 0">'+esc(d.narasi)+'</p></div>';
+  h+='<div class="sum"><div><b>'+rp(T_.nilai)+'</b><span>Nilai pemakaian (Moka + Accurate)</span></div><div><b>'+T_.baris+'</b><span>Baris barang diserahkan</span></div><div><b>'+pc(B.nilai)+'</b><span>Nilai dibanding periode sebelumnya ('+rp(B.nilai.lalu)+')</span></div><div><b>'+T_.kembali+'</b><span>Sisa proyek dikembalikan</span></div></div>';
+  h+='<div class="btns"><button id="bx">Unduh Excel</button><button class="gh" id="bp">Cetak</button></div>';
+  [["dept","Per departemen","Departemen"],["proyek","Per proyek / PPBJ","Proyek / PPBJ"],["kategori","Per kategori barang","Kategori"],["barang","Per barang","Barang"]].forEach(function(g){
+    var L=(d.rekap||{})[g[0]]||[];if(!L.length)return;
+    h+='<h2>'+g[1]+'</h2>'+tabel([g[2],"Baris","Nilai","Periode lalu","Perubahan"],L.slice(0,15).map(function(x){return '<tr><td>'+esc(x.label||x.k)+'</td><td class="nm">'+x.baris+'</td><td class="nm"><b>'+rp(x.nilai)+'</b></td><td class="nm">'+rp(x.lalu)+'</td><td class="nm">'+pc(x)+'</td></tr>';}),[1,2,3,4]);
+  });
+  if(R.tren){h+='<h2>Pemakaian 6 bulan terakhir</h2>'+tabel(R.tren.bulan,['<tr>'+R.tren.total.map(function(y){return '<td class="nm"><b>'+rp(y)+'</b></td>';}).join("")+'</tr>'],R.tren.bulan.map(function(_,i){return i;}));
+    if(R.tren.anomali&&R.tren.anomali.length)h+='<h2>Lonjakan di luar kebiasaan</h2>'+tabel(["Jenis","Nama","Proyeksi bulan ini","Biasanya","Kali lipat"],R.tren.anomali.slice(0,10).map(function(a){return '<tr><td>'+esc(a.jenis)+'</td><td><b>'+esc(a.label||a.k)+'</b></td><td class="nm">'+rp(a.sekarang)+'</td><td class="nm">'+rp(a.rata)+'</td><td class="nm">'+a.kali+'x</td></tr>';}),[2,3,4]);}
+  if(R.rab&&R.rab.rows.length)h+='<h2>Proyek yang perlu diperhatikan (anggaran RAB)</h2>'+tabel(["Proyek","Nilai RAB","Terpakai","%","Kondisi"],R.rab.rows.map(function(x){return '<tr><td><b>'+esc(x.ppbj)+'</b><small>'+esc(x.proyek)+'</small></td><td class="nm">'+rp(x.rab)+'</td><td class="nm">'+rp(x.pakai)+'</td><td class="nm">'+(x.persen==null?"-":x.persen+"%")+'</td><td><b style="color:'+(x.kondisi==="Waspada"?"inherit":"var(--red)")+'">'+esc(x.kondisi)+'</b>'+(x.hari!=null?'<small>perkiraan habis '+tg(x.tglHabis)+'</small>':'')+'</td></tr>';}),[1,2,3]);
+  h+='<div class="mut" style="margin-top:12px">Halaman ini hanya untuk dibaca. Nilai memakai harga saat barang diserahkan; pengembalian sisa proyek mengurangi nilai proyek asal. Stok Bekas tidak dinilai. Proyeksi dan peringatan RAB hanyalah perkiraan.</div>';
+  app.innerHTML=h;
+  document.getElementById("bp").onclick=function(){window.print();};
+  document.getElementById("bx").onclick=function(){
+    if(typeof XLSX==="undefined"){alert("Pembaca Excel belum termuat. Periksa internet lalu muat ulang.");return;}
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([["Laporan Pemakaian Barang - PT Sarana Catur Tirta Kelola"],["Periode",tg(f.dari)+" s.d. "+tg(f.sampai)],[d.narasi],[],["Nilai",T_.nilai],["Baris",T_.baris],["Nilai periode lalu",B.nilai.lalu]]),"Ringkasan");
+    [["dept","Per Departemen"],["proyek","Per Proyek"],["kategori","Per Kategori"],["barang","Per Barang"]].forEach(function(g){var L=(d.rekap||{})[g[0]]||[];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([[g[1],"Baris","Qty","Nilai","Periode lalu"]].concat(L.map(function(x){return [x.label||x.k,x.baris,x.qty,x.nilai,x.lalu];}))),g[1]);});
+    XLSX.writeFile(wb,"laporan_pemakaian_"+f.dari+"_sd_"+f.sampai+".xlsx");};
+}
+(async function(){
+  if(!T){app.innerHTML='<div class="card msg err">Tautan tidak lengkap. Minta tautan baru ke Gudang.</div>';return;}
+  try{var r=await api({action:"lapPakaiPublik",t:T});
+    if(!r.ok){app.innerHTML='<div class="card msg err">'+esc(r.msg||"Tautan tidak dapat dibuka.")+'</div>';return;}
+    R=r;render();
+  }catch(e){app.innerHTML='<div class="card msg err">Gagal terhubung ke server. Coba lagi sebentar.</div>';}
+})();
+</script>
+</body>
+</html>

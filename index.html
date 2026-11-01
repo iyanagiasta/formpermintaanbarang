@@ -687,13 +687,13 @@ function loadDB(rows,label){
     var kode=String(pick(r,["kodebarang","kode","code"])).trim();
     var sat=String(pick(r,["satuan","sat","unit"])).trim();
     if(!nama)return;
-    M.set(norm(nama),{nama:nama,kode:kode,satuan:sat});
+    M.set(norm(nama),{nama:nama,kode:kode,satuan:sat,jenis:String(pick(r,["jenis"])||"").trim()});
   });
   if(!M.size){
     document.getElementById("dbinfo").textContent=DB.size?("Data dari "+label+" kosong atau kolomnya tidak dikenali. Database sebelumnya ("+DB.size+" barang) tetap dipakai."):"Tidak ada data terbaca. Pastikan ada kolom Nama Barang, Kode Barang, dan Satuan.";
     return 0;
   }
-  DB=M;
+  DB=M;JASA={};M.forEach(function(v){if(v.jenis==="Jasa"&&v.kode)JASA[String(v.kode).trim().toUpperCase()]=1;});
   document.getElementById("dbinfo").textContent="Database aktif: "+DB.size+" barang dari "+label+".";
   relookup();
   return DB.size;
@@ -792,12 +792,14 @@ function splitStok(kode,qty){
   OTO.forEach(function(nm){var av=s[SUMB.indexOf(nm)]||0,t=Math.min(av,cap);if(t>0){take.push({s:nm,q:t});cap-=t;}});
   return {take:take,kurang:Math.max(0,qty-Math.min(qty,bebas)),tot:tot,bebas:bebas,s:s};
 }
+var JASA;
 function renderStok(tr){
   var box=tr.querySelector(".stinfo");if(!box)return;
   if(!KODEPEG){box.innerHTML="";return;}
   var nama=tr.querySelector(".nama").value.trim();if(!nama){box.innerHTML="";return;}
   var kode=tr.querySelector(".kode").value.trim();
   if(!kode){box.innerHTML='<span class="stbad">Barang ini belum ada di data stok. Hubungi Staff Gudang. Permintaan tetap bisa dikirim.</span>';return;}
+  if(JASA&&JASA[kode.toUpperCase()]){box.innerHTML='<span class="z">Jasa (tidak ada stok)</span>';return;}
   var r=splitStok(kode,0),q=Number(String(tr.querySelector(".jml").value).replace(",","."))||0;
   var tampil=OTO.concat(SUMB.filter(function(nm){return OTO.indexOf(nm)<0;})),line=tampil.map(function(nm){var v=r.s[SUMB.indexOf(nm)]||0;return '<span class="'+(v>0?"":"z")+'">'+nm+(OTO.indexOf(nm)<0?" (manual)":"")+" "+fmtQ(v)+"</span>";}).join(" · ");
   var extra="";
@@ -1015,7 +1017,7 @@ function setDefaults(){document.getElementById("staff").value="Iyan";document.ge
 /* ===== Database bersama (dipakai semua pengguna link) ===== */
 var CH=600,lastAt=0;
 function info(t){document.getElementById("dbinfo").textContent=t;}
-function toRows(items){return items.map(function(a){return {"Nama Barang":a[0],"Kode Barang":a[1],"Satuan":a[2]};});}
+function toRows(items){return items.map(function(a){var o={"Nama Barang":a[0],"Kode Barang":a[1],"Satuan":a[2]};if(a[3])o["Jenis"]=a[3];return o;});}
 async function shareDB(label){
   var db=null;try{db=await claude.use("db");}catch(e){}
   var base=document.getElementById("dbinfo").textContent;
@@ -1196,7 +1198,7 @@ function loadNomor(){
 }
 function applyBarang(items,label){
   try{window.scanBangunPeta(items);}catch(e){}
-  loadDB(toRows(items.map(function(i){return [i.nama,i.kode,i.satuan];})),label);
+  loadDB(toRows(items.map(function(i){return [i.nama,i.kode,i.satuan,i.jenis||""];})),label);
 }
 function loadBarang(){
   var q=new URLSearchParams(location.search);

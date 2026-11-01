@@ -120,7 +120,7 @@
     [].forEach.call(pane.children, function (c) {
       if (!c.classList || !c.classList.contains("card")) return;
       if (c.querySelector("#hq")) { c.classList.add("hp-alat", "hp-sembunyi"); alat.push(c); }
-      else if (c.querySelector("#uf,#xf,#hf,#thb,#sink,#rakt")) { c.classList.add("hp-alat"); alat.push(c); }
+      else if (c.querySelector("#uf,#xf,#hf,#thb,#sink,#rakt,#jf")) { c.classList.add("hp-alat"); alat.push(c); }
     });
     var sg = d.getElementById("sgo"); if (sg && sg.parentNode) sg.parentNode.classList.add("hp-sembunyi");
     [sm, nt, wrap].forEach(function (x) { if (x) x.classList.add("hp-sembunyi"); });

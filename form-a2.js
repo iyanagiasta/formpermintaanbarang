@@ -84,7 +84,7 @@
 
   /* ---------- paket sekali klik ---------- */
   var tools = d.querySelector(".tools"), pak = d.createElement("div");
-  var INFO0 = "Isi paket diisi ke tabel, paling banyak sebesar sisa RAB proyek. Jumlahnya masih bisa diubah, dan baris yang tidak perlu bisa dihapus sebelum dikirim.";
+  var INFO0 = "Pilih Kebutuhan proyek (sisa RAB) atau paket lain seperti SL, lalu Pakai paket. Isi paket diisi ke tabel, paling banyak sebesar sisa RAB proyek. Jumlahnya masih bisa diubah, dan baris yang tidak perlu bisa dihapus sebelum dikirim.";
   pak.id = "a2paket"; pak.className = "a2box nop"; pak.style.display = "none";
   pak.innerHTML = '<b>Paket</b><select id="a2pk" aria-label="Pilih paket"></select>' +
     '<label>Jumlah set <input id="a2set" type="number" min="1" max="99" value="1" inputmode="numeric"></label>' +
@@ -92,10 +92,11 @@
     '<span class="a2i" id="a2pinfo"></span><span class="a2i" id="a2pdet" style="display:none"></span><span class="a2i" id="a2pwarn" style="display:none;color:var(--ambt,#6b4300);font-weight:600"></span>';
   if (tools) tools.parentNode.insertBefore(pak, tools);
   var PAK = [], pakKey = "", ppbjLalu = "", SISA = {};
+  function aturSet() { var P = PAK[Number($("a2pk").value)], l = $("a2set").parentNode; l.style.display = (P && P.proyek) || !PAK.length ? "none" : ""; }
   function ppbjNilai() { var e = $("ppbj"); return e ? String(e.value || "").trim() : ""; }
   function tampilPaket(boleh, msg) {
     var sel = $("a2pk");
-    sel.style.display = boleh ? "" : "none"; $("a2set").parentNode.style.display = boleh ? "" : "none";
+    sel.style.display = boleh ? "" : "none"; $("a2set").parentNode.style.display = boleh ? "" : "none"; if (boleh) aturSet();
     $("a2pakai").disabled = !boleh; $("a2pinfo").textContent = boleh ? INFO0 : msg;
   }
   function muatPaket(ppbj) {
@@ -112,7 +113,7 @@
       if (key !== pakKey) return;
       var ok = !!(r && r.ok && r.boleh && r.data && r.data.length);
       PAK = ok ? r.data : [];
-      var sel = $("a2pk"); sel.innerHTML = PAK.map(function (p, i) { return '<option value="' + i + '">' + esc(p.nama) + " (" + p.items.length + " jenis barang)</option>"; }).join("");
+      var sel = $("a2pk"); sel.innerHTML = PAK.map(function (p, i) { return '<option value="' + i + '">' + esc(p.nama) + (p.proyek && !p.items.length ? " (RAB habis)" : " (" + p.items.length + " jenis barang)") + "</option>"; }).join(""); aturSet();
       $("a2pdet").style.display = "none"; $("a2pdet").textContent = "";
       tampilPaket(ok, (r && r.msg) || (r && r.ok && r.boleh ? "Belum ada paket aktif di Buffer Paket." : "Paket belum bisa dipakai."));
       pak.style.display = "";
@@ -126,7 +127,7 @@
     var tambah = 0, baru = [], penuh = 0, habis = [], luar = [], susut = [];
     SISA = {};
     P.items.forEach(function (it) {
-      var base = Math.round(it.qty * sets * 1000) / 1000, db = byKode[String(it.kode || "").trim().toUpperCase()], nama = db ? db.nama : it.nama;
+      var base = Math.round(it.qty * (P.proyek ? 1 : sets) * 1000) / 1000, db = byKode[String(it.kode || "").trim().toUpperCase()], nama = db ? db.nama : it.nama;
       var rs = [].slice.call($("rows").querySelectorAll("tr"));
       var tr = rs.filter(function (r) { return nrm(r.querySelector(".nama").value) === nrm(nama); })[0], lama = 0;
       if (tr) { lama = parseFloat(String(tr.querySelector(".jml").value).replace(",", ".")) || 0; }
@@ -150,7 +151,7 @@
       j.value = String(v).replace(".", ","); fire(j, "input"); fire(j, "change");
       tambah++;
     });
-    var m = 'Paket "' + P.nama + '" untuk PPBJ ' + ppbj + " (" + sets + " set): " + tambah + " barang diisi.";
+    var m = 'Paket "' + P.nama + '" untuk PPBJ ' + ppbj + (P.proyek ? "" : " (" + sets + " set)") + ": " + tambah + " barang diisi.";
     if (habis.length) m += " " + habis.length + " barang tidak diisi karena RAB habis.";
     if (luar.length) m += " " + luar.length + " barang di luar RAB (ditandai).";
     if (baru.length) m += " " + baru.length + " barang tidak ada di daftar barang (ditandai BARU, isi satuannya).";
@@ -164,6 +165,7 @@
     cekLebih();
     simpanSegera();
   }
+  $("a2pk").addEventListener("change", aturSet);
   function pakai() {
     var P0 = PAK[Number($("a2pk").value)]; if (!P0) return;
     var sets = Math.max(1, Math.min(99, parseInt($("a2set").value, 10) || 1)), ppbj = ppbjNilai(), btn = $("a2pakai");
@@ -174,6 +176,7 @@
       PAK = r.data;
       var P = PAK.filter(function (p) { return p.nama === P0.nama; })[0];
       if (!P) { ping('Paket "' + P0.nama + '" sudah tidak aktif.', false); return; }
+      if (!P.items.length) { ping("Semua barang RAB proyek ini sudah habis (sudah diambil atau sedang diproses), tidak ada yang diisi.", false); return; }
       terapPaket(P, sets, ppbj);
     }).catch(function () { btn.disabled = false; ping("Koneksi bermasalah, paket belum diisi. Coba lagi.", false); });
   }

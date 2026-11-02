@@ -909,7 +909,7 @@ function drawBF(){
     return '<tr><td data-l="Barang"><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.tidakAda?' &middot; <span style="color:var(--red,#c0392b)">tidak ada di sheet Barang</span>':'')+'</small></td><td class="nm" data-l="Buffer">'+fmtN(x.buffer)+'</td><td class="nm" data-l="Stok bebas">'+fmtN(x.bebas)+'</td><td class="nm" data-l="Stok fisik">'+fmtN(x.fisik)+'</td><td class="nm" data-l="Kurang">'+(x.kurang?'<b style="color:var(--red,#c0392b)">'+fmtN(x.kurang)+'</b>':'0')+'</td><td data-l="Status">'+bfBd(x.status)+'</td><td class="nm" data-l="Kebutuhan proyek">'+(x.kebutuhan?fmtN(x.kebutuhan):"")+'</td><td class="nm" data-l="Order">'+(x.order?fmtN(x.order):"")+'</td><td class="nm" data-l="Total order">'+(x.totalOrder?'<b style="color:var(--red,#c0392b)">'+fmtN(x.totalOrder)+'</b>':"0")+'</td><td class="nm" data-l="Nilai">'+(x.totalOrder?(x.nilaiOrder==null?"-":rp(x.nilaiOrder)):"")+'</td><td data-l="Paket"><small>'+x.paket.map(function(p){return esc(p.nama)+' ('+fmtN(p.qty)+'&times;'+fmtN(p.set)+')';}).join("<br>")+(x.proyek&&x.proyek.length?'<br><b>Proyek:</b> '+x.proyek.map(function(q){return esc(q.ppbj)+' sisa '+fmtN(q.sisa)+' (RAB '+fmtN(q.rab)+(q.serah?', diserahkan '+fmtN(q.serah):'')+(q.alok?', alokasi '+fmtN(q.alok):'')+')';}).join("<br>"):"")+'</small></td></tr>';}).join("")+'</tbody></table></div>':'<div class="card msg">Tidak ada barang sesuai filter.</div>';
   var logh=D.log&&D.log.length?'<details class="card"><summary><b>Riwayat perubahan paket ('+D.log.length+' terakhir)</b></summary><div class="tw"><table><thead><tr><th>Waktu</th><th>Oleh</th><th>Paket</th><th>Aksi</th><th>Rincian</th></tr></thead><tbody>'+D.log.map(function(l){return '<tr><td>'+esc(l.waktu)+'</td><td>'+esc(l.oleh)+'</td><td>'+esc(l.paket)+'</td><td>'+esc(l.aksi)+'</td><td>'+esc(l.rincian)+'</td></tr>';}).join("")+'</tbody></table></div></details>':'';
   pane().innerHTML=head+warn+(BF.edit?bfEditHtml():"")+ring+ordr+pk+
-   '<div class="bar" style="margin-top:12px"><input id="bfq" placeholder="Cari kode, nama barang, atau paket..." value="'+esc(BF.q)+'"><button id="bfxls">Unduh Excel</button><button id="bfbeli">Unduh daftar beli</button></div>'+
+   '<div class="bar" style="margin-top:12px"><input id="bfq" placeholder="Cari kode, nama barang, atau paket..." value="'+esc(BF.q)+'"><button id="bfxls">Unduh Excel</button><button id="bfbeli">Unduh daftar beli</button><button id="bfsem" title="Kebutuhan semua proyek + buffer - stok bebas, satu daftar tanpa hitung ganda">Daftar beli keseluruhan (proyek + buffer)</button></div>'+
    '<div class="tabs">'+F.map(function(t){return '<button data-bff="'+t[0]+'" class="'+(BF.f===t[0]?"on":"")+'">'+esc(t[1])+'</button>';}).join("")+'</div><div class="note">Menampilkan '+Math.min(L.length,500)+' dari '+L.length+' barang.</div>'+tb+logh;
   bfBind();
 }
@@ -923,6 +923,7 @@ function bfBind(){
   if($("bfq"))$("bfq").onkeydown=function(e){if(e.key==="Enter"){BF.q=this.value;drawBF();}};
   if($("bfxls"))$("bfxls").onclick=function(){bfUnduh(false);};
   if($("bfbeli"))$("bfbeli").onclick=function(){bfUnduh(true);};
+  if($("bfsem"))$("bfsem").onclick=function(){goTab("proyek");setTimeout(function(){PX.beli();},50);};
   document.querySelectorAll("[data-bff]").forEach(function(b){b.onclick=function(){BF.q=$("bfq").value;BF.f=b.getAttribute("data-bff");drawBF();};});
   document.querySelectorAll("[data-bfe]").forEach(function(b){b.onclick=function(){var p=BF.d.paket[Number(b.getAttribute("data-bfe"))];BF.edit={lama:p.nama,nama:p.nama,set:p.set,aktif:p.aktif,items:p.items.map(function(x){return {kode:x.kode,nama:x.nama,qty:x.qty};})};drawBF();$("bfen").scrollIntoView({behavior:"smooth",block:"center"});};});
   document.querySelectorAll("[data-bfd]").forEach(function(b){b.onclick=function(){var p=BF.d.paket[Number(b.getAttribute("data-bfd"))],n=prompt("Nama paket baru (salinan dari "+p.nama+"):",p.nama+" (salinan)");if(!n)return;kirimAdmin(b,{action:"adminBufferDuplikat",dari:p.nama,baru:n},loadBF);};});
@@ -1311,7 +1312,8 @@ function rekapExcel(){
 var LM={rows:[],nama:"",hasil:null,izin:false};
 function drawSerah(oto){
   drawSerah0(oto);
-  pane().insertAdjacentHTML("afterbegin",'<div class="bar"><button class="rm" id="lmgo">Input barang keluar lama (form manual)</button><span class="note" style="margin:0">Untuk proyek yang sudah jalan dan barangnya sudah keluar lewat form kertas.</span></div>');
+  pane().insertAdjacentHTML("afterbegin",'<div class="bar">'+(SERAH.length?'<button class="sv" id="ssgo" title="Serahkan semua dokumen yang stoknya cukup sesuai saran, proyek prioritas Tinggi lebih dulu">Serahkan semua yang bisa ('+SERAH.length+')</button>':"")+'<button class="rm" id="lmgo">Input barang keluar lama (form manual)</button><span class="note" style="margin:0">Untuk proyek yang sudah jalan dan barangnya sudah keluar lewat form kertas.</span></div>');
+  if(document.getElementById("ssgo"))document.getElementById("ssgo").onclick=function(){PX.serahSemua(this);};
   document.getElementById("lmgo").onclick=function(){LM={rows:[],nama:"",hasil:null,izin:false};viewLama();};
   var tb=document.createElement("div");tb.id="tdsbox";pane().insertBefore(tb,pane().children[1]||null);TDS.mount(tb);
 }

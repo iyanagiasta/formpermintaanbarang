@@ -33,10 +33,10 @@ var PX=(function(){
     f.innerHTML='<input id="pxq" placeholder="Cari No PPBJ / keterangan" value="'+esc(F.q)+'" style="max-width:220px">'+
       ch("status","","Semua status")+ch("status","Aktif","Aktif")+ch("status","Ditunda Sebentar","Ditunda Sebentar")+ch("prio","Tinggi","Prioritas Tinggi")+ch("prio","Rendah","Rendah")+ch("tanda","terancam","Terancam")+ch("tanda","jalan","Jalan duluan")+ch("tanda","kurang","Ada yang kurang")+ch("tanda","tertahan","Dokumen tertahan")+
       '<select id="pxd"><option value="">Semua departemen</option>'+Object.keys(dep).sort().map(function(d){return '<option'+(F.dept===d?" selected":"")+'>'+esc(d)+'</option>';}).join("")+'</select>'+
-      '<button class="gh" id="pxb">Daftar belanja</button><button class="gh" id="pxx">Unduh Excel</button>';
+      '<button class="gh" id="pxb">Daftar belanja</button><button class="sv" id="pxbs" title="Kebutuhan semua proyek + buffer - stok bebas">Daftar beli keseluruhan</button><button class="gh" id="pxx">Unduh Excel</button>';
     Array.prototype.forEach.call(f.querySelectorAll("[data-fk]"),function(b){b.onclick=function(){var k=b.getAttribute("data-fk"),v=b.getAttribute("data-fv");F[k]=(F[k]===v&&v!=="")?"":v;saring();filterUI();};});
     $("pxq").oninput=function(){F.q=this.value;saring();};$("pxd").onchange=function(){F.dept=this.value;saring();};
-    $("pxb").onclick=belanja;$("pxx").onclick=excelDaftar;
+    $("pxb").onclick=belanja;$("pxbs").onclick=beli;$("pxx").onclick=excelDaftar;
   }
   function lolos(x){
     var q=F.q.trim().toLowerCase();
@@ -126,5 +126,71 @@ var PX=(function(){
       return confirm("PERINGATAN: stok barang ini terbatas untuk proyek lain.\n\n"+baris.join("\n")+"\n\nBarang tetap boleh diserahkan. Lanjutkan?");
     }catch(e){return true;}
   }
-  return {muat:muat,isi:isi,buka:buka,peringatan:peringatan,simulasi:simulasi,belanja:belanja};
+
+  /* ---- daftar beli keseluruhan: proyek + buffer (Tambahan 26) ---- */
+  var BL=null,BUD="";
+  function anggaran(rows,budget){
+    var L=[];rows.forEach(function(x,i){
+      if(x.tanpaHarga)return;
+      (x.rinci||[]).forEach(function(p){L.push({i:i,tier:p.prio==="Tinggi"?1:p.prio==="Biasa"?2:4,label:p.ppbj+" ("+p.prio+")",qty:p.qty,h:x.harga});});
+      if(x.cadangan>0)L.push({i:i,tier:3,label:"Buffer",qty:x.cadangan,h:x.harga});
+    });
+    L.sort(function(a,b){return a.tier-b.tier||a.i-b.i;});
+    var rem=budget,res={};
+    L.forEach(function(l){
+      var full=l.qty*l.h,beli=0;
+      if(full<=rem+1e-9)beli=l.qty;else beli=Math.floor(Math.max(0,rem)/l.h);
+      rem-=beli*l.h;l.beli=beli;var r=res[l.i]||(res[l.i]={beli:0,perlu:0,nilai:0});r.beli+=beli;r.perlu+=l.qty;r.nilai+=beli*l.h;
+    });
+    return {res:res,sisa:rem,pakai:budget-rem};
+  }
+  async function beli(){
+    pane().innerHTML='<div class="card msg">Menghitung daftar beli...</div>';
+    var r=await api({action:"adminBeliSemua"});if(!r.ok){toast(r.msg||"Gagal.",true);drawProyek();return;}
+    BL=r;gambarBeli();
+  }
+  function gambarBeli(){
+    var r=BL,R=r.ringkas,b=Number(String(BUD).replace(/[^\d]/g,""))||0,A=b>0?anggaran(r.rows,b):null,tn=r.rows.filter(function(x){return x.tanpaHarga;});
+    pane().innerHTML='<div class="bar noprint"><button class="gh" id="pxback">&larr; Kembali ke daftar proyek</button><button class="gh" id="pxbx">Unduh Excel</button></div>'+
+      '<div class="card"><b>Daftar beli keseluruhan (proyek + buffer)</b><div class="note">'+esc(r.catatan)+'</div></div>'+
+      tiles([[R.barang,"Barang perlu dibeli"],[rp(R.nilai),"Perkiraan nilai total"],[rp(R.nilaiWajib),"Wajib (untuk proyek)"],[rp(R.nilaiCadangan),"Cadangan (buffer)"],[R.tanpaHarga,"Barang tanpa harga",R.tanpaHarga?"var(--red,#a82424)":""]])+
+      '<div class="card noprint"><b>Mode anggaran</b> <span class="note" style="margin:0">hanya usulan susunan di layar; tidak membuat pesanan</span><div class="fr" style="margin-top:6px"><input id="pxbud" inputmode="numeric" placeholder="Batas dana, mis. 50000000" value="'+esc(BUD)+'" style="max-width:220px"><button class="sv" id="pxbgo">Susun</button><button class="gh" id="pxbrs">Hapus anggaran</button></div>'+
+      (A?'<div class="note" style="margin-top:6px">Urutan: kebutuhan proyek prioritas <b>Tinggi</b>, lalu <b>Biasa</b>, lalu <b>buffer</b>, lalu proyek <b>Rendah</b>. Masuk anggaran <b>'+rp(A.pakai)+'</b> dari '+rp(b)+'; sisa '+rp(A.sisa)+'. Barang tanpa harga ('+tn.length+') tidak ikut dihitung.</div>':'')+'</div>'+
+      (r.rows.length?tab(["Barang","Proyek","Buffer","Stok bebas","Perlu dibeli","Wajib","Cadangan","Nilai","Dibutuhkan oleh"].concat(A?["Anggaran"]:[]),r.rows.map(function(x,i){
+        var a=A&&A.res[i];
+        var st=!A?"":x.tanpaHarga?'<td><span class="bd l">tanpa harga</span></td>':!a||a.perlu===0?'<td>-</td>':a.beli>=a.perlu-1e-9?'<td><span class="bd d">Dibeli penuh</span></td>':a.beli>0?'<td><span class="bd w">Sebagian '+fmtN(a.beli)+' dari '+fmtN(a.perlu)+'</span></td>':'<td><span class="bd b">Ditunda</span></td>';
+        return '<tr><td><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.satuan?' &middot; '+esc(x.satuan):'')+(x.tidakAda?' &middot; belum ada di stok':'')+'</small></td><td class="nm">'+fmtN(x.proyek)+'</td><td class="nm">'+fmtN(x.buffer)+'</td><td class="nm">'+fmtN(x.bebas)+'</td><td class="nm"><b>'+fmtN(x.beli)+'</b></td><td class="nm">'+fmtN(x.wajib)+'</td><td class="nm">'+fmtN(x.cadangan)+'</td><td class="nm">'+(x.tanpaHarga?'<span class="bd l">tanpa harga</span>':rp(x.nilai))+'</td><td><small>'+(x.rinci.length?x.rinci.map(function(p){return esc(p.ppbj)+' <span style="color:'+(PC[p.prio]||"inherit")+'">'+esc(p.prio)+'</span> '+fmtN(p.qty);}).join("<br>"):"")+(x.cadangan>0?(x.rinci.length?"<br>":"")+'Buffer '+fmtN(x.cadangan)+(x.paket.length?' ('+esc(x.paket.join(", "))+')':""):"")+'</small></td>'+st+'</tr>';}),[1,2,3,4,5,6,7]):'<div class="card msg">Semua kebutuhan proyek dan buffer tercukupi stok bebas.</div>');
+    $("pxback").onclick=function(){drawProyek();};
+    $("pxbgo").onclick=function(){BUD=$("pxbud").value;gambarBeli();};$("pxbud").onkeydown=function(e){if(e.key==="Enter"){BUD=this.value;gambarBeli();}};
+    $("pxbrs").onclick=function(){BUD="";gambarBeli();};
+    $("pxbx").onclick=function(){
+      var rows=[["Kode","Nama","Satuan","Kebutuhan proyek","Minimal buffer","Stok bebas","Perlu dibeli","Wajib (proyek)","Cadangan (buffer)","Harga","Nilai total","Prioritas tertinggi","Dibutuhkan oleh","Sudah dipesan (isi manual)","Sisa yang perlu dipesan"].concat(A?["Anggaran"]:[])].concat(r.rows.map(function(x,i){
+        var a=A&&A.res[i];return [x.kode,x.nama,x.satuan,x.proyek,x.buffer,x.bebas,x.beli,x.wajib,x.cadangan,x.harga==null?"":x.harga,x.nilai==null?"":x.nilai,x.prioTertinggi,x.rinci.map(function(p){return p.ppbj+" ("+p.prio+") "+p.qty;}).concat(x.cadangan>0?["Buffer "+x.cadangan+(x.paket.length?" ["+x.paket.join(", ")+"]":"")]:[]).join("; "),"","" ].concat(A?[x.tanpaHarga?"tanpa harga":!a||a.perlu===0?"":a.beli>=a.perlu-1e-9?"Dibeli penuh":a.beli>0?"Sebagian "+a.beli+" dari "+a.perlu:"Ditunda"]:[]);}));
+      var det=[["Kode","Nama","Proyek / Buffer","Prioritas","Qty perlu dibeli"]];r.rows.forEach(function(x){x.rinci.forEach(function(p){det.push([x.kode,x.nama,p.ppbj,p.prio,p.qty]);});if(x.cadangan>0)det.push([x.kode,x.nama,"Buffer"+(x.paket.length?" ("+x.paket.join(", ")+")":""),"Buffer",x.cadangan]);});
+      xlsx("daftar_beli_keseluruhan.xlsx",[["Daftar beli",rows],["Rincian per proyek",det],["Ringkasan",[["Daftar beli keseluruhan (proyek + buffer)"],[r.catatan],[],["Barang perlu dibeli",R.barang],["Nilai total",R.nilai],["Wajib (proyek)",R.nilaiWajib],["Cadangan (buffer)",R.nilaiCadangan],["Barang tanpa harga",R.tanpaHarga]].concat(A?[[],["Anggaran",b],["Masuk anggaran",A.pakai],["Sisa anggaran",A.sisa]]:[]) ]]);};
+  }
+  /* ---- Serahkan semua (Tab Serah Barang) ---- */
+  async function serahSemua(btn){
+    btn.disabled=true;
+    try{
+      var c=await api({action:"adminSerahSemuaCek"});if(!c.ok){toast(c.msg||"Gagal.",true);return;}
+      if(!c.layak.length){toast("Tidak ada dokumen yang bisa diserahkan otomatis"+(c.lewati.length?" ("+c.lewati.length+" perlu diisi manual).":"."),true);return;}
+      var m="Serahkan "+c.layak.length+" dokumen sekaligus sesuai saran stok (urutan: proyek prioritas Tinggi lebih dulu)?\n\n"+c.layak.slice(0,15).map(function(d){return "- "+d.doc+" ("+d.dept+(d.ppbj?", "+d.ppbj:"")+")";}).join("\n")+(c.layak.length>15?"\n- ... dan "+(c.layak.length-15)+" lainnya":"");
+      if(c.lewati.length)m+="\n\nDILEWATI ("+c.lewati.length+", isi manual):\n"+c.lewati.slice(0,8).map(function(d){return "- "+d.doc+": "+d.alasan;}).join("\n");
+      if(c.peringatan.length)m+="\n\nPERINGATAN: proyek ini kekurangan barang yang sama:\n"+c.peringatan.map(function(w){return "- "+w.ppbj+" (prioritas "+w.prio+"): "+w.barang.join(", ");}).join("\n")+"\n(Barang tetap boleh diserahkan.)";
+      if(!confirm(m))return;
+      var tot=0,gagal=[],ids=c.layak.map(function(d){return d.id;});
+      for(var ronde=0;ronde<8&&ids.length;ronde++){
+        var r=await api({action:"adminSerahSemua",ids:ids});if(!r.ok){toast(r.msg||"Gagal.",true);break;}
+        tot+=r.selesai;gagal=gagal.concat(r.gagal);
+        var sudah={};(r.dok||[]).forEach(function(d){sudah[d]=1;});
+        if(!r.sisa)break;
+        ids=c.layak.filter(function(d){return !sudah[d.doc]&&ids.indexOf(d.id)>=0;}).map(function(d){return d.id;});
+      }
+      toast(tot+" dokumen diserahkan"+(gagal.length?", "+gagal.length+" gagal: "+gagal.map(function(g){return g.doc+" ("+g.msg+")";}).join("; "):"")+".",gagal.length>0);
+      loadSerah();
+    }catch(e){toast("Gagal terhubung ke server.",true);}
+    finally{btn.disabled=false;}
+  }
+  return {beli:beli,serahSemua:serahSemua,muat:muat,isi:isi,buka:buka,peringatan:peringatan,simulasi:simulasi,belanja:belanja};
 })();

@@ -14,6 +14,7 @@
 <script src="admin-proyek2.js"></script>
 <script src="kb-impor.js"></script>
 <script src="serah-edit.js"></script>
+<script src="harga-acc.js"></script>
 <script src="kimia.js"></script>
 <script src="kpi.js"></script>
 <script src="tanda.js"></script>
@@ -456,6 +457,7 @@ function drawStok(total,q,hs){
    '<div class="card" style="border-color:var(--gold)"><b>Impor hasil hitung dari Excel</b><div class="note">File Excel dengan baris judul. Wajib: <b>Kode Barang, Qty Moka, Qty Accurate, Hasil Hitung</b>. Boleh ada: Nama Barang, Total (diabaikan), Kode Rak, Gudang, Satuan, Status Hitung. Baris dengan Hasil Hitung terisi dianggap sudah dihitung (bila ada kolom Status Hitung, yang berstatus Sudah). Stok dasar Moka dan Accurate diisi, lalu hasil hitung yang berstatus Sudah diterapkan. Rak dan gudang dikirim ke Cari Barang. <b>Uji dulu dengan 5 baris.</b> Jangan unggah stok Moka/Accurate lain selama opname.</div>'+
    '<div class="fr"><input type="file" id="xf" accept=".xlsx,.xls"><label>Hanya <input type="number" id="xn" min="0" value="5" style="width:70px"> baris pertama (0 = semua)</label><label style="margin-left:12px"><input type="checkbox" id="x0" checked> Hasil 0 dianggap belum dihitung</label></div>'+
    '<div class="fr"><button class="sv" id="xgo" disabled>Jalankan impor</button><span class="note" id="xinfo"></span></div></div>'+
+   '<div id="hxbox"></div>'+
    '<div class="card" style="border-color:var(--gold)"><b>Koreksi harga manual</b><div class="note">Ketik nama atau kode barang, pilih dari prediksi, lalu isi harga barunya.</div><div style="position:relative"><input id="hq" autocomplete="off" placeholder="Ketik nama atau kode barang..." style="width:100%"><div id="hpred" hidden style="position:absolute;left:0;right:0;z-index:20;background:var(--card);border:1px solid var(--line);border-radius:8px;max-height:260px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.2)"></div></div><div id="hpil" class="note" style="margin-top:8px"></div><div class="fr"><input id="hv" type="text" inputmode="decimal" placeholder="Harga baru (Rp)" disabled><button class="sv" id="hsv" disabled>Simpan harga</button></div></div>'+
    '<div class="card"><b>Unggah harga satuan</b><div class="note">Kolom: Kode Barang, Harga. Satu harga per barang (berlaku untuk Moka dan Accurate).</div>'+
    '<div class="fr"><input type="file" id="hf" accept=".xlsx,.xls,.csv"><button class="sv" id="hgo" disabled>Unggah harga</button><span class="note" id="hinfo"></span></div></div>'+
@@ -486,6 +488,7 @@ function drawStok(total,q,hs){
       await kirimAdmin(this,{action:"adminHarga",rows:[{kode:pick.kode,nama:pick.nama,harga:v}]},loadStok);};
   })();
   document.getElementById("uf").onchange=function(){var f=this.files[0];if(!f)return;bacaFile(f,function(a){var o=ambil(a,"stok");if(o.err){toast(o.err,true);return;}U=o.rows;document.getElementById("uinfo").textContent=U.length+" baris terbaca"+(o.adaJudul?"":" (tanpa judul kolom: urutan A=Kode, B=Nama, C=Satuan, D=Qty)")+".";document.getElementById("ugo").disabled=!U.length;});};
+  try{HX.mount(document.getElementById("hxbox"),api,toast,loadStok);}catch(e){}
   document.getElementById("hf").onchange=function(){var f=this.files[0];if(!f)return;bacaFile(f,function(a){var o=ambil(a,"harga");if(o.err){toast(o.err,true);return;}H=o.rows;document.getElementById("hinfo").textContent=H.length+" baris terbaca.";document.getElementById("hgo").disabled=!H.length;});};
   document.getElementById("ugo").onclick=async function(){
     var sm=document.getElementById("us").value,nol=document.getElementById("unol").checked,tb=document.getElementById("utb").checked;

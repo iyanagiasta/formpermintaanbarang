@@ -234,6 +234,7 @@
     if (!docs.length) return {docs: [], err: err || 'Tidak ada tabel kebutuhan di file. Pastikan ada judul kolom "Nama Barang" dan "Jumlah" (atau "Qty").'};
     return {docs: docs};
   }
+  KBI.muatPdfjs = muatPdfjs; KBI.bacaBuf = bacaBuf; KBI.pdfKeHalaman = pdfKeHalaman;
   KBI.parsePdfHalaman = parsePdfHalaman; KBI.parseSheet = parseSheet; KBI.parseBuku = parseBuku; KBI.angka = angka; KBI.tanggal = tanggal;
 
   /* ---------- pemuat pustaka (hanya di browser) ---------- */

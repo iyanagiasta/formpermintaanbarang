@@ -51,7 +51,7 @@ h2{font-size:15px;margin:18px 0 6px}
 <div class="wrap" id="app"></div><div id="toast"></div>
 <script>
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
-var KODE="",PINADM="",INFO=null,LIST=[],TAB="cek",CEK=null,FORM=null,TERAKHIR=null,BUSY=false,app=document.getElementById("app");
+var KODE="",PINADM="",INFO=null,LIST=[],TAB="cek",CEK=null,CEKF="",FORM=null,TERAKHIR=null,BUSY=false,app=document.getElementById("app");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},6000);}
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
@@ -88,7 +88,7 @@ function viewCek(){
 async function cek(){
   var v=document.getElementById("pp").value.trim();if(!v){toast("Isi No PPBJ.",true);return;}
   if(BUSY)return;BUSY=true;var b=document.getElementById("cekgo");b.disabled=true;b.textContent="Memeriksa...";
-  try{var r=await api({action:"cekPpbj",ppbj:v});if(!r.ok){toast(r.msg||"Gagal.",true);}else{CEK=r;tampilCek();}}
+  try{var r=await api({action:"cekPpbj",ppbj:v});if(!r.ok){toast(r.msg||"Gagal.",true);}else{CEK=r;CEKF="";tampilCek();}}
   catch(e){toast("Gagal terhubung ke server.",true);}
   BUSY=false;b.disabled=false;b.textContent="Cek";
 }
@@ -97,11 +97,11 @@ function tampilCek(){
   if(r.kosong){box.innerHTML='<div class="card msg">Belum ada kebutuhan tersimpan, barang keluar, maupun permintaan untuk PPBJ <b>'+esc(r.ppbj)+'</b>.'+(INFO.boleh?' Isi kebutuhannya di tab Isi Kebutuhan Proyek.':'')+'</div>';return;}
   var T=r.total;
   var kartu='<div class="sum">'+(r.adaRab?'<div><b>'+rp(T.nilaiRab)+'</b><span>Nilai RAB (harga saat ini)</span></div>':'')+'<div><b>'+rp(T.nilaiBersih)+'</b><span>Nilai barang keluar bersih (setelah pengembalian)</span></div><div><b>'+rp(T.nilaiKeluar)+'</b><span>Keluar</span></div><div><b>'+rp(T.nilaiKembali)+'</b><span>Dikembalikan</span></div>'+
-   (r.adaRab?'<div><b>'+(T.melebihi+T.diluar)+'</b><span>Barang melebihi / di luar RAB</span></div>':'')+'</div>';
+   (r.adaRab?'<div><b>'+(T.melebihi+T.diluar)+'</b><span>Barang melebihi / di luar RAB</span></div>':'')+(T.nOrder?'<div><b style="color:var(--ambt,#7a5b00)">'+T.nOrder+'</b><span>Barang berstatus ORDER (menurut PDF PPBJ)</span></div>':'')+'</div>';
   var head='<th>Barang</th>'+(r.adaRab?'<th class="nm">RAB</th>':'')+'<th class="nm">Keluar</th><th class="nm">Kembali</th><th class="nm">Bersih</th><th class="nm">Diproses</th>'+(r.adaRab?'<th class="nm">Sisa RAB</th>':'')+'<th class="nm">Harga</th><th class="nm">Nilai bersih</th><th>Catatan</th>';
-  var body=r.rows.map(function(x){
+  var body=r.rows.filter(function(x){return CEKF!=="order"||x.order;}).map(function(x){
     var pr=x.terpesan?'<span class="tag">'+(x.siap?fmtN(x.siap)+' siap':'')+(x.siap&&x.proses?' + ':'')+(x.proses?fmtN(x.proses)+' persetujuan':'')+'</span>':'';
-    return '<tr class="'+(x.flag?"lebih":"")+'"><td><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+'</small></td>'+(r.adaRab?'<td class="nm">'+fmtN(x.rab)+'</td>':'')+
+    return '<tr class="'+(x.flag?"lebih":"")+'"><td><b>'+esc(x.nama||x.kode)+'</b>'+(x.order?' <span class="tag" title="Menurut PDF PPBJ, barang ini akan dipesan (ORDER)">ORDER</span>':'')+'<small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+'</small></td>'+(r.adaRab?'<td class="nm">'+fmtN(x.rab)+'</td>':'')+
      '<td class="nm">'+fmtN(x.keluar)+'</td><td class="nm">'+(x.kembali?fmtN(x.kembali):'-')+'</td><td class="nm"><b>'+fmtN(x.bersih)+'</b></td><td class="nm">'+pr+'</td>'+(r.adaRab?'<td class="nm">'+fmtN(x.sisa)+'</td>':'')+
      '<td class="nm">'+rp(x.harga)+'</td><td class="nm">'+(x.harga===""&&x.keluar?'<span class="tag r">harga belum ada</span>':rp(x.nilaiBersih))+'</td><td>'+(x.flag?'<span class="tag r">'+esc(x.flag)+'</span>':'')+'</td></tr>';}).join("");
   var proses=r.proses.length?'<h2>Masih dalam proses (belum jadi barang keluar)</h2><div class="tw"><table><thead><tr><th>Dokumen</th><th>Tanggal</th><th>Pemohon</th><th>Barang</th><th class="nm">Qty</th><th>Status</th></tr></thead><tbody>'+
@@ -111,15 +111,16 @@ function tampilCek(){
   box.innerHTML='<div class="card"><b>PPBJ '+esc(r.ppbj)+'</b>'+(r.nama?' - '+esc(r.nama):'')+(r.dept?' <span class="note">('+esc(r.dept)+')</span>':'')+
    (r.adaRab?'':'<div class="note" style="margin-top:6px">Kebutuhan (RAB) proyek ini belum disimpan, jadi perbandingan RAB tidak tampil.</div>')+
    (T.tanpaHarga?'<div class="note err" style="margin-top:6px">'+T.tanpaHarga+' barang belum punya harga; nilainya belum lengkap.</div>':'')+'</div>'+kartu+
-   '<div class="fr"><button class="sv" id="xl">Unduh Excel</button></div><div class="tw"><table><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>'+proses+docs;
+   '<div class="fr"><button class="sv" id="xl">Unduh Excel</button>'+(T.nOrder?'<button class="gh" id="fall">Semua barang</button><button class="gh" id="ford">Hanya ORDER ('+T.nOrder+')</button>':'')+(r.jenis==="SL"?'<span class="tag g">Proyek SL</span>':'')+'</div><div class="tw"><table><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>'+proses+docs;
   document.getElementById("xl").onclick=unduhCek;
+  var fa=document.getElementById("fall"),fo=document.getElementById("ford");if(fa)fa.onclick=function(){CEKF="";tampilCek();};if(fo)fo.onclick=function(){CEKF="order";tampilCek();};
 }
 function unduhCek(){
   if(typeof XLSX==="undefined"){toast("Pembuat Excel belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
   var r=CEK,wb=XLSX.utils.book_new();
   var a1=[["PPBJ",r.ppbj],["Nama Proyek",r.nama],["Departemen",r.dept],["Nilai RAB",r.total.nilaiRab],["Nilai keluar",r.total.nilaiKeluar],["Nilai dikembalikan",r.total.nilaiKembali],["Nilai bersih",r.total.nilaiBersih],[],
-   ["Kode","Nama Barang","Satuan","RAB","Keluar","Kembali","Bersih","Siap diserahkan","Dalam persetujuan","Sisa RAB","Harga","Nilai bersih","Catatan"]];
-  r.rows.forEach(function(x){a1.push([x.kode,x.nama,x.satuan,x.rab,x.keluar,x.kembali,x.bersih,x.siap,x.proses,x.sisa,x.harga,x.nilaiBersih,x.flag]);});
+   ["Kode","Nama Barang","Satuan","RAB","Keluar","Kembali","Bersih","Siap diserahkan","Dalam persetujuan","Sisa RAB","Harga","Nilai bersih","Catatan","Rencana (menurut PDF)"]];
+  r.rows.forEach(function(x){a1.push([x.kode,x.nama,x.satuan,x.rab,x.keluar,x.kembali,x.bersih,x.siap,x.proses,x.sisa,x.harga,x.nilaiBersih,x.flag,x.order?"ORDER":""]);});
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a1),"Barang");
   var a2=[["Jenis","Nomor","Tanggal","Pemohon","Barang","Qty"]];r.docs.forEach(function(d){d.items.forEach(function(i){a2.push([d.jenis,d.doc,d.tgl,d.pemohon,i.nama,i.qty]);});});
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a2),"Dokumen");

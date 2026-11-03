@@ -13,6 +13,7 @@
 <script src="admin-laporan2.js"></script>
 <script src="admin-proyek2.js"></script>
 <script src="kb-impor.js"></script>
+<script src="serah-edit.js"></script>
 <script src="kimia.js"></script>
 <script src="kpi.js"></script>
 <script src="tanda.js"></script>
@@ -1317,6 +1318,7 @@ function drawSerah(oto){
   if(document.getElementById("ssgo"))document.getElementById("ssgo").onclick=function(){PX.serahSemua(this);};
   document.getElementById("lmgo").onclick=function(){LM={rows:[],nama:"",hasil:null,izin:false};viewLama();};
   var tb=document.createElement("div");tb.id="tdsbox";pane().insertBefore(tb,pane().children[1]||null);TDS.mount(tb);
+  try{SE.pasang();}catch(e){}
 }
 function viewLama(){
   var h=LM.hasil,rows=LM.rows;
@@ -1422,7 +1424,7 @@ function isiKurang(){
       td.innerHTML=b.join(" ")+'<small class="note" style="display:block">Sudah ada kebutuhan: '+P.nItem+' barang'+(P.nSisa?', sisa '+P.nSisa:'')+(P.nilaiKurang?' &middot; kurang '+rp(P.nilaiKurang):'')+'</small><button class="gh" data-ck="'+esc(P.ppbj)+'">Cek material</button>';
       if(P.nKurang||P.nRebutan)kf="kurang";
     }
-    tr.classList.toggle("krgx",KRGF!=="semua"&&kf!==KRGF);
+    tr.classList.toggle("krgx",(KRGF!=="semua"&&kf!==KRGF)||!!(window.PX&&PX.tolakJenis&&PX.tolakJenis(td.getAttribute("data-kbp"))));
   });
   pane().querySelectorAll("[data-ck]").forEach(function(b){b.onclick=function(){viewKurang(b.getAttribute("data-ck"));};});
 }
@@ -1470,10 +1472,10 @@ function drawProyek(){
    '<div class="fr"><input type="text" id="pp" placeholder="No PPBJ" maxlength="60"><input type="text" id="pk" placeholder="Keterangan proyek" maxlength="300" style="flex:1;min-width:200px"><select id="pd"><option value="">Departemen: pilih</option>'+PDEPT.map(function(d){return '<option>'+esc(d)+'</option>';}).join("")+'</select>'+
    '<select id="ps">'+PST.map(function(s){return '<option>'+esc(s)+'</option>';}).join("")+'</select><select id="ppr" title="Prioritas: menentukan proyek mana yang dilayani lebih dulu bila stok tidak cukup untuk semua"><option>Tinggi</option><option selected>Biasa</option><option>Rendah</option></select><button class="sv" id="pgo">Simpan</button></div></div>'+
    '<div class="card"><b>Impor kebutuhan proyek (RAB)</b><div class="note">Dari file Excel atau PDF PPBJ. Tabel pratinjau tampil dulu: cocokkan barang, periksa total, baru simpan. Proyek yang belum terdaftar didaftarkan otomatis; departemen tidak diambil dari file.</div><div class="fr"><button class="gh" id="kbix">Impor Excel</button><button class="gh" id="kbip">Impor PDF PPBJ</button><a href="#" id="kbit">Unduh template Excel</a><a href="#" id="kbie">Ekspor RAB tersimpan (No PPBJ di kolom atas)</a></div></div>'+
-   '<div id="pxtop"></div><div id="krgbar"></div>'+(PRO.length?'<table><thead><tr><th>No PPBJ</th><th>Keterangan</th><th>Departemen</th><th>Status</th><th>Prioritas</th><th>Kesiapan &amp; peringatan</th><th>Kebutuhan material</th><th>Ubah status</th></tr></thead><tbody>'+
+   '<div id="pxtop"></div><div id="krgbar"></div>'+(PRO.length?'<table><thead><tr><th>No PPBJ</th><th>Keterangan</th><th>Departemen</th><th>Status</th><th>Prioritas</th><th>Jenis</th><th>Kesiapan &amp; peringatan</th><th>Kebutuhan material</th><th>Ubah status</th></tr></thead><tbody>'+
    PRO.map(function(p,i){return '<tr data-pxr="'+esc(p.ppbj)+'"><td data-l="No PPBJ"><b>'+esc(p.ppbj)+'</b><small>'+esc(p.dibuat||"")+'</small></td><td data-l="Keterangan">'+esc(p.ket)+'</td><td data-l="Departemen">'+esc(p.dept)+'</td>'+
      '<td data-l="Status"><span class="bd '+stCls(p.status)+'">'+esc(p.status)+'</span></td>'+
-     '<td data-l="Prioritas" data-pxp="'+esc(p.ppbj)+'"><small class="note">...</small></td><td data-l="Kesiapan &amp; peringatan" data-pxk="'+esc(p.ppbj)+'"><small class="note">memuat...</small></td><td data-l="Kebutuhan material" data-kbp="'+esc(p.ppbj)+'"><small class="note">memuat...</small></td>'+
+     '<td data-l="Prioritas" data-pxp="'+esc(p.ppbj)+'"><small class="note">...</small></td><td data-l="Jenis" data-pxj="'+esc(p.ppbj)+'"><small class="note">...</small></td><td data-l="Kesiapan &amp; peringatan" data-pxk="'+esc(p.ppbj)+'"><small class="note">memuat...</small></td><td data-l="Kebutuhan material" data-kbp="'+esc(p.ppbj)+'"><small class="note">memuat...</small></td>'+
      '<td data-l="Ubah status"><div class="fr" style="margin:0"><select data-ps="'+i+'">'+PST.map(function(s){return '<option'+(s===p.status?" selected":"")+'>'+esc(s)+'</option>';}).join("")+'</select><button class="gh" data-pu="'+i+'">Simpan</button></div></td></tr>';}).join("")+'</tbody></table>':'<div class="card msg">Belum ada proyek.</div>');
   document.getElementById("pgo").onclick=function(){
     var no=document.getElementById("pp").value.trim();if(!no){toast("Isi No PPBJ dulu.",true);return;}

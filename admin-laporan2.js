@@ -2,7 +2,7 @@
    serta penjelas selisih stok Accurate. Dipakai tab Laporan dan Accurate di admin.html (memakai api, esc, fmtN, toast, pane, goTab). */
 var LX=(function(){
   var ALAT=[["pusat","Pusat Laporan"],["proyek","Per proyek"],["tren","Tren 6 bulan"],["rab","Laju RAB"],["rapi","Kerapian data"],["segel","Segel & tautan"]];
-  var S={view:"pusat",dari:"",sampai:"",tab:"dept",data:null,cache:{}};
+  var S={view:"pusat",dari:"",sampai:"",tab:"dept",jenis:"",data:null,cache:{}};
   function $(i){return document.getElementById(i);}
   function p2(n){return String(n).padStart(2,"0");}
   function iso(d){return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate());}
@@ -44,19 +44,20 @@ var LX=(function(){
   }
   /* ---- Pusat Laporan ---- */
   async function pusat(){
-    var r=await panggil("adminLapPintar",{dari:S.dari,sampai:S.sampai});if(!r)return;S.data=r;
+    var r=await panggil("adminLapPintar",{dari:S.dari,sampai:S.sampai,jenis:S.jenis});if(!r)return;S.data=r;
     var pa=null;try{pa=await api({action:"adminPaList",sinkron:false});}catch(e){}
     var T=r.total,B=r.banding,TABS=[["dept","Departemen"],["proyek","Proyek"],["barang","Barang"],["kategori","Kategori"]],L=(r.rekap||{})[S.tab]||[];
     var h=bar()+periode()+
       '<div class="card"><b>Ringkasan periode</b> <button class="gh noprint" id="lxsl" style="margin-left:8px">Salin ringkasan</button><p style="margin:8px 0 0" id="lxnar">'+esc(r.narasi)+'</p></div>'+
       tiles([[rp(T.nilai)+' '+pc(B.nilai),"Nilai pemakaian (Moka + Accurate)"],[T.baris+' '+pc(B.baris),"Baris barang diserahkan"],[fmtN(T.bekas),"Qty Bekas (tidak dinilai)"],[T.tanpaPpbj,"Baris tanpa No PPBJ",T.tanpaPpbj?"var(--red,#a82424)":""],[T.tanpaHarga,"Baris tanpa harga",T.tanpaHarga?"var(--red,#a82424)":""],[T.kembali,"Sisa proyek dikembalikan"]])+
       '<div class="note">Dibanding periode sebelumnya, '+tgl(B.dari)+' s.d. '+tgl(B.sampai)+' ('+rp(B.nilai.lalu)+'). Klik satu baris untuk melihat transaksi pembentuknya.</div>'+
-      '<div class="bar noprint">'+TABS.map(function(x){return '<button class="chip'+(S.tab===x[0]?" on":"")+'" data-lt="'+x[0]+'">'+x[1]+'</button>';}).join("")+'<button class="gh" id="lxxl">Unduh Excel</button></div>'+
+      '<div class="bar noprint">'+TABS.map(function(x){return '<button class="chip'+(S.tab===x[0]?" on":"")+'" data-lt="'+x[0]+'">'+x[1]+'</button>';}).join("")+'<span class="note" style="margin:0 4px 0 12px">Jenis proyek:</span>'+[["","Semua"],["SL","SL"],["Reguler","Reguler"]].map(function(j){return '<button class="chip'+(S.jenis===j[0]?" on":"")+'" data-lj="'+j[0]+'">'+j[1]+'</button>';}).join("")+'<button class="gh" id="lxxl">Unduh Excel</button></div>'+(S.jenis?'<div class="note" style="margin:0 0 6px">Laporan ini hanya memuat proyek berjenis <b>'+esc(S.jenis)+'</b>'+(S.jenis==="Reguler"?' (termasuk barang keluar tanpa proyek)':"")+'.</div>':"")+
       (L.length?tab([TABS.filter(function(x){return x[0]===S.tab;})[0][1],"Baris","Qty","Nilai","Periode lalu","Perubahan"],L.map(function(x,i){return '<tr class="dd" data-ri="'+i+'" style="cursor:pointer"><td><b>'+esc(x.label||x.k)+'</b></td><td class="nm">'+x.baris+'</td><td class="nm">'+fmtN(x.qty)+'</td><td class="nm"><b>'+rp(x.nilai)+'</b></td><td class="nm">'+rp(x.lalu)+'</td><td class="nm">'+pc(x)+'</td></tr>';}),[1,2,3,4,5]):'<div class="card msg">Belum ada barang diserahkan pada rentang ini.</div>')+
       '<div id="lxrinci"></div><div id="lxacc">'+kartuAcc(pa)+'</div>';
     pane().innerHTML=h;pasangBar(pane(),muatAktif);pasangPeriode(pane(),muatAktif);
     $("lxsl").onclick=function(){salin("Laporan pemakaian barang gudang. "+r.narasi,"Ringkasan tersalin.");};
     Array.prototype.forEach.call(pane().querySelectorAll("[data-lt]"),function(b){b.onclick=function(){S.tab=b.getAttribute("data-lt");pusat();};});
+    Array.prototype.forEach.call(pane().querySelectorAll("[data-lj]"),function(b){b.onclick=function(){S.jenis=b.getAttribute("data-lj");pusat();};});
     Array.prototype.forEach.call(pane().querySelectorAll("tr.dd"),function(tr){tr.onclick=function(){rinci(S.tab,L[+tr.getAttribute("data-ri")]);};});
     $("lxxl").onclick=function(){xlsx("laporan_pintar_"+S.dari+"_sd_"+S.sampai+".xlsx",[["Ringkasan",[["Laporan Pemakaian Barang"],["Periode",tgl(S.dari)+" s.d. "+tgl(S.sampai)],[r.narasi],[],["Nilai",T.nilai],["Baris",T.baris],["Periode lalu (nilai)",B.nilai.lalu],["Perubahan %",B.nilai.persen==null?"":B.nilai.persen]]]].concat(TABS.map(function(x){return [x[1],[[x[1],"Baris","Qty","Nilai","Periode lalu","Perubahan %"]].concat(((r.rekap||{})[x[0]]||[]).map(function(y){return [y.label||y.k,y.baris,y.qty,y.nilai,y.lalu,y.persen==null?"":y.persen];}))];})));};
     if($("lxgoacc"))$("lxgoacc").onclick=function(){goTab("accurate");};
@@ -67,7 +68,7 @@ var LX=(function(){
   }
   async function rinci(by,x){
     var o=$("lxrinci");o.innerHTML='<div class="card msg">Memuat transaksi...</div>';
-    var r=await panggil("adminLapRinci",{dari:S.dari,sampai:S.sampai,by:by,key:x.k});if(!r){o.innerHTML="";return;}
+    var r=await panggil("adminLapRinci",{dari:S.dari,sampai:S.sampai,by:by,key:x.k,jenis:S.jenis});if(!r){o.innerHTML="";return;}
     o.innerHTML='<div class="card"><b>'+esc(x.label||x.k)+'</b> <span class="note" style="margin:0">'+r.total+' baris, '+rp(r.nilai)+(r.terpotong?' (menampilkan sebagian)':'')+'</span> <button class="gh noprint" id="lxrx">Unduh Excel</button> <button class="gh noprint" id="lxrc">Tutup</button>'+
       tab(["Waktu","Dokumen","Barang","Departemen / Proyek","Qty","Nilai"],r.rows.map(function(m){return '<tr><td>'+esc(m.waktu)+'</td><td><b>'+esc(m.doc)+'</b><small>'+esc(m.jenis)+'</small></td><td><b>'+esc(m.nama)+'</b><small>'+esc(m.kode)+(m.kat?" &middot; "+esc(m.kat):"")+'</small></td><td>'+esc(m.dept)+'<small>'+esc(m.ppbj)+'</small></td><td class="nm">'+fmtN(m.qty)+(m.bekas?'<small>Bekas '+fmtN(m.bekas)+'</small>':"")+'</td><td class="nm">'+(m.tanpaHarga?'<span class="bd w">tanpa harga</span>':rp(m.nilai))+'</td></tr>';}),[4,5])+'</div>';
     $("lxrc").onclick=function(){o.innerHTML="";};

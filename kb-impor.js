@@ -372,6 +372,11 @@
       (c.mirip || []).forEach(function (m) {
         h += '<div class="bx a"><b>Mirip dengan RAB proyek lain:</b> PPBJ ' + esc(m.ppbj) + (m.nama ? ' (' + esc(m.nama) + ')' : '') + ' punya ' + m.same + ' barang dengan jumlah yang sama persis (' + m.persen + '% dari daftar yang lebih kecil). Kemungkinan daftar ini disalin dari proyek tersebut. Pastikan memang sama.</div>';
       });
+      if (c.sl && c.sl.nCocok > 0) {
+        if (D.slTandai === undefined) D.slTandai = !!(c.sl.sudahSL || c.sl.persen >= 60);
+        h += '<div class="bx a"><b>Diduga proyek Sambungan Langsung (SL):</b> ' + c.sl.nCocok + ' dari ' + c.sl.nItem + ' barang di daftar ini adalah isi paket ' + esc(c.sl.paket.join(', ')) + ' (' + c.sl.persen + '%).' + (c.sl.sudahSL ? ' Proyek ini sudah ditandai SL.' : '') +
+          (c.sl.boleh ? '<div class="fr" style="margin:6px 0 0"><label><input type="checkbox" id="kbsl"' + (D.slTandai ? ' checked' : '') + '> Tandai proyek ini sebagai SL saat disimpan</label></div>' : '<div class="m">Penandaan SL dilakukan admin.</div>') + '</div>';
+      }
       if (c.proyek && !c.proyek.ada && D.ppbj) h += '<div class="bx">PPBJ ini belum terdaftar sebagai proyek; akan didaftarkan otomatis saat RAB disimpan.</div>';
       h += '<div class="m"><b>' + c.nCocok + '</b> barang cocok' + ((jasa.length + dugaan.length) ? ', <b>' + (jasa.length + dugaan.length) + '</b> jasa/pekerjaan dilewati otomatis' : '') + (sisa ? ', <b class="err" style="color:var(--k-red)">' + sisa + ' perlu Anda pilih</b>' : '') + (S.nlewat ? ', ' + S.nlewat + ' dilewati' : '') + '.</div>';
       h += '<div class="tw"><table><thead><tr><th>#</th><th>Di file</th><th>Barang di database</th><th>Qty</th><th>Satuan</th><th>Status</th><th>Harga anggaran</th><th></th></tr></thead><tbody>';
@@ -402,6 +407,7 @@
       kotak(h);
       var P = document.getElementById('kbp'), N = document.getElementById('kbn'), K = document.getElementById('kbk');
       N.oninput = function () { D.nama = N.value; ulangStatus(D, S); };
+      var SLc = document.getElementById('kbsl'); if (SLc) SLc.onchange = function () { D.slTandai = SLc.checked; };
       K.onchange = function () { D.kategori = K.value; gambar(D, judul); };
       P.onchange = function () { D.ppbj = P.value.trim(); D.nama = N.value; periksa(D, judul); };
       var pindah = function () { D.ppbj = P.value; D.nama = N.value; };
@@ -411,7 +417,7 @@
       document.getElementById('kbx').onclick = function () { tutup(); if (opt.onSelesai) opt.onSelesai(hasil, true); };
       Array.prototype.forEach.call(W.querySelectorAll('[data-bj]'), function (b) { b.onclick = function () { pindah(); D.bukanJasa[b.getAttribute('data-bj')] = true; gambar(D, judul); }; });
       var kl = document.getElementById('kbl'); if (kl) kl.onclick = lanjut;
-      var payload = function () { pindah(); var S2 = susun(D); return {ppbj: D.ppbj.trim(), nama: D.nama.trim(), dept: '', kategori: D.kategori, items: S2.items, rinci: S2.rinci, meta: {tglButuh: doc.tglButuh || '', tglBuat: doc.tglBuat || '', sumber: doc.sumber}, jagaDept: true}; };
+      var payload = function () { pindah(); var S2 = susun(D); return {ppbj: D.ppbj.trim(), nama: D.nama.trim(), dept: '', kategori: D.kategori, items: S2.items, rinci: S2.rinci, meta: {tglButuh: doc.tglButuh || '', tglBuat: doc.tglBuat || '', sumber: doc.sumber}, jagaDept: true, sl: (c.sl && c.sl.boleh && D.slTandai !== undefined && !!D.slTandai !== !!c.sl.sudahSL) ? (D.slTandai ? 'SL' : 'Reguler') : ''}; };
       var bs = document.getElementById('kbs');
       if (bs) bs.onclick = function () { simpanDok(payload(), bs, false, function () { hasil.disimpan++; lanjut(); }); };
       var bi = document.getElementById('kbi');
@@ -430,6 +436,7 @@
         if (!r.ok) { kabar(r.msg || 'Gagal menyimpan.', true); tombol.disabled = false; tombol.textContent = 'Simpan RAB'; return; }
         kabar(r.msg || 'Tersimpan.');
         if (opt.onSimpan) try { opt.onSimpan(r, p); } catch (e) {}
+        if (p.sl) { opt.api({action: 'adminProyekJenis', ppbj: p.ppbj, jenis: p.sl}).then(function (j) { kabar(j.msg || 'Jenis proyek diperbarui.', !j.ok); }).catch(function () {}).then(sudah); return; }
         sudah();
       }).catch(function () { kabar('Gagal terhubung ke server.', true); tombol.disabled = false; tombol.textContent = 'Simpan RAB'; });
     }

@@ -1,7 +1,7 @@
 /* Proyek Pintar (Tambahan 25): prioritas, kesiapan material, rebutan menurut prioritas, halaman proyek, simulasi,
    daftar belanja, dan peringatan di Serah Barang. Dipakai tab Proyek dan Serah Barang di admin.html. */
 var PX=(function(){
-  var D=null,F={q:"",status:"",prio:"",dept:"",tanda:""};
+  var D=null,F={q:"",status:"",prio:"",dept:"",tanda:"",jenis:""};
   var PC={Tinggi:"var(--red,#a82424)",Biasa:"inherit",Rendah:"var(--mut,#4a5b68)"};
   function $(i){return document.getElementById(i);}
   function rp(n){return n==null?"-":(n<0?"-":"")+"Rp "+Math.abs(Math.round(n)).toLocaleString("id-ID");}
@@ -31,17 +31,17 @@ var PX=(function(){
     var dep={};D.rows.forEach(function(x){if(x.dept)dep[x.dept]=1;});
     function ch(k,v,l){return '<button class="chip'+(F[k]===v?" on":"")+'" data-fk="'+k+'" data-fv="'+v+'">'+l+'</button>';}
     f.innerHTML='<input id="pxq" placeholder="Cari No PPBJ / keterangan" value="'+esc(F.q)+'" style="max-width:220px">'+
-      ch("status","","Semua status")+ch("status","Aktif","Aktif")+ch("status","Ditunda Sebentar","Ditunda Sebentar")+ch("prio","Tinggi","Prioritas Tinggi")+ch("prio","Rendah","Rendah")+ch("tanda","terancam","Terancam")+ch("tanda","jalan","Jalan duluan")+ch("tanda","kurang","Ada yang kurang")+ch("tanda","tertahan","Dokumen tertahan")+
+      ch("status","","Semua status")+ch("status","Aktif","Aktif")+ch("status","Ditunda Sebentar","Ditunda Sebentar")+ch("prio","Tinggi","Prioritas Tinggi")+ch("prio","Rendah","Rendah")+ch("tanda","terancam","Terancam")+ch("tanda","jalan","Jalan duluan")+ch("tanda","kurang","Ada yang kurang")+ch("tanda","tertahan","Dokumen tertahan")+ch("tanda","order","Ada barang ORDER")+ch("jenis","SL","Proyek SL")+ch("jenis","Reguler","Reguler")+
       '<select id="pxd"><option value="">Semua departemen</option>'+Object.keys(dep).sort().map(function(d){return '<option'+(F.dept===d?" selected":"")+'>'+esc(d)+'</option>';}).join("")+'</select>'+
-      '<button class="gh" id="pxb">Daftar belanja</button><button class="sv" id="pxbs" title="Kebutuhan semua proyek + buffer - stok bebas">Daftar beli keseluruhan</button><button class="gh" id="pxx">Unduh Excel</button>';
+      '<button class="gh" id="pxsl" title="Cari proyek yang isi RAB-nya memuat barang paket Sambungan Langsung">Cari proyek SL</button><button class="gh" id="pxb">Daftar belanja</button><button class="sv" id="pxbs" title="Kebutuhan semua proyek + buffer - stok bebas">Daftar beli keseluruhan</button><button class="gh" id="pxx">Unduh Excel</button>';
     Array.prototype.forEach.call(f.querySelectorAll("[data-fk]"),function(b){b.onclick=function(){var k=b.getAttribute("data-fk"),v=b.getAttribute("data-fv");F[k]=(F[k]===v&&v!=="")?"":v;saring();filterUI();};});
     $("pxq").oninput=function(){F.q=this.value;saring();};$("pxd").onchange=function(){F.dept=this.value;saring();};
-    $("pxb").onclick=belanja;$("pxbs").onclick=beli;$("pxx").onclick=excelDaftar;
+    $("pxsl").onclick=dugaan;$("pxb").onclick=belanja;$("pxbs").onclick=beli;$("pxx").onclick=excelDaftar;
   }
   function lolos(x){
     var q=F.q.trim().toLowerCase();
     if(q&&!cocokQ(x.ppbj+" "+x.ket+" "+x.dept,q))return false;
-    if(F.status&&x.status!==F.status)return false;if(F.prio&&x.prio!==F.prio)return false;if(F.dept&&x.dept!==F.dept)return false;
+    if(F.status&&x.status!==F.status)return false;if(F.prio&&x.prio!==F.prio)return false;if(F.jenis&&(x.jenis||"Reguler")!==F.jenis)return false;if(F.tanda==="order"&&!x.nOrder)return false;if(F.dept&&x.dept!==F.dept)return false;
     if(F.tanda==="terancam"&&!x.terancamOleh.length)return false;if(F.tanda==="jalan"&&!x.jalanDuluan)return false;if(F.tanda==="kurang"&&!x.nKurang)return false;if(F.tanda==="tertahan"&&!x.dok.tertahan)return false;
     return true;
   }
@@ -57,12 +57,17 @@ var PX=(function(){
       var x=by[td.getAttribute("data-pxp").toLowerCase()];if(!x){td.innerHTML="-";return;}
       td.innerHTML='<select data-prio="'+esc(x.ppbj)+'" title="Prioritas proyek. Menentukan siapa dilayani lebih dulu bila stok tidak cukup untuk semua.">'+["Tinggi","Biasa","Rendah"].map(function(p){return '<option'+(x.prio===p?" selected":"")+'>'+p+'</option>';}).join("")+'</select>';
     });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-pxj]"),function(td){
+      var x=by[td.getAttribute("data-pxj").toLowerCase()];if(!x){td.innerHTML="-";return;}
+      td.innerHTML='<select data-jenis="'+esc(x.ppbj)+'" title="Jenis proyek. Hanya untuk filter dan laporan; tidak mengubah perhitungan stok atau buffer.">'+["Reguler","SL"].map(function(j){return '<option'+((x.jenis||"Reguler")===j?" selected":"")+'>'+j+'</option>';}).join("")+'</select>';
+    });
     Array.prototype.forEach.call(document.querySelectorAll("[data-pxk]"),function(td){
       var x=by[td.getAttribute("data-pxk").toLowerCase()];if(!x){td.innerHTML="-";return;}
       var h='';
       if(x.mengikat)h+=bar(x.kesiapan);
       var b=[];if(x.nKurang)b.push('<span class="bd b">Kurang '+x.nKurang+'</span>');if(x.nRebutanTerancam)b.push('<span class="bd w">Terancam '+x.nRebutanTerancam+'</span>');if(x.nTipis)b.push('<span class="bd l" title="Stok hanya sedikit di atas total kebutuhan">Tipis '+x.nTipis+'</span>');
       if(b.length)h+='<div style="margin-top:4px">'+b.join(" ")+'</div>';
+      if(x.nOrder)h+='<small style="display:block;color:var(--warn-t,#6b4300)"><b>'+x.nOrder+' barang berstatus ORDER</b> (menurut PDF PPBJ)</small>';
       if(x.rab)h+='<small class="note" style="display:block">RAB '+(x.rab.persen==null?"-":x.rab.persen+"%")+' terpakai &middot; <b>'+esc(x.rab.kondisi)+'</b></small>';
       if(x.dok.belum)h+='<small class="note" style="display:block">Accurate: '+x.dok.siap+' siap'+(x.dok.tertahan?', <b style="color:var(--red,#a82424)">'+x.dok.tertahan+' tertahan</b>':"")+'</small>';
       if(x.terancamOleh.length)h+='<small style="display:block;color:var(--red,#a82424)">Terancam oleh '+x.terancamOleh.map(function(o){return esc(o.ppbj)+(o.lebihRendah?" (prioritas lebih rendah)":"");}).join(", ")+'</small>';
@@ -71,6 +76,7 @@ var PX=(function(){
       td.innerHTML=h;
     });
     Array.prototype.forEach.call(document.querySelectorAll("[data-prio]"),function(s){s.onchange=async function(){var r=await api({action:"adminProyekPrioritas",ppbj:s.getAttribute("data-prio"),prio:s.value});toast(r.msg||(r.ok?"Tersimpan.":"Gagal."),!r.ok);if(r.ok)muat();};});
+    Array.prototype.forEach.call(document.querySelectorAll("[data-jenis]"),function(s){s.onchange=async function(){var r=await api({action:"adminProyekJenis",ppbj:s.getAttribute("data-jenis"),jenis:s.value});toast(r.msg||(r.ok?"Tersimpan.":"Gagal."),!r.ok);if(r.ok)muat();};});
     Array.prototype.forEach.call(document.querySelectorAll("[data-buka]"),function(b){b.onclick=function(){buka(b.getAttribute("data-buka"));};});
     saring();
   }
@@ -81,11 +87,11 @@ var PX=(function(){
     var r=await api({action:"adminProyekRinci",ppbj:ppbj});if(!r.ok){toast(r.msg||"Gagal.",true);drawProyek();return;}
     var P=r.proyek,sisa=r.items.filter(function(x){return x.status!=="Terpenuhi";});
     pane().innerHTML='<div class="bar noprint"><button class="gh" id="pxback">&larr; Kembali ke daftar proyek</button><button class="gh" id="pxsim">Kalau proyek ini mulai (simulasi)</button><button class="gh" id="pxrx">Unduh Excel proyek ini</button></div>'+
-      '<div class="card"><b>'+esc(P.ppbj)+'</b> &middot; '+esc(P.ket)+' <span class="bd '+stCls(P.status)+'">'+esc(P.status)+'</span> '+prioBadge(P.prio)+'<div class="note" style="margin-top:6px">Departemen '+esc(P.dept||"-")+'. '+(P.mengikat?'':'Proyek ini tidak mengikat stok, jadi tidak ikut bersaing. ')+(P.adaRab?'':'Belum ada RAB untuk proyek ini.')+'</div></div>'+
-      tiles([[P.kesiapan==null?"-":P.kesiapan+"%","Kesiapan material"],[r.items.length,"Barang di RAB"],[P.nKurang,"Kurang",P.nKurang?"var(--red,#a82424)":""],[P.nRebutanTerancam,"Terancam (rebutan)",P.nRebutanTerancam?"var(--warn-t,#6b4300)":""],[P.rab?(P.rab.persen==null?"-":P.rab.persen+"%"):"-","RAB terpakai"],[r.nDokumen,"Dokumen"]])+
+      '<div class="card"><b>'+esc(P.ppbj)+'</b> &middot; '+esc(P.ket)+' <span class="bd '+stCls(P.status)+'">'+esc(P.status)+'</span> '+prioBadge(P.prio)+(P.jenis==="SL"?' <span class="bd d">SL</span>':"")+'<div class="note" style="margin-top:6px">Departemen '+esc(P.dept||"-")+'. '+(P.mengikat?'':'Proyek ini tidak mengikat stok, jadi tidak ikut bersaing. ')+(P.adaRab?'':'Belum ada RAB untuk proyek ini.')+'</div></div>'+
+      tiles([[P.kesiapan==null?"-":P.kesiapan+"%","Kesiapan material"],[r.items.length,"Barang di RAB"],[P.nKurang,"Kurang",P.nKurang?"var(--red,#a82424)":""],[P.nRebutanTerancam,"Terancam (rebutan)",P.nRebutanTerancam?"var(--warn-t,#6b4300)":""],[P.rab?(P.rab.persen==null?"-":P.rab.persen+"%"):"-","RAB terpakai"],[r.nDokumen,"Dokumen"]].concat(P.nOrder?[[P.nOrder,"Barang berstatus ORDER","var(--warn-t,#6b4300)"]]:[]))+
       (P.terancamOleh.length?'<div class="note" style="border-left:3px solid var(--red,#a82424);padding-left:8px">Terancam kekurangan karena bersaing dengan: '+P.terancamOleh.map(function(o){return '<b>'+esc(o.ppbj)+'</b> ('+esc(o.prio)+', '+o.barang+' barang)'+(o.lebihRendah?' <b>prioritasnya lebih rendah dari proyek ini</b>':"");}).join("; ")+'.</div>':"")+
       '<h3 style="font-size:15px;margin:14px 0 4px">Ketersediaan barang proyek ini</h3>'+
-      (r.items.length?tab(["Barang","RAB","Sudah diserahkan","Dialokasikan","Sisa kebutuhan","Stok bebas","Total kebutuhan semua proyek","Status","Bersaing dengan"],r.items.map(function(x){var ket=x.status==="Rebutan"&&x.kurangPrioritas>0?'<small style="color:var(--red,#a82424)">Menurut prioritas, kurang '+fmtN(x.kurangPrioritas)+'</small>':x.status==="Rebutan"?'<small>Aman menurut prioritas</small>':x.status==="Kurang"?'<small style="color:var(--red,#a82424)">Kurang '+fmtN(x.kurangSendiri)+' (perlu dibeli)</small>':x.tipis?'<small>Stok tipis</small>':"";return '<tr><td><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.satuan?' &middot; '+esc(x.satuan):"")+'</small></td><td class="nm">'+fmtN(x.rab)+'</td><td class="nm">'+fmtN(x.serah)+'</td><td class="nm">'+fmtN(x.alok)+'</td><td class="nm">'+fmtN(x.sisa)+'</td><td class="nm">'+fmtN(x.bebas)+'</td><td class="nm">'+fmtN(x.total)+'</td><td><b style="color:'+(SK[x.status]||"inherit")+'">'+esc(x.status)+'</b>'+ket+'</td><td>'+(x.pesaing.length?x.pesaing.map(function(o){return esc(o.ppbj)+' <small>'+esc(o.prio)+' &middot; '+fmtN(o.sisa)+'</small>';}).join("<br>"):"-")+'</td></tr>';}),[1,2,3,4,5,6]):'<div class="card msg">Belum ada kebutuhan (RAB) untuk proyek ini.</div>')+
+      (r.items.length?tab(["Barang","RAB","Sudah diserahkan","Dialokasikan","Sisa kebutuhan","Stok bebas","Total kebutuhan semua proyek","Status","Bersaing dengan"],r.items.map(function(x){var ket=x.status==="Rebutan"&&x.kurangPrioritas>0?'<small style="color:var(--red,#a82424)">Menurut prioritas, kurang '+fmtN(x.kurangPrioritas)+'</small>':x.status==="Rebutan"?'<small>Aman menurut prioritas</small>':x.status==="Kurang"?'<small style="color:var(--red,#a82424)">Kurang '+fmtN(x.kurangSendiri)+' (perlu dibeli)</small>':x.tipis?'<small>Stok tipis</small>':"";return '<tr><td><b>'+esc(x.nama||x.kode)+'</b>'+(x.order?' <span class="bd w" title="Menurut PDF PPBJ barang ini akan dipesan">ORDER</span>':"")+'<small>'+esc(x.kode)+(x.satuan?' &middot; '+esc(x.satuan):"")+'</small></td><td class="nm">'+fmtN(x.rab)+'</td><td class="nm">'+fmtN(x.serah)+'</td><td class="nm">'+fmtN(x.alok)+'</td><td class="nm">'+fmtN(x.sisa)+'</td><td class="nm">'+fmtN(x.bebas)+'</td><td class="nm">'+fmtN(x.total)+'</td><td><b style="color:'+(SK[x.status]||"inherit")+'">'+esc(x.status)+'</b>'+ket+'</td><td>'+(x.pesaing.length?x.pesaing.map(function(o){return esc(o.ppbj)+' <small>'+esc(o.prio)+' &middot; '+fmtN(o.sisa)+'</small>';}).join("<br>"):"-")+'</td></tr>';}),[1,2,3,4,5,6]):'<div class="card msg">Belum ada kebutuhan (RAB) untuk proyek ini.</div>')+
       '<h3 style="font-size:15px;margin:14px 0 4px">Dokumen barang keluar dan pengembalian</h3>'+
       (r.dokumen.length?tab(["Dokumen","Tanggal","Jenis","Baris","Nilai","Status di Accurate"],r.dokumen.map(function(x){return '<tr><td><b>'+esc(x.doc)+'</b></td><td>'+tgl(x.tgl)+'</td><td>'+esc(x.jenis)+'</td><td class="nm">'+x.baris+'</td><td class="nm">'+rp(x.nilai)+'</td><td>'+(x.accurate==="Tertahan"?'<b style="color:var(--red,#a82424)">Tertahan</b>':esc(x.accurate))+'</td></tr>';}),[3,4]):'<div class="card msg">Belum ada barang keluar atas proyek ini.</div>')+
       '<div id="pxsimh"></div>';
@@ -116,7 +122,7 @@ var PX=(function(){
   }
   function excelDaftar(){
     if(!D)return;
-    xlsx("kesiapan_proyek.xlsx",[["Proyek",[["PPBJ","Keterangan","Departemen","Status","Prioritas","Kesiapan %","Barang RAB","Kurang","Terancam","Tipis","RAB terpakai %","Kondisi RAB","Dokumen Accurate siap","Dokumen tertahan","Terancam oleh","Bergerak duluan"]].concat(D.rows.filter(lolos).map(function(x){return [x.ppbj,x.ket,x.dept,x.status,x.prio,x.kesiapan==null?"":x.kesiapan,x.nItem,x.nKurang,x.nRebutanTerancam,x.nTipis,x.rab&&x.rab.persen!=null?x.rab.persen:"",x.rab?x.rab.kondisi:"",x.dok.siap,x.dok.tertahan,x.terancamOleh.map(function(o){return o.ppbj;}).join(", "),x.jalanDuluan?"Ya":""];}))]]);
+    xlsx("kesiapan_proyek.xlsx",[["Proyek",[["PPBJ","Keterangan","Departemen","Status","Prioritas","Kesiapan %","Barang RAB","Kurang","Terancam","Tipis","RAB terpakai %","Kondisi RAB","Dokumen Accurate siap","Dokumen tertahan","Terancam oleh","Bergerak duluan","Jenis proyek","Barang ORDER"]].concat(D.rows.filter(lolos).map(function(x){return [x.ppbj,x.ket,x.dept,x.status,x.prio,x.kesiapan==null?"":x.kesiapan,x.nItem,x.nKurang,x.nRebutanTerancam,x.nTipis,x.rab&&x.rab.persen!=null?x.rab.persen:"",x.rab?x.rab.kondisi:"",x.dok.siap,x.dok.tertahan,x.terancamOleh.map(function(o){return o.ppbj;}).join(", "),x.jalanDuluan?"Ya":"",x.jenis||"Reguler",x.nOrder||0];}))]]);
   }
   /* ---- peringatan di Serah Barang ---- */
   async function peringatan(id){
@@ -193,5 +199,25 @@ var PX=(function(){
     }catch(e){toast("Gagal terhubung ke server.",true);}
     finally{btn.disabled=false;}
   }
-  return {beli:beli,serahSemua:serahSemua,muat:muat,isi:isi,buka:buka,peringatan:peringatan,simulasi:simulasi,belanja:belanja};
+  /* ---- Cari proyek SL: dugaan dari isi RAB (Tambahan 28) ---- */
+  async function dugaan(){
+    pane().innerHTML='<div class="card msg">Mencari proyek yang memuat barang paket SL...</div>';
+    var r=await api({action:"adminSlDugaan"});if(!r.ok){toast(r.msg||"Gagal.",true);drawProyek();return;}
+    var L=r.rows||[];
+    pane().innerHTML='<div class="bar noprint"><button class="gh" id="sdback">&larr; Kembali ke daftar proyek</button></div>'+
+      '<div class="card"><b>Diduga proyek Sambungan Langsung (SL)</b><div class="note">Dari isi RAB: proyek yang memuat barang dari paket '+(r.paket.length?r.paket.map(function(n){return "<b>"+esc(n)+"</b>";}).join(", "):"SL")+(r.nKodePaket?' ('+r.nKodePaket+' jenis barang)':"")+'. Sebagian cocok pun ditampilkan dengan persentasenya; Anda yang memutuskan. Tanda SL hanya untuk filter dan laporan, tidak mengubah perhitungan stok atau buffer.</div></div>'+
+      (r.msg?'<div class="card msg">'+esc(r.msg)+'</div>':"")+
+      (L.length?'<div class="bar noprint"><button class="sv" id="sdsl">Tandai terpilih sebagai SL</button><button class="gh" id="sdreg">Kembalikan terpilih ke Reguler</button><button class="gh" id="sdpil">Pilih yang 60% ke atas</button><span class="note" id="sdn"></span></div>'+
+      tab(["","No PPBJ","Proyek","Status","Jenis","Cocok paket SL","Contoh barang"],L.map(function(x,i){return '<tr><td><input type="checkbox" data-sd="'+i+'" aria-label="Pilih '+esc(x.ppbj)+'"></td><td><b>'+esc(x.ppbj)+'</b></td><td>'+esc(x.ket)+'</td><td>'+esc(x.status)+'</td><td>'+(x.jenis==="SL"?'<span class="bd d">SL</span>':'Reguler')+'</td><td>'+bar(x.persen)+'<small class="note">'+x.nCocok+' dari '+x.nItem+' barang RAB</small></td><td><small>'+x.contoh.map(esc).join(", ")+'</small></td></tr>';})):(r.msg?"":'<div class="card msg">Tidak ada proyek yang RAB-nya memuat barang paket SL.</div>'));
+    $("sdback").onclick=function(){drawProyek();};
+    if(!L.length)return;
+    function pilih(){var o=[];Array.prototype.forEach.call(pane().querySelectorAll("[data-sd]:checked"),function(c){o.push(L[+c.getAttribute("data-sd")].ppbj);});return o;}
+    function hit(){$("sdn").textContent=pilih().length+" dipilih";}
+    Array.prototype.forEach.call(pane().querySelectorAll("[data-sd]"),function(c){c.onchange=hit;});
+    $("sdpil").onclick=function(){Array.prototype.forEach.call(pane().querySelectorAll("[data-sd]"),function(c){var x=L[+c.getAttribute("data-sd")];c.checked=x.persen>=60&&x.jenis!=="SL";});hit();};
+    async function tandai(j){var p=pilih();if(!p.length){toast("Centang proyek dulu.",true);return;}var rr=await api({action:"adminProyekJenis",ppbj:p,jenis:j});toast(rr.msg||(rr.ok?"Tersimpan.":"Gagal."),!rr.ok);if(rr.ok)dugaan();}
+    $("sdsl").onclick=function(){tandai("SL");};$("sdreg").onclick=function(){tandai("Reguler");};hit();
+  }
+  function tolakJenis(ppbj){if(!D||!F.jenis)return false;var x=D.rows.filter(function(o){return String(o.ppbj).toLowerCase()===String(ppbj).toLowerCase();})[0];return !!x&&(x.jenis||"Reguler")!==F.jenis;}
+  return {beli:beli,serahSemua:serahSemua,muat:muat,isi:isi,buka:buka,peringatan:peringatan,simulasi:simulasi,belanja:belanja,dugaan:dugaan,tolakJenis:tolakJenis};
 })();

@@ -12,6 +12,7 @@
 <script src="admin-mutasi.js"></script>
 <script src="admin-laporan2.js"></script>
 <script src="admin-proyek2.js"></script>
+<script src="kb-impor.js"></script>
 <script src="kimia.js"></script>
 <script src="kpi.js"></script>
 <script src="tanda.js"></script>
@@ -1468,6 +1469,7 @@ function drawProyek(){
    '<div class="card"><b>Tambah / ubah proyek</b><div class="note">Mengisi No PPBJ yang sudah ada akan mengubah proyek itu. Aktif dan Ditunda Sebentar mengikat stok; Ditunda Lama, Selesai, Batal melepasnya.</div>'+
    '<div class="fr"><input type="text" id="pp" placeholder="No PPBJ" maxlength="60"><input type="text" id="pk" placeholder="Keterangan proyek" maxlength="300" style="flex:1;min-width:200px"><select id="pd"><option value="">Departemen: pilih</option>'+PDEPT.map(function(d){return '<option>'+esc(d)+'</option>';}).join("")+'</select>'+
    '<select id="ps">'+PST.map(function(s){return '<option>'+esc(s)+'</option>';}).join("")+'</select><select id="ppr" title="Prioritas: menentukan proyek mana yang dilayani lebih dulu bila stok tidak cukup untuk semua"><option>Tinggi</option><option selected>Biasa</option><option>Rendah</option></select><button class="sv" id="pgo">Simpan</button></div></div>'+
+   '<div class="card"><b>Impor kebutuhan proyek (RAB)</b><div class="note">Dari file Excel atau PDF PPBJ. Tabel pratinjau tampil dulu: cocokkan barang, periksa total, baru simpan. Proyek yang belum terdaftar didaftarkan otomatis; departemen tidak diambil dari file.</div><div class="fr"><button class="gh" id="kbix">Impor Excel</button><button class="gh" id="kbip">Impor PDF PPBJ</button><a href="#" id="kbit">Unduh template Excel</a><a href="#" id="kbie">Ekspor RAB tersimpan (No PPBJ di kolom atas)</a></div></div>'+
    '<div id="pxtop"></div><div id="krgbar"></div>'+(PRO.length?'<table><thead><tr><th>No PPBJ</th><th>Keterangan</th><th>Departemen</th><th>Status</th><th>Prioritas</th><th>Kesiapan &amp; peringatan</th><th>Kebutuhan material</th><th>Ubah status</th></tr></thead><tbody>'+
    PRO.map(function(p,i){return '<tr data-pxr="'+esc(p.ppbj)+'"><td data-l="No PPBJ"><b>'+esc(p.ppbj)+'</b><small>'+esc(p.dibuat||"")+'</small></td><td data-l="Keterangan">'+esc(p.ket)+'</td><td data-l="Departemen">'+esc(p.dept)+'</td>'+
      '<td data-l="Status"><span class="bd '+stCls(p.status)+'">'+esc(p.status)+'</span></td>'+
@@ -1483,6 +1485,11 @@ function drawProyek(){
     if(k||!ex)b.ket=k;if(d||!ex)b.dept=d;
     kirimAdmin(this,b,loadProyek);
   };
+  var kbiMulai=function(j){if(!window.KBI){toast("Pembaca impor belum termuat. Muat ulang halaman.",true);return;}KBI.mulai({jenis:j,api:api,simpan:true,onSelesai:function(h){if(h&&h.disimpan)loadProyek();}});};
+  document.getElementById("kbix").onclick=function(){kbiMulai("excel");};
+  document.getElementById("kbip").onclick=function(){kbiMulai("pdf");};
+  document.getElementById("kbit").onclick=function(e){e.preventDefault();if(window.KBI)KBI.templat();};
+  document.getElementById("kbie").onclick=function(e){e.preventDefault();if(window.KBI)KBI.ekspor(api,document.getElementById("pp").value);};
   muatKurang();if(window.PX)PX.muat();
   pane().querySelectorAll("[data-pu]").forEach(function(b){b.onclick=function(){
     var i=Number(b.getAttribute("data-pu")),p=PRO[i],st=pane().querySelector('[data-ps="'+i+'"]').value;

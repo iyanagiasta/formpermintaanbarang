@@ -7,6 +7,7 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="pdfpengajuan.js"></script>
+<script defer src="kb-impor.js"></script>
 <title>Cek Kebutuhan Proyek - Gudang SCTK</title>
 <style>
 .sres{display:grid;gap:4px;margin:4px 0}.hs{display:block;text-align:left;width:100%;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;cursor:pointer}.hs:hover,.hs:focus-visible{border-color:var(--gold);outline:none}.hs small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
@@ -74,10 +75,11 @@ function baru(){return {ppbj:"",nama:"",kategori:"",dept:"",rows:[],file:""};}
 /* ---------- input ---------- */
 function gambarForm(){
   var opt='<option value="">(RAB baru / belum terdaftar)</option>'+PROY.map(function(p){return '<option value="'+esc(p.ppbj)+'">'+esc(p.ppbj)+' - '+esc(p.ket)+'</option>';}).join("");
-  app.innerHTML='<div class="card"><b>Langkah 1. Siapkan proyek</b><div class="note">Satu blok per proyek. Urutan blok = prioritas stok: proyek paling atas mendapat stok lebih dulu. Excel berisi kolom <b>Kode Barang</b>, Nama Barang (opsional), dan <b>Qty</b>. Kebutuhan yang sudah disimpan per No PPBJ bisa diambil dengan tombol di tiap proyek. <a href="#" id="contoh">Unduh contoh Excel</a></div></div>'+
+  app.innerHTML='<div class="card"><b>Langkah 1. Siapkan proyek</b><div class="note">Satu blok per proyek. Urutan blok = prioritas stok: proyek paling atas mendapat stok lebih dulu. Excel berisi kolom <b>Kode Barang</b>, Nama Barang (opsional), dan <b>Qty</b>. Kebutuhan yang sudah disimpan per No PPBJ bisa diambil dengan tombol di tiap proyek. Barang juga bisa diimpor dari <b>Excel</b> atau <b>PDF PPBJ</b> (tabel pratinjau tampil dulu). <a href="#" id="contoh">Unduh template Excel</a></div></div>'+
    BL.map(function(b,i){
-     return '<div class="card blk"><h3>Proyek '+(i+1)+'</h3><div class="fr"><select data-p="'+i+'">'+opt+'</select><button class="gh" data-kb="'+i+'" title="Isi daftar barang dari kebutuhan proyek yang tersimpan">Ambil kebutuhan tersimpan</button><input type="text" data-n="'+i+'" placeholder="Nama proyek" value="'+esc(b.nama)+'" style="flex:1;min-width:180px"><select data-k="'+i+'" title="Kategori anggaran proyek (dipakai untuk pengajuan pembelian)"><option value="">Kategori: pilih</option><option value="Opex"'+(b.kategori==="Opex"?' selected':'')+'>Opex</option><option value="Capex"'+(b.kategori==="Capex"?' selected':'')+'>Capex</option></select></div>'+
-      '<div class="fr"><input type="file" data-f="'+i+'" accept=".xlsx,.xls,.csv"><span class="note" id="fi'+i+'">'+(b.file?esc(b.file)+': diunggah':'Excel boleh dilewati, barang bisa ditambah lewat pencarian')+'</span></div>'+
+     var optB=opt+((b.ppbj&&!PROY.some(function(x){return x.ppbj===b.ppbj;}))?'<option value="'+esc(b.ppbj)+'">'+esc(b.ppbj)+' (belum terdaftar)</option>':'');
+     return '<div class="card blk"><h3>Proyek '+(i+1)+'</h3><div class="fr"><select data-p="'+i+'">'+optB+'</select><button class="gh" data-kb="'+i+'" title="Isi daftar barang dari kebutuhan proyek yang tersimpan">Ambil kebutuhan tersimpan</button><input type="text" data-n="'+i+'" placeholder="Nama proyek" value="'+esc(b.nama)+'" style="flex:1;min-width:180px"><select data-k="'+i+'" title="Kategori anggaran proyek (dipakai untuk pengajuan pembelian)"><option value="">Kategori: pilih</option><option value="Opex"'+(b.kategori==="Opex"?' selected':'')+'>Opex</option><option value="Capex"'+(b.kategori==="Capex"?' selected':'')+'>Capex</option></select></div>'+
+      '<div class="fr"><button class="gh" data-ix="'+i+'">Impor Excel</button><button class="gh" data-ip="'+i+'">Impor PDF PPBJ</button><span class="note" id="fi'+i+'">'+(b.file?esc(b.file):'Impor boleh dilewati, barang bisa ditambah lewat pencarian. Di tabel pratinjau Anda juga boleh langsung menyimpan RAB-nya.')+'</span></div>'+
       '<div class="fr"><input type="search" data-s="'+i+'" placeholder="Cari nama atau kode barang untuk ditambahkan..." autocomplete="off" style="flex:1;min-width:220px"></div><div class="sres" id="sr'+i+'"></div><div id="rb'+i+'"></div>'+
       '<div class="fr"><button class="gh" data-up="'+i+'"'+(i?'':' disabled')+'>&uarr; Naik</button><button class="gh" data-dn="'+i+'"'+(i<BL.length-1?'':' disabled')+'>&darr; Turun</button><button class="gh" data-rm="'+i+'"'+(BL.length>1?'':' disabled')+'>Hapus</button></div></div>';
    }).join("")+
@@ -96,7 +98,8 @@ function gambarForm(){
     b.disabled=false;};});
   app.querySelectorAll("[data-n]").forEach(function(s){s.oninput=function(){BL[Number(s.getAttribute("data-n"))].nama=s.value;};});
   app.querySelectorAll("[data-k]").forEach(function(s){s.onchange=function(){BL[Number(s.getAttribute("data-k"))].kategori=s.value;};});
-  app.querySelectorAll("[data-f]").forEach(function(f){f.onchange=function(){var i=Number(f.getAttribute("data-f"));if(f.files[0])bacaFile(f.files[0],i);};});
+  app.querySelectorAll("[data-ix]").forEach(function(b){b.onclick=function(){impor("excel",Number(b.getAttribute("data-ix")));};});
+  app.querySelectorAll("[data-ip]").forEach(function(b){b.onclick=function(){impor("pdf",Number(b.getAttribute("data-ip")));};});
   app.querySelectorAll("[data-up]").forEach(function(b){b.onclick=function(){var i=Number(b.getAttribute("data-up"));var t=BL[i];BL[i]=BL[i-1];BL[i-1]=t;gambarForm();};});
   app.querySelectorAll("[data-dn]").forEach(function(b){b.onclick=function(){var i=Number(b.getAttribute("data-dn"));var t=BL[i];BL[i]=BL[i+1];BL[i+1]=t;gambarForm();};});
   app.querySelectorAll("[data-rm]").forEach(function(b){b.onclick=function(){BL.splice(Number(b.getAttribute("data-rm")),1);gambarForm();};});
@@ -104,7 +107,7 @@ function gambarForm(){
   app.querySelectorAll("[data-s]").forEach(function(inp){var i=Number(inp.getAttribute("data-s")),tm=null;inp.oninput=function(){clearTimeout(tm);var q=inp.value.trim(),box=document.getElementById("sr"+i);if(q.length<2){box.innerHTML="";return;}tm=setTimeout(function(){cariBarang(i,q);},350);};});
   document.getElementById("tmb").onclick=function(){BL.push(baru());gambarForm();};
   document.getElementById("hit").onclick=hitung;
-  document.getElementById("contoh").onclick=function(e){e.preventDefault();unduhContoh();};
+  document.getElementById("contoh").onclick=function(e){e.preventDefault();if(window.KBI)KBI.templat();else toast("Pembaca impor belum termuat. Muat ulang halaman.",true);};
 }
 var SEQ=0;
 async function cariBarang(i,q){
@@ -133,39 +136,17 @@ function renderRows(i,akhir){
   box.querySelectorAll("[data-x]").forEach(function(b){b.onclick=function(){BL[i].rows.splice(Number(b.getAttribute("data-x")),1);renderRows(i);};});
   if(akhir){var rw=box.querySelector(".rw");if(rw)rw.scrollTop=rw.scrollHeight;}
 }
-function bacaFile(file,i){
-  if(typeof XLSX==="undefined"){toast("Pembaca Excel belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
-  var fr=new FileReader();
-  fr.onload=function(ev){
-    try{
-      var wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"}),a=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:"",raw:false});
-      var o=ambil(a);if(o.err){toast(o.err,true);return;}
-      var ada={};BL[i].rows.forEach(function(y){ada[String(y.kode).toUpperCase()]=true;});
-      var tambah=o.rows.filter(function(y){return !ada[String(y.kode).toUpperCase()];});
-      BL[i].rows=BL[i].rows.concat(tambah);BL[i].file=file.name;document.getElementById("fi"+i).textContent=file.name+": "+o.rows.length+" baris"+(o.adaJudul?"":" (tanpa judul kolom: A=Kode, B=Nama, C=Qty)");renderRows(i);
-    }catch(e){toast("File tidak bisa dibaca. Gunakan .xlsx atau .csv.",true);}
-  };
-  fr.readAsArrayBuffer(file);
-}
-function ambil(a){
-  var hi=-1,m={};
-  for(var i=0;i<Math.min(a.length,10);i++){
-    var t={};a[i].forEach(function(x,j){x=String(x).toLowerCase().trim();
-      if(t.kode==null&&/kode/.test(x))t.kode=j;else if(t.nama==null&&/nama|uraian|deskripsi|barang/.test(x))t.nama=j;else if(t.satuan==null&&/satuan|unit|uom/.test(x))t.satuan=j;else if(t.qty==null&&/qty|jumlah|kebutuhan|volume|kuantitas|butuh/.test(x))t.qty=j;});
-    if(t.kode!=null){hi=i;m=t;break;}
-  }
-  if(hi<0)m={kode:0,nama:1,qty:2};
-  if(m.qty==null)return {err:"Kolom Qty tidak ditemukan. Beri judul kolom 'Qty' atau 'Jumlah'."};
-  var rows=[];
-  for(var r=hi+1;r<a.length;r++){var x=a[r],k=String(x[m.kode]==null?"":x[m.kode]).trim();if(!k)continue;
-    rows.push({kode:k,nama:m.nama!=null?String(x[m.nama]||"").trim():"",satuan:m.satuan!=null?String(x[m.satuan]||"").trim():"",qty:x[m.qty]});}
-  if(!rows.length)return {err:"Tidak ada baris data di file."};
-  return {rows:rows,adaJudul:hi>=0};
-}
-function unduhContoh(){
-  if(typeof XLSX==="undefined"){alert("Pembaca Excel belum termuat.");return;}
-  var ws=XLSX.utils.aoa_to_sheet([["Kode Barang","Nama Barang","Qty"],["K1","Pipa PVC 3 inch",10],["K2","Oli Mesin",4]]);ws["!cols"]=[{wch:16},{wch:36},{wch:8}];
-  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Contoh");XLSX.writeFile(wb,"contoh-kebutuhan-proyek.xlsx");
+/* Impor Excel / PDF PPBJ: pembaca dan tabel pratinjau ada di kb-impor.js */
+function impor(jenis,i){
+  if(!window.KBI){toast("Pembaca impor belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
+  var n=0;
+  KBI.mulai({jenis:jenis,api:api,simpan:true,isi:function(p,doc){
+      var t=i;if(n>0){if(BL.length>=8){toast("Maksimal 8 proyek; dokumen berikutnya tidak dimasukkan ke perhitungan.",true);return;}BL.push(baru());t=BL.length-1;}else if(BL[i].rows.length&&!confirm("Daftar barang proyek "+(i+1)+" diganti dengan hasil impor ini?"))return;
+      n++;var b=BL[t];b.ppbj=p.ppbj;b.nama=p.nama;b.kategori=p.kategori;b.file=(doc.file||"")+(doc.sheet?" ("+doc.sheet+")":"");
+      b.rows=p.items.map(function(x){return {kode:x.kode,nama:x.nama,satuan:x.satuan,qty:String(x.qty).replace(".",",")};});},
+    isiLabel:"Pakai untuk perhitungan",
+    onSimpan:function(){api({action:"proyekPic"}).then(function(r){if(r.ok)PROY=r.data||[];}).catch(function(){});},
+    onSelesai:function(){gambarForm();}});
 }
 /* ---------- hitung & tampil ---------- */
 function payload(){return BL.filter(function(b){return b.rows.length;}).map(function(b,i){return {nama:b.nama||("Proyek "+(i+1)),ppbj:b.ppbj,kategori:b.kategori||"",dept:b.dept||"",rows:b.rows};});}

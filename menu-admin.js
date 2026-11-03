@@ -5,7 +5,7 @@
   var MENU = [["Harian", [["kerja", "Daftar Kerja"], ["pantau", "Pantauan BPB"], ["serah", "Serah Barang"], ["terima", "Terima Barang"], ["mutasi", "Mutasi"]]],
     ["Stok", [["stok", "Stok & Harga"], ["opname", "Selisih Opname"], ["kimia", "Opname Kimia"], ["kpi", "KPI Gudang"], ["baopname", "BA Opname"], ["kedaluwarsa", "Kedaluwarsa"], ["buffer", "Buffer Paket"], ["barangmati", "Barang Mati"], ["accurate", "Accurate"], ["komparasi", "Komparasi"]]],
     ["Proyek & Pembelian", [["proyek", "Proyek"], ["pengajuan", "Pengajuan"], ["pembelian", "Pembelian"], ["realisasi", "Realisasi"]]],
-    ["Laporan", [["laporan", "Laporan"], ["lapatasan", "Laporan Atasan"], ["telusur", "Telusur"]]],
+    ["Laporan", [["laporan", "Laporan"], ["lapatasan", "Laporan Atasan"], ["telusur", "Telusur"], ["analisa", "Analisa Barang"]]],
     ["Data & Sistem", [["masterbarang", "Master Barang"], ["label", "Label"], ["pengumuman", "Pengumuman"], ["sistem", "Sistem"], ["panduan", "Panduan"]]]];
   var HALAMAN = {"pengadaan.html": "pembelian", "realisasi.html": "realisasi", "label.html": "label", "pembelian.html": "pembelian"};
   var LANGSUNG = {pembelian: "pengadaan.html", realisasi: "realisasi.html", label: "label.html"};

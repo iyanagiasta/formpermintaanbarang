@@ -64,7 +64,9 @@
       var y;
       if (draw) {
         // logo tetes
-        page.drawSvgPath("M12 3s6 6.2 6 10.5A6 6 0 0 1 6 13.5C6 9.2 12 3 12 3z", { x: (8 + 0) * MM * K, y: Y(3.2), scale: (13.5 / 24) * MM * K, borderColor: hex("#1a6cab"), borderWidth: 1.6, borderLineCap: L.LineCapStyle.Round });
+        if (fonts.logo) { var lg = fonts.logo, sc = Math.min(13.5 / (lg.width / MM), 13.5 / (lg.height / MM)) / 1, lw = lg.width / MM * sc, lh = lg.height / MM * sc;
+          page.drawImage(lg, { x: (8 + (13.5 - lw) / 2) * MM * K, y: Y(3.2 + (13.5 + lh) / 2), width: lw * MM * K, height: lh * MM * K }); }
+        else page.drawSvgPath("M12 3s6 6.2 6 10.5A6 6 0 0 1 6 13.5C6 9.2 12 3 12 3z", { x: (8 + 0) * MM * K, y: Y(3.2), scale: (13.5 / 24) * MM * K, borderColor: hex("#1a6cab"), borderWidth: 1.6, borderLineCap: L.LineCapStyle.Round });
         // nama perusahaan + garis ganda
         T("PT SARANA CATUR TIRTA KELOLA", 24, 4 + 3.69 * .78, 9.5, FB, NAVY, { sp: .6 });
         R(24, 9.29, SW - 8 - 24, .55, BLUE); R(24, 10.39, SW - 8 - 24, .2, BLUE);
@@ -156,11 +158,28 @@
     }
   }
 
+  /* Logo perusahaan: logo.png di folder yang sama dengan halaman (file yang sama dipakai form). Bila tidak ada, dipakai ikon tetes. */
+  var LOGO_CACHE = null;
+  async function muatLogo(doc) {
+    if (LOGO_CACHE === null) {
+      LOGO_CACHE = false;
+      try {
+        var r = await fetch("logo.png?v=" + Date.now().toString(36).slice(0, 6), { cache: "no-cache" });
+        if (r.ok) { var b = new Uint8Array(await r.arrayBuffer()); if (b.length > 100 && b.length < 3e6) LOGO_CACHE = b; }
+      } catch (e) { }
+    }
+    if (!LOGO_CACHE) return null;
+    var b0 = LOGO_CACHE, png = b0[0] === 0x89 && b0[1] === 0x50, jpg = b0[0] === 0xff && b0[1] === 0xd8;
+    if (!png && !jpg) return null;
+    return png ? await doc.embedPng(b0) : await doc.embedJpg(b0);
+  }
+
   async function fonts(doc) { var L = W.PDFLib; return { F: await doc.embedFont(L.StandardFonts.Helvetica), FB: await doc.embedFont(L.StandardFonts.HelveticaBold), FT: await doc.embedFont(L.StandardFonts.TimesRomanBold) }; }
 
   /* docs: [{key,jenis,doc,d}] dari adminPaBukti. Hasil: Uint8Array berisi semua dokumen berurutan dalam satu PDF. */
   async function buatGabungan(docs, sig, onProgress) {
     var L = W.PDFLib, doc = await L.PDFDocument.create(), fn = await fonts(doc);
+    try { fn.logo = await muatLogo(doc); } catch (e) { fn.logo = null; }
     doc.setTitle("Bukti Accurate"); doc.setCreator("Gudang SCTK");
     for (var i = 0; i < docs.length; i++) { if (onProgress) onProgress(i + 1, docs.length); await gambarDokumen(doc, docs[i].d, sig, fn); }
     return await doc.save();

@@ -398,7 +398,7 @@ function proyekOpts(q){
 }
 
 /* ===== Departemen & manager ===== */
-var DEPTS=[{n:"RM",m:"Fizi"},{n:"Distribusi",m:"Reza"},{n:"Sales",m:"Reza"},{n:"Produksi",m:"Asep"}];
+var DEPTS=[{n:"RM",m:"Fiji"},{n:"Distribusi",m:"Reza"},{n:"Sales",m:"Reza"},{n:"Produksi",m:"Asep"}];
 var elDept=document.getElementById("dept"),elAts=document.getElementById("atasan");
 function findDept(v){var k=norm(v);if(!k)return null;for(var i=0;i<DEPTS.length;i++){if(norm(DEPTS[i].n)===k)return DEPTS[i];}return null;}
 function autoGrow(el){if(!el)return;el.style.height="auto";el.style.height=Math.max(el.scrollHeight+2,0)+"px";}

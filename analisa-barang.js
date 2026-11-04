@@ -10,9 +10,9 @@ var AB=(function(){
   function cari(inp,out,pick){
     var tm=null,seq=0;
     inp.oninput=function(){var v=inp.value.trim();clearTimeout(tm);if(v.length<2){out.innerHTML="";return;}
-      tm=setTimeout(async function(){var my=++seq,r=await api0({action:"adminAnalisaCari",q:v,jasa:!!(el.querySelector("#abj")||{}).checked});if(my!==seq||!r.ok)return;
+      tm=setTimeout(async function(){var my=++seq,jj=!!(el.querySelector("#abj")||{}).checked,r=(window.IDX&&await IDX.siap()&&IDX.ada())?IDX.analisaCari(v,jj):await api0({action:"adminAnalisaCari",q:v,jasa:jj});if(my!==seq||!r.ok)return;
         out.innerHTML=(r.rows||[]).slice(0,40).map(function(c,i){return '<div class="abh" data-i="'+i+'" style="padding:7px 10px;border-top:1px solid var(--line);cursor:pointer"><b>'+esc(c.nama)+'</b><small style="display:block;opacity:.7">'+esc(c.kode)+' &middot; stok '+fq(c.stok)+' '+esc(c.satuan||"")+(c.nRab?' &middot; ada di RAB '+c.nRab+' baris':'')+'</small></div>';}).join("")||'<div class="note">Tidak ada.</div>';
-        out.querySelectorAll(".abh").forEach(function(d){d.onclick=function(){pick(r.rows[Number(d.getAttribute("data-i"))]);inp.value="";out.innerHTML="";};});},250);};
+        out.querySelectorAll(".abh").forEach(function(d){d.onclick=function(){pick(r.rows[Number(d.getAttribute("data-i"))]);inp.value="";out.innerHTML="";};});},(window.IDX&&IDX.ada()?80:250));};
   }
   function gambar(){
     var h='<div class="card"><b>Analisa Barang</b><div class="note">Pilih barang yang ingin dicek. Sistem mengurangi stok gudang (Moka + Accurate) dengan kebutuhan proyek aktif menurut prioritas, lalu buffer paket, lalu menampilkan sisa stok, barang yang akan datang, dan status beli. Stok Bekas tidak dihitung.</div>'+

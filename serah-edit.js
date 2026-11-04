@@ -10,11 +10,14 @@ var SE=(function(){
       '<div class="bar"><button class="gh" id="se-x">Batal</button><button class="sv" id="se-ok">Simpan</button></div>');
     o.querySelector("#se-x").onclick=tutup;
     if(aksi==="ganti"){o.querySelector("#se-q").oninput=function(){var v=this.value;clearTimeout(tm);tm=setTimeout(async function(){
-      var r=await api({action:"adminBarangCari",q:v});var h=o.querySelector("#se-h");
+      var r;
+      if(window.IDX&&await IDX.siap()&&IDX.ada()){var cr=IDX.cari(v,{maks:15});r={ok:true,data:cr.hasil.map(function(b){return {kode:b.kode,nama:b.nama,satuan:b.satuan};})};}
+      else r=await api({action:"adminBarangCari",q:v});
+      var h=o.querySelector("#se-h");
       if(!r.ok){h.textContent=r.msg||"Gagal.";return;}
       h.innerHTML=(r.data||[]).map(function(b,i){return '<div><button class="gh" data-sp="'+i+'">'+esc(b.nama)+' <small>'+esc(b.kode)+' · '+esc(b.satuan)+'</small></button></div>';}).join("")||"Tidak ada.";
       h.querySelectorAll("[data-sp]").forEach(function(bt){bt.onclick=function(){pilih=r.data[Number(bt.getAttribute("data-sp"))];h.innerHTML='Dipilih: <b>'+esc(pilih.nama)+'</b> <small>'+esc(pilih.kode)+'</small>';};});
-    },250);};}
+    },(window.IDX&&IDX.ada()?80:250));};}
     o.querySelector("#se-ok").onclick=async function(){
       var alasan=o.querySelector("#se-a").value.trim();
       if(!alasan){toast("Alasan wajib diisi.",true);return;}

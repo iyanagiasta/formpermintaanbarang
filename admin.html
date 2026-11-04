@@ -106,7 +106,7 @@ td small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
 <link rel="stylesheet" href="admin-hp.css">
-<script src="cari-pintar.js"></script><script src="tema.js"></script>
+<script src="cari-pintar.js"></script><script src="cari-indeks.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -122,7 +122,9 @@ function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.c
 async function api(b){
   b.pin=PIN;
   var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});
-  return await r.json();
+  var j=await r.json();
+  try{if(window.IDX)IDX.sesudahApi(b.action,j);}catch(e){}
+  return j;
 }
 function loginView(msg){
   app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Masuk sebagai Admin Gudang</b></p><div class="note" style="margin-bottom:8px">Pantauan, stok, opname, proyek, dan laporan. Khusus admin gudang.</div>'+
@@ -140,7 +142,7 @@ async function login(){
 async function load(first){
   try{
     var r=await api({action:"adminList",semua:SEMUA});
-    if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
+    if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin");sessionStorage.removeItem("sctk_idx_v1")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
     DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
     var h=(location.hash||"").replace("#","");
     if(first&&h&&h!=="pantau"&&tabAda(h)){goTab(h);return;}
@@ -180,7 +182,7 @@ function draw(now){
   document.getElementById("q").oninput=drawRows;
   document.getElementById("rf").onclick=function(){load(false);};
   document.getElementById("rkgo").onclick=loadRekap;
-  document.getElementById("lo").onclick=function(){PIN="";try{sessionStorage.removeItem("sctk_admin")}catch(e){}loginView("");};
+  document.getElementById("lo").onclick=function(){PIN="";try{sessionStorage.removeItem("sctk_admin");sessionStorage.removeItem("sctk_idx_v1")}catch(e){}try{if(window.IDX)IDX.hapus();}catch(e){}loginView("");};
   pane().querySelectorAll("[data-chip]").forEach(function(b){b.onclick=function(){
     var k=b.getAttribute("data-chip");
     if(k==="semua"){SEMUA=true;MODE="belum";}else{SEMUA=false;MODE=k;}
@@ -340,6 +342,7 @@ function goTab(t){
   if(t==="pembelian"){location.href="pengadaan.html";return;}
   if(t==="label"){location.href="label.html";return;}
   TAB=t;
+  try{if(window.IDX&&PIN)IDX.mulai(api);}catch(e){}
   if(t==="pantau"){load(false);return;}
   tabsUI();
   if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="baopname")loadBA();else if(t==="buffer")loadBF();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="kimia")KM.mount(pane());else if(t==="kpi")KPI.mount(pane());else if(t==="panduan")PDN.mount(pane());else if(t==="laporan")loadLaporan();else if(t==="kerja")loadKerja();else if(t==="lapatasan")loadLapAtasan();else if(t==="telusur")loadTelusur();else if(t==="analisa")AB.mount(pane(),api,toast);else if(t==="kedaluwarsa")loadKdl();else if(t==="accurate")loadAccurate();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
@@ -396,6 +399,17 @@ function ambil(a,mode){
 var STOKR=null;
 async function loadStok(){
   var q=(document.getElementById("sq")||{}).value||"",hs=document.getElementById("hs")?document.getElementById("hs").checked:true;
+  /* Indeks barang bersama: pencarian lokal (cepat). Bila indeks belum siap atau gagal, jalur server lama dipakai. */
+  try{
+    if(window.IDX){
+      var adaI=IDX.ada();
+      if(!adaI)pane().innerHTML='<div class="card msg">Memuat...</div>';
+      if(await IDX.segar(60000)&&IDX.ada()){
+        var rl=IDX.stokList(q,{hanyaStok:hs,limit:100});
+        STOK=rl.data||[];STOKR=rl.ringkas||null;SUMB=rl.sumber||SUMB;drawStok(rl.total,q,hs);return;
+      }
+    }
+  }catch(e){}
   pane().innerHTML='<div class="card msg">Memuat...</div>';
   try{
     var r=await api({action:"adminStokList",q:q,hanyaStok:hs,limit:100});
@@ -466,7 +480,7 @@ function drawStok(total,q,hs){
    '<div class="fr"><button class="gh" id="thb">Tampilkan daftar</button><button class="gh" id="thx" disabled>Unduh Excel</button><span class="note" id="thi"></span></div><div id="thl"></div></div>'+
    '<div class="card"><b>Sinkron ke aplikasi Cari Barang</b><div class="note">Stok (Moka + Accurate) dikirim otomatis setiap berubah. Tekan tombol ini bila ingin memastikan.</div><div class="fr"><button class="gh" id="sink">Sinkron sekarang</button></div></div><div class="card"><b>Tarik data rak dari Cari Barang</b><div class="note">Rak di Cari Barang menjadi acuan. Ditarik otomatis tiap pagi; tekan untuk menarik sekarang. Gudang hanya membaca, tidak mengubah Cari Barang.</div><div class="fr"><button class="gh" id="rakt">Tarik rak sekarang</button></div></div>'+
    '<div id="kform"></div>'+
-   '<div class="bar"><input id="sq" placeholder="Cari kode atau nama barang..." value="'+esc(q)+'"><label><input type="checkbox" id="hs"'+(hs?" checked":"")+'> Hanya yang ada stok</label><button class="gh" id="scari">Cari</button><button class="gh" id="sx">Unduh semua stok (Excel)</button></div>'+
+   '<div class="bar"><input id="sq" placeholder="Cari kode atau nama barang..." value="'+esc(q)+'"><label><input type="checkbox" id="hs"'+(hs?" checked":"")+'> Hanya yang ada stok</label><button class="gh" id="scari">Cari</button><button class="gh" id="sx">Unduh semua stok (Excel)</button><button class="gh" id="idxseg" title="Muat ulang daftar barang dan stok dari server">Segarkan</button><span class="note" id="idxinfo"></span></div>'+
    (STOKR?'<div class="sum"><div><b>'+fmtN(STOKR.moka)+'</b><span>Stok Moka</span><br><small>Nilai '+rp(STOKR.nilaiMoka)+'</small></div><div><b>'+fmtN(STOKR.accurate)+'</b><span>Stok Accurate</span><br><small>Nilai '+rp(STOKR.nilaiAccurate)+'</small></div><div><b>'+rp(STOKR.nilaiTotal)+'</b><span>Total nilai persediaan (Moka + Accurate)</span></div><div><b>'+STOKR.tanpaHarga+'</b><span>Barang berstok belum ada harga</span><br><small>nilai belum lengkap, isi bertahap</small></div></div>':'')+
    '<div class="note">Menampilkan '+STOK.length+' dari '+total+' barang. Ringkasan di atas mengikuti pencarian (semua hasil, bukan hanya yang tampil). Nilai = stok x harga satuan di sheet Harga (perkiraan, bukan angka resmi Accurate/Moka). Bekas tidak dinilai.</div>'+
    (STOK.length?'<table><thead><tr><th>Kode / Barang</th>'+SUMB.map(function(s){return '<th class="nm">'+esc(s)+'</th>';}).join("")+'<th class="nm">Total</th><th class="nm">Harga</th><th class="nm">Nilai Moka</th><th class="nm">Nilai Accurate</th><th>Aksi</th></tr></thead><tbody>'+
@@ -480,10 +494,10 @@ function drawStok(total,q,hs){
   (function(){
     var q=document.getElementById("hq"),pr=document.getElementById("hpred"),pl=document.getElementById("hpil"),hv=document.getElementById("hv"),sv=document.getElementById("hsv"),pick=null,tm=null,seq=0;
     q.oninput=function(){pick=null;hv.disabled=sv.disabled=true;pl.textContent="";clearTimeout(tm);var t=q.value.trim();if(t.length<2){pr.hidden=true;return;}
-      tm=setTimeout(async function(){var my=++seq;try{var r=await api({action:"adminStokList",q:t,hanyaStok:false,limit:12});if(my!==seq||!r.ok)return;var L=r.data||[];
+      tm=setTimeout(async function(){var my=++seq;try{var r=(window.IDX&&await IDX.siap()&&IDX.ada())?IDX.stokList(t,{hanyaStok:false,limit:12}):await api({action:"adminStokList",q:t,hanyaStok:false,limit:12});if(my!==seq||!r.ok)return;var L=r.data||[];
         pr.hidden=!L.length;pr.innerHTML=L.map(function(d,i){return '<div data-p="'+i+'" style="padding:8px 10px;border-top:1px solid var(--line);cursor:pointer"><b>'+esc(d.nama)+'</b><small style="display:block;opacity:.7">'+esc(d.kode)+' · harga sekarang '+rp(d.harga)+'</small></div>';}).join("");
         pr.querySelectorAll("[data-p]").forEach(function(e){e.onclick=function(){pick=L[Number(e.getAttribute("data-p"))];pr.hidden=true;q.value=pick.nama;pl.innerHTML='Dipilih: <b>'+esc(pick.nama)+'</b> ('+esc(pick.kode)+') · harga sekarang '+rp(pick.harga);hv.disabled=sv.disabled=false;hv.value=pick.harga?String(pick.harga):"";hv.focus();};});
-      }catch(e){}},250);};
+      }catch(e){}},(window.IDX&&IDX.ada()?80:250));};
     sv.onclick=async function(){if(!pick)return;var v=String(hv.value).replace(/[^0-9,.]/g,"");if(!v){toast("Isi harga dulu.",true);return;}
       if(!confirm("Ubah harga "+pick.nama+" menjadi "+hv.value+"?"))return;
       await kirimAdmin(this,{action:"adminHarga",rows:[{kode:pick.kode,nama:pick.nama,harga:v}]},loadStok);};
@@ -588,6 +602,9 @@ function drawStok(total,q,hs){
   document.getElementById("sink").onclick=function(){kirimAdmin(this,{action:"adminSinkron"},null);};
   document.getElementById("rakt").onclick=function(){kirimAdmin(this,{action:"adminTarikRak"},null);};
   document.getElementById("scari").onclick=loadStok;
+  (function(){var sg=document.getElementById("idxseg"),ii=document.getElementById("idxinfo");
+    if(ii&&window.IDX&&IDX.ada()&&IDX.waktu())ii.textContent="Data diperbarui "+new Date(IDX.waktu()).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+    if(sg)sg.onclick=async function(){sg.disabled=true;sg.textContent="Memuat...";try{await IDX.segarkan();}catch(e){}sg.disabled=false;sg.textContent="Segarkan";loadStok();};})();
   document.getElementById("sx").onclick=async function(){
     var b=this;if(BUSY)return;BUSY=true;b.disabled=true;var t0=b.textContent;b.textContent="Menyiapkan...";
     try{
@@ -1648,12 +1665,12 @@ function prediksi(inp,onPilih){
   function pilih(i){var x=L[i];if(!x)return;inp.value=x.nama;tutup();if(onPilih)onPilih(x);}
   function tandai(){Array.prototype.forEach.call(box.children,function(c,i){c.style.background=i===act?"var(--solid-hover,#dff1f8)":"";if(i===act)c.scrollIntoView({block:"nearest"});});}
   inp.addEventListener("input",function(){clearTimeout(tm);var t=inp.value.trim();if(t.length<2){tutup();return;}
-    tm=setTimeout(async function(){var my=++seq;try{var r=await api({action:"adminStokList",q:t,limit:8});if(my!==seq||!r.ok)return;L=r.data||[];
+    tm=setTimeout(async function(){var my=++seq;try{var r=(window.IDX&&await IDX.siap()&&IDX.ada())?IDX.stokList(t,{limit:8}):await api({action:"adminStokList",q:t,limit:8});if(my!==seq||!r.ok)return;L=r.data||[];
       if(!L.length){tutup();return;}
       box.innerHTML=L.map(function(x,i){return '<div data-i="'+i+'" style="padding:8px 10px;cursor:pointer;border-top:1px solid var(--line)"><b>'+esc(x.nama)+'</b>'+(x.mirip?' <em style="font-style:normal;font-size:11px;font-weight:600;color:var(--mut);border:1px solid var(--line);border-radius:3px;padding:0 5px">mirip</em>':'')+'<small style="display:block">'+esc(x.kode)+' · stok '+fmtN(x.total)+' '+esc(x.satuan||"")+'</small></div>';}).join("");
       box.hidden=false;act=-1;
       Array.prototype.forEach.call(box.children,function(c){c.onmousedown=function(e){e.preventDefault();pilih(Number(c.getAttribute("data-i")));};});
-    }catch(e){}},220);});
+    }catch(e){}},(window.IDX&&IDX.ada()?80:220));});
   inp.addEventListener("keydown",function(e){if(box.hidden)return;
     if(e.key==="ArrowDown"){e.preventDefault();act=Math.min(L.length-1,act+1);tandai();}
     else if(e.key==="ArrowUp"){e.preventDefault();act=Math.max(0,act-1);tandai();}

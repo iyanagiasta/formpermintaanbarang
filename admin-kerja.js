@@ -108,7 +108,7 @@ function drawTelusur(){
 }
 async function cariBarangTL(){
   var q=document.getElementById("tl_q").value.trim();TL.q=q;TL.det=null;if(!q)return;
-  var r=await api({action:"adminTelusurCari",q:q});if(!r.ok){toast(r.msg||"Gagal",true);return;}
+  var r=(window.IDX&&await IDX.siap()&&IDX.ada())?IDX.telusurCari(q):await api({action:"adminTelusurCari",q:q});if(!r.ok){toast(r.msg||"Gagal",true);return;}
   TL.hasil=r.rows;if(r.rows.length===1&&!r.rows[0].mirip){await bukaBarangTL(r.rows[0].kode);return;}drawTLHasil();
 }
 function drawTLHasil(){

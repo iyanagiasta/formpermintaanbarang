@@ -15,101 +15,145 @@
   }
   function hex(h) { var n = parseInt(h.replace("#", ""), 16); return W.PDFLib.rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); }
 
-  /* Menggambar satu dokumen (mulai halaman baru) ke dalam PDFDocument yang sudah ada.
+  /* Menggambar satu dokumen mengikuti desain lembar form (index.html / pengembalian.html + lembar.css + form-baru.css).
+     Ukuran: A5 landscape bila isi pendek; A4 portrait bila panjang (diperkecil bila lebih dari 297 mm), sama seperti tombol Simpan PDF di form.
      d = payload dokumen dari server (adminPaBukti), sig = {kunci: dataURL}, fonts = {F, FB, FT} */
   async function gambarDokumen(doc, d, sig, fonts) {
-    var L = W.PDFLib, rgb = L.rgb, F = fonts.F, FB = fonts.FB, FT = fonts.FT, kembali = d.jenis === "Pengembalian";
-    var PW = 595.28, PH = 841.89, M = 34, CW = PW - 2 * M, page, y;
-    var NAVY = hex("#17588f"), GOLD = hex("#b8975a"), PALE = hex("#eef6fa"), BORD = hex("#9fb8c6"), INK = hex("#0d1f2d"), MUT = hex("#5b6b75"), ALT = hex("#f5fafc");
-    function kotak(x, yy, w, h, o) { page.drawRectangle(Object.assign({ x: x, y: yy, width: w, height: h, borderColor: BORD, borderWidth: .6 }, o || {})); }
-    function teks(t, x, yy, size, font, color, o) { page.drawText(asc(t), Object.assign({ x: x, y: yy, size: size, font: font || F, color: color || INK }, o || {})); }
-    function mulai() {
-      page = doc.addPage([PW, PH]); var bh = 56, n = 70, c0 = [6, 32, 58], c1 = [10, 58, 92], c2 = [15, 111, 147];
-      for (var i = 0; i < n; i++) {
-        var t = i / (n - 1), a = t < .55 ? c0 : c1, b = t < .55 ? c1 : c2, u = t < .55 ? t / .55 : (t - .55) / .45;
-        page.drawRectangle({ x: i * PW / n, y: PH - bh, width: PW / n + 1, height: bh, color: rgb((a[0] + (b[0] - a[0]) * u) / 255, (a[1] + (b[1] - a[1]) * u) / 255, (a[2] + (b[2] - a[2]) * u) / 255) });
+    var L = W.PDFLib, rgb = L.rgb, F = fonts.F, FB = fonts.FB, kembali = d.jenis === "Pengembalian";
+    var MM = 72 / 25.4, SW = 210, X0 = 8, CW = SW - 2 * X0;
+    var NAVY = hex("#17588f"), BLUE = hex("#1f6fae"), RULE = hex("#7f97a6"), SOFT = hex("#d5dee4"), INK = hex("#0d1f2d"), LAB = hex("#3f5868"), MUT = hex("#5b6b75"), TT = hex("#62788a"), ST = hex("#4a5f6e");
+    var page = null, K = 1, PH = 0, draw = false;
+    // ---- data
+    var ppbj = d.ppbj || "-", pic = (d.pic && d.pic.nama) || "";
+    var meta = kembali
+      ? [["Nama Pengembali", d.by], ["Nama Departemen", d.dept], ["PIC (Penanggung Jawab)", pic], ["Tanggal", tglId(d.tgl)], ["Nomor Dokumen", d.doc], ["Sisa dari Proyek (No PPBJ / nama proyek)", ppbj]]
+      : [["Nama Pemohon", d.by], ["Nama Departemen", d.dept], ["PIC (User Peminta)", pic], ["Tanggal", tglId(d.tgl)], ["Nomor Dokumen", d.doc], ["Nomor PPBJ", ppbj]];
+    var judul = kembali ? "BUKTI PENGEMBALIAN BARANG SISA PROYEK" : "BUKTI PENGAMBILAN BARANG";
+    var cols = kembali ? [9, 26, 0, 16, 15, 17] : [9, 30, 0, 20, 17];
+    var hd = kembali ? ["No", "Kode Barang", "Nama Barang", "Satuan", "Jumlah", "Diterima"] : ["No", "Kode Barang", "Nama Barang", "Satuan", "Jumlah"];
+    cols[2] = CW - cols.reduce(function (a, b) { return a + b; }, 0);
+    var catLines = (d.cat || []).map(function (c) { return typeof c === "string" ? c : (c.peran || "") + (c.nama ? " (" + c.nama + (c.waktu ? ", " + c.waktu : "") + ")" : "") + ": " + (c.teks || c.cat || c.catatan || ""); });
+    var roles = [[kembali ? "PIC" : "User Peminta (PIC)", "pic"], ["Atasan Langsung", "atasan"], ["Staff Gudang", "staff"], ["Manager Gudang", "manager"]];
+    var imgs = {};
+    for (var ri = 0; ri < roles.length; ri++) {
+      var a0 = d[roles[ri][1]] || {};
+      if (a0.nama && a0.waktu && a0.k && sig && sig[a0.k] && !a0.otomatis && d.tolak !== roles[ri][1]) {
+        try { var s0 = sig[a0.k]; imgs[roles[ri][1]] = /^data:image\/png/.test(s0) ? await doc.embedPng(s0) : await doc.embedJpg(s0); } catch (e) { }
       }
-      page.drawRectangle({ x: 0, y: PH - bh - 3.4, width: PW, height: 3.4, color: GOLD });
-      var t1 = kembali ? "BUKTI PENGEMBALIAN BARANG SISA PROYEK" : "BUKTI PENGAMBILAN BARANG", w1 = FT.widthOfTextAtSize(t1, 16);
-      teks(t1, (PW - w1) / 2, PH - 27, 16, FT, rgb(1, 1, 1));
-      var t2 = "PT SARANA CATUR TIRTA KELOLA", w2 = FB.widthOfTextAtSize(t2, 8); teks(t2, (PW - w2) / 2, PH - 42, 8, FB, hex("#e3c98f"));
-      y = PH - bh - 3.4 - 14;
     }
-    mulai();
-    // 6 kolom keterangan (2 kolom x 3 baris)
-    var f = d.items ? d : d, ppbj = d.ppbj && !/^belum tersedia$/i.test(d.ppbj) ? d.ppbj : (d.ppbj || "-");
-    var meta = [["Nama Pemohon", d.by], ["Nama Departemen", d.dept], ["PIC (User Peminta)", (d.pic && d.pic.nama) || ""], ["Tanggal", tglId(d.tgl)], ["Nomor Dokumen", d.doc], ["Nomor PPBJ", ppbj]];
-    var cw = (CW - 8) / 2, rh = 30;
-    meta.forEach(function (m, i) {
-      var col = i % 2, row = Math.floor(i / 2), x = M + col * (cw + 8), yy = y - row * (rh + 5) - rh;
-      kotak(x, yy, cw, rh, { color: PALE });
-      teks(m[0], x + 7, yy + rh - 11, 7, FB, MUT); teks(bungkus(F, 10.5, m[1] || "-", cw - 14)[0], x + 7, yy + 7, 10.5, F, INK);
-    });
-    y -= 3 * (rh + 5) + 6;
-    // tabel
-    var cols = kembali ? [26, 78, 0, 46, 54, 66] : [26, 86, 0, 52, 56], hd = kembali ? ["No", "Kode Barang", "Nama Barang", "Satuan", "Jumlah", "Diterima"] : ["No", "Kode Barang", "Nama Barang", "Satuan", "Jumlah"];
-    var fixed = cols.reduce(function (a, b) { return a + b; }, 0); cols[2] = CW - fixed;
-    function kepalaTabel() {
-      var x = M; kotak(M, y - 20, CW, 20, { color: NAVY, borderColor: NAVY });
-      hd.forEach(function (h, i) { var tw = FB.widthOfTextAtSize(h, 8.5), tx = i === 2 ? x + 6 : x + (cols[i] - tw) / 2; teks(h, tx, y - 13.5, 8.5, FB, rgb(1, 1, 1)); x += cols[i]; });
-      y -= 20;
+    // ---- primitif (semua ukuran dalam mm / pt di ruang tanpa skala; K = skala akhir)
+    function Y(mm) { return PH - mm * MM * K; }
+    function lebar(font, size, s, sp) { return font.widthOfTextAtSize(s, size) + (sp ? sp * Math.max(0, s.length - 1) : 0); }   // pt tanpa skala
+    function T(s, x, base, size, font, color, o) {
+      if (!draw) return; o = o || {}; s = asc(s); if (!s) return;
+      var sp = o.sp || 0, w = lebar(font, size, s, sp) / MM, px = x;
+      if (o.al === "c") px = x + (o.w - w) / 2; else if (o.al === "r") px = x + o.w - w;
+      if (!sp) { page.drawText(s, { x: px * MM * K, y: Y(base), size: size * K, font: font, color: color }); return; }
+      var cx = px * MM;
+      for (var i = 0; i < s.length; i++) { var ch = s.charAt(i); page.drawText(ch, { x: cx * K, y: Y(base), size: size * K, font: font, color: color }); cx += font.widthOfTextAtSize(ch, size) + sp; }
     }
-    kepalaTabel();
-    var items = (d.items || []).slice(), min = 5, idx = 0, tinggiSisa = 300;
-    while (items.length < min) items.push(null);
-    for (var k = 0; k < items.length; k++) {
-      var it = items[k], nm = bungkus(F, 9, it ? it.nama : "", cols[2] - 12), h = Math.max(20, nm.length * 11 + 8);
-      if (y - h < M + 250) { mulai(); kepalaTabel(); }
-      kotak(M, y - h, CW, h, { color: k % 2 ? ALT : rgb(1, 1, 1) });
-      var x = M;
-      cols.forEach(function (c, i) { if (i > 0) page.drawLine({ start: { x: x, y: y }, end: { x: x, y: y - h }, thickness: .5, color: BORD }); x += c; });
-      if (it) {
-        idx++; x = M;
-        var vals = kembali ? [String(idx), it.kode, null, it.satuan, fmtN(it.jumlah), it.diterima === "" || it.diterima == null ? "-" : fmtN(it.diterima)] : [String(idx), it.kode, null, it.satuan, fmtN(it.jumlah)];
-        vals.forEach(function (v, i) {
-          if (i === 2) nm.forEach(function (ln, j) { teks(ln, x + 6, y - 13 - j * 11, 9, F); });
-          else { var s = asc(v); while (s.length > 1 && F.widthOfTextAtSize(s, 9) > cols[i] - 6) s = s.slice(0, -1); var tw = F.widthOfTextAtSize(s, 9); teks(s, i === 1 ? x + 5 : x + (cols[i] - tw) / 2, y - 13, 9, F); }
-          x += cols[i];
-        });
+    function R(x, y, w, h, fill, border, bw) {
+      if (!draw) return; var o = { x: x * MM * K, y: Y(y + h), width: w * MM * K, height: h * MM * K };
+      if (fill) o.color = fill; if (border) { o.borderColor = border; o.borderWidth = (bw || .25) * MM * K; } page.drawRectangle(o);
+    }
+    function G(x1, y1, x2, y2, bw, color) { if (draw) page.drawLine({ start: { x: x1 * MM * K, y: Y(y1) }, end: { x: x2 * MM * K, y: Y(y2) }, thickness: bw * MM * K, color: color }); }
+    function wrap(font, size, s, wmm) { return bungkus(font, size, s, wmm * MM); }
+    function mid(y0, h, size) { return y0 + h / 2 + 0.36 * size / MM; }   // garis dasar teks yang diratakan vertikal
+    // ---- tata letak (draw=false: hanya mengukur)
+    function layout() {
+      var y;
+      if (draw) {
+        // logo tetes
+        page.drawSvgPath("M12 3s6 6.2 6 10.5A6 6 0 0 1 6 13.5C6 9.2 12 3 12 3z", { x: (8 + 0) * MM * K, y: Y(3.2), scale: (13.5 / 24) * MM * K, borderColor: hex("#1a6cab"), borderWidth: 1.6, borderLineCap: L.LineCapStyle.Round });
+        // nama perusahaan + garis ganda
+        T("PT SARANA CATUR TIRTA KELOLA", 24, 4 + 3.69 * .78, 9.5, FB, NAVY, { sp: .6 });
+        R(24, 9.29, SW - 8 - 24, .55, BLUE); R(24, 10.39, SW - 8 - 24, .2, BLUE);
+        // label kanan
+        var w2 = lebar(F, 6.4, "Bukti resmi", .3) / MM, w1 = lebar(FB, 7.4, "FORM GUDANG", .3) / MM;
+        T("Bukti resmi", SW - 8 - w2, 4.6 + 3.1, 6.4, F, hex("#1b6ca8"), { sp: .3 });
+        T("FORM GUDANG", SW - 8 - w2 - 1.6 - w1, 4.6 + 3.1, 7.4, FB, hex("#0c3b57"), { sp: .3 });
+        T(judul, X0, 12.44 + 4.67 / 2 + .36 * 11.5 / MM, 11.5, FB, INK, { sp: 1.2, al: "c", w: CW });
       }
-      y -= h;
-    }
-    y -= 10;
-    // alasan & catatan
-    function kotakTeks(judul, isi, min) {
-      var ln = bungkus(F, 9, isi || "-", CW - 16), h = Math.max(min, ln.length * 11 + 24);
-      if (y - h < M + 150) { mulai(); }
-      kotak(M, y - h, CW, h); teks(judul, M + 8, y - 12, 7.5, FB, MUT);
-      ln.forEach(function (l, j) { teks(l, M + 8, y - 25 - j * 11, 9, F); }); y -= h + 6;
-    }
-    kotakTeks(kembali ? "Alasan / Keterangan Pengembalian" : "Alasan Permintaan", d.alasan, 38);
-    var cats = (d.cat || []).map(function (c) { return typeof c === "string" ? c : [c.oleh || c.nama || c.peran, c.teks || c.cat || c.catatan].filter(Boolean).join(": "); }).filter(Boolean).join(" | ");
-    if (cats) kotakTeks("Catatan", cats, 30);
-    // tanda tangan
-    var roles = [["User Peminta (PIC)", "PIC", "pic"], ["Atasan Langsung", "Atasan", "atasan"], ["Staff Gudang", "Staff Gudang", "staff"], ["Manager Gudang", "Manager Gudang", "manager"]];
-    var bw = (CW - 3 * 6) / 4, th = 78, bhh = 14 + th + 24;
-    if (y - bhh < M) mulai();
-    var by0 = y - bhh;
-    for (var i = 0; i < roles.length; i++) {
-      var r = roles[i];
-      var a = d[r[2]] || {}, x = M + i * (bw + 6), tolak = d.tolak === r[2];
-      kotak(x, by0, bw, bhh); kotak(x, by0 + bhh - 14, bw, 14, { color: PALE });
-      var rw = FB.widthOfTextAtSize(r[0], 7.5); teks(r[0], x + (bw - rw) / 2, by0 + bhh - 10, 7.5, FB, NAVY);
-      var ada = a.nama && a.waktu;
-      if (ada && a.k && sig && sig[a.k]) {
-        try {
-          var s = sig[a.k], im = /^data:image\/png/.test(s) ? await doc.embedPng(s) : await doc.embedJpg(s), sc = Math.min((bw - 12) / im.width, (th - 6) / im.height);
-          page.drawImage(im, { x: x + (bw - im.width * sc) / 2, y: by0 + 24 + (th - im.height * sc) / 2, width: im.width * sc, height: im.height * sc });
-        } catch (e) { }
+      y = 19.1;
+      // data pemohon: 3 kolom x 2 baris
+      var cw = (CW - 2 * 4) / 3;
+      meta.forEach(function (m, i) {
+        var col = i % 3, row = Math.floor(i / 3), x = X0 + col * (cw + 4), yy = y + row * (2.8 + 5.4 + 1.5);
+        T(m[0].toUpperCase(), x, yy + 1.4 + .36 * 6.1 / MM, 6.1, FB, LAB, { sp: .375 });
+        var v = wrap(FB, 8.5, m[1] || "", cw - 1.2)[0];
+        T(v, x + .6, mid(yy + 2.8, 5.4, 8.5), 8.5, FB, INK);
+        G(x, yy + 2.8 + 5.4 - .15, x + cw, yy + 2.8 + 5.4 - .15, .3, RULE);
+      });
+      y += 2 * (2.8 + 5.4) + 1.5 + 2.5;
+      // tabel
+      var ty = y;
+      R(X0, ty, CW, .45, NAVY);
+      R(X0, ty + .45, CW, 5.6, BLUE);
+      var x = X0; hd.forEach(function (h, i) { T(h.toUpperCase(), x, mid(ty + .45, 5.6, 6.6), 6.6, FB, rgb(1, 1, 1), { sp: .375, al: i === 2 ? "c" : "c", w: cols[i] }); x += cols[i]; });
+      y = ty + .45 + 5.6;
+      var items = (d.items || []).slice(); while (items.length < 5) items.push(null);
+      items.forEach(function (it, k) {
+        var nm = it ? wrap(F, 8.5, it.nama || "", cols[2] - 3) : [""], h = Math.max(5.4, nm.length * 3.75 + 1.6), xx = X0;
+        G(X0, y, X0 + CW, y, .15, SOFT);
+        cols.forEach(function (c, i) { if (i > 0) G(xx, y, xx, y + h, .15, SOFT); xx += c; });
+        if (it) {
+          xx = X0; var base = mid(y, 5.4, 8.5);
+          var vals = [String(k + 1), it.kode, null, it.satuan, fmtN(it.jumlah)]; if (kembali) vals.push(it.diterima === "" || it.diterima == null ? "-" : fmtN(it.diterima));
+          vals.forEach(function (v, i) {
+            if (i === 2) nm.forEach(function (ln, j) { T(ln, xx + 1.5, base + j * 3.75, 8.5, F, INK); });
+            else { var s = asc(v); while (s.length > 1 && lebar(F, 8.5, s) / MM > cols[i] - 2) s = s.slice(0, -1); T(s, xx + (i === 1 ? 1.5 : 0), base, 8.5, F, INK, i === 1 ? {} : { al: "c", w: cols[i] }); }
+            xx += cols[i];
+          });
+        } else { T(String(k + 1), X0, mid(y, 5.4, 8.5), 8.5, F, INK, { al: "c", w: cols[0] }); }
+        y += h;
+      });
+      R(X0, y, CW, .45, NAVY); y += .45;
+      // alasan dan catatan
+      function kotakTeks(label, lines) {
+        y += 2.2; T(label.toUpperCase(), X0, y + 1.4 + .36 * 6.1 / MM, 6.1, FB, LAB, { sp: .375 }); y += 2.8;
+        var ls = []; lines.forEach(function (t) { wrap(F, 8.5, t, CW - 1.2).forEach(function (z) { ls.push(z); }); });
+        var h = Math.max(9.9, ls.length * 3.9 + 1.9);
+        ls.forEach(function (z, j) { T(z, X0 + .6, y + .8 + 1.95 + j * 3.9 + .36 * 8.5 / MM, 8.5, F, INK); });
+        G(X0, y + h - .15, X0 + CW, y + h - .15, .3, RULE); y += h;
       }
-      var cap = ada ? ((tolak ? "Ditolak via email " : "Disetujui via email ") + a.waktu) : (i === 0 && d.kirim ? "Diajukan via form " + d.kirim : "");
-      if (cap) { var cl = bungkus(F, 5.6, cap, bw - 8); cl.slice(0, 2).forEach(function (l, j) { var lw = F.widthOfTextAtSize(l, 5.6); teks(l, x + (bw - lw) / 2, by0 + 24 + 6 + (cl.length > 1 ? (1 - j) * 6.5 : 0), 5.6, F, MUT); }); }
-      var nmx = a.nama || (i === 0 ? d.by : ""), nl = bungkus(FB, 8.5, nmx || "-", bw - 10)[0]; var nw = FB.widthOfTextAtSize(nl, 8.5);
-      page.drawLine({ start: { x: x + 8, y: by0 + 20 }, end: { x: x + bw - 8, y: by0 + 20 }, thickness: .5, color: BORD });
-      teks(nl, x + (bw - nw) / 2, by0 + 8, 8.5, FB, INK);
+      kotakTeks(kembali ? "Keterangan (sisa proyek apa, kondisi barang)" : "Alasan Permintaan", [d.alasan || ""]);
+      if (catLines.length) kotakTeks("Catatan", catLines);
+      // tanda tangan
+      var sh = 4.9 + 11 + 8.5 + .5, selesai = y;
+      return {akhir: selesai, signH: sh};
     }
-    if (kembali && d.terima && d.terima.nama) { var tt = "Diterima gudang oleh " + d.terima.nama + (d.terima.waktu ? " pada " + d.terima.waktu : ""); teks(tt, M, by0 - 12, 8, F, MUT); }
-    if (d.status === "Ditolak") { teks("DITOLAK", PW - M - 70, by0 - 12, 10, FB, hex("#c0392b")); }
+    function tanda(sy) {
+      var bw = (CW - 3 * 3) / 4;
+      roles.forEach(function (r, i) {
+        var a = d[r[1]] || {}, x = X0 + i * (bw + 3), tolak = d.tolak === r[1], ada = a.nama && a.waktu;
+        R(x, sy, bw, 4.9 + 11 + 8.5 + .5, null, RULE, .25);
+        R(x, sy, bw, 4.9, BLUE, RULE, .25);
+        T(r[0].toUpperCase(), x, mid(sy, 4.9, 6.6), 6.6, FB, rgb(1, 1, 1), { sp: .45, al: "c", w: bw });
+        var cap = ada ? ((tolak ? "Ditolak via email " : (a.otomatis ? "Disetujui " : "Disetujui via email ")) + a.waktu) : (i === 0 && d.kirim ? "Diajukan via form " + d.kirim : "");
+        var im = imgs[r[1]];
+        if (draw && im) { var sc = Math.min((bw * .88) / (im.width / MM * 1), 8 / (im.height / MM * 1)); sc = Math.min(bw * .88 * MM / im.width, 8 * MM / im.height);
+          page.drawImage(im, { x: (x + (bw - im.width * sc / MM) / 2) * MM * K, y: Y(sy + 4.9 + .6 + im.height * sc / MM), width: im.width * sc * K, height: im.height * sc * K }); }
+        if (cap) T(cap, x, sy + 4.9 + 11 - .5 - .2, 5, F, ST, { al: "c", w: bw });
+        if (!cap && !im) T("Tanda tangan", x, sy + 4.9 + 11 - .6 - .2, 5.5, F, TT, { al: "c", w: bw });
+        G(x, sy + 4.9 + 11, x + bw, sy + 4.9 + 11, .15, SOFT);
+        T("Nama", x, sy + 4.9 + 11 + 2.7, 5.8, F, MUT, { al: "c", w: bw });
+        var nmx = a.nama || (i === 0 ? d.by : ""), nl = wrap(FB, 8.5, nmx || "", bw - 3)[0];
+        T(nl, x, sy + 4.9 + 11 + 6.2, 8.5, FB, INK, { al: "c", w: bw });
+      });
+    }
+    // 1) ukur, 2) pilih ukuran kertas, 3) gambar
+    var m1 = layout(), H = m1.akhir + 2.5 + m1.signH + 6, pw, ph, sy;
+    if (H <= 148.8) { pw = 210; ph = 148; K = 1; sy = 148 - 6 - m1.signH; }
+    else if (H <= 297) { pw = 210; ph = 297; K = 1; sy = m1.akhir + 2.5; }
+    else { pw = 210; ph = 297; K = 297 / H; sy = m1.akhir + 2.5; }
+    page = doc.addPage([pw * MM, ph * MM]); PH = ph * MM; draw = true;
+    layout(); tanda(sy);
+    var by = sy + m1.signH + 1.2;
+    if (kembali && d.terima && d.terima.nama) T("Barang diterima gudang oleh " + d.terima.nama + (d.terima.waktu ? " pada " + d.terima.waktu : "") + ".", X0, by + 2, 7, F, hex("#17588f"));
+    if (d.status === "Ditolak") {
+      var cx = SW / 2, cy = ph / 2 - 10;
+      page.drawText("DITOLAK", { x: (cx - 38) * MM * K, y: Y(cy), size: 36 * K, font: FB, color: rgb(.75, .22, .17), rotate: L.degrees(16), opacity: .8 });
+    }
   }
 
   async function fonts(doc) { var L = W.PDFLib; return { F: await doc.embedFont(L.StandardFonts.Helvetica), FB: await doc.embedFont(L.StandardFonts.HelveticaBold), FT: await doc.embedFont(L.StandardFonts.TimesRomanBold) }; }

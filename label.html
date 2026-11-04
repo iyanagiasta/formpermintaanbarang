@@ -72,7 +72,7 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
 var C128=["212222", "222122", "222221", "121223", "121322", "131222", "122213", "122312", "132212", "221213", "221312", "231212", "112232", "122132", "122231", "113222", "123122", "123221", "223211", "221132", "221231", "213212", "223112", "312131", "311222", "321122", "321221", "312212", "322112", "322211", "212123", "212321", "232121", "111323", "131123", "131321", "112313", "132113", "132311", "211313", "231113", "231311", "112133", "112331", "132131", "113123", "113321", "133121", "313121", "211331", "231131", "213113", "213311", "213131", "311123", "311321", "331121", "312113", "312311", "332111", "314111", "221411", "431111", "111224", "111422", "121124", "121421", "141122", "141221", "112214", "112412", "122114", "122411", "142112", "142211", "241211", "221114", "413111", "241112", "134111", "111242", "121142", "121241", "114212", "124112", "124211", "411212", "421112", "421211", "212141", "214121", "412121", "111143", "111341", "131141", "114113", "114311", "411113", "411311", "113141", "114131", "311141", "411131", "211412", "211214", "211232", "2331112"];
 var KODE="",PINADM="",BARANG=[],PILIH=[],app=document.getElementById("app");
-var DEF={pw:215.2,ph:297,lw:65,lh:35.2,kol:3,bar:4,gx:4.2,gy:2.8,ml:5.8,mt:2.5,pad:1.9,bh:0,bw:0,slowfast:true,kodeTeks:true,stokKotak:true,rakTeks:true,mulai:1,garis:false,model:'barcode',bagi:0,pakaiId:true};
+var DEF={pw:215.2,ph:297,lw:65,lh:35.2,kol:3,bar:4,gx:4.2,gy:2.8,ml:5.8,mt:2.5,pad:1.9,bh:0,bw:0,slowfast:true,kodeTeks:true,stokKotak:true,rakTeks:true,mulai:1,garis:false,model:'barcode',bagi:0,pakaiId:true,mr:5.8,mb:2.5,ox:0,oy:0,xd:0,nmMax:0,nmMin:0,nmBaris:0,kz:0,rata:'tengah',gm:'manual',tm:''};
 var S=Object.assign({},DEF);
 try{PINADM=sessionStorage.getItem("sctk_admin")||"";}catch(e){}
 try{var sv=JSON.parse(localStorage.getItem("sctk_label")||"null");if(sv)S=Object.assign({},DEF,sv,{mulai:1});}catch(e){}
@@ -120,11 +120,24 @@ function bungkus(font,txt,size,maxW,maxBaris){
   if(cur)baris.push(cur);return baris.length>maxBaris?null:baris;
 }
 function isiBarcode(s,item){return (s.pakaiId&&item.idbc)?String(item.idbc):String(item.kode);}
-function perLembar(s){return s.kol*s.bar*(s.bagi?2:1);}
+function modeTanda(s){return s.tm||(s.garis?'garis':'tidak');}
+/* Hitung susunan nyata: 'tetap' = ukuran label tetap, kolom/baris dihitung; 'penuh' = kolom/baris tetap, ukuran label dihitung; 'manual' = apa adanya. */
+function efektif(s){
+  if(s._ef)return s;
+  var e=Object.assign({},s,{_ef:true}),gm=s.gm||'manual',mr=s.mr>=0?s.mr:0,mb=s.mb>=0?s.mb:0,uw=s.pw-s.ml-mr,uh=s.ph-s.mt-mb;
+  if(gm==='tetap'&&s.lw>0&&s.lh>0&&uw>0&&uh>0){
+    e.kol=Math.max(1,Math.floor((uw+s.gx+1e-6)/(s.lw+s.gx)));e.bar=Math.max(1,Math.floor((uh+s.gy+1e-6)/(s.lh+s.gy)));
+    e.ml=s.ml+Math.max(0,(uw-(e.kol*s.lw+(e.kol-1)*s.gx))/2);e.mt=s.mt+Math.max(0,(uh-(e.bar*s.lh+(e.bar-1)*s.gy))/2);
+  }else if(gm==='penuh'&&s.kol>0&&s.bar>0&&uw>0&&uh>0){
+    e.lw=Math.max(1,Math.floor((uw-(s.kol-1)*s.gx)/s.kol*100)/100);e.lh=Math.max(1,Math.floor((uh-(s.bar-1)*s.gy)/s.bar*100)/100);
+  }
+  return e;
+}
+function perLembar(s){s=efektif(s);return s.kol*s.bar*(s.bagi?2:1);}
 function ukuranEf(s){return s.bagi===1?Object.assign({},s,{lh:s.lh/2}):s.bagi===2?Object.assign({},s,{lw:s.lw/2}):s;}
 function posisi(s,n){ // n = indeks label dari 0 pada lembar (bila "bagi", tiap sel label asli berisi 2 label kecil)
   var m=s.bagi?2:1,per=s.kol*s.bar*m,i=n%per,sub=m===2?i%2:0,c0=m===2?Math.floor(i/2):i,c=c0%s.kol,r=Math.floor(c0/s.kol);
-  var x=s.ml+c*(s.lw+s.gx),y=s.mt+r*(s.lh+s.gy);
+  var x=s.ml+(s.ox||0)+c*(s.lw+s.gx),y=s.mt+(s.oy||0)+r*(s.lh+s.gy);
   if(s.bagi===1)y+=sub*s.lh/2;else if(s.bagi===2)x+=sub*s.lw/2;
   return {x:x,y:y};
 }
@@ -141,17 +154,17 @@ function gambarLabel(page,F,s,x,y,item){
     brs.forEach(function(t){by0-=szP*0.88;page.drawText(t,{x:X+pad+(inner-F.b.widthOfTextAtSize(t,szP))/2,y:by0,size:szP,font:F.b,color:rgb(0,0,0)});by0-=szP*0.24;});
     if(s.kodeTeks){var kk2=aman(F.b,(s.rakTeks&&item.rak?String(item.rak)+"  |  ":"")+String(item.kode)),kz2=9;while(F.b.widthOfTextAtSize(kk2,kz2)>inner&&kz2>4)kz2-=0.5;page.drawText(kk2,{x:X+pad+(inner-F.b.widthOfTextAtSize(kk2,kz2))/2,y:ketB+(kt2-kz2)/2+0.4*MM,size:kz2,font:F.b,color:rgb(0,0,0)});}
   }else{
-  var nm=aman(F.b,String(item.nama||"").toUpperCase()),sz=10,baris=null;
-  var maxNmH=Math.max(8,(cur-bawah)*(s.lh<22?0.38:0.5));while(sz>=5.5){baris=bungkus(F.b,nm,sz,inner,2);if(baris&&baris.length*sz*1.1<=maxNmH)break;baris=null;sz-=0.5;}
-  if(!baris){sz=5.5;baris=bungkus(F.b,nm,sz,inner,3)||[nm.slice(0,40)];}
+  var nm=aman(F.b,String(item.nama||"").toUpperCase()),sz=s.nmMax>0?s.nmMax:10,szMin=s.nmMin>0?s.nmMin:5.5,nBr=s.nmBaris>0?Math.round(s.nmBaris):2,baris=null;
+  var maxNmH=Math.max(8,(cur-bawah)*(s.lh<22?0.38:0.5));while(sz>=szMin){baris=bungkus(F.b,nm,sz,inner,nBr);if(baris&&baris.length*sz*1.1<=maxNmH)break;baris=null;sz-=0.5;}
+  if(!baris){sz=szMin;baris=bungkus(F.b,nm,sz,inner,nBr+1)||[nm.slice(0,40)];}
   baris.forEach(function(t){cur-=sz*0.88;page.drawText(t,{x:X+pad+(inner-F.b.widthOfTextAtSize(t,sz))/2,y:cur,size:sz,font:F.b,color:rgb(0,0,0)});cur-=sz*0.22;});
   cur-=0.6*MM;
   var kt=s.kodeTeks?((s.lh<22?3.8:5.2)*MM):0,hBar=cur-(bawah+hCek+kt+(hCek?0.8*MM:0)),hAuto=hBar;if(s.bh>0)hBar=Math.min(hBar,s.bh*MM);
   var enc=c128(isiBarcode(s,item));
   if(enc&&(s.bh>0?hBar>=1.5*MM:hBar>4*MM)){
-    var tersedia=inner,mw=Math.min(0.42*MM,tersedia/(enc.modules+0)),mw=(s.bw>0?Math.min(mw,s.bw*MM/enc.modules):mw),wTot=mw*enc.modules,bx=X+pad+(inner-wTot)/2;
+    var tersedia=inner,mw=Math.min((s.xd>0?s.xd:0.42)*MM,tersedia/(enc.modules+0)),mw=(s.bw>0?Math.min(mw,s.bw*MM/enc.modules):mw),wTot=mw*enc.modules,bx=(s.rata==='kiri')?X+pad:X+pad+(inner-wTot)/2;
     enc.bars.forEach(function(b){page.drawRectangle({x:bx+b[0]*mw,y:cur-hBar,width:b[1]*mw,height:hBar,color:rgb(0,0,0)});});
-    if(s.kodeTeks){var kz=s.lh<22?5.5:7,kk=aman(F.r,(s.rakTeks&&item.rak?String(item.rak)+"  |  ":"")+String(item.kode));while(F.r.widthOfTextAtSize(kk,kz)>inner&&kz>4)kz-=0.5;page.drawText(kk,{x:X+pad+(inner-F.r.widthOfTextAtSize(kk,kz))/2,y:cur-hBar-kz*0.95,size:kz,font:F.r,color:rgb(0,0,0)});}
+    if(s.kodeTeks){var kz=s.kz>0?s.kz:(s.lh<22?5.5:7),kk=aman(F.r,(s.rakTeks&&item.rak?String(item.rak)+"  |  ":"")+String(item.kode));while(F.r.widthOfTextAtSize(kk,kz)>inner&&kz>4)kz-=0.5;page.drawText(kk,{x:X+pad+(inner-F.r.widthOfTextAtSize(kk,kz))/2,y:cur-hBar-kz*0.95,size:kz,font:F.r,color:rgb(0,0,0)});}
   }}
   var bs=2.6*MM,yy=bawah+(hCek-bs)/2,fz=6.5,kiri=X+pad,kanan=X+pad+inner;
   var stokTxt=s.stokKotak?fmtStok(item.stok):null,bw=0;
@@ -173,10 +186,23 @@ function gambarLabel(page,F,s,x,y,item){
 function garisLabel(page,s,x,y){
   page.drawRectangle({x:x*MM,y:(s.ph-y-s.lh)*MM,width:s.lw*MM,height:s.lh*MM,borderColor:window.PDFLib.rgb(0.55,0.55,0.55),borderWidth:0.4});
 }
+function tandaPotong(page,s){
+  var tm=modeTanda(s);if(tm!=='tepi'&&tm!=='titik')return;
+  var rgb=window.PDFLib.rgb,x0=s.ml+(s.ox||0),y0=s.mt+(s.oy||0),W=s.kol*s.lw+(s.kol-1)*s.gx,H=s.bar*s.lh+(s.bar-1)*s.gy,xs=[],ys=[],i;
+  for(i=0;i<=s.kol;i++)xs.push(i===0?x0:i===s.kol?x0+W:x0+i*s.lw+(i-1)*s.gx+s.gx/2);
+  for(i=0;i<=s.bar;i++)ys.push(i===0?y0:i===s.bar?y0+H:y0+i*s.lh+(i-1)*s.gy+s.gy/2);
+  var col=rgb(0.25,0.25,0.25);
+  function gr(x1,y1,x2,y2){page.drawLine({start:{x:x1*MM,y:(s.ph-y1)*MM},end:{x:x2*MM,y:(s.ph-y2)*MM},thickness:0.35,color:col});}
+  if(tm==='titik'){xs.forEach(function(x){ys.forEach(function(y){page.drawCircle({x:x*MM,y:(s.ph-y)*MM,size:0.4*MM,color:col});});});return;}
+  var Lt=Math.min(3,y0-1),Lb=Math.min(3,s.ph-(y0+H)-1),Ll=Math.min(3,x0-1),Lr=Math.min(3,s.pw-(x0+W)-1);
+  xs.forEach(function(x){if(Lt>=1)gr(x,y0-0.8-Lt,x,y0-0.8);if(Lb>=1)gr(x,y0+H+0.8,x,y0+H+0.8+Lb);});
+  ys.forEach(function(y){if(Ll>=1)gr(x0-0.8-Ll,y,x0-0.8,y);if(Lr>=1)gr(x0+W+0.8,y,x0+W+0.8+Lr,y);});
+}
 async function buatPdf(items,s,uji){
+  s=efektif(s);
   var PDF=window.PDFLib,doc=await PDF.PDFDocument.create(),F={b:await doc.embedFont(PDF.StandardFonts.HelveticaBold),r:await doc.embedFont(PDF.StandardFonts.Helvetica)};
   var se=ukuranEf(s),per=perLembar(s),n=Math.max(0,Math.min(per-1,Math.round(s.mulai)-1)),page=null,total=0;
-  function baru(){page=doc.addPage([s.pw*MM,s.ph*MM]);}
+  function baru(){page=doc.addPage([s.pw*MM,s.ph*MM]);tandaPotong(page,s);}
   baru();
   if(uji){
     for(var i=0;i<per;i++){var p=posisi(s,i);garisLabel(page,se,p.x,p.y);page.drawText(String(i+1),{x:(p.x+1.5)*MM,y:(s.ph-p.y-4)*MM,size:7,font:F.r,color:PDF.rgb(0.4,0.4,0.4)});}
@@ -185,21 +211,95 @@ async function buatPdf(items,s,uji){
   }
   var antri=[];items.forEach(function(it){for(var k=0;k<it.n;k++)antri.push(it);});
   antri.forEach(function(it){
-    if(n>0&&n%per===0)baru();var p=posisi(s,n);if(s.garis)garisLabel(page,se,p.x,p.y);gambarLabel(page,F,se,p.x,p.y,it);n++;total++;});
+    if(n>0&&n%per===0)baru();var p=posisi(s,n);if(modeTanda(s)==='garis')garisLabel(page,se,p.x,p.y);gambarLabel(page,F,se,p.x,p.y,it);n++;total++;});
   return await doc.save();
+}
+/* ===== Pratinjau, penilaian barcode, preset bawaan ===== */
+var BAWAAN=[
+ {nama:"Bawaan: A4 stiker 3 x 7 (21 label)",s:{pw:210,ph:297,ml:4.5,mr:4.5,mt:4,mb:4,gx:3,gy:2,kol:3,bar:7,lw:65,lh:39.5,pad:1.9,gm:"penuh",tm:"garis",garis:true,slowfast:true,kodeTeks:true,stokKotak:true,rakTeks:true,model:"barcode",bagi:0,pakaiId:true}},
+ {nama:"Bawaan: A4 stiker 4 x 10 (40 label)",s:{pw:210,ph:297,ml:4.5,mr:4.5,mt:4,mb:4,gx:2,gy:2,kol:4,bar:10,lw:48.75,lh:27.1,pad:1.5,gm:"penuh",tm:"garis",garis:true,slowfast:true,kodeTeks:true,stokKotak:true,rakTeks:true,model:"barcode",bagi:0,pakaiId:true}},
+ {nama:"Bawaan: A4 stiker 5 x 13 (65 label, ringkas)",s:{pw:210,ph:297,ml:4.5,mr:4.5,mt:4,mb:4,gx:2,gy:2,kol:5,bar:13,lw:38.6,lh:20.3,pad:1.2,gm:"penuh",tm:"garis",garis:true,slowfast:false,kodeTeks:true,stokKotak:false,rakTeks:false,model:"barcode",bagi:0,pakaiId:true}},
+ {nama:"Bawaan: Template TnJ 103 (12 label)",s:{pw:215.2,ph:297,ml:5.8,mr:5.8,mt:2.5,mb:2.5,gx:4.2,gy:2.8,kol:3,bar:4,lw:65,lh:35.2,pad:1.9,gm:"manual",tm:"tidak",garis:false,slowfast:true,kodeTeks:true,stokKotak:true,rakTeks:true,model:"barcode",bagi:0,pakaiId:true}}
+];
+var _cv=null;
+function fontUkur(){return {widthOfTextAtSize:function(t,sz){if(!_cv)_cv=document.createElement("canvas").getContext("2d");_cv.font="bold "+sz+"px Helvetica, Arial, sans-serif";return _cv.measureText(t).width;}};}
+function geomLabel(s,item,fb){ // s = ukuran sel (sesudah efektif/ukuranEf); satuan dalam poin seperti gambarLabel
+  if(s.model==="polos")return {polos:true};
+  var lw=s.lw*MM,lh=s.lh*MM,pad=s.pad*MM,inner=lw-2*pad,cur=lh-pad,bawah=pad,hCek=(s.slowfast||s.stokKotak)?3.8*MM:0;
+  var nm=String(item.nama||"").toUpperCase(),sz=s.nmMax>0?s.nmMax:10,szMin=s.nmMin>0?s.nmMin:5.5,nBr=s.nmBaris>0?Math.round(s.nmBaris):2,baris=null,maxNmH=Math.max(8,(cur-bawah)*(s.lh<22?0.38:0.5));
+  while(sz>=szMin){baris=bungkus(fb,nm,sz,inner,nBr);if(baris&&baris.length*sz*1.1<=maxNmH)break;baris=null;sz-=0.5;}
+  if(!baris){sz=szMin;baris=bungkus(fb,nm,sz,inner,nBr+1)||[nm.slice(0,40)];}
+  var yBar=cur-baris.length*sz*1.1-0.6*MM,kt=s.kodeTeks?((s.lh<22?3.8:5.2)*MM):0,hBar=yBar-(bawah+hCek+kt+(hCek?0.8*MM:0));
+  if(s.bh>0)hBar=Math.min(hBar,s.bh*MM);
+  var enc=c128(isiBarcode(s,item)),ok=!!(enc&&(s.bh>0?hBar>=1.5*MM:hBar>4*MM)),mw=0,wTot=0;
+  if(ok){mw=Math.min((s.xd>0?s.xd:0.42)*MM,inner/enc.modules);if(s.bw>0)mw=Math.min(mw,s.bw*MM/enc.modules);wTot=mw*enc.modules;}
+  return {baris:baris,sz:sz,hBar:hBar,ok:ok,mw:mw,wTot:wTot,enc:enc,inner:inner,pad:pad,hCek:hCek,top:lh-yBar,kz:s.kz>0?s.kz:(s.lh<22?5.5:7),kt:kt};
+}
+function nilaiBarcode(){
+  var e=efektif(S),se=ukuranEf(e),fb=fontUkur(),dari=PILIH.length?PILIH:[],contoh=!dari.length,arr=contoh?[{nama:"CONTOH NAMA BARANG",kode:"123456",idbc:""}]:dari.slice(0,400),w=null,wi=null;
+  if(S.model==="polos")return null;
+  arr.forEach(function(it){var g=geomLabel(se,it,fb);if(g.polos)return;if(!w||(w.ok&&(!g.ok||g.mw<w.mw))){w=g;wi=it;}});
+  if(!w)return null;
+  if(!w.ok)return {tampil:false,item:wi,contoh:contoh};
+  var x=w.mw/MM,g=x>=0.25?"baik":x>=0.19?"cukup":"terlalu rapat";
+  return {tampil:true,x:x,lebar:w.wTot/MM,tinggi:w.hBar/MM,grade:g,item:wi,contoh:contoh,modul:w.enc.modules,hurufNama:w.sz};
+}
+function peringatan(){
+  var e=efektif(S),w=[],mr=S.mr>=0?S.mr:0,rt=e.pw-(e.ml+(e.ox||0)+e.kol*e.lw+(e.kol-1)*e.gx),bw=e.ph-(e.mt+(e.oy||0)+e.bar*e.lh+(e.bar-1)*e.gy);
+  if(rt<-0.01)w.push("Susunan melebihi lebar kertas sebesar "+(-rt).toFixed(1).replace(".",",")+" mm. Kurangi kolom, lebar label, atau jarak.");
+  if(bw<-0.01)w.push("Susunan melebihi tinggi kertas sebesar "+(-bw).toFixed(1).replace(".",",")+" mm. Kurangi baris, tinggi label, atau jarak.");
+  var m=[["kiri",e.ml+(e.ox||0)],["kanan",rt],["atas",e.mt+(e.oy||0)],["bawah",bw]].filter(function(z){return z[1]>=-0.01&&z[1]<3;});
+  if(m.length)w.push("Margin "+m.map(function(z){return z[0]+" "+Math.max(0,z[1]).toFixed(1).replace(".",",")+" mm";}).join(", ")+" kurang dari 3 mm. Banyak printer tidak mencetak sampai tepi kertas, bagian label di tepi bisa terpotong.");
+  return w;
+}
+function segar(){
+  if(!document.getElementById("pv2"))return;
+  var e=efektif(S),gm=S.gm||"manual";
+  app.querySelectorAll("[data-s]").forEach(function(i){var k=i.getAttribute("data-s"),hit=(gm==="tetap"&&(k==="kol"||k==="bar"))||(gm==="penuh"&&(k==="lw"||k==="lh"));i.disabled=hit;i.style.background=hit?"var(--line)":"";if(hit)i.value=String(Math.round(e[k]*100)/100).replace(".",",");});
+  try{pratinjau();}catch(er){var b=document.getElementById("pv2");if(b)b.textContent="Pratinjau gagal: "+(er&&er.message||er);}
+  var tt=document.getElementById("tot");if(tt)tt.textContent="Total "+totalLabel()+" label, kira-kira "+Math.ceil((totalLabel()+Math.max(0,Math.round(S.mulai)-1))/Math.max(1,perLembar(S)))+" lembar.";
+}
+function pratinjau(){
+  var box=document.getElementById("pv2"),inf=document.getElementById("pvinfo");if(!box)return;
+  var e=efektif(S),se=ukuranEf(e),per=perLembar(S),fb=fontUkur(),smp=PILIH[0]||BARANG[0]||{nama:"CONTOH NAMA BARANG DUA BARIS PANJANG",kode:"123456"};
+  var item={nama:smp.nama,kode:smp.kode,idbc:smp.idbc||"",stok:smp.stok||"12",rak:smp.rak||""},g=geomLabel(se,item,fb),pt=1/MM,o="";
+  o+='<svg viewBox="0 0 '+e.pw+' '+e.ph+'" width="100%" style="background:#fff;border:1px solid var(--line);display:block"><defs><g id="lb">';
+  o+='<rect x="0" y="0" width="'+se.lw+'" height="'+se.lh+'" fill="#fff" stroke="#9aa7b4" stroke-width="0.25"/>';
+  if(g.polos){o+='<text x="'+se.lw/2+'" y="'+se.lh/2+'" font-size="'+Math.min(se.lh/4,5)+'" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-weight="bold">'+esc(String(item.nama).toUpperCase().slice(0,24))+'</text>';}
+  else{
+    g.baris.forEach(function(t,i){o+='<text x="'+se.lw/2+'" y="'+(g.pad*pt+(i*1.1+0.88)*g.sz*pt)+'" font-size="'+(g.sz*pt)+'" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-weight="bold">'+esc(t)+'</text>';});
+    if(g.ok){var bx=(S.rata==="kiri")?g.pad*pt:g.pad*pt+(g.inner-g.wTot)*pt/2,top=g.top*pt,mwm=g.mw*pt,d="";
+      g.enc.bars.forEach(function(b){d+="M"+(bx+b[0]*mwm).toFixed(3)+" "+top.toFixed(3)+"h"+(b[1]*mwm).toFixed(3)+"v"+(g.hBar*pt).toFixed(3)+"h-"+(b[1]*mwm).toFixed(3)+"z";});
+      o+='<path d="'+d+'" fill="#000"/>';
+      if(S.kodeTeks)o+='<text x="'+se.lw/2+'" y="'+(top+g.hBar*pt+g.kz*0.95*pt)+'" font-size="'+(g.kz*pt)+'" text-anchor="middle" font-family="Helvetica,Arial,sans-serif">'+esc(String(item.kode))+'</text>';}
+    if(g.hCek){var bs=2.6,yy=se.lh-g.pad*pt-3.8+0.6;
+      if(S.slowfast)o+='<rect x="'+(g.pad*pt+0.5)+'" y="'+yy+'" width="'+bs+'" height="'+bs+'" fill="none" stroke="#000" stroke-width="0.2"/><text x="'+(g.pad*pt+0.5+bs+0.6)+'" y="'+(yy+bs-0.6)+'" font-size="2.1" font-family="Helvetica,Arial,sans-serif">Slow  Fast</text>';
+      if(S.stokKotak)o+='<rect x="'+(se.lw-g.pad*pt-12)+'" y="'+(yy-0.3)+'" width="12" height="3.4" fill="none" stroke="#000" stroke-width="0.2"/>';}
+  }
+  o+='</g></defs>';
+  for(var i=0;i<per;i++){var p=posisi(e,i);o+='<use href="#lb" x="'+p.x+'" y="'+p.y+'"/>';}
+  o+='</svg>';box.innerHTML=o;
+  var P=Math.max(1,per),tot=totalLabel(),lembar=tot?Math.ceil((tot+Math.max(0,Math.round(S.mulai)-1))/P):0,pakai=(e.kol*e.bar*e.lw*e.lh)/(e.pw*e.ph)*100,h="";
+  h+='<div><b>'+per+' label per lembar</b> ('+e.kol+' kolom x '+e.bar+' baris'+(S.bagi?', dibagi dua':'')+'), ukuran label '+String(Math.round(se.lw*100)/100).replace(".",",")+' x '+String(Math.round(se.lh*100)/100).replace(".",",")+' mm. Label memenuhi sekitar '+Math.round(pakai)+'% luas kertas.'+(tot?' Daftar cetak '+tot+' label = <b>'+lembar+' lembar</b>.':'')+'</div>';
+  var nb=nilaiBarcode();
+  if(nb&&nb.tampil){var wr=nb.grade==="baik"?"#1b7a3a":nb.grade==="cukup"?"#9a6a00":"#a82424";
+    h+='<div style="margin-top:4px">Barcode'+(nb.contoh?' (contoh kode 6 digit)':' terburuk di daftar: '+esc(String(nb.item.kode)))+': lebar <b>'+nb.lebar.toFixed(1).replace(".",",")+' mm</b>, tinggi <b>'+nb.tinggi.toFixed(1).replace(".",",")+' mm</b>, garis terkecil <b>'+nb.x.toFixed(2).replace(".",",")+' mm</b> = <b style="color:'+wr+'">'+nb.grade+'</b>'+(nb.grade==="terlalu rapat"?'. Perbesar label, pendekkan kode, atau pakai ID Barcode.':nb.grade==="cukup"?'. Masih terbaca, uji dengan scanner.':'.')+(nb.tinggi<7?' <span style="color:#9a6a00">Tinggi barcode kurang dari 7 mm, sebaiknya perbesar tinggi label.</span>':'')+(nb.hurufNama<6.5?' <span style="color:#9a6a00">Huruf nama kecil ('+String(nb.hurufNama).replace(".",",")+' pt).</span>':'')+'</div>';}
+  else if(nb&&!nb.tampil)h+='<div style="margin-top:4px;color:#a82424"><b>Barcode tidak muat di label ini</b> (tinggi sisa terlalu kecil). Perbesar tinggi label atau kecilkan huruf nama.</div>';
+  peringatan().forEach(function(w){h+='<div style="margin-top:4px;color:#a82424">'+esc(w)+'</div>';});
+  inf.innerHTML=h;
 }
 /* ===== antarmuka ===== */
 
 var PRESET=[];
-function pisiSelect(pil){var s=document.getElementById("pset");if(!s)return;s.innerHTML='<option value="">(pilih preset)</option>'+PRESET.map(function(p){return '<option value="'+esc(p.nama)+'"'+(p.nama===pil?" selected":"")+'>'+esc(p.nama)+'</option>';}).join("");}
+function pisiSelect(pil){var s=document.getElementById("pset");if(!s)return;s.innerHTML='<option value="">(pilih preset)</option>'+BAWAAN.map(function(p){return '<option value="'+esc(p.nama)+'"'+(p.nama===pil?" selected":"")+'>'+esc(p.nama)+'</option>';}).join("")+PRESET.map(function(p){return '<option value="'+esc(p.nama)+'"'+(p.nama===pil?" selected":"")+'>'+esc(p.nama)+'</option>';}).join("");}
 async function muatPreset(pil){try{var r=await api({action:"labelPresetList"});if(r&&r.ok){PRESET=r.data||[];pisiSelect(pil);}}catch(e){}}
 function pasangPreset(){
   muatPreset(localStorage.getItem("sctk_label_preset")||"");
-  document.getElementById("ppakai").onclick=function(){var n=document.getElementById("pset").value,p=PRESET.filter(function(x){return x.nama===n;})[0];if(!p){toast("Pilih preset dulu.",true);return;}
+  document.getElementById("ppakai").onclick=function(){var n=document.getElementById("pset").value,p=PRESET.concat(BAWAAN).filter(function(x){return x.nama===n;})[0];if(!p){toast("Pilih preset dulu.",true);return;}
     S=Object.assign({},DEF,p.s,{mulai:1});simpanS();try{localStorage.setItem("sctk_label_preset",n);}catch(e){}tampil();toast("Preset \""+n+"\" dipakai.");};
-  document.getElementById("psimpan").onclick=async function(){var n=(document.getElementById("pnama").value||"").trim()||document.getElementById("pset").value;if(!n){toast("Isi nama preset (atau pilih preset untuk diperbarui).",true);return;}
+  document.getElementById("psimpan").onclick=async function(){var n=(document.getElementById("pnama").value||"").trim()||document.getElementById("pset").value;if(BAWAAN.some(function(x){return x.nama===n;})){toast("Nama itu milik preset bawaan. Beri nama lain.",true);return;}if(!n){toast("Isi nama preset (atau pilih preset untuk diperbarui).",true);return;}
     var bt=this;bt.disabled=true;try{var r=await api({action:"labelPresetSimpan",nama:n,s:S});toast(r.msg||(r.ok?"Tersimpan.":"Gagal."),!r.ok);if(r.ok){try{localStorage.setItem("sctk_label_preset",n);}catch(e){}await muatPreset(n);document.getElementById("pnama").value="";}}catch(e){toast("Gagal terhubung ke server. Pastikan Code.gs terbaru sudah ditempel.",true);}bt.disabled=false;};
-  document.getElementById("phapus").onclick=async function(){var n=document.getElementById("pset").value;if(!n){toast("Pilih preset yang akan dihapus.",true);return;}if(!confirm("Hapus preset \""+n+"\"?"))return;
+  document.getElementById("phapus").onclick=async function(){var n=document.getElementById("pset").value;if(!n){toast("Pilih preset yang akan dihapus.",true);return;}if(BAWAAN.some(function(x){return x.nama===n;})){toast("Preset bawaan tidak bisa dihapus.",true);return;}if(!confirm("Hapus preset \""+n+"\"?"))return;
     var r=await api({action:"labelPresetHapus",nama:n});toast(r.msg||"Selesai.",!r.ok);if(r.ok)await muatPreset("");};
 }
 function simpanS(){try{localStorage.setItem("sctk_label",JSON.stringify(S));}catch(e){}}
@@ -207,14 +307,20 @@ function totalLabel(){return PILIH.reduce(function(a,x){return a+x.n;},0);}
 function tampil(){
   if(MODE==="rak"){tampilRak();return;}
   app.innerHTML=saklar()+'<div class="card"><b>1. Pilih barang</b><div class="note">Ketik nama atau kode barang, tekan tombol "Tambahkan ke list cetak" di barang yang diinginkan. Atur jumlah label per barang.</div><div class="fr"><input type="text" id="cari" placeholder="Cari nama atau kode barang" style="flex:1;min-width:200px"></div><div class="cr" id="hasil" hidden></div><div class="fr"><b style="font-size:13px">Per rak:</b><select id="rakpil" style="max-width:260px"></select><button class="gh" id="rakadd">Tambah barang rak ini</button><button class="sv" id="rakcetak">Cetak langsung rak ini</button><button class="gh" id="rakxl" hidden>Muat daftar rak dari Excel</button><input type="file" id="rakf" accept=".xlsx,.xls,.csv" hidden></div><div class="note" id="rakinfo"></div><div class="fr"><button class="gh" id="semua">Tambah semua barang dari data stok</button><label class="note"><input type="checkbox" id="sem0" checked> hanya yang stoknya lebih dari 0</label><button class="gh" id="isi">Isi semua stok dari data</button><button class="gh" id="kosong">Kosongkan daftar</button><select id="urut"><option value="">Urutkan daftar...</option><option value="rak">Menurut rak</option><option value="nama">Menurut nama</option><option value="kode">Menurut kode</option></select></div><div id="dipilih"></div></div>'+
-  '<div class="card"><b>2. Pengaturan lembar label</b><div class="note">Bawaan: template Tom &amp; Jerry nomor 103 (TJ_no.103), 12 label per lembar (3 kolom x 4 baris, 65 x 35,2 mm, kertas 215,2 x 297 mm). Tombol "Pakai ukuran template TnJ 103" mengisi semua angka itu sekaligus. Semua ukuran bebas diisi manual (boleh desimal, mis. 32,5): ukur label di lembar Anda dengan penggaris lalu isi. Gunakan "Cetak uji" dulu pada kertas biasa, lalu tumpuk ke lembar label dan terawang ke cahaya.</div>'+
-  '<div class="dt"><div><label>Lebar label (mm)</label><input type="text" inputmode="decimal" data-s="lw"></div><div><label>Tinggi label (mm)</label><input type="text" inputmode="decimal" data-s="lh"></div><div><label>Jumlah kolom</label><input type="text" inputmode="decimal" data-s="kol"></div><div><label>Jumlah baris</label><input type="text" inputmode="decimal" data-s="bar"></div><div><label>Jarak antar kolom (mm)</label><input type="text" inputmode="decimal" data-s="gx"></div><div><label>Jarak antar baris (mm)</label><input type="text" inputmode="decimal" data-s="gy"></div><div><label>Batas kiri (mm)</label><input type="text" inputmode="decimal" data-s="ml"></div><div><label>Batas atas (mm)</label><input type="text" inputmode="decimal" data-s="mt"></div><div><label>Lebar kertas (mm)</label><input type="text" inputmode="decimal" data-s="pw"></div><div><label>Tinggi kertas (mm)</label><input type="text" inputmode="decimal" data-s="ph"></div><div><label>Ruang dalam label / padding (mm)</label><input type="text" inputmode="decimal" data-s="pad"></div><div><label>Tinggi barcode maks (mm)</label><input type="text" inputmode="decimal" data-s="bh" placeholder="0 = otomatis"></div><div><label>Lebar barcode maks (mm)</label><input type="text" inputmode="decimal" data-s="bw" placeholder="0 = otomatis"></div></div><div class="note">Barcode yang terlalu besar: isi Tinggi dan Lebar barcode maks (mis. tinggi 10, lebar 38). Isi 0 supaya otomatis memenuhi ruang. Jangan terlalu sempit agar tetap terbaca scanner (uji dulu dengan scanner).</div>'+
-  '<div class="dt"><div><label>Model label</label><select id="model"><option value="barcode">Dengan barcode</option><option value="polos">Tanpa barcode (nama, kode, stok, Slow/Fast Moving)</option></select></div><div><label>Bagi tiap label asli menjadi</label><select id="bagi"><option value="0">Tidak dibagi</option><option value="1">2 label mendatar (tinggi dibagi dua)</option><option value="2">2 label tegak (lebar dibagi dua)</option></select></div></div><div class="fr"><button class="gh" id="bagiset">Pakai setelan label kecil (TnJ 103 dibagi dua)</button><span class="note">Setelan kecil: label 65 x 17,6 mm (24 per lembar), tanpa kotak stok dan Slow/Fast agar barcode muat. Gunting lembar sesuai garis tengah tiap label.</span></div><div class="cb"><label><input type="checkbox" data-c="slowfast"> Kotak centang Slow Moving / Fast Moving</label><label><input type="checkbox" data-c="kodeTeks"> Tulis kode di bawah barcode</label><label><input type="checkbox" data-c="stokKotak"> Kotak angka stok</label><label><input type="checkbox" data-c="rakTeks"> Tulis rak di sebelah kode</label><label><input type="checkbox" data-c="garis"> Cetak garis tepi label (untuk uji)</label><label><input type="checkbox" data-c="pakaiId"> Pakai ID Barcode (angka pendek) bila barang punya</label></div><div class="fr" id="idbcbar"></div>'+
+  '<div class="card"><b>2. Pengaturan lembar label</b><div class="note">Pilih <b>Cara menyusun</b>: <b>Isi penuh kertas</b> (Anda isi jumlah kolom dan baris, ukuran label dihitung otomatis sampai penuh), <b>Ukuran label tetap</b> (Anda isi ukuran label, kolom dan baris dihitung otomatis), atau <b>Manual penuh</b> (semua angka diketik sendiri). Kolom yang abu-abu dihitung otomatis. Lihat <b>Pratinjau lembar</b> di bawah untuk memastikan susunan dan keterbacaan barcode. Gunakan "Cetak uji" dulu pada kertas biasa, lalu tumpuk ke lembar stiker dan terawang ke cahaya.</div><div class="fr"><button class="sv" id="a4pas">Pakai A4 stiker (210 x 297), 3 x 7 = 21 label</button></div><div class="dt"><div><label>Cara menyusun</label><select id="gm"><option value="penuh">Isi penuh kertas (kolom x baris tetap)</option><option value="tetap">Ukuran label tetap (kolom/baris otomatis)</option><option value="manual">Manual penuh</option></select></div><div><label>Tanda potong</label><select id="tm"><option value="tidak">Tidak ada</option><option value="garis">Garis tepi tiap label</option><option value="tepi">Tanda di tepi kertas</option><option value="titik">Titik di persimpangan</option></select></div><div><label>Posisi barcode</label><select id="rata"><option value="tengah">Tengah</option><option value="kiri">Rata kiri</option></select></div></div>'+
+  '<div class="dt"><div><label>Lebar label (mm)</label><input type="text" inputmode="decimal" data-s="lw"></div><div><label>Tinggi label (mm)</label><input type="text" inputmode="decimal" data-s="lh"></div><div><label>Jumlah kolom</label><input type="text" inputmode="decimal" data-s="kol"></div><div><label>Jumlah baris</label><input type="text" inputmode="decimal" data-s="bar"></div><div><label>Jarak antar kolom (mm)</label><input type="text" inputmode="decimal" data-s="gx"></div><div><label>Jarak antar baris (mm)</label><input type="text" inputmode="decimal" data-s="gy"></div><div><label>Batas kiri (mm)</label><input type="text" inputmode="decimal" data-s="ml"></div><div><label>Batas atas (mm)</label><input type="text" inputmode="decimal" data-s="mt"></div><div><label>Lebar kertas (mm)</label><input type="text" inputmode="decimal" data-s="pw"></div><div><label>Tinggi kertas (mm)</label><input type="text" inputmode="decimal" data-s="ph"></div><div><label>Ruang dalam label / padding (mm)</label><input type="text" inputmode="decimal" data-s="pad"></div><div><label>Tinggi barcode maks (mm)</label><input type="text" inputmode="decimal" data-s="bh" placeholder="0 = otomatis"></div><div><label>Lebar barcode maks (mm)</label><input type="text" inputmode="decimal" data-s="bw" placeholder="0 = otomatis"></div><div><label>Batas kanan (mm)</label><input type="text" inputmode="decimal" data-s="mr"></div><div><label>Batas bawah (mm)</label><input type="text" inputmode="decimal" data-s="mb"></div><div><label>Geser cetak kanan (+) / kiri (-) mm</label><input type="text" inputmode="decimal" data-s="ox"></div><div><label>Geser cetak bawah (+) / atas (-) mm</label><input type="text" inputmode="decimal" data-s="oy"></div><div><label>Tebal garis barcode maks (mm)</label><input type="text" inputmode="decimal" data-s="xd" placeholder="0 = otomatis"></div><div><label>Huruf nama maks (pt)</label><input type="text" inputmode="decimal" data-s="nmMax" placeholder="0 = 10"></div><div><label>Huruf nama min (pt)</label><input type="text" inputmode="decimal" data-s="nmMin" placeholder="0 = 5,5"></div><div><label>Baris nama maks</label><input type="text" inputmode="decimal" data-s="nmBaris" placeholder="0 = 2"></div><div><label>Huruf kode (pt)</label><input type="text" inputmode="decimal" data-s="kz" placeholder="0 = otomatis"></div></div><div class="note">Barcode yang terlalu besar: isi Tinggi dan Lebar barcode maks (mis. tinggi 10, lebar 38). Isi 0 supaya otomatis memenuhi ruang. Jangan terlalu sempit agar tetap terbaca scanner (uji dulu dengan scanner).</div>'+
+  '<div class="dt"><div><label>Model label</label><select id="model"><option value="barcode">Dengan barcode</option><option value="polos">Tanpa barcode (nama, kode, stok, Slow/Fast Moving)</option></select></div><div><label>Bagi tiap label asli menjadi</label><select id="bagi"><option value="0">Tidak dibagi</option><option value="1">2 label mendatar (tinggi dibagi dua)</option><option value="2">2 label tegak (lebar dibagi dua)</option></select></div></div><div class="fr"><button class="gh" id="bagiset">Pakai setelan label kecil (TnJ 103 dibagi dua)</button><span class="note">Setelan kecil: label 65 x 17,6 mm (24 per lembar), tanpa kotak stok dan Slow/Fast agar barcode muat. Gunting lembar sesuai garis tengah tiap label.</span></div><div class="cb"><label><input type="checkbox" data-c="slowfast"> Kotak centang Slow Moving / Fast Moving</label><label><input type="checkbox" data-c="kodeTeks"> Tulis kode di bawah barcode</label><label><input type="checkbox" data-c="stokKotak"> Kotak angka stok</label><label><input type="checkbox" data-c="rakTeks"> Tulis rak di sebelah kode</label><label><input type="checkbox" data-c="pakaiId"> Pakai ID Barcode (angka pendek) bila barang punya</label></div><div class="fr" id="idbcbar"></div>'+
   '<div class="dt"><div><label>Mulai dari label ke- (bila lembar sudah terpakai sebagian)</label><input type="text" inputmode="decimal" data-s="mulai"></div></div><div class="fr"><button class="sv" id="tj103">Pakai ukuran template TnJ 103</button><button class="gh" id="reset">Kembalikan ke bawaan</button></div>'+
   '<div class="note" style="margin-top:12px"><b>Preset ukuran</b> (tersimpan di server, bisa dipakai dari komputer atau HP mana pun)</div><div class="fr"><select id="pset" style="min-width:200px"><option value="">(pilih preset)</option></select><button class="gh" id="ppakai">Pakai</button><button class="gh" id="phapus">Hapus</button><input type="text" id="pnama" maxlength="60" placeholder="Nama preset baru, mis. Tom &amp; Jerry 103" style="flex:1;min-width:200px"><button class="sv" id="psimpan">Simpan ukuran ini sebagai preset</button></div></div>'+
+  '<div class="card"><b>Pratinjau lembar</b> <span class="note">(perkiraan, halaman 1)</span><div id="pvinfo" style="margin:6px 0"></div><div id="pv2" style="max-width:380px"></div></div>'+
   '<div class="card"><b>3. Cetak</b><div class="fr"><button class="sv" id="buat">Buat PDF label</button><button class="gh" id="uji">Cetak uji (kotak kosong)</button><span class="note" id="info"></span></div><div class="note">Buka PDF, cetak dengan ukuran <b>100% / Actual size</b> (jangan "Fit to page") dan margin "None".</div></div>';
-  app.querySelectorAll("[data-s]").forEach(function(i){i.value=S[i.getAttribute("data-s")];i.oninput=function(){var v=Number(String(i.value).replace(",",".").trim());S[i.getAttribute("data-s")]=isNaN(v)?0:v;simpanS();};});
-  app.querySelectorAll("[data-c]").forEach(function(i){i.checked=!!S[i.getAttribute("data-c")];i.onchange=function(){S[i.getAttribute("data-c")]=i.checked;simpanS();};});
+  if(!S.tm)S.tm=S.garis?'garis':'tidak';
+  app.querySelectorAll("[data-s]").forEach(function(i){i.value=S[i.getAttribute("data-s")];i.oninput=function(){var v=Number(String(i.value).replace(",",".").trim());S[i.getAttribute("data-s")]=isNaN(v)?0:v;simpanS();segar();};});
+  var gmS=document.getElementById("gm"),tmS=document.getElementById("tm"),rtS=document.getElementById("rata");gmS.value=S.gm||"manual";tmS.value=S.tm;rtS.value=S.rata||"tengah";
+  gmS.onchange=function(){var e=efektif(S);S.kol=e.kol;S.bar=e.bar;S.lw=Math.floor(e.lw*100)/100;S.lh=Math.floor(e.lh*100)/100;S.gm=gmS.value;simpanS();app.querySelectorAll("[data-s]").forEach(function(i){i.value=S[i.getAttribute("data-s")];});segar();};
+  tmS.onchange=function(){S.tm=tmS.value;S.garis=(S.tm==="garis");simpanS();segar();};rtS.onchange=function(){S.rata=rtS.value;simpanS();segar();};
+  document.getElementById("a4pas").onclick=function(){S=Object.assign({},DEF,BAWAAN[0].s,{mulai:1,model:S.model||'barcode'});simpanS();tampil();toast("Setelan A4 stiker 3 x 7 dipakai. Cetak uji dulu pada kertas biasa.");};
+  app.querySelectorAll("[data-c]").forEach(function(i){i.checked=!!S[i.getAttribute("data-c")];i.onchange=function(){S[i.getAttribute("data-c")]=i.checked;simpanS();segar();};});
   document.getElementById("semua").onclick=tambahSemua;isiRak();pasangPreset();
   document.getElementById("rakadd").onclick=function(){tambahRak(false);};document.getElementById("rakcetak").onclick=function(){tambahRak(true);};
   document.getElementById("urut").onchange=function(){urutkan(this.value);this.value="";};
@@ -225,7 +331,7 @@ function tampil(){
   document.getElementById("reset").onclick=function(){S=Object.assign({},DEF);simpanS();tampil();};
   var cari=document.getElementById("cari");cari.oninput=function(){saran(cari.value);};
   document.getElementById("buat").onclick=function(){cetak(false);};document.getElementById("uji").onclick=function(){cetak(true);};
-  pasangSaklar();panelId();gPilih();
+  pasangSaklar();panelId();gPilih();segar();
 }
 function panelId(){
   var d=document.getElementById("idbcbar");if(!d)return;
@@ -307,6 +413,7 @@ async function cetak(uji){
   if(!uji&&!PILIH.length){toast("Pilih barang dulu.",true);return;}
   var info=document.getElementById("info"),pesan=[];
   if(!uji&&S.model!=='polos'){PILIH.forEach(function(x){var e=c128(x.kode),inner=(S.lw-2*S.pad);if(!e){pesan.push(x.nama+": kode kosong");return;}});}
+  var pw2=peringatan();if(pw2.length)toast("Perhatian: "+pw2[0],true);
   info.textContent="Menyusun PDF...";
   try{var by=await buatPdf(PILIH,S,uji),bl=new Blob([by],{type:"application/pdf"}),u=URL.createObjectURL(bl);window.open(u,"_blank");
     var a=document.createElement("a");a.href=u;a.download=(uji?"uji-label-":(S.model==='polos'?"label-polos-":"label-barcode-"))+new Date().toISOString().slice(0,10)+".pdf";document.body.appendChild(a);a.click();setTimeout(function(){a.remove();},1500);
@@ -379,8 +486,8 @@ function saklar(){return '<div class="card"><div class="fr" style="margin:0"><bu
 function pasangSaklar(){
   var a=document.getElementById("mbrg"),b=document.getElementById("mrak");
   if(a)a.onclick=function(){MODE="barang";tampil();};if(b)b.onclick=function(){MODE="rak";tampil();};
-  var m=document.getElementById("model");if(m){m.value=S.model||"barcode";m.onchange=function(){S.model=m.value;simpanS();};}
-  var bg=document.getElementById("bagi");if(bg){bg.value=String(S.bagi||0);bg.onchange=function(){S.bagi=Number(bg.value);simpanS();gPilih();};}
+  var m=document.getElementById("model");if(m){m.value=S.model||"barcode";m.onchange=function(){S.model=m.value;simpanS();segar();};}
+  var bg=document.getElementById("bagi");if(bg){bg.value=String(S.bagi||0);bg.onchange=function(){S.bagi=Number(bg.value);simpanS();gPilih();segar();};}
   var bs=document.getElementById("bagiset");if(bs)bs.onclick=function(){S=Object.assign({},DEF,{mulai:1,model:S.model||'barcode',bagi:1,pad:1,slowfast:false,stokKotak:false});simpanS();tampil();toast("Setelan label kecil dipakai (65 x 17,6 mm, 24 label per lembar). Cetak uji dulu pada kertas biasa.");};
 }
 var _ctx=null;

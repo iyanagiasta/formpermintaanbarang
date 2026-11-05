@@ -7,6 +7,7 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="pdfbukti.js?v=36"></script>
+<script src="mb-excel.js?v=38"></script>
 <script src="laporan.js"></script>
 <script src="admin-kerja.js"></script>
 <script src="admin-mutasi.js"></script>
@@ -1154,10 +1155,12 @@ function drawMB(){
     unduhXlsx("pengajuan_master_barang_"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+".xlsx","Pengajuan",[["No Pengajuan","Waktu","Pemohon","Departemen","Email","Nama Barang","Satuan","Kategori","Jenis Barang","Spesifikasi","Alasan","Kode","Status","Waktu Proses","Alasan Tolak","Diinput Accurate","Cari Barang"]].concat(MBD.rows.map(function(x){return [x.no,x.waktu,x.pemohon,x.dept,x.email,x.nama,x.satuan,x.kategori,x.jenis,x.spek,x.alasan,x.kode,x.status,x.wproses,x.tolak,x.acc,x.cari];})),[22,16,18,14,22,44,9,14,18,26,26,18,12,16,24,10,16]);
   };
   document.getElementById("mbx").onclick=function(){
-    var D=MBD.rows.filter(function(x){return x.status==="Disetujui"&&x.acc!=="Sudah";});
+    var D=MBD.rows.filter(function(x){return x.status==="Disetujui"&&x.acc!=="Sudah";}),cek=[];
+    document.querySelectorAll("[data-mbc]").forEach(function(c){if(c.checked)cek.push(c.getAttribute("data-mbc"));});
+    if(cek.length)D=D.filter(function(x){return cek.indexOf(x.no)>=0;});
     if(!D.length){toast("Tidak ada barang yang belum diinput ke Accurate.",true);return;}
-    var d=new Date(),p=function(n){return String(n).padStart(2,"0");};
-    unduhXlsx("master_barang_accurate_"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+".xlsx","Master Barang",[["Kode Barang","Nama Barang","Satuan","Kategori","Jenis Barang","Spesifikasi","No Pengajuan"]].concat(D.map(function(x){return [x.kode,x.nama,x.satuan,x.kategori,x.jenis,x.spek,x.no];})),[18,46,10,16,18,30,20]);
+    if(!window.MBX){toast("Modul Excel belum termuat. Muat ulang halaman.",true);return;}
+    MBX.jalankan(D.slice().reverse(),toast);
   };
 }
 /* ---- tab Accurate: penyesuaian persediaan ke Accurate ---- */

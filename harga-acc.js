@@ -70,8 +70,8 @@
   /* ---------- tampilan (admin.html, tab Stok & Harga) ---------- */
   HX.mount = function (box, api, toast, reload) {
     var D = null;
-    box.innerHTML = '<div class="card" style="border-color:var(--gold)"><b>Perbarui harga dari PDF Accurate</b><div class="note">Unggah PDF <b>Daftar Barang dan Jasa</b> dari Accurate. Hanya barang yang punya Kts dan Nilai Satuan lebih dari 0 yang dibaca; yang lain tidak mengubah apa pun. Pratinjau tampil dulu, harga baru tersimpan setelah Anda menekan Terapkan. Perubahan lebih dari 20% ditandai merah dan tidak tercentang.</div>' +
-      '<div class="fr"><input type="file" id="hxf" accept=".pdf,application/pdf"><span class="note" id="hxn"></span></div><div id="hxo"></div></div>';
+    box.innerHTML = '<details class="card" style="border-color:var(--gold)"><summary><b>Perbarui harga dari PDF Accurate</b></summary><div class="note">Unggah PDF <b>Daftar Barang dan Jasa</b> dari Accurate. Hanya barang yang punya Kts dan Nilai Satuan lebih dari 0 yang dibaca; yang lain tidak mengubah apa pun. Pratinjau tampil dulu, harga baru tersimpan setelah Anda menekan Terapkan. Perubahan lebih dari 20% ditandai merah dan tidak tercentang.</div>' +
+      '<div class="fr"><input type="file" id="hxf" accept=".pdf,application/pdf"><span class="note" id="hxn"></span></div><div id="hxo"></div></details>';
     var out = box.querySelector('#hxo'), info = box.querySelector('#hxn');
     box.querySelector('#hxf').onchange = async function () {
       var f = this.files[0]; if (!f) return; out.innerHTML = ''; info.textContent = 'Membaca PDF...';

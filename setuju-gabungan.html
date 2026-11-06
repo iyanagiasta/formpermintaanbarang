@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=43"></script>
+<script src="ukur.js?v=46"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Persetujuan Gabungan - SCTK</title>
@@ -52,7 +52,7 @@ var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1
 var q=new URLSearchParams(location.search),T=(q.get("t")||"").trim(),app=document.getElementById("app"),D=null,NOTE="";
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function fq(n){return String(Math.round(Number(n)*100)/100).replace(".",",");}
-async function api(b){var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+async function api(b){var maks=/Info$|^info$/i.test(b.action)?3:1,gal=null;for(var i=0;i<maks;i++){try{var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}catch(e){gal=e;if(i<maks-1)await new Promise(function(ok){setTimeout(ok,700*(i+1));});}}throw gal;}
 function kunci(b){document.querySelectorAll("button,input").forEach(function(x){x.disabled=b;});}
 function render(){
   var n=D.items.length,h="";

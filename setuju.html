@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=43"></script>
+<script src="ukur.js?v=46"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Persetujuan Permintaan Barang</title>
 <style>
@@ -64,8 +64,15 @@ var app=document.getElementById("app");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function show(msg,cls){app.innerHTML='<div class="card msg '+(cls||"")+'">'+esc(msg)+'</div>';}
 async function api(b){
-  var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});
-  return await r.json();
+  /* Aksi baca (info) aman diulang: server Apps Script kadang menjawab halaman galat sesaat (terukur: 5 dari 16 gagal). Aksi tulis (decide) TIDAK diulang otomatis. */
+  var maks=b.action==="info"?3:1,gal=null;
+  for(var i=0;i<maks;i++){
+    try{
+      var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});
+      return await r.json();
+    }catch(e){gal=e;if(i<maks-1)await new Promise(function(ok){setTimeout(ok,700*(i+1));});}
+  }
+  throw gal;
 }
 
 function rp(n){return "Rp "+String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,".");}

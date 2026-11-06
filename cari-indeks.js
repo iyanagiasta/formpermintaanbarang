@@ -43,7 +43,7 @@ var IDX=(function(){
     })();
     return sedang;
   }
-  function mulai(fn){if(fn)apiFn=fn;if(!ok)pulih();if(!ok||Date.now()-tUp>60000)segarkan();return IDX;}
+  function mulai(fn){if(fn)apiFn=fn;if(!ok)pulih();if(!ok||Date.now()-tUp>150000)segarkan();return IDX;}   /* T46: pindah tab tidak lagi memeriksa server tiap 60 dtk (sebelumnya 96 panggilan); penulisan sendiri tetap menandai kotor */
   /** Resolve true bila indeks tersedia (menunggu muat pertama bila belum ada). Bila sudah ada tetapi lama (>60 dtk), muat ulang di latar belakang. */
   async function siap(){
     if(!ok)pulih();

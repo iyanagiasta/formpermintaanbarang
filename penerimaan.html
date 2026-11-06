@@ -56,20 +56,22 @@ function numIn(v){var s=String(v==null?"":v).trim().replace(/[^\d.,-]/g,"");if(!
 function rid(){return "k"+Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
 async function api(b){if(KODE)b.kode=KODE;else if(PINADM)b.pin=PINADM;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
 function loginView(msg){
-  app.innerHTML='<div class="card" style="max-width:380px;margin:26px auto"><p style="margin-top:0"><b>Kode akses</b></p><div class="note" style="margin-bottom:8px">Khusus Staff Gudang dan admin.</div><input id="kd" type="password" autocomplete="off" placeholder="Kode akses"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button>'+(msg?'<p class="err">'+esc(msg)+'</p>':'')+'</div>';
+  app.innerHTML='<div class="card" style="max-width:380px;margin:26px auto"><p style="margin-top:0"><b>Kode akses</b></p><div class="note" style="margin-bottom:8px">Staff Gudang: kode akses. Admin: PIN admin.</div><input id="kd" type="password" autocomplete="off" placeholder="Kode akses atau PIN admin"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button>'+(msg?'<p class="err">'+esc(msg)+'</p>':'')+'</div>';
   var i=document.getElementById("kd");i.onkeydown=function(e){if(e.key==="Enter")masuk();};document.getElementById("go").onclick=masuk;
 }
 async function masuk(){
-  var v=document.getElementById("kd").value.trim();if(!v)return;KODE=v;PINADM="";
-  document.getElementById("go").disabled=true;await mulai();
+  var v=document.getElementById("kd").value.trim();if(!v)return;
+  document.getElementById("go").disabled=true;
+  KODE=v;PINADM="";var ok=await mulai(true);
+  if(!ok){KODE="";PINADM=v;ok=await mulai(true);if(ok){try{sessionStorage.setItem("sctk_admin",v);}catch(e){}}else{PINADM="";loginView("Kode atau PIN salah.");}}
 }
-async function mulai(){
+async function mulai(diam){
   try{
     var r=await api({action:"terimaPesanan"});
-    if(!r.ok){KODE="";try{localStorage.removeItem("sctk_pic");}catch(e){}loginView(r.msg||"Kode salah.");return;}
+    if(!r.ok){if(diam)return false;KODE="";try{localStorage.removeItem("sctk_pic");}catch(e){}loginView(r.msg||"Kode salah.");return false;}
     try{if(KODE)localStorage.setItem("sctk_pic",KODE);}catch(e){}
-    PES=r.data||[];PROY=r.proyek||[];ADMIN=!!r.admin;NAMA=r.nama||"";muatBarang();tampil();
-  }catch(e){KODE="";loginView("Gagal terhubung ke server.");}
+    PES=r.data||[];PROY=r.proyek||[];ADMIN=!!r.admin;NAMA=r.nama||"";muatBarang();tampil();return true;
+  }catch(e){if(diam)return false;KODE="";loginView("Gagal terhubung ke server.");return false;}
 }
 async function muatBarang(){
   try{var o=JSON.parse(sessionStorage.getItem("sctk_tb_idx")||"null");if(o&&o.rows){BARANG=o.rows;}}catch(e){}

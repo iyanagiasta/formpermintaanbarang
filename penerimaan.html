@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=47"></script>
+<script src="ukur.js?v=49"></script><script src="cari-pintar.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Penerimaan Barang - Gudang SCTK</title>
@@ -85,23 +85,72 @@ function tampil(){
 /* ===== form ===== */
 function pesananDipilih(){return PES.filter(function(p){return p.ppbj===F.ppbj;})[0]||null;}
 function formBaru(){
-  var o='<option value="">— pilih pesanan PPBJ —</option>'+PES.map(function(p){return '<option value="'+esc(p.ppbj)+'"'+(p.ppbj===F.ppbj?" selected":"")+'>'+esc(p.ppbj)+' · '+esc(p.proyek||"")+'</option>';}).join("");
   var h='<div class="card"><h3>1. Barang datang dari mana?</h3><div class="fr"><button class="'+(F.sumber==="ppbj"?"":"gh")+'" id="s1">Pesanan PPBJ</button><button class="'+(F.sumber==="po"?"":"gh")+'" id="s2">PO / tanpa PPBJ</button></div>';
-  if(F.sumber==="ppbj"){h+='<select id="ppbj">'+o+'</select><div id="info" class="note"></div>';}
-  else{h+='<label class="l">No PO (boleh kosong)</label><input id="po" value="'+esc(F.po)+'"><label class="l">Untuk proyek (ketik, atau pilih)</label><input id="proy" list="dlp" value="'+esc(F.proyek)+'" placeholder="Nama proyek atau kebutuhan"><datalist id="dlp">'+PROY.map(function(p){return '<option value="'+esc(p.ppbj)+'">'+esc(p.ket||"")+'</option>';}).join("")+'</datalist><div class="note">Bila memilih nomor PPBJ, PIC proyek ikut tampil di ringkasan.</div>';}
+  if(F.sumber==="ppbj"){h+='<div id="psel"></div><label class="l">Cari proyek (No PPBJ, nama proyek, departemen, atau nama PIC)</label><input id="pq" placeholder="mis. cibadak, atap, RM, Ramji" autocomplete="off"><div id="phasil"></div><div class="fr" style="margin-top:6px"><button class="gh" id="pshow" type="button"></button></div><div id="info" class="note"></div>';}
+  else{h+='<label class="l">No PO (boleh kosong)</label><input id="po" value="'+esc(F.po)+'"><label class="l">Untuk proyek (ketik, atau pilih)</label><input id="proy" value="'+esc(F.proyek)+'" placeholder="Ketik nama proyek / No PPBJ / PIC, atau tulis bebas" autocomplete="off"><div id="phasil"></div><div class="fr" style="margin-top:6px"><button class="gh" id="pshow" type="button"></button></div><div class="note">Bila memilih nomor PPBJ, PIC proyek ikut tampil di ringkasan.</div>';}
   h+='</div><div class="card"><h3>2. Barang yang diterima</h3><div id="daftar"></div><label class="l">Tambah barang lain (cari nama atau kode)</label><input id="cari" placeholder="Ketik nama barang..." autocomplete="off"><div id="hasil"></div><button class="gh" id="bebas" style="width:100%;margin-top:8px">+ Barang belum terdaftar (tulis nama)</button></div>';
   h+='<div class="card"><h3>3. Foto surat jalan'+(ADMIN?'':' <span class="err">(wajib)</span>')+'</h3><div class="fr"><button id="kam">Ambil foto</button><button class="gh" id="gal">Pilih dari galeri / PDF</button></div><input type="file" id="fk" accept="image/*" capture="environment" style="display:none"><input type="file" id="fg" accept="image/*,application/pdf" multiple style="display:none"><div class="th" id="th"></div><div class="note" id="fn"></div>'+(ADMIN?'<label class="l">Alasan bila tanpa foto (khusus admin)</label><input id="alasan" value="'+esc(F.alasan)+'" placeholder="mis. surat jalan menyusul">':'')+'<label class="l">Catatan (boleh kosong)</label><input id="cat" value="'+esc(F.cat)+'"></div>';
   h+='<button class="sv" id="cek" style="width:100%;padding:14px">Periksa dan lihat ringkasan</button><div id="ring"></div>';
   document.getElementById("isi").innerHTML=h;
   document.getElementById("s1").onclick=function(){simpanF();F.sumber="ppbj";ITEMS=[];formBaru();};document.getElementById("s2").onclick=function(){simpanF();F.sumber="po";ITEMS=ITEMS.filter(function(x){return x.manual;});formBaru();};
-  if(document.getElementById("ppbj"))document.getElementById("ppbj").onchange=function(){simpanF();F.ppbj=this.value;isiDariPesanan();gambarDaftar();info();};
+  pasangProyek();
   document.getElementById("cari").oninput=cari;document.getElementById("bebas").onclick=function(){ITEMS.push({kode:"",nama:"",satuan:"",qty:"",harga:"",manual:1,bebas:1});gambarDaftar();};
   document.getElementById("kam").onclick=function(){document.getElementById("fk").click();};document.getElementById("gal").onclick=function(){document.getElementById("fg").click();};
   document.getElementById("fk").onchange=function(){tambahFile(this.files);this.value="";};document.getElementById("fg").onchange=function(){tambahFile(this.files);this.value="";};
   document.getElementById("cek").onclick=periksa;gambarDaftar();gambarFoto();info();
 }
 function simpanF(){var g=function(i){var e=document.getElementById(i);return e?e.value:null;};var a=g("po");if(a!==null)F.po=a;a=g("proy");if(a!==null)F.proyek=a;a=g("cat");if(a!==null)F.cat=a;a=g("alasan");if(a!==null)F.alasan=a;}
-function info(){var e=document.getElementById("info"),p=pesananDipilih();if(!e)return;e.textContent=p?((p.proyek||"")+(p.statusProyek?" · "+p.statusProyek:"")+(p.pembelian&&p.pembelian.length?" · PO "+p.pembelian.map(function(x){return x.po||x.nomor;}).join(", "):"")):"";}
+function info(){var e=document.getElementById("info"),p=pesananDipilih();if(!e)return;if(!p&&F.ppbj){var pr=PROY.filter(function(z){return z.ppbj===F.ppbj;})[0];e.textContent=(pr?(pr.ket||"")+(pr.status?" · "+pr.status:"")+" · ":"")+"Tidak ada pesanan untuk proyek ini; barang yang diterima dicatat sebagai di luar pesanan.";return;}e.textContent=p?((p.proyek||"")+(p.statusProyek?" · "+p.statusProyek:"")+(p.pembelian&&p.pembelian.length?" · PO "+p.pembelian.map(function(x){return x.po||x.nomor;}).join(", "):"")):"";}
+/* ===== pencarian pintar proyek (Tambahan 49) ===== */
+var PSELESAI=false,PRES=[];
+function kandidatProyek(){
+  var ord={},m={},out=[];PES.forEach(function(p){ord[p.ppbj]=p;});
+  PROY.forEach(function(p){m[p.ppbj]=1;});
+  var sumber=PROY.slice();PES.forEach(function(p){if(!m[p.ppbj])sumber.push({ppbj:p.ppbj,ket:p.proyek,dept:"",status:p.statusProyek||"",pic:""});});
+  sumber.forEach(function(p){
+    var o=ord[p.ppbj],akhir=(p.status==="Selesai"||p.status==="Batal");
+    if(akhir&&!PSELESAI&&p.ppbj!==F.ppbj&&!(F.sumber==="po"&&p.ppbj===F.proyek))return;
+    out.push({ppbj:p.ppbj,ket:p.ket||"",dept:p.dept||"",status:p.status||"",pic:p.pic||"",n:o?o.items.length:0,po:o&&o.pembelian?o.pembelian.map(function(x){return x.po||x.nomor;}).filter(Boolean).join(", "):""});
+  });
+  return out;
+}
+function jumlahAkhir(){return PROY.filter(function(p){return p.status==="Selesai"||p.status==="Batal";}).length;}
+function cariProyek(q){
+  var L=kandidatProyek(),h=F.sumber==="ppbj"?true:false;
+  var r=String(q||"").trim()?CARI.saring(L,q,function(p){return p.ppbj+" "+p.ket+" "+p.dept+" "+p.pic;},60).hasil:L.slice();
+  if(F.sumber==="ppbj"){var a=r.filter(function(p){return p.n>0;}),b=r.filter(function(p){return !(p.n>0);});r=a.concat(b);}
+  return r;
+}
+function gambarProyek(){
+  var box=document.getElementById("phasil");if(!box)return;
+  var inp=document.getElementById(F.sumber==="ppbj"?"pq":"proy"),q=inp?inp.value:"";
+  if(F.sumber==="po"){var persis=PROY.some(function(z){return z.ppbj===q;});if(persis){box.innerHTML="";return;}}
+  var r=cariProyek(q);PRES=r.slice(0,30);
+  box.innerHTML=r.length?'<div class="sg">'+PRES.map(function(p,n){
+    var abu=F.sumber==="ppbj"&&!(p.n>0);
+    return '<button type="button" data-pn="'+n+'"'+(abu?' style="opacity:.62"':"")+'><b>'+esc(p.ppbj)+'</b> · '+esc(p.ket)+'<small>'+esc(p.dept||"-")+(p.pic?" · PIC: "+esc(p.pic):"")+(p.status&&p.status!=="Aktif"?" · "+esc(p.status):"")+(F.sumber==="ppbj"?(p.n>0?' · <span class="tag">ada pesanan, '+p.n+' barang belum datang</span>'+(p.po?" · PO "+esc(p.po):""):" · tanpa pesanan"):"")+'</small></button>';
+  }).join("")+(r.length>30?'<div class="note" style="padding:6px">Menampilkan 30 dari '+r.length+'. Ketik lebih spesifik.</div>':"")+'</div>':'<div class="note">Tidak ada proyek yang cocok.'+(F.sumber==="po"?" Teks ini akan dipakai apa adanya sebagai nama proyek.":"")+'</div>';
+  box.querySelectorAll("button[data-pn]").forEach(function(e){e.onclick=function(){pilihProyek(PRES[+e.getAttribute("data-pn")]);};});
+}
+function pilihProyek(p){
+  if(!p)return;simpanF();
+  if(F.sumber==="ppbj"){F.ppbj=p.ppbj;isiDariPesanan();var q=document.getElementById("pq");if(q)q.value="";document.getElementById("phasil").innerHTML="";gambarDaftar();gambarPilihan();info();}
+  else{F.proyek=p.ppbj;var e=document.getElementById("proy");if(e)e.value=p.ppbj;document.getElementById("phasil").innerHTML="";}
+}
+function gambarPilihan(){
+  var e=document.getElementById("psel");if(!e)return;
+  if(!F.ppbj){e.innerHTML="";return;}
+  var pr=PROY.filter(function(z){return z.ppbj===F.ppbj;})[0]||{},p=pesananDipilih();
+  e.innerHTML='<div class="box"><b>'+esc(F.ppbj)+'</b> · '+esc(pr.ket||(p&&p.proyek)||"")+'<br><small>'+esc(pr.dept||"-")+(pr.pic?" · PIC: "+esc(pr.pic):"")+(p?' · <span class="tag">ada pesanan</span>':' · tanpa pesanan')+'</small> <button type="button" class="gh" id="pganti" style="margin-left:6px">Ganti proyek</button></div>';
+  document.getElementById("pganti").onclick=function(){F.ppbj="";ITEMS=ITEMS.filter(function(x){return x.manual;});gambarPilihan();gambarDaftar();info();var q=document.getElementById("pq");if(q){q.focus();}gambarProyek();};
+}
+function pasangProyek(){
+  var inp=document.getElementById(F.sumber==="ppbj"?"pq":"proy"),sh=document.getElementById("pshow");if(!inp)return;
+  inp.oninput=function(){if(F.sumber==="po")F.proyek=this.value;gambarProyek();};inp.onfocus=gambarProyek;
+  function tombol(){var n=jumlahAkhir();sh.style.display=n?"":"none";sh.textContent=PSELESAI?"Sembunyikan proyek selesai/batal":"Tampilkan proyek selesai/batal ("+n+")";}
+  sh.onclick=function(){PSELESAI=!PSELESAI;tombol();gambarProyek();};tombol();
+  if(F.sumber==="ppbj")gambarPilihan();
+}
 function isiDariPesanan(){
   ITEMS=ITEMS.filter(function(x){return x.manual;});var p=pesananDipilih();if(!p)return;
   p.items.slice().reverse().forEach(function(i){ITEMS.unshift({kode:i.kode,nama:i.nama,satuan:i.satuan,qty:"",harga:"",sisa:i.sisaTerima,pesan:1});});

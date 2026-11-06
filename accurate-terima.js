@@ -26,7 +26,7 @@ var PAT=(function(){
     var R=PA.ringT||{belum:0,sudah:0,tertua:0,lewatBatas:0,batas:3},vis=tampil(),sel=terpilih(),nSel=vis.filter(function(x){return S[x.key];}).length;
     var body=vis.slice(0,500).map(function(x){
       var merah=x.status==="Belum"&&x.umur>R.batas;
-      return '<tr><td><input type="checkbox" data-tk="'+esc(x.key)+'"'+(S[x.key]?" checked":"")+'></td><td data-l="Tanggal">'+esc(x.tgl)+'</td><td data-l="Penerimaan"><b>'+esc(x.doc)+'</b><small>'+esc(x.sumber||"")+'</small></td><td data-l="No PPBJ">'+(x.ppbj?'<b>'+esc(x.ppbj)+'</b>':'<span class="bd w">tanpa PPBJ</span>')+'</td><td data-l="Proyek">'+esc(x.proyek||"-")+'</td><td class="nm" data-l="Barang / Jumlah">'+x.n+' / '+fmtN(x.qty)+'</td>'+
+      return '<tr><td><input type="checkbox" data-tk="'+esc(x.key)+'"'+(S[x.key]?" checked":"")+'></td><td data-l="Tanggal">'+esc(x.tgl)+'</td><td data-l="Penerimaan"><b>'+esc(x.doc)+'</b><small>'+esc(x.sumber||"")+'</small></td><td data-l="No PPBJ">'+(x.ppbj?'<b>'+esc(x.ppbj)+'</b>':'<span class="bd w">tanpa PPBJ</span>')+'</td><td data-l="Proyek">'+esc(x.proyek||"-")+'</td><td class="nm" data-l="Barang / Jumlah">'+x.n+' / '+fmtN(x.qty)+'<div><button class="gh" data-tlh="'+esc(x.key)+'" style="margin-top:4px">Lihat barang</button></div></td>'+
         '<td data-l="Status">'+(x.status==="Sudah"?'<span class="bd d">Sudah</span><small>'+esc(x.noTrans)+'</small><small>'+esc(x.tglIn)+(x.oleh?" - "+esc(x.oleh):"")+'</small>':'<span class="bd '+(merah?"b":"w")+'">Belum</span><small'+(merah?' style="color:var(--red,#a82424);font-weight:700"':"")+'>'+x.umur+' hari'+(merah?' &middot; lewat '+R.batas+' hari':"")+'</small>')+(x.cat?'<small>'+esc(x.cat)+'</small>':"")+'</td></tr>';
     }).join("");
     pane().innerHTML=bar()+
@@ -43,7 +43,41 @@ var PAT=(function(){
     document.querySelectorAll("[data-tk]").forEach(function(c){c.onchange=function(){var k=c.getAttribute("data-tk");if(c.checked)S[k]=1;else delete S[k];$("tasel").textContent=terpilih().length+" dipilih";};});
     $("tax").onclick=function(){excel(this);};$("tag").onclick=function(){pdf(this,false);};$("taz2").onclick=function(){pdf(this,true);};
     $("tat").onclick=function(){tandai(this,"sudah");};$("tab2").onclick=function(){tandai(this,"belum");};
+    document.querySelectorAll("[data-tlh]").forEach(function(b){b.onclick=function(){lihat(b.getAttribute("data-tlh"),b);};});
     if(window.PAU2)PAU2.pasang();
+  }
+  /* Tombol "Lihat barang" (Tambahan 48): isi satu penerimaan untuk diperiksa + detail proyek. Hanya membaca. */
+  function tgl(i){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(i||""));return m?m[3]+"/"+m[2]+"/"+m[1]:(i||"");}
+  function rp(v){return v==null?"-":"Rp "+fmtN(v);}
+  function tlhModal(html){var o=$("tlhmod");if(o)o.remove();o=document.createElement("div");o.id="tlhmod";o.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:flex;align-items:flex-start;justify-content:center;padding:10px;overflow:auto";o.innerHTML='<div class="card" style="max-width:960px;width:100%;margin:auto;background:var(--card,#fff);color:var(--ink,#222);padding:14px">'+html+'</div>';document.body.appendChild(o);o.onclick=function(e){if(e.target===o)o.remove();};var x=$("tlh-x");if(x)x.onclick=function(){o.remove();};return o;}
+  function badgeOrder(o){if(!o)return "";var k={BELUM:"w",DIPESAN:"n",SEBAGIAN:"w",DATANG:"d",BATAL:"r"}[o.kode]||"r";return '<span class="bd '+(o.peringatan?"b":k)+'">'+esc(o.label)+'</span>';}
+  async function lihat(key,btn){
+    if(btn)btn.disabled=true;
+    try{
+      var r=await api({action:"adminTerimaLihat",key:key});
+      if(!r.ok){toast(r.msg||"Gagal memuat.",true);return;}
+      var d=r.doc,p=r.proyek,adaRab=p&&p.terdaftar&&p.adaRab,h='<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><b style="font-size:16px">'+esc(d.nomor)+'</b> <span class="note">'+esc(d.jenis)+'</span></div><button class="gh" id="tlh-x">Tutup</button></div>';
+      h+='<div class="note" style="margin:6px 0">'+esc(d.waktu)+' &middot; diterima oleh <b>'+esc(d.oleh||"-")+'</b>'+(d.peran?" ("+esc(d.peran)+")":"")+(d.sumber?" &middot; "+esc(d.sumber):"")+(d.po?" &middot; PO "+esc(d.po):"")+(d.supplier?" &middot; "+esc(d.supplier):"")+(d.foto?" &middot; "+d.foto+" foto surat jalan":(d.alasanTanpaFoto?" &middot; tanpa foto: "+esc(d.alasanTanpaFoto):""))+'</div>';
+      h+='<div class="note" style="margin:4px 0">Accurate: '+(d.statusAcc==="Sudah"?'<span class="bd d">Sudah diinput</span> '+esc(d.noTrans||"")+(d.tglInput?" &middot; "+esc(d.tglInput):""):'<span class="bd w">Belum diinput</span>')+(d.stokNaik?"":' &middot; <b>stok tidak ditambah</b>')+'</div>';
+      if(d.batal)h+='<div class="card msg" style="margin:6px 0;color:var(--red,#a82424)"><b>DIBATALKAN.</b> '+esc(d.batalInfo)+'</div>';
+      if(d.catatan)h+='<div class="note" style="margin:4px 0">Catatan: '+esc(d.catatan)+'</div>';
+      var kol=adaRab;
+      h+='<table style="margin:8px 0"><thead><tr><th>#</th><th>Barang</th><th class="nm">Diterima</th><th class="nm">Harga</th><th class="nm">Stok Accurate sekarang</th>'+(kol?'<th class="nm">Kebutuhan proyek</th><th>Status stok proyek</th><th>Status order</th>':"")+'<th>Catatan</th></tr></thead><tbody>'+
+        r.items.map(function(x){
+          var tg=[];if(x.belumTerdaftar)tg.push('<span class="bd w">belum terdaftar di Master</span>');if(x.luarPesanan)tg.push('<span class="bd w">di luar pesanan</span>');if(x.diLuarRab)tg.push('<span class="bd w">tidak ada di kebutuhan proyek</span>');
+          return '<tr><td>'+x.no+'</td><td><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode||"(tanpa kode)")+(x.satuan?" &middot; "+esc(x.satuan):"")+'</small></td><td class="nm"><b>'+fmtN(x.qty)+'</b></td><td class="nm">'+(x.harga==null?"-":rp(x.harga))+'</td><td class="nm">'+(x.stokSekarang==null?"-":fmtN(x.stokSekarang))+'</td>'+
+            (kol?'<td class="nm">'+(x.rab==null?"-":fmtN(x.rab)+(x.sisa!=null?'<small>sisa '+fmtN(x.sisa)+"</small>":""))+'</td><td>'+esc(x.statusStok||"-")+'</td><td>'+(badgeOrder(x.order)||"-")+'</td>':"")+'<td>'+(tg.join(" ")||"")+'</td></tr>';
+        }).join("")+'</tbody><tfoot><tr><td></td><td><b>Total '+r.total.n+' barang</b></td><td class="nm"><b>'+fmtN(r.total.qty)+'</b></td><td class="nm">'+(r.total.nilai==null?"":"<b>"+rp(r.total.nilai)+"</b>")+'</td><td></td>'+(kol?'<td></td><td></td><td></td>':"")+'<td></td></tr></tfoot></table>';
+      h+='<div class="note">Stok Accurate sekarang = stok kolom Accurate saat ini (sesudah semua mutasi), bukan stok saat penerimaan.</div>';
+      if(p&&p.terdaftar){
+        h+='<div class="card" style="margin:10px 0 0;padding:10px"><b>Detail proyek</b><div style="margin-top:4px"><b>'+esc(p.ppbj)+'</b> &mdash; '+esc(p.ket||"-")+'</div><div class="note" style="margin-top:4px">Departemen '+esc(p.dept||"-")+(p.pic?" &middot; PIC <b>"+esc(p.pic)+"</b>":"")+' &middot; Status <b>'+esc(p.status)+'</b>'+(p.mengikat?"":" (tidak mengikat stok)")+' &middot; Prioritas '+esc(p.prio||"-")+' &middot; '+esc(p.jenis||"")+(p.tglButuh?" &middot; Dibutuhkan "+tgl(p.tglButuh):"")+(p.sumberRab?" &middot; Sumber kebutuhan: "+esc(p.sumberRab):"")+'</div>';
+        h+=p.adaRab?'<div class="note" style="margin-top:4px">Kebutuhan: '+p.nItem+' barang &middot; terpenuhi '+p.nTerpenuhi+' &middot; sisa '+p.nSisa+(p.nKurang?" &middot; <b>kurang "+p.nKurang+"</b>"+(p.nKurangDipesan?" ("+p.nKurangDipesan+" sudah dipesan)":""):"")+(p.nRebutan?" &middot; rebutan "+p.nRebutan:"")+((p.nOrderBelum||p.nOrderDipesan||p.nOrderDatang)?" &middot; order: belum "+p.nOrderBelum+", dipesan "+p.nOrderDipesan+", datang "+p.nOrderDatang:"")+'</div>':'<div class="note" style="margin-top:4px">Proyek ini belum punya daftar kebutuhan (RAB).</div>';
+        h+='</div>';
+      }else if(p){h+='<div class="card" style="margin:10px 0 0;padding:10px"><b>Proyek</b><div style="margin-top:4px">'+(p.ppbj?'<b>'+esc(p.ppbj)+'</b> &mdash; ':"")+esc(p.ket||"-")+'</div><div class="note" style="margin-top:4px">'+(p.ppbj?"No PPBJ ini belum terdaftar di tab Proyek.":"Ditulis bebas saat penerimaan (tanpa No PPBJ).")+'</div></div>';}
+      else h+='<div class="note" style="margin-top:10px">Penerimaan ini tidak dikaitkan dengan proyek.</div>';
+      tlhModal(h);
+    }catch(e){toast("Gagal terhubung ke server.",true);}
+    finally{if(btn)btn.disabled=false;}
   }
   async function tandai(btn,aksi){
     var sel=terpilih();if(!sel.length){toast("Pilih penerimaan dulu.",true);return;}

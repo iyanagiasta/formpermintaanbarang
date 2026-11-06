@@ -10,7 +10,7 @@
   if (W.SWR || typeof W.api !== "function") return;
   var AWAL = "sctk_swr1|", UMUR = 12 * 3600e3, SEGAR = 20e3, MAKS_KB = 300;
   var DAFTAR = {adminKerja: 1, adminProyekPintar: 1, adminProyekKurang: 1, adminKpi: 1, adminBufferList: 1, adminPaList: 1, adminProyekList: 1, adminList: 1, adminSerahList: 1, adminPengingatDaftar: 1};
-  var BACA = /(List|Get|Rinci|Daftar|Ringkas|Info|Cari|Indeks|Pintar|Kurang|Pratinjau|Periksa|Riwayat|Analisis|Analisa|Kpi|Pada|Laporan|Dugaan|Simulasi|Telusur)$/;
+  var BACA = /(List|Get|Rinci|Daftar|Ringkas|Info|Cari|Indeks|Pintar|Kurang|Pratinjau|Periksa|Riwayat|Analisis|Analisa|Kpi|Pada|Laporan|Dugaan|Simulasi|Telusur|Lihat)$/;
   try { if (localStorage.getItem("sctk_swr_off") === "1") return; } catch (e) { return; }
   var asli = W.api, jalan = {}, tahanSampai = 0, baru = {};
 

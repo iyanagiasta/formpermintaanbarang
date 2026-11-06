@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=46"></script>
+<script src="ukur.js?v=47"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -21,6 +21,7 @@
 <script src="accurate-terima.js?v=43"></script>
 <script src="arsip-bukti.js?v=44"></script>
 <script src="kecepatan.js?v=41"></script>
+<script src="proyek-order.js?v=47"></script>
 <script src="harga-acc.js"></script>
 <script src="order-monitor.js"></script>
 <script src="analisa-barang.js"></script>
@@ -1459,59 +1460,71 @@ function isiKurang(){
   var R=KRG.ringkas,bar=document.getElementById("krgbar");
   if(bar){
     bar.innerHTML='<div class="card"><b>Cek material proyek</b><div class="note">Dari kebutuhan (RAB) yang diisi PIC: sisa kebutuhan = RAB - sudah diserahkan - sudah dialokasikan, dibandingkan dengan stok bebas (Moka + Accurate - alokasi - permintaan berjalan). Perbandingan ketat: kebutuhan SEMUA proyek aktif dijumlahkan per barang. <b>Kurang</b> = stok bebas lebih kecil dari kebutuhan proyek itu sendiri. <b>Rebutan</b> = cukup untuk proyek itu saja, tetapi total semua proyek melebihi stok.</div>'+
-     '<div class="sum"><div><b>'+R.aktif+'</b><span>Proyek mengikat stok</span></div><div><b style="color:var(--red,#c0392b)">'+R.adaKurang+'</b><span>Proyek ada barang KURANG</span></div><div><b style="color:var(--ambt,#b8760a)">'+R.adaRebutan+'</b><span>Proyek ada barang REBUTAN</span></div><div><b>'+R.tanpaRab+'</b><span>Belum ada kebutuhan (RAB)</span></div><div><b>'+R.kodeBeli+'</b><span>Barang perlu dibeli (gabungan)</span><br><small>'+rp(R.nilaiBeli)+(R.tanpaHarga?' + '+R.tanpaHarga+' tanpa harga':'')+'</small></div></div>'+
-     '<div class="bar">'+[["semua","Semua proyek"],["kurang","Ada yang kurang / rebutan"],["tanpa","Belum ada kebutuhan"]].map(function(c){return '<button class="chip'+(KRGF===c[0]?" on":"")+'" data-krf="'+c[0]+'">'+c[1]+'</button>';}).join("")+'<button class="gh" id="krgxl">Unduh kebutuhan semua proyek (Excel)</button></div></div>';
+     '<div class="sum"><div><b>'+R.aktif+'</b><span>Proyek mengikat stok</span></div><div><b style="color:var(--red,#c0392b)">'+R.adaKurang+'</b><span>Proyek ada barang KURANG</span></div><div><b style="color:var(--ambt,#b8760a)">'+R.adaRebutan+'</b><span>Proyek ada barang REBUTAN</span></div><div><b>'+R.tanpaRab+'</b><span>Belum ada kebutuhan (RAB)</span></div><div><b style="color:var(--ambt,#b8760a)">'+(R.adaOrderBelum||0)+'</b><span>Proyek menunggu PO</span></div><div><b style="color:var(--blu,#17588f)">'+(R.adaOrderDipesan||0)+'</b><span>Proyek barang dipesan, belum datang</span></div><div><b style="color:var(--red,#c0392b)">'+(R.adaOrderPeringatan||0)+'</b><span>Peringatan: ORDER tanpa PO lewat batas</span></div><div><b>'+R.kodeBeli+'</b><span>Barang perlu dibeli (gabungan)</span><br><small>'+rp(R.nilaiBeli)+(R.tanpaHarga?' + '+R.tanpaHarga+' tanpa harga':'')+'</small></div></div>'+
+     '<div class="bar">'+[["semua","Semua proyek"],["kurang","Ada yang kurang / rebutan"],["tanpa","Belum ada kebutuhan"],["obelum","Menunggu PO"],["odipesan","Dipesan, belum datang"],["operingatan","Peringatan order"]].map(function(c){return '<button class="chip'+(KRGF===c[0]?" on":"")+'" data-krf="'+c[0]+'">'+c[1]+'</button>';}).join("")+'<button class="gh" id="krgxl">Unduh kebutuhan semua proyek (Excel)</button></div></div>';
     bar.querySelectorAll("[data-krf]").forEach(function(b){b.onclick=function(){KRGF=b.getAttribute("data-krf");isiKurang();};});
     document.getElementById("krgxl").onclick=krgUnduh;
   }
+  pane().querySelectorAll("tr.krgdet").forEach(function(r){r.parentNode.removeChild(r);});
   pane().querySelectorAll("[data-kbp]").forEach(function(td){
     var P=krgP(td.getAttribute("data-kbp")),tr=td.parentNode,kf="";
     if(!P){td.innerHTML='<small class="note">-</small>';}
     else if(!P.mengikat){td.innerHTML='<small class="note">Tidak mengikat stok</small>'+(P.adaRab?' <button class="gh" data-ck="'+esc(P.ppbj)+'">Lihat kebutuhan</button>':'');}
     else if(!P.adaRab){td.innerHTML='<span class="bd l">Belum ada kebutuhan</span><small class="note" style="display:block">PIC belum mengisi RAB untuk PPBJ ini</small>';kf="tanpa";}
     else{
-      var b=[];if(P.nKurang)b.push('<span class="bd b">Kurang '+P.nKurang+'</span>');if(P.nRebutan)b.push('<span class="bd w">Rebutan '+P.nRebutan+'</span>');
+      var b=[],kB=P.nKurangBelum!=null?P.nKurangBelum:P.nKurang,kD=P.nKurangDipesan||0;
+      if(kB)b.push('<span class="bd b">Kurang '+kB+'</span>');if(kD)b.push('<span class="bd w">Kurang, sudah dipesan '+kD+'</span>');if(P.nRebutan)b.push('<span class="bd w">Rebutan '+P.nRebutan+'</span>');
       if(!P.nKurang&&!P.nRebutan)b.push(P.nSisa?'<span class="bd d">Cukup</span>':'<span class="bd d">Terpenuhi semua</span>');
-      td.innerHTML=b.join(" ")+'<small class="note" style="display:block">Sudah ada kebutuhan: '+P.nItem+' barang'+(P.nSisa?', sisa '+P.nSisa:'')+(P.nilaiKurang?' &middot; kurang '+rp(P.nilaiKurang):'')+'</small><button class="gh" data-ck="'+esc(P.ppbj)+'">Cek material</button>';
+      var od=[];if(P.nOrderBelum)od.push('menunggu PO '+P.nOrderBelum);if(P.nOrderDipesan)od.push('dipesan '+P.nOrderDipesan);if(P.nOrderDatang)od.push('sudah datang '+P.nOrderDatang);
+      td.innerHTML=b.join(" ")+'<small class="note" style="display:block">Sudah ada kebutuhan: '+P.nItem+' barang'+(P.nSisa?', sisa '+P.nSisa:'')+(P.nilaiKurang?' &middot; kurang '+rp(P.nilaiKurang):'')+'</small>'+(od.length?'<small class="note" style="display:block">Order: '+od.join(" &middot; ")+'</small>':'')+(P.nOrderPeringatan?'<small style="display:block;color:var(--red,#a82424);font-weight:700">&#9888; '+P.nOrderPeringatan+' barang ORDER belum ada PO</small>':'')+'<button class="gh" data-ck="'+esc(P.ppbj)+'">Cek material</button>';
       if(P.nKurang||P.nRebutan)kf="kurang";
     }
-    tr.classList.toggle("krgx",(KRGF!=="semua"&&kf!==KRGF)||!!(window.PX&&PX.tolakJenis&&PX.tolakJenis(td.getAttribute("data-kbp"))));
+    var cocok=KRGF==="semua"||(KRGF==="kurang"&&kf==="kurang")||(KRGF==="tanpa"&&kf==="tanpa")||(P&&P.mengikat&&P.adaRab&&((KRGF==="obelum"&&P.nOrderBelum>0)||(KRGF==="odipesan"&&P.nOrderDipesan>0)||(KRGF==="operingatan"&&P.nOrderPeringatan>0)));
+    var sembunyi=!cocok||!!(window.PX&&PX.tolakJenis&&PX.tolakJenis(td.getAttribute("data-kbp")));
+    tr.classList.toggle("krgx",sembunyi);
+    if(!sembunyi&&P&&window.PO&&/^o/.test(KRGF)){var dh=PO.detailProyek(P,KRGF);if(dh){var dr=document.createElement("tr");dr.className="krgdet";dr.innerHTML='<td colspan="'+tr.children.length+'" style="background:var(--bg2,#f6f8fa)"><b>'+esc(P.ppbj)+'</b> &middot; '+esc(P.ket)+' <span class="bd '+stCls(P.status)+'">'+esc(P.status)+'</span> <button class="gh" data-pops="'+esc(P.ppbj)+'">Salin pesan status order</button>'+dh+'</td>';tr.parentNode.insertBefore(dr,tr.nextSibling);}}
   });
+  pane().querySelectorAll("[data-poub]").forEach(function(b){b.onclick=function(){var a=b.getAttribute("data-poub").split("|"),P=krgP(a[0]);if(!P)return;var kd=a.slice(1).join("|"),x=(P.items||[]).filter(function(i){return i.kode===kd;})[0];if(x)PO.ubah(P.ppbj,[x],isiKurang);};});
+  pane().querySelectorAll("[data-pops]").forEach(function(b){b.onclick=function(){PO.pesan(b.getAttribute("data-pops"),"semua");};});
   pane().querySelectorAll("[data-ck]").forEach(function(b){b.onclick=function(){viewKurang(b.getAttribute("data-ck"));};});
 }
 function krgKet(x){
   if(x.status==="Terpenuhi")return "Sudah terpenuhi";
   if(x.status==="Cukup")return "Cukup";
-  if(x.status==="Kurang")return (x.tidakAda?"Barang belum ada di stok/master. ":"")+"Kurang "+fmtN(x.kurangSendiri)+" (perlu dibeli)";
+  if(x.status==="Kurang"){var oo=x.order,t=(x.tidakAda?"Barang belum ada di stok/master. ":"")+"Kurang "+fmtN(x.kurangSendiri)+(x.tertutup?" - sudah dipesan, menunggu barang datang":" (perlu dibeli)");if(!x.tertutup&&oo&&(oo.kode==="DIPESAN"||oo.kode==="SEBAGIAN"))t+=". Sudah dipesan "+fmtN(oo.open)+", belum menutup seluruh kekurangan";return t;}
   return "Cukup untuk proyek ini saja. Total kebutuhan semua proyek "+fmtN(x.total)+" melebihi stok bebas "+fmtN(x.bebas)+": kurang "+fmtN(x.kurangTotal)+(x.lain&&x.lain.length?". Juga dibutuhkan: "+x.lain.map(function(l){return l.ppbj+" ("+fmtN(l.sisa)+")";}).join(", "):"");
 }
 function viewKurang(ppbj,semua){
   var P=krgP(ppbj);if(!P){toast("Proyek tidak ditemukan.",true);return;}
   var L=P.items.filter(function(x){return semua||x.status!=="Terpenuhi";});
-  var kal=P.adaRab?'PPBJ ini <b>sudah punya kebutuhan material</b>: '+P.nItem+' barang'+(P.nSisa?', '+P.nSisa+' masih ada sisa kebutuhan':', semuanya sudah terpenuhi')+(P.nKurang?', <b style="color:var(--red,#c0392b)">'+P.nKurang+' KURANG</b>':'')+(P.nRebutan?', <b style="color:var(--ambt,#b8760a)">'+P.nRebutan+' REBUTAN</b> dengan proyek lain':'')+'.':'<b>Belum ada kebutuhan material</b> untuk PPBJ ini. PIC mengisinya lewat halaman Kebutuhan dan Cek PPBJ.';
-  pane().innerHTML='<div class="bar"><button class="gh" id="krback">&larr; Kembali ke daftar proyek</button><button class="gh" id="krx">Unduh Excel proyek ini</button><label class="note" style="margin:0"><input type="checkbox" id="krall"'+(semua?" checked":"")+'> tampilkan juga yang sudah terpenuhi</label></div>'+
+  var kal=P.adaRab?'PPBJ ini <b>sudah punya kebutuhan material</b>: '+P.nItem+' barang'+(P.nSisa?', '+P.nSisa+' masih ada sisa kebutuhan':', semuanya sudah terpenuhi')+(P.nKurang?', <b style="color:var(--red,#c0392b)">'+P.nKurang+' KURANG</b>'+(P.nKurangDipesan?' ('+P.nKurangDipesan+' di antaranya sudah dipesan)':''):'')+(P.nRebutan?', <b style="color:var(--ambt,#b8760a)">'+P.nRebutan+' REBUTAN</b> dengan proyek lain':'')+'.':'<b>Belum ada kebutuhan material</b> untuk PPBJ ini. PIC mengisinya lewat halaman Kebutuhan dan Cek PPBJ.';
+  pane().innerHTML='<div class="bar"><button class="gh" id="krback">&larr; Kembali ke daftar proyek</button><button class="gh" id="krx">Unduh Excel proyek ini</button><button class="gh" id="pob1">Salin pesan: barang sudah datang</button><button class="gh" id="pob2">Salin pesan: status order</button><button class="gh" id="pobx">Ubah status order terpilih</button><label class="note" style="margin:0"><input type="checkbox" id="krall"'+(semua?" checked":"")+'> tampilkan juga yang sudah terpenuhi</label></div>'+
    '<div class="card"><b>Cek material: '+esc(P.ppbj)+'</b> &middot; '+esc(P.ket)+' <span class="bd '+stCls(P.status)+'">'+esc(P.status)+'</span><div class="note" style="margin-top:6px">'+kal+(P.mengikat?'':' Proyek ini tidak mengikat stok, jadi tidak dibandingkan dengan stok.')+'</div></div>'+
-   (L.length?'<table><thead><tr><th>Barang</th><th class="nm">RAB</th><th class="nm">Sudah diserahkan</th><th class="nm">Dialokasikan</th><th class="nm">Sisa kebutuhan</th><th class="nm">Stok bebas</th><th class="nm">Total kebutuhan semua proyek</th><th>Keterangan</th></tr></thead><tbody>'+
-   L.map(function(x){var c=x.status==="Kurang"?"var(--red,#a82424)":x.status==="Rebutan"?"var(--warn-t,#6b4300)":x.status==="Cukup"?"var(--grn,#14602f)":"inherit";
-     return '<tr><td data-l="Barang"><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.satuan?' &middot; '+esc(x.satuan):'')+'</small></td><td class="nm" data-l="RAB">'+fmtN(x.rab)+'</td><td class="nm" data-l="Diserahkan">'+fmtN(x.serah)+'</td><td class="nm" data-l="Dialokasikan">'+fmtN(x.alok)+'</td><td class="nm" data-l="Sisa"><b>'+fmtN(x.sisa)+'</b></td><td class="nm" data-l="Stok bebas">'+fmtN(x.bebas)+'</td><td class="nm" data-l="Total">'+fmtN(x.total)+'</td><td data-l="Keterangan" style="color:'+c+'"><b>'+esc(x.status)+'</b><small style="display:block;color:inherit">'+esc(krgKet(x))+'</small></td></tr>';}).join("")+'</tbody></table>':'<div class="card msg">'+(P.adaRab?'Tidak ada barang yang perlu dicek (semua sudah terpenuhi).':'Belum ada barang.')+'</div>');
+   (L.length?'<table><thead><tr><th></th><th>Barang</th><th class="nm">RAB</th><th class="nm">Sudah diserahkan</th><th class="nm">Dialokasikan</th><th class="nm">Sisa kebutuhan</th><th class="nm">Stok bebas</th><th class="nm">Total kebutuhan semua proyek</th><th>Keterangan</th><th>Status order</th></tr></thead><tbody>'+
+   L.map(function(x){var c=x.status==="Kurang"?(x.tertutup?"var(--warn-t,#6b4300)":"var(--red,#a82424)"):x.status==="Rebutan"?"var(--warn-t,#6b4300)":x.status==="Cukup"?"var(--grn,#14602f)":"inherit";
+     return '<tr><td data-l="Pilih"><input type="checkbox" data-pocb="'+esc(x.kode)+'"></td><td data-l="Barang"><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.satuan?' &middot; '+esc(x.satuan):'')+'</small></td><td class="nm" data-l="RAB">'+fmtN(x.rab)+'</td><td class="nm" data-l="Diserahkan">'+fmtN(x.serah)+'</td><td class="nm" data-l="Dialokasikan">'+fmtN(x.alok)+'</td><td class="nm" data-l="Sisa"><b>'+fmtN(x.sisa)+'</b></td><td class="nm" data-l="Stok bebas">'+fmtN(x.bebas)+'</td><td class="nm" data-l="Total">'+fmtN(x.total)+'</td><td data-l="Keterangan" style="color:'+c+'"><b>'+esc(x.status==="Kurang"&&x.tertutup?"Kurang, sudah dipesan":x.status)+'</b><small style="display:block;color:inherit">'+esc(krgKet(x))+'</small></td><td data-l="Status order">'+(window.PO?PO.chip(x.order)+PO.rinci(x.order):'')+'<div style="margin-top:4px"><button class="gh" data-poub="'+esc(P.ppbj)+'|'+esc(x.kode)+'">Ubah</button></div></td></tr>';}).join("")+'</tbody></table>':'<div class="card msg">'+(P.adaRab?'Tidak ada barang yang perlu dicek (semua sudah terpenuhi).':'Belum ada barang.')+'</div>');
   document.getElementById("krback").onclick=function(){drawProyek();};
   document.getElementById("krall").onchange=function(){viewKurang(ppbj,this.checked);};
   document.getElementById("krx").onclick=function(){krgUnduh(ppbj);};
+  document.getElementById("pob1").onclick=function(){PO.pesan(P.ppbj,"datang");};
+  document.getElementById("pob2").onclick=function(){PO.pesan(P.ppbj,"semua");};
+  pane().querySelectorAll("[data-poub]").forEach(function(b){b.onclick=function(){var kd=b.getAttribute("data-poub").split("|").slice(1).join("|"),x=P.items.filter(function(i){return i.kode===kd;})[0];if(x)PO.ubah(P.ppbj,[x],function(){viewKurang(ppbj,semua);});};});
+  document.getElementById("pobx").onclick=function(){var ks=[];pane().querySelectorAll("[data-pocb]").forEach(function(c){if(c.checked)ks.push(c.getAttribute("data-pocb"));});var D=P.items.filter(function(i){return ks.indexOf(i.kode)>=0;});PO.ubah(P.ppbj,D,function(){viewKurang(ppbj,semua);});};
 }
 function krgUnduh(ppbj){
   if(!KRG){toast("Data belum dimuat.",true);return;}
   var only=typeof ppbj==="string"?String(ppbj).toLowerCase():"";
-  var H=["No PPBJ","Proyek","Status proyek","Kode Barang","Nama Barang","Satuan","RAB","Sudah diserahkan","Dialokasikan","Sisa kebutuhan","Stok bebas","Total kebutuhan semua proyek","Hasil","Kekurangan proyek ini","Nilai kekurangan (Rp)","Keterangan"],rows=[H];
+  var H=["No PPBJ","Proyek","Status proyek","Kode Barang","Nama Barang","Satuan","RAB","Sudah diserahkan","Dialokasikan","Sisa kebutuhan","Stok bebas","Total kebutuhan semua proyek","Hasil","Kekurangan proyek ini","Nilai kekurangan (Rp)","Keterangan","Status order","No PO","Perkiraan tiba","Catatan order","Sudah dipesan (qty)","Sudah diterima (qty)"],rows=[H];
   (KRG.proyek||[]).forEach(function(P){
     if(only&&String(P.ppbj).toLowerCase()!==only)return;
     if(!P.mengikat&&!only)return;
-    if(!P.adaRab){if(P.mengikat)rows.push([P.ppbj,P.ket,P.status,"","","","","","","","","","Belum ada kebutuhan","","","PIC belum mengisi RAB"]);return;}
-    P.items.forEach(function(x){rows.push([P.ppbj,P.ket,P.status,x.kode,x.nama,x.satuan,x.rab,x.serah,x.alok,x.sisa,x.bebas,x.total,x.status,x.kurangSendiri,x.nilaiKurang==null?"":x.nilaiKurang,krgKet(x)]);});
+    if(!P.adaRab){if(P.mengikat)rows.push([P.ppbj,P.ket,P.status,"","","","","","","","","","Belum ada kebutuhan","","","PIC belum mengisi RAB","","","","","",""]);return;}
+    P.items.forEach(function(x){rows.push([P.ppbj,P.ket,P.status,x.kode,x.nama,x.satuan,x.rab,x.serah,x.alok,x.sisa,x.bebas,x.total,x.status,x.kurangSendiri,x.nilaiKurang==null?"":x.nilaiKurang,krgKet(x),x.order?x.order.label+(x.order.sumber==="manual"?" (manual)":""):"",x.order?x.order.po:"",x.order&&x.order.eta&&window.PO?PO.tgl(x.order.eta):"",x.order?x.order.catatan:"",x.order?x.order.dipesan:"",x.order?x.order.diterima:""]);});
   });
-  var sh=[{n:"Per proyek",rows:rows,w:[18,30,14,16,40,8,10,12,12,12,12,16,12,14,16,70]}];
+  var sh=[{n:"Per proyek",rows:rows,w:[18,30,14,16,40,8,10,12,12,12,12,16,12,14,16,70,26,18,14,30,14,14]}];
   if(!only){
-    sh.push({n:"Perlu dibeli (gabungan)",rows:[["Kode Barang","Nama Barang","Satuan","Total kebutuhan semua proyek","Stok bebas","Kurang","Harga","Nilai kekurangan (Rp)","Proyek yang membutuhkan"]].concat((KRG.beli||[]).map(function(b){return [b.kode,b.nama,b.satuan,b.total,b.bebas,b.kurang,b.harga==null?"":b.harga,b.nilai==null?"":b.nilai,b.proyek];})),w:[16,40,8,16,12,10,12,18,70]});
-    var R=KRG.ringkas;sh.push({n:"Ringkasan",rows:[["Cek material proyek (perbandingan ketat)"],["Diunduh",new Date().toLocaleString("id-ID")],["Proyek mengikat stok",R.aktif],["Proyek ada barang kurang",R.adaKurang],["Proyek ada barang rebutan",R.adaRebutan],["Proyek belum ada kebutuhan",R.tanpaRab],["Barang perlu dibeli (gabungan)",R.kodeBeli],["Nilai kekurangan gabungan (Rp)",R.nilaiBeli],["Aturan","Sisa kebutuhan = RAB - diserahkan - dialokasikan. Stok bebas = Moka+Accurate - alokasi - permintaan berjalan. Kebutuhan semua proyek aktif dijumlahkan per barang."]],w:[40,80]});
+    sh.push({n:"Perlu dibeli (gabungan)",rows:[["Kode Barang","Nama Barang","Satuan","Total kebutuhan semua proyek","Stok bebas","Kurang","Sudah dipesan (belum datang)","Perlu dipesan baru","Harga","Nilai kekurangan (Rp)","Proyek yang membutuhkan"]].concat((KRG.beli||[]).map(function(b){var dp=b.dipesan||0;return [b.kode,b.nama,b.satuan,b.total,b.bebas,b.kurang,dp,Math.max(0,Math.round((b.kurang-dp)*1000)/1000),b.harga==null?"":b.harga,b.nilai==null?"":b.nilai,b.proyek];})),w:[16,40,8,16,12,10,16,16,12,18,70]});
+    var R=KRG.ringkas;sh.push({n:"Ringkasan",rows:[["Cek material proyek (perbandingan ketat)"],["Diunduh",new Date().toLocaleString("id-ID")],["Proyek mengikat stok",R.aktif],["Proyek ada barang kurang",R.adaKurang],["Proyek ada barang rebutan",R.adaRebutan],["Proyek belum ada kebutuhan",R.tanpaRab],["Proyek menunggu PO",R.adaOrderBelum||0],["Proyek barang dipesan belum datang",R.adaOrderDipesan||0],["Peringatan ORDER tanpa PO",R.adaOrderPeringatan||0],["Barang perlu dibeli (gabungan)",R.kodeBeli],["Nilai kekurangan gabungan (Rp)",R.nilaiBeli],["Aturan","Sisa kebutuhan = RAB - diserahkan - dialokasikan. Stok bebas = Moka+Accurate - alokasi - permintaan berjalan. Kebutuhan semua proyek aktif dijumlahkan per barang."]],w:[40,80]});
   }
   if(unduhBanyak("cek_material_"+(only?String(ppbj).replace(/[^\w]+/g,"_"):"semua_proyek")+".xlsx",sh))toast("Excel siap.");
 }

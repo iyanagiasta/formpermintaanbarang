@@ -54,7 +54,8 @@ var PAU=(function(){
     if(!ada){toast("Dokumen harus tetap punya minimal satu barang.",true);return;}
     if(!confirm("Simpan perubahan? Stok dan riwayat Mutasi akan disesuaikan ("+ubah.length+" diubah, "+hapus.length+" dihapus, "+tambah.length+" ditambah)."))return;
     var b=document.getElementById("pau-ok");b.disabled=true;
-    var r=await api({action:"adminPaKeluarSimpan",key:ST.key,ubah:ubah,hapus:hapus,tambah:tambah});b.disabled=false;
+    var al=prompt("Alasan perubahan barang (wajib, tercatat di riwayat perubahan):","");if(!al||!al.trim()){b.disabled=false;toast("Alasan wajib diisi.",true);return;}
+    var r=await api({action:"adminUbahSimpan",key:ST.key,ubah:ubah,hapus:hapus,tambah:tambah,alasan:al.trim()});b.disabled=false;
     if(!r.ok){toast(r.msg||"Gagal.",true);return;}
     tutup();toast(r.msg+((r.warn&&r.warn.length)?" Perhatian: "+r.warn.join(" "):""));if(window.loadAccurate)loadAccurate();
   }

@@ -17,7 +17,7 @@ var PX=(function(){
   /* ---- panel atas tab Proyek ---- */
   async function muat(){
     var w=$("pxtop");if(!w)return;
-    var r;try{r=await api({action:"adminProyekPintar"});}catch(e){w.innerHTML='<div class="note">Ringkasan pintar gagal dimuat (tidak terhubung).</div>';return;}
+    var r;try{var pp=null;try{if(window.__pre&&window.__pre.p&&Date.now()-window.__pre.t<90000){pp=window.__pre.p;window.__pre.p=null;}}catch(e0){}r=await (pp||api({action:"adminProyekPintar"}));}catch(e){w.innerHTML='<div class="note">Ringkasan pintar gagal dimuat (tidak terhubung).</div>';return;}
     if(!r.ok){w.innerHTML='<div class="note">'+esc(r.msg||"Gagal memuat ringkasan.")+'</div>';return;}
     D=r;var R=r.ringkas;
     w.innerHTML=tiles([[R.aktif,"Proyek mengikat stok"],[R.tinggi,"Prioritas Tinggi"],[R.terancam,"Proyek terancam kekurangan",R.terancam?"var(--red,#a82424)":""],[R.jalanDuluan,"Proyek bergerak, proyek lain terancam",R.jalanDuluan?"var(--warn-t,#6b4300)":""],[R.dokTertahan,"Dokumen tertahan di Accurate",R.dokTertahan?"var(--red,#a82424)":""],[R.tanpaRab,"Belum ada RAB"]])+

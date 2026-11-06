@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=40"></script>
+<script src="ukur.js?v=41"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -13,12 +13,12 @@
 <script src="admin-kerja.js"></script>
 <script src="admin-mutasi.js"></script>
 <script src="admin-laporan2.js"></script>
-<script src="admin-proyek2.js"></script>
+<script src="admin-proyek2.js?v=41"></script>
 <script src="kb-impor.js"></script>
 <script src="serah-edit.js"></script>
 <script src="accurate-ubah.js?v=35"></script>
 <script src="arsip-bukti.js?v=37"></script>
-<script src="kecepatan.js?v=40"></script>
+<script src="kecepatan.js?v=41"></script>
 <script src="harga-acc.js"></script>
 <script src="order-monitor.js"></script>
 <script src="analisa-barang.js"></script>
@@ -1419,6 +1419,8 @@ function lamaContoh(){
 /* ---- tab Proyek ---- */
 async function loadProyek(){
   pane().innerHTML='<div class="card msg">Memuat...</div>';
+  /* T41: cek material dan ringkasan pintar diminta bersamaan dengan daftar proyek (dulu menunggu daftar selesai dulu); dipakai satu kali oleh muatKurang dan PX.muat */
+  try{window.__pre={t:Date.now(),k:api({action:"adminProyekKurang"}),p:api({action:"adminProyekPintar"})};window.__pre.k.catch(function(){});window.__pre.p.catch(function(){});}catch(e){window.__pre=null;}
   try{
     var r=await api({action:"adminProyekList"});
     if(!r.ok){toast(r.msg||"Gagal.",true);return;}
@@ -1429,7 +1431,8 @@ function stCls(s){return s==="Aktif"?"a":s==="Ditunda Sebentar"?"s":"l";}
 /* ---- cek material proyek (kebutuhan RAB vs stok bebas, ketat) ---- */
 function krgP(ppbj){if(!KRG)return null;var k=String(ppbj).toLowerCase();return (KRG.proyek||[]).filter(function(p){return String(p.ppbj).toLowerCase()===k;})[0]||null;}
 async function muatKurang(){
-  try{var r=await api({action:"adminProyekKurang"});if(!r.ok){var b=document.getElementById("krgbar");if(b)b.innerHTML='<div class="note">Cek material gagal dimuat: '+esc(r.msg||"")+'</div>';return;}KRG=r;isiKurang();}
+  try{var pk=null;try{if(window.__pre&&window.__pre.k&&Date.now()-window.__pre.t<90000){pk=window.__pre.k;window.__pre.k=null;}}catch(e0){}
+  var r=await (pk||api({action:"adminProyekKurang"}));if(!r.ok){var b=document.getElementById("krgbar");if(b)b.innerHTML='<div class="note">Cek material gagal dimuat: '+esc(r.msg||"")+'</div>';return;}KRG=r;isiKurang();}
   catch(e){var b2=document.getElementById("krgbar");if(b2)b2.innerHTML='<div class="note">Cek material gagal dimuat (tidak terhubung).</div>';}
 }
 function isiKurang(){

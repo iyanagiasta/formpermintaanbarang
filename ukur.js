@@ -5,14 +5,14 @@
 (function (W) {
   "use strict";
   if (W.__ukur) return; W.__ukur = 1;
-  var VA = "T40", PELUANG = 0.3, MAKS_ANTRE = 200, JEDA = 30000, KELOMPOK = 15;
+  var VA = "T41", PELUANG = 0.3, MAKS_ANTRE = 200, JEDA = 30000, KELOMPOK = 15;
   try { if ((navigator.webdriver && !W.UKUR_TEST) || localStorage.getItem("sctk_ukur_off") === "1") return; } catch (e) { if (navigator.webdriver && !W.UKUR_TEST) return; }
   if (typeof W.fetch !== "function") return;
   var asli = W.fetch.bind(W), antre = [], urlApi = "", timer = null;
   function apiUrl(u) { return /script\.google\.com\/(a\/[^\/]+\/)?macros\/s\/|script\.googleusercontent\.com\//.test(String(u || "")); }
   function target(a) {
-    if (/(List|Cari|Baca|Laporan|Rinci|Daftar|Ringkas|Analisa|Pintar|Cek|Unduh|Telusur|Indeks|Arsip)$/i.test(a)) return 2000;
-    return /(Simpan|Serah|Koreksi|Terima|Acc|Tolak|Impor|Import|Buat|Hapus|Kirim|Setuju|Proses|Ubah|Isi|Tandai|Batal|Revisi|Setel|Alokasi|Ganti)/i.test(a) || a === "submit" || a === "decide" ? 4000 : 2000;
+    if (/(List|Cari|Baca|Laporan|Rinci|Daftar|Ringkas|Analisa|Pintar|Cek|Unduh|Telusur|Indeks|Arsip)$/i.test(a)) return 4000;
+    return /(Simpan|Serah|Koreksi|Terima|Acc|Tolak|Impor|Import|Buat|Hapus|Kirim|Setuju|Proses|Ubah|Isi|Tandai|Batal|Revisi|Setel|Alokasi|Ganti)/i.test(a) || a === "submit" || a === "decide" ? 6000 : 4000;
   }
   function halaman() { var p = (location.pathname.split("/").pop() || "index.html"), h = (location.hash || "").replace("#", "").split(/[?&]/)[0]; return (p + (h && /admin/.test(p) ? "#" + h : "")).slice(0, 40); }
   function rekam(aksi, t0, teks, status, galatJaringan) {
@@ -23,7 +23,7 @@
       var r = {a: aksi, p: halaman(), d: W.innerWidth <= 700 ? "hp" : "komputer", va: VA, t: total, kb: Math.round(String(teks || "").length / 102.4) / 10, g: gagal ? 1 : 0, ts: Date.now(), w: 1};
       if (gagal) r.j = galatJaringan ? "jaringan" : (status >= 400 ? "http" + status : (/^\s*</.test(String(teks || "").slice(0, 20)) ? "html" : "kosong"));
       try { r.c = (navigator.connection && navigator.connection.effectiveType) || ""; } catch (e) { r.c = ""; }
-      if (p) { r.s = p.ms; r.k = p.k; r.h = p.h; r.m = p.m; r.mm = p.mm; r.sh = p.s; r.cd = p.d; r.o = p.o; r.vk = p.v; r.sm = p.sm; r.sn = p.sn; }
+      if (p) { r.s = p.ms; r.k = p.k; r.h = p.h; r.m = p.m; r.mm = p.mm; r.sh = p.s; r.cd = p.d; r.o = p.o; r.vk = p.v; r.sm = p.sm; r.sn = p.sn; r.tg = p.tg; }
       var lambat = total > target(aksi);
       if (!gagal && !lambat) { if (Math.random() > PELUANG) return; r.w = Math.round(100 / PELUANG) / 100; }
       antre.push(r); if (antre.length > MAKS_ANTRE) antre.splice(0, antre.length - MAKS_ANTRE);

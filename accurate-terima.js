@@ -43,6 +43,7 @@ var PAT=(function(){
     document.querySelectorAll("[data-tk]").forEach(function(c){c.onchange=function(){var k=c.getAttribute("data-tk");if(c.checked)S[k]=1;else delete S[k];$("tasel").textContent=terpilih().length+" dipilih";};});
     $("tax").onclick=function(){excel(this);};$("tag").onclick=function(){pdf(this,false);};$("taz2").onclick=function(){pdf(this,true);};
     $("tat").onclick=function(){tandai(this,"sudah");};$("tab2").onclick=function(){tandai(this,"belum");};
+    if(window.PAU2)PAU2.pasang();
   }
   async function tandai(btn,aksi){
     var sel=terpilih();if(!sel.length){toast("Pilih penerimaan dulu.",true);return;}

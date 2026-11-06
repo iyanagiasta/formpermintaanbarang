@@ -206,5 +206,34 @@
     var all = parts.concat(cen, [new Uint8Array(end.buffer)]), tot = 0; all.forEach(function (p) { tot += p.length; });
     var out = new Uint8Array(tot), pos = 0; all.forEach(function (p) { out.set(p, pos); pos += p.length; }); return out;
   }
-  W.BuktiPdf = { buatGabungan: buatGabungan, buatSatu: buatSatu, buatZip: buatZip, asc: asc };
+  /* Surat jalan penerimaan: satu foto per halaman (A4, diskalakan muat), file PDF disisipkan halaman demi halaman. Keterangan kecil di atas: nomor penerimaan, proyek, urutan.
+     docs: [{doc, proyek, files:[{nama,mime,data(base64)}]}]. Hasil: {bytes, halaman, dilewati:[teks]}. */
+  function b64Bytes(s) { var bin = atob(String(s || "")), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
+  async function buatSuratJalan(docs, onProgress) {
+    var L = W.PDFLib, out = await L.PDFDocument.create(), F = await out.embedFont(L.StandardFonts.Helvetica), hal = 0, lewat = [];
+    out.setTitle("Surat jalan penerimaan"); out.setCreator("Gudang SCTK");
+    for (var i = 0; i < docs.length; i++) {
+      var d = docs[i], fl = d.files || [], cap0 = asc(d.doc + (d.proyek ? " - " + d.proyek : ""));
+      if (onProgress) onProgress(i + 1, docs.length);
+      for (var j = 0; j < fl.length; j++) {
+        var f = fl[j], cap = cap0.slice(0, 110) + "  (" + (j + 1) + "/" + fl.length + ")";
+        try {
+          var by = b64Bytes(f.data);
+          if (f.mime === "application/pdf") {
+            var src = await L.PDFDocument.load(by, { ignoreEncryption: true }), idx = src.getPageIndices(), pgs = await out.copyPages(src, idx);
+            pgs.forEach(function (p, n) { out.addPage(p); var sz = p.getSize(); p.drawText(cap + (idx.length > 1 ? " hal " + (n + 1) : ""), { x: 14, y: sz.height - 12, size: 7, font: F, color: L.rgb(.35, .35, .35) }); hal++; });
+          } else {
+            var im = f.mime === "image/png" ? await out.embedPng(by) : (f.mime === "image/jpeg" ? await out.embedJpg(by) : null);
+            if (!im) { lewat.push(d.doc + ": " + (f.nama || "file") + " (format " + f.mime + " tidak bisa dibuat PDF)"); continue; }
+            var PW = 595.28, PH = 841.89, M = 28, top = 22, bw = PW - 2 * M, bh = PH - M - top - 8, sc = Math.min(bw / im.width, bh / im.height, 1.6), w = im.width * sc, h = im.height * sc;
+            var pg = out.addPage([PW, PH]); pg.drawText(cap, { x: M, y: PH - 16, size: 7, font: F, color: L.rgb(.35, .35, .35) });
+            pg.drawImage(im, { x: (PW - w) / 2, y: PH - top - 8 - h, width: w, height: h }); hal++;
+          }
+        } catch (e) { lewat.push(d.doc + ": " + (f.nama || "file") + " tidak terbaca (" + (e && e.message ? e.message : "rusak") + ")"); }
+      }
+    }
+    if (!hal) return { bytes: null, halaman: 0, dilewati: lewat };
+    return { bytes: await out.save(), halaman: hal, dilewati: lewat };
+  }
+  W.BuktiPdf = { buatGabungan: buatGabungan, buatSatu: buatSatu, buatZip: buatZip, asc: asc, buatSuratJalan: buatSuratJalan };
 })(window);

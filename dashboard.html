@@ -2,7 +2,7 @@
 <html lang="id" data-tema="terang">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=41"></script>
+<script src="ukur.js?v=43"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Sistem Gudang SCTK</title>
@@ -121,6 +121,7 @@ async function buka(aksi,btn){
     else if(aksi==="proyek"){if(await pastikanPic())location.href="proyek.html";}
     else if(aksi==="beli"){if(await pastikanPic())location.href="pembelian.html";}
     else if(aksi==="realisasi"){if(await pastikanPic())location.href="realisasi.html";}
+    else if(aksi==="terimabarang"){if(await pastikanPic())location.href="penerimaan.html";}
     else if(aksi==="pembelianku"){if(await pastikanPic())location.href="pengadaan.html";}
     else if(aksi==="label"){if(await pastikanPic())location.href="label.html";}
     else if(aksi==="kimia"){location.href="kimia.html";}
@@ -146,6 +147,7 @@ function kartu(){
    '</div>'+'<div class="sec"><h3>Pembelian</h3></div><div class="menu">'+
    big("beli","keranjang","Pengajuan Pembelian","Ajukan pembelian UMO atau PPBJ (Capex/Opex). Persetujuan atasan, Pengadaan, Accounting lewat email dengan tanda tangan otomatis.","PIC, atasan, atau gudang")+
    big("realisasi","nota","Realisasi Pembelian","Catat belanja atas UMO atau Capex yang sudah disetujui, bandingkan dengan pengajuan, lalu tutup realisasinya.","PIC, atasan, atau gudang")+
+   big("terimabarang","terima","Penerimaan Barang","Catat barang yang datang: foto surat jalan, jumlah masuk, dan stok langsung bertambah. PIC proyek tampil di ringkasan.","Staff Gudang atau admin")+
    big("pembelianku","terima","Pembelian dan Penerimaan","Pengadaan mencatat pembelian dan surat jalan; Staff Gudang mengonfirmasi barang diterima fisik; Accounting mengesahkan pembelian darurat.","Pengadaan, Accounting, atau gudang")+
    '</div>'+'<div class="sec"><h3>Alat dan administrasi</h3></div><div class="menu">'+
    big("masterbarang","plus","Pengajuan Master Barang","Ajukan barang baru yang belum ada di daftar. Gudang menerima pengajuan lalu memasukkannya ke Accurate.","kode pegawai")+

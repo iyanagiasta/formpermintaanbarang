@@ -2,12 +2,12 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=41"></script>
+<script src="ukur.js?v=43"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="pdfbukti.js?v=36"></script>
+<script src="pdfbukti.js?v=43"></script>
 <script src="mb-excel.js?v=38"></script>
 <script src="laporan.js"></script>
 <script src="admin-kerja.js"></script>
@@ -17,6 +17,7 @@
 <script src="kb-impor.js"></script>
 <script src="serah-edit.js"></script>
 <script src="accurate-ubah.js?v=35"></script>
+<script src="accurate-terima.js?v=43"></script>
 <script src="arsip-bukti.js?v=37"></script>
 <script src="kecepatan.js?v=41"></script>
 <script src="harga-acc.js"></script>
@@ -1166,9 +1167,9 @@ function drawMB(){
   };
 }
 /* ---- tab Accurate: penyesuaian persediaan ke Accurate ---- */
-var PA={rows:[],ring:null},PAF={tahan:"",status:"Belum",jenis:"",ppbj:"",dari:"",sampai:"",q:"",acc:false},PAS={};
+var PAM="bpb",PA={rows:[],ring:null,rowsT:[],ringT:null},PAF={tahan:"",status:"Belum",jenis:"",ppbj:"",dari:"",sampai:"",q:"",acc:false},PAS={};
 function paMuatRingkas(){
-  api({action:"adminPaRingkas"}).then(function(r){if(r&&r.ok){PA.ring=r.ringkas;paBadge();}}).catch(function(){});
+  api({action:"adminPaRingkas"}).then(function(r){if(r&&r.ok){PA.ring=r.ringkas;PA.ringT=r.ringkasT||null;paBadge();}}).catch(function(){});
 }
 function paBadge(){
   var b=document.querySelector('[data-tab="accurate"]');if(!b||!PA.ring)return;
@@ -1179,7 +1180,7 @@ async function loadAccurate(){
   try{
     var r=await api({action:"adminPaList"});
     if(!r.ok){toast(r.msg||"Gagal.",true);return;}
-    PA.rows=r.rows||[];PA.ring=r.ringkas;drawAccurate();
+    PA.rows=r.rows||[];PA.ring=r.ringkas;PA.rowsT=r.rowsT||[];PA.ringT=r.ringkasT||null;drawAccurate();
   }catch(e){toast("Gagal terhubung ke server.",true);}
 }
 function paTampil(){
@@ -1199,6 +1200,7 @@ function paTampil(){
 }
 function paTerpilih(){return PA.rows.filter(function(x){return PAS[x.key];});}
 function drawAccurate(){
+  if(window.PAT&&PAM==="terima"){PAT.draw();return;}
   var R=PA.ring||{belum:0,sudah:0,tertua:0,lewatBatas:0,batas:7},vis=paTampil(),sel=paTerpilih(),nSelVis=vis.filter(function(x){return PAS[x.key];}).length;
   var body=vis.slice(0,500).map(function(x){
     var merah=x.status==="Belum"&&x.umur>R.batas;
@@ -1209,7 +1211,7 @@ function drawAccurate(){
   var jenisOp=["","Barang Keluar","Pengembalian Masuk","Selisih Opname"].map(function(j){return '<option value="'+esc(j)+'"'+(PAF.jenis===j?" selected":"")+'>'+(j||"Semua jenis")+'</option>';}).join("");
   var ppSet={};PA.rows.forEach(function(x){if(x.ppbj)ppSet[x.ppbj]=1;});
   var ppOp='<option value="">Semua PPBJ</option><option value="__kosong"'+(PAF.ppbj==="__kosong"?" selected":"")+'>(PPBJ belum ada)</option>'+Object.keys(ppSet).sort().map(function(p){return '<option value="'+esc(p)+'"'+(PAF.ppbj===p?" selected":"")+'>'+esc(p)+'</option>';}).join("");
-  pane().innerHTML=
+  pane().innerHTML=(window.PAT?PAT.bar():"")+
    '<div class="sum"><div><b'+(R.belum?' style="color:'+(R.lewatBatas?"var(--red,#a82424)":"var(--warn-t,#6b4300)")+'"':"")+'>'+R.belum+'</b><span>Belum disesuaikan ke Accurate</span></div><div><b>'+R.tertua+' hari</b><span>Dokumen tertua yang belum</span></div><div><b'+(R.lewatBatas?' style="color:var(--red,#c0392b)"':"")+'>'+R.lewatBatas+'</b><span>Lewat batas '+R.batas+' hari</span></div><div><b>'+R.sudah+'</b><span>Sudah diinput</span></div></div>'+
    '<div class="bar"><span class="note" style="margin:0">Kesiapan:</span>'+[["","Semua"],["siap","Siap diinput ("+(R.siap==null?0:R.siap)+")"],["tahan","Tertahan ("+(R.tertahan||0)+")"]].map(function(o){return '<button class="chip'+(PAF.tahan===o[0]?" on":"")+'" data-pt="'+o[0]+'">'+o[1]+'</button>';}).join("")+'<button class="gh" id="pajb" title="Barang yang membuat stok Accurate di sistem berbeda dengan Accurate asli">Penjelas selisih stok Accurate</button><button class="gh" id="pakp" title="Lengkapi No PPBJ lewat pengingat">Buka Kotak Pengingat PPBJ</button></div>'+
    (R.tertahan?'<div class="note" style="border-left:3px solid var(--red,#a82424);padding-left:8px">'+R.tertahan+' dokumen belum bisa diinput ke Accurate karena No PPBJ belum ada atau belum terdaftar di sheet Proyek'+(R.tertahanLintasBulan?'; <b>'+R.tertahanLintasBulan+'</b> di antaranya dari bulan sebelumnya (akan terlambat masuk pembukuan bulan itu)':"")+'. Lengkapi lewat Kotak Pengingat PPBJ.</div>':"")+
@@ -1232,7 +1234,7 @@ function drawAccurate(){
   $("pall").onchange=function(){var on=this.checked;vis.slice(0,500).forEach(function(x){if(on)PAS[x.key]=1;else delete PAS[x.key];});drawAccurate();};
   document.querySelectorAll("[data-pk]").forEach(function(c){c.onchange=function(){var k=c.getAttribute("data-pk");if(c.checked)PAS[k]=1;else delete PAS[k];$("pasel").textContent=paTerpilih().length+" dokumen dipilih";};});
   $("pax").onclick=function(){paExcel(this);};$("pag").onclick=function(){paPdf(this,false);};$("paz2").onclick=function(){paPdf(this,true);};
-  paBadge();
+  paBadge();if(window.PAT)PAT.pasangBar();
   $("pat").onclick=function(){paTandai(this,"sudah");};$("pab").onclick=function(){paTandai(this,"belum");};$("pah").onclick=function(){paHapus(this);};
   if(window.PAU)PAU.pasang();
 }

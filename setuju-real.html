@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<meta charset="utf-8">
+<script src="ukur.js?v=58"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persetujuan Realisasi UMO</title>
+<style>
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--red:#a82424;--green:#1b8a3a}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--red:#f0a0a0}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.top{background:var(--navy);color:#fff;text-align:center;padding:14px 12px;border-bottom:4px solid var(--gold)}.top h1{margin:0;font-size:16px;letter-spacing:1.5px}.top div{font-size:11px;letter-spacing:2px;color:#e3c98f;margin-top:3px}
+.wrap{max-width:900px;margin:0 auto;padding:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.dt{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.dt label{display:block;font-size:12px;color:var(--mut)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse}th{background:var(--navy);color:#fff;text-align:left;padding:7px;font-size:12px;white-space:nowrap}td{border-top:1px solid var(--line);padding:7px;vertical-align:top}.nm{text-align:right;white-space:nowrap}
+.mut{color:var(--mut);font-size:12px}.err{color:var(--red)}
+textarea{width:100%;min-height:70px;padding:9px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+button{font:600 14px "Segoe UI",Roboto,Arial,sans-serif;padding:12px 22px;border:0;border-radius:8px;color:#fff;cursor:pointer}button:disabled{opacity:.5}.ok{background:var(--green)}.no{background:#a82424}
+.msg{text-align:center;padding:26px;color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="top"><h1>PERSETUJUAN REALISASI UMO</h1><div>PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="wrap" id="app"><div class="msg">Memuat...</div></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+var Q=new URLSearchParams(location.search),ID=Q.get("id")||"",T=Q.get("t")||"",app=document.getElementById("app"),D=null;
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function rp(n){return "Rp "+Math.round(Number(n)||0).toLocaleString("id-ID");}
+function tgl(s){var m=/^(\d{4})-(\d\d)-(\d\d)/.exec(String(s||""));return m?m[3]+"/"+m[2]+"/"+m[1]:String(s||"");}
+async function api(b){var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+async function muat(){
+  if(!ID||!T){app.innerHTML='<div class="card msg err">Tautan tidak lengkap.</div>';return;}
+  try{var r=await api({action:"rlSetujuInfo",id:ID,t:T});}catch(e){app.innerHTML='<div class="card msg err">Gagal terhubung ke server.</div>';return;}
+  if(!r.ok){app.innerHTML='<div class="card msg err">'+esc(r.msg||"Tautan tidak valid.")+'</div>';return;}
+  D=r.data;gambar();
+}
+function gambar(){
+  var d=D,ps=d.persetujuan,sel=d.selisih;
+  var h='<div class="card"><h2 style="margin:0 0 8px">'+esc(d.jenis)+' '+esc(d.nomor)+'</h2><div class="dt"><div><label>Diajukan oleh</label><b>'+esc(d.pengaju)+'</b><div class="mut">'+esc(d.dept)+'</div></div><div><label>Keperluan</label>'+esc(d.perihal)+'</div><div><label>PPBJ / Proyek</label>'+esc(d.ppbj||"-")+'<div class="mut">'+esc(d.proyek)+'</div></div></div>'+
+   '<div class="dt" style="margin-top:10px"><div><label>Uang muka</label><b>'+rp(d.uangMuka)+'</b></div><div><label>Aktual</label><b>'+rp(d.aktual)+'</b></div><div><label>Lebih / (kurang)</label><b'+(sel>0?' class="err"':'')+'>'+(sel<0?'('+rp(-sel)+')':rp(sel))+'</b></div></div>'+
+   '<div class="tw" style="margin-top:10px"><table><thead><tr><th>Tanggal</th><th>Uraian</th><th>No Akun</th><th>No Bukti</th><th class="nm">Nilai</th></tr></thead><tbody>'+d.entries.map(function(e){return '<tr><td>'+esc(tgl(e.tgl))+'</td><td>'+esc(e.uraian)+(e.cat?'<div class="mut">'+esc(e.cat)+'</div>':'')+'</td><td>'+esc(e.akun||"-")+'</td><td>'+esc(e.bukti||"-")+(e.nota&&e.nota.length?'<div class="mut">'+e.nota.length+' foto nota</div>':'')+'</td><td class="nm">'+rp(e.nilai)+'</td></tr>';}).join("")+'</tbody></table></div></div>';
+  if(d.bisa){h+='<div class="card"><b>Keputusan Anda</b><p><textarea id="cat" placeholder="Catatan (wajib bila menolak)"></textarea></p><button class="ok" id="bs">SETUJU</button> <button class="no" id="bt">TOLAK</button><div id="inf" class="mut" style="margin-top:8px"></div></div>';}
+  else h+='<div class="card"><b>Status: '+esc(ps.status)+'</b><div class="mut">'+esc(ps.penyetuju)+(ps.waktuPutus?' · '+esc(ps.waktuPutus):'')+(ps.cat?' · '+esc(ps.cat):'')+'</div></div>';
+  app.innerHTML=h;
+  if(d.bisa){document.getElementById("bs").onclick=function(){putus("setuju");};document.getElementById("bt").onclick=function(){putus("tolak");};}
+}
+async function putus(k){
+  var cat=document.getElementById("cat").value.trim(),inf=document.getElementById("inf");
+  if(k==="tolak"&&!cat){inf.innerHTML='<span class="err">Isi alasan penolakan.</span>';return;}
+  if(!confirm(k==="setuju"?"Setujui realisasi ini?":"Tolak realisasi ini?"))return;
+  document.getElementById("bs").disabled=document.getElementById("bt").disabled=true;inf.textContent="Menyimpan...";
+  try{var r=await api({action:"rlSetujuAksi",id:ID,t:T,putusan:k,catatan:cat});
+    if(!r.ok){inf.innerHTML='<span class="err">'+esc(r.msg||"Gagal.")+'</span>';document.getElementById("bs").disabled=document.getElementById("bt").disabled=false;return;}
+    app.innerHTML='<div class="card msg"><h2>'+esc(r.msg)+'</h2><div class="mut">Pengadaan sudah diberi tahu lewat email.</div></div>';
+  }catch(e){inf.innerHTML='<span class="err">Gagal terhubung ke server.</span>';document.getElementById("bs").disabled=document.getElementById("bt").disabled=false;}
+}
+muat();
+</script>
+</body>
+</html>

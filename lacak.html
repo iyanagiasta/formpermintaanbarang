@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<meta charset="utf-8">
+<script src="ukur.js?v=58"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Lacak Barang Pesanan</title>
+<style>
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--red:#a82424;--green:#1b8a3a;--blue:#1a6cab}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--red:#f0a0a0;--green:#6fcf8a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.top{background:var(--navy);color:#fff;text-align:center;padding:14px 12px;border-bottom:4px solid var(--gold)}.top h1{margin:0;font-size:16px;letter-spacing:1.5px}.top div{font-size:11px;letter-spacing:2px;color:#e3c98f;margin-top:3px}
+.wrap{max-width:760px;margin:0 auto;padding:14px 16px 40px}.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin:10px 0}
+h2{margin:0 0 2px;font-size:17px}.note{color:var(--mut);font-size:12.5px}.err{color:var(--red)}
+.tl{list-style:none;margin:12px 0 4px;padding:0}.tl li{display:flex;gap:10px;align-items:flex-start;padding:7px 0;position:relative}
+.tl .dot{flex:0 0 22px;height:22px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;background:var(--card);color:var(--mut);z-index:1}
+.tl li.ok .dot{background:var(--green);border-color:var(--green);color:#fff}.tl li.now .dot{border-color:var(--blue);color:var(--blue);font-weight:700}
+.tl li:not(:last-child):before{content:"";position:absolute;left:10px;top:30px;bottom:-8px;width:2px;background:var(--line)}.tl li.ok:not(:last-child):before{background:var(--green)}
+.tl .tx b{display:block}.tl li:not(.ok):not(.now) .tx{color:var(--mut)}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:7px 6px;border-top:1px solid var(--line);vertical-align:top}th{font-size:12px;color:var(--mut);border-top:0}.nm{text-align:right}
+.tag{display:inline-block;border-radius:10px;padding:1px 9px;font-size:12px;border:1px solid var(--line)}.tag.ok{background:var(--green);border-color:var(--green);color:#fff}.tag.w{background:#fdf0d0;color:#6b4e00;border-color:#e0c36b}.tag.n{color:var(--mut)}
+input,button{font:inherit;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}button{background:var(--blue);color:#fff;border-color:var(--blue);cursor:pointer}
+.fr{display:flex;gap:8px;flex-wrap:wrap}.fr input{flex:1;min-width:180px}
+</style>
+</head>
+<body>
+<div class="top"><h1>LACAK BARANG PESANAN</h1><div>PENGADAAN · GUDANG</div></div>
+<div class="wrap" id="app"><div class="card">Memuat...</div></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec"
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function fq(n){return (Math.round(Number(n||0)*1000)/1000).toString().replace(".",",");}
+async function api(b){var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+var app=document.getElementById("app"),Q=new URLSearchParams(location.search);
+function gambar(x){
+  var now=x.selesai?-1:x.posisi;
+  var tl='<ul class="tl">'+x.tahap.map(function(t,i){var c=t.ok?"ok":(i===now?"now":"");return '<li class="'+c+'"><span class="dot">'+(t.ok?"&#10003;":(i+1))+'</span><span class="tx"><b>'+esc(t.k)+'</b>'+(i===now?'<span class="note">Tahap saat ini</span>':'')+'</span></li>';}).join("")+'</ul>';
+  var perk=x.perkiraan?'<div class="note">Perkiraan: vendor biasanya mengirim dalam sekitar '+x.perkiraan.rata+' hari'+(x.perkiraan.sisa>0?' (sekitar '+x.perkiraan.sisa+' hari lagi)':' (sudah lewat dari rata-rata, mohon bersabar atau tanyakan ke Pengadaan)')+'. Ini hanya perkiraan.</div>':'';
+  var bar=x.barang.length?'<table><thead><tr><th>Barang</th><th class="nm">Dipesan</th><th class="nm">Datang</th><th>Status</th></tr></thead><tbody>'+x.barang.map(function(b){return '<tr><td>'+esc(b.nama)+'</td><td class="nm">'+fq(b.qty)+' '+esc(b.satuan)+'</td><td class="nm">'+fq(b.datang)+'</td><td><span class="tag '+(b.selesai?"ok":(b.datang>0?"w":"n"))+'">'+esc(b.label)+'</span></td></tr>';}).join("")+'</tbody></table>':'<div class="note">Belum ada barang yang diproses.</div>';
+  return '<div class="card"><h2>'+esc(x.proyek||x.ppbj)+'</h2><div class="note">PPBJ '+esc(x.ppbj)+(x.dept?' · '+esc(x.dept):'')+'</div>'+(x.selesai?'<p><span class="tag ok">Semua barang sudah diterima di gudang</span></p>':'')+tl+perk+'</div><div class="card"><b>Barang</b>'+bar+'</div><div class="note" style="text-align:center">Diperbarui '+esc(x.diperbarui||"")+' · halaman ini membaca data langsung dari sistem gudang.</div>';
+}
+async function publik(){
+  try{var r=await api({action:"trackPublik",ppbj:Q.get("p")||"",t:Q.get("t")||""});
+    if(!r.ok){app.innerHTML='<div class="card err">'+esc(r.msg||"Tautan tidak valid.")+'</div>';return;}app.innerHTML=gambar(r);
+  }catch(e){app.innerHTML='<div class="card err">Gagal terhubung ke server. Coba lagi.</div>';}
+}
+function formCari(msg){
+  app.innerHTML='<div class="card"><h2>Cari progres barang</h2><div class="note">Masukkan kode akses Anda (kode PIC), lalu ketik No PPBJ atau nama proyek.</div><div class="fr" style="margin-top:8px"><input type="password" id="kd" placeholder="Kode akses"><input type="text" id="q" placeholder="No PPBJ atau nama proyek"><button id="go">Cari</button></div>'+(msg?'<p class="err">'+esc(msg)+'</p>':'')+'</div><div id="hs"></div>';
+  var k=document.getElementById("kd");try{k.value=localStorage.getItem("sctk_pic")||"";}catch(e){}
+  document.getElementById("go").onclick=cari;document.getElementById("q").onkeydown=function(e){if(e.key==="Enter")cari();};
+}
+async function cari(){
+  var kode=document.getElementById("kd").value.trim(),q=document.getElementById("q").value.trim();if(!kode||q.length<2){formCari("Isi kode akses dan kata pencarian (minimal 2 huruf).");return;}
+  var hs=document.getElementById("hs");hs.innerHTML='<div class="card">Mencari...</div>';
+  try{var r=await api({action:"trackCari",kode:kode,q:q});if(!r.ok){hs.innerHTML='<div class="card err">'+esc(r.msg||"Gagal.")+'</div>';return;}
+    try{localStorage.setItem("sctk_pic",kode);}catch(e){}
+    hs.innerHTML=r.hasil.length?r.hasil.map(gambar).join(""):'<div class="card">Tidak ada proyek yang cocok dengan "'+esc(q)+'".</div>';
+  }catch(e){hs.innerHTML='<div class="card err">Gagal terhubung ke server.</div>';}
+}
+if(Q.get("p")&&Q.get("t"))publik();else formCari("");
+</script>
+</body></html>

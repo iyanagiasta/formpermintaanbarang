@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=49"></script>
+<script src="ukur.js?v=58"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -64,11 +64,11 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="tema.js"></script><script src="menu-admin.js"></script>
+<script src="tema.js"></script><script src="menu-admin.js"></script><script src="kb-impor.js"></script><script src="po-baca.js"></script><script src="po-ui.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
-<div class="top"><a class="homebtn" href="dashboard.html">&larr; Halaman Utama</a><h1>PEMBELIAN DAN PENERIMAAN</h1><div>PENGADAAN · GUDANG · ACCOUNTING</div></div>
+<div class="top"><a class="homebtn" href="dashboard.html">&larr; Halaman Utama</a><h1>PENGADAAN</h1><div>PENGADAAN · GUDANG · ACCOUNTING</div></div>
 <div class="wrap" id="app"></div><div id="toast"></div><datalist id="dl"></datalist>
 <script>
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
@@ -91,7 +91,7 @@ async function masuk(){
   try{var r=await api({action:"plList"});if(!r.ok){KODE="";loginView(r.msg||"Kode salah.");return;}try{localStorage.setItem("sctk_pic",KODE);}catch(e){}terima(r);}
   catch(e){KODE="";loginView("Gagal terhubung ke server.");}
 }
-function terima(r){LIST=r.data||[];HAK=r.hak||[];PERAN=r.peran||"";BATAS=r.batasDarurat||7;if(!FIL.set){FIL.set=1;if(!bisa("input")&&bisa("terima"))FIL.st="terima";}tampilList();}
+function terima(r){LIST=r.data||[];HAK=r.hak||[];PERAN=r.peran||"";BATAS=r.batasDarurat||7;if(!FIL.set){FIL.set=1;if(!bisa("input")&&bisa("terima"))FIL.st="terima";}if(window.POUI&&bisa("input")&&!FIL.mulai){FIL.mulai=1;POUI.tampil("antrean");POUI.muatBadge();return;}tampilList();}
 async function muat(){try{var r=await api({action:"plList"});if(!r.ok){toast(r.msg||"Gagal memuat.",true);return;}terima(r);}catch(e){toast("Gagal terhubung ke server.",true);}}
 function stCls(x){return x.status==="Dibatalkan"?"bad":x.status==="Diterima lengkap"?"ok":x.status==="Sebagian diterima"?"w":"n";}
 function tersaring(){
@@ -106,13 +106,13 @@ function tersaring(){
 }
 function tampilList(){
   CUR=null;var aktif=LIST.filter(function(x){return x.status!=="Dibatalkan"&&x.status!=="Diterima lengkap";}),dok=LIST.filter(function(x){return x.dokBelum;}),dar=LIST.filter(function(x){return x.darurat&&x.sah==="Menunggu pengesahan";}),lama=dar.filter(function(x){return x.umur>=BATAS;});
-  app.innerHTML='<div class="sum"><div><b>'+aktif.length+'</b><span>Belum diterima lengkap</span></div><div><b>'+dok.length+'</b><span>Surat jalan belum lengkap</span></div><div><b>'+dar.length+'</b><span>Darurat menunggu pengesahan'+(lama.length?' ('+lama.length+' lewat '+BATAS+' hari)':'')+'</span></div><div><b>'+rp(LIST.filter(function(x){return x.status!=="Dibatalkan";}).reduce(function(a,x){return a+x.total;},0))+'</b><span>Total nilai (semua)</span></div></div>'+
+  app.innerHTML=(window.POUI?POUI.nav("beli"):"")+'<div class="sum"><div><b>'+aktif.length+'</b><span>Belum diterima lengkap</span></div><div><b>'+dok.length+'</b><span>Surat jalan belum lengkap</span></div><div><b>'+dar.length+'</b><span>Darurat menunggu pengesahan'+(lama.length?' ('+lama.length+' lewat '+BATAS+' hari)':'')+'</span></div><div><b>'+rp(LIST.filter(function(x){return x.status!=="Dibatalkan";}).reduce(function(a,x){return a+x.total;},0))+'</b><span>Total nilai (semua)</span></div></div>'+
   '<div class="card"><div class="fl">'+(bisa("input")?'<button class="sv" id="bn">+ Input pembelian</button>':'')+'<input type="text" id="fq" placeholder="Cari nomor, PO, supplier, PPBJ, proyek" style="flex:1;min-width:180px"><select id="fs"><option value="aktif">Belum diterima lengkap</option><option value="dok">Surat jalan belum lengkap</option><option value="lengkap">Diterima lengkap</option><option value="batal">Dibatalkan</option><option value="">Semua</option></select><select id="fd"><option value="">Semua jenis</option><option value="darurat">Hanya darurat</option><option value="menunggu">Darurat menunggu pengesahan</option></select><button class="gh" id="fx">Unduh Excel</button><button class="gh" id="fr">Muat ulang</button></div><div id="tb"></div></div>'+
   (bisa("sahkan")||PERAN==="Admin"?'<div class="card"><b>Ringkasan bulanan</b><div class="fl"><input type="month" id="rb" value="'+hariIni().slice(0,7)+'"><button class="gh" id="rl">Lihat</button><button class="gh" id="rk">Kirim email ke Accounting</button></div><div id="rh" class="note"></div></div>':'');
   var f={fq:"q",fs:"st",fd:"dar"};Object.keys(f).forEach(function(id){var el=document.getElementById(id);el.value=FIL[f[id]];el.oninput=el.onchange=function(){FIL[f[id]]=this.value;gambarTb();};});
   document.getElementById("fx").onclick=excel;document.getElementById("fr").onclick=muat;if(document.getElementById("bn"))document.getElementById("bn").onclick=formBaru;
   if(document.getElementById("rl")){document.getElementById("rl").onclick=function(){ringkas(false);};document.getElementById("rk").onclick=function(){ringkas(true);};}
-  gambarTb();
+  if(window.POUI)POUI.pasangNav();gambarTb();
 }
 async function ringkas(kirim){
   var b=document.getElementById("rb").value;if(kirim&&!confirm("Kirim ringkasan "+b+" lewat email ke Accounting?"))return;
@@ -140,14 +140,14 @@ async function buka(id){try{var r=await api({action:"plDetail",id:id});if(!r.ok)
 function gambarDetail(){
   var r=CUR,m=r.meta,hak=r.hak||[],bataled=m.status==="Dibatalkan",selesai=m.status==="Diterima lengkap";
   var itemsH=r.items.map(function(i){var sisa=Math.round((i.qBeli-i.qTerima)*1000)/1000;
-    return '<tr><td>'+i.no+'</td><td>'+esc(i.nama)+'<small>'+esc(i.kode?i.kode+' · masuk stok':'di luar stok (tidak menambah stok)')+'</small></td><td class="nm">'+fq(i.qBeli)+' '+esc(i.satuan)+'</td><td class="nm">'+rp(i.harga)+'</td><td class="nm">'+fq(i.qTerima)+'</td>'+(hak.indexOf("terima")>=0&&!bataled&&!selesai?'<td class="nm">'+(sisa>0?'<input type="text" inputmode="decimal" data-tq="'+i.no+'" placeholder="0" style="width:80px;padding:7px;text-align:right;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"><small>sisa '+fq(sisa)+' <a href="#" data-sisa="'+i.no+'" data-v="'+sisa+'">semua</a></small>':'<small>lengkap</small>')+'</td>':'')+'</tr>';}).join("");
+    return '<tr><td>'+i.no+'</td><td>'+esc(i.nama)+'<small>'+esc(i.kode?i.kode+' · masuk stok':'di luar stok (tidak menambah stok)')+'</small></td><td class="nm">'+fq(i.qBeli)+' '+esc(i.satuan)+'</td><td class="nm">'+rp(i.harga)+'</td><td class="nm">'+fq(i.qTerima)+'</td>'+(hak.indexOf("terima")>=0&&!bataled&&!selesai?'<td class="nm">'+(sisa>0?'<input type="text" inputmode="decimal" data-tq="'+i.no+'" placeholder="Baik" title="Jumlah BAIK (masuk stok)" style="width:80px;padding:7px;text-align:right;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"><small>sisa '+fq(sisa)+' <a href="#" data-sisa="'+i.no+'" data-v="'+sisa+'">semua baik</a></small><div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end"><input type="text" inputmode="decimal" data-tr="'+i.no+'" placeholder="Rusak" title="Jumlah rusak (tidak masuk stok, jadi klaim vendor)" style="width:64px;padding:6px;text-align:right;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"><input type="text" inputmode="decimal" data-ts="'+i.no+'" placeholder="Salah" title="Jumlah salah kirim (tidak masuk stok, jadi klaim vendor)" style="width:64px;padding:6px;text-align:right;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"></div><input type="text" data-tk="'+i.no+'" placeholder="Keterangan rusak / salah kirim" style="width:100%;margin-top:4px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)">':'<small>lengkap</small>')+'</td>':'')+'</tr>';}).join("");
   var terimaF=hak.indexOf("terima")>=0&&!bataled&&!selesai;
   app.innerHTML='<div class="fr"><button class="gh" id="kb">&larr; Kembali ke daftar</button></div><div class="card '+(m.darurat?'dar':'')+'"><b>'+esc(m.nomor)+'</b> · '+esc(m.supplier)+' <span class="tag '+stCls(m)+'">'+esc(m.status)+'</span>'+(m.darurat?' <span class="tag '+(m.sah==="Disahkan"?'ok':m.sah==="Ditolak"?'bad':'w')+'">Darurat: '+esc(m.sah)+'</span>':'')+(m.dokBelum?' <span class="tag w">Surat jalan kurang</span>':'')+
   '<div class="note">PO '+esc(m.po||'-')+' · '+esc(m.tgl)+' · '+esc(m.proyek||m.ppbj)+(m.ppbj&&m.proyek?' ('+esc(m.ppbj)+')':'')+(m.nomp?' · pengajuan '+esc(m.nomp):'')+' · diinput '+esc(m.oleh)+'</div>'+(m.darurat?'<div style="margin-top:6px"><b>Alasan darurat:</b> '+esc(m.alasanDarurat)+(m.sahOleh?'<br><b>'+esc(m.sah)+' oleh '+esc(m.sahOleh)+'</b>'+(m.sahCat?': '+esc(m.sahCat):''):'')+'</div>':'')+(m.cat?'<div class="note">Catatan: '+esc(m.cat)+'</div>':'')+(bataled?'<div class="err">Dibatalkan oleh '+esc(m.batalOleh)+': '+esc(m.batalAlasan)+'</div>':'')+
   '<div class="sum"><div><b>'+rp(m.total)+'</b><span>Nilai pembelian</span></div><div><b>'+m.persen+'%</b><span>Diterima gudang</span></div><div><b>'+m.nTerima+'</b><span>Kali penerimaan</span></div></div></div>'+
   (hak.indexOf("sahkan")>=0&&m.darurat&&m.sah==="Menunggu pengesahan"?'<div class="card blk"><h3>Pengesahan pembelian darurat</h3><div class="dt"><div style="grid-column:1/-1"><label>Catatan (wajib bila menolak)</label><input type="text" id="sc"></div></div><div class="fr"><button class="sv" id="ss">Sahkan</button><button class="gh" id="st">Tolak</button></div></div>':'')+
   '<div class="card"><b>Barang</b><div class="tw"><table><thead><tr><th>#</th><th>Barang</th><th class="nm">Dibeli</th><th class="nm">Harga</th><th class="nm">Sudah diterima</th>'+(terimaF?'<th class="nm">Diterima sekarang</th>':'')+'</tr></thead><tbody>'+itemsH+'</tbody></table></div>'+
-  (terimaF?'<div class="dt"><div style="grid-column:1/-1"><label>Catatan penerimaan (opsional)</label><input type="text" id="tc"></div></div><div class="fr"><label class="gh" style="padding:9px 13px;border:1px solid var(--line);border-radius:8px;cursor:pointer">Foto / PDF surat jalan<input type="file" id="tf" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf" style="display:none"></label><span class="note" id="tfn"></span><button class="sv" id="ts">Konfirmasi barang diterima fisik</button></div><div class="note">Stok '+esc(r.sumber)+' bertambah hanya untuk barang berkode, sebesar jumlah yang Anda isi. Isi sesuai barang yang benar-benar ada di gudang.</div>':'')+'</div>'+
+  (terimaF?'<div class="dt"><div style="grid-column:1/-1"><label>Catatan penerimaan (opsional)</label><input type="text" id="tc"></div></div><div class="fr"><label class="gh" style="padding:9px 13px;border:1px solid var(--line);border-radius:8px;cursor:pointer">Foto / PDF surat jalan<input type="file" id="tf" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf" style="display:none"></label><span class="note" id="tfn"></span><button class="sv" id="ts">Konfirmasi barang diterima fisik</button></div><div class="note">Stok '+esc(r.sumber)+' bertambah hanya untuk barang berkode, sebesar jumlah <b>Baik</b>. Barang <b>Rusak</b> atau <b>Salah kirim</b> tidak masuk stok dan tidak dihitung sebagai diterima: otomatis menjadi klaim vendor (Pengadaan diberi tahu).</div>':'')+'</div>'+
   '<div class="card"><b>Surat jalan ('+r.sj.length+' file)</b>'+(r.sj.length?'<div>'+r.sj.map(function(x){return '<div class="at"><span>'+esc(x.nama)+' <small>'+esc(x.waktu)+' · '+esc(x.oleh)+'</small></span><button class="gh" data-f="'+esc(x.id)+'">Unduh</button></div>';}).join("")+'</div>':'<div class="note">Belum ada file.</div>')+
   (m.dokManual?'<div class="note">Ditandai lengkap: '+esc(m.dokCat)+'</div>':'')+
   (hak.indexOf("lampir")>=0&&!bataled?'<div class="fr"><label class="gh" style="padding:9px 13px;border:1px solid var(--line);border-radius:8px;cursor:pointer">Tambah surat jalan<input type="file" id="lf" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf" style="display:none"></label><span class="note" id="lfn"></span></div>':'')+
@@ -180,9 +180,10 @@ async function siapFile(files){
   return out;
 }
 async function konfirmTerima(){
-  if(BUSY)return;var its=[];app.querySelectorAll("[data-tq]").forEach(function(i){var q=numIn(i.value);if(q>0)its.push({no:Number(i.getAttribute("data-tq")),qty:q});});
-  if(!its.length){toast("Isi jumlah yang diterima fisik minimal untuk satu barang.",true);return;}
-  if(!confirm("Konfirmasi barang diterima fisik di gudang? Stok akan bertambah sesuai jumlah yang diisi."))return;
+  if(BUSY)return;var its=[],dn=function(a,no){var e=app.querySelector('['+a+'="'+no+'"]');return e?numIn(e.value):0;},nk=0;
+  app.querySelectorAll("[data-tq]").forEach(function(i){var no=Number(i.getAttribute("data-tq")),q=numIn(i.value),rs=dn("data-tr",no),sl=dn("data-ts",no),ke=app.querySelector('[data-tk="'+no+'"]');if(q>0||rs>0||sl>0){nk+=(rs>0?1:0)+(sl>0?1:0);its.push({no:no,qty:q,rusak:rs,salah:sl,ket:ke?ke.value:""});}});
+  if(!its.length){toast("Isi jumlah yang diterima fisik (Baik, Rusak, atau Salah kirim) minimal untuk satu barang.",true);return;}
+  if(!confirm("Konfirmasi barang diterima fisik di gudang? Stok bertambah hanya untuk jumlah BAIK."+(nk?" "+nk+" catatan rusak/salah kirim akan menjadi klaim vendor.":"")))return;
   BUSY=true;var bt=document.getElementById("ts");bt.disabled=true;
   try{var fl=FILES.length?await siapFile(FILES):[],r=await api({action:"plTerima",id:CUR.meta.id,items:its,catatan:document.getElementById("tc").value,files:fl});toast(r.msg||"",!r.ok);if(r.ok)await buka(CUR.meta.id);}
   catch(e){toast(e.message||"Gagal.",true);}

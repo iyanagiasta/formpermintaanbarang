@@ -4,7 +4,7 @@
    Tanda merah saja (tanpa email) bila belum disesuaikan lebih dari batas hari. Memakai fungsi global halaman admin: pane, api, toast, esc, fmtN, cocokQ, kirimAdmin, paSimpan, paNamaBerkas, paNamaGabungan, loadAccurate. */
 var PAT=(function(){
   "use strict";
-  var F={status:"Belum",q:"",dari:"",sampai:""},S={};
+  var F={status:"Belum",q:"",dari:"",sampai:"",po:""},S={};
   function $(i){return document.getElementById(i);}
   function ada(){return !!(window.PA&&PA.rowsT);}
   function bar(){
@@ -17,7 +17,7 @@ var PAT=(function(){
   function tampil(){
     var q=F.q.trim().toLowerCase();
     return PA.rowsT.filter(function(x){
-      if(F.status&&x.status!==F.status)return false;
+      if(F.status&&x.status!==F.status)return false;if(F.po==="lengkap"&&!x.poLengkap)return false;
       if(F.dari&&x.tgl<F.dari)return false;if(F.sampai&&x.tgl>F.sampai)return false;
       if(q&&!cocokQ(x.doc+" "+x.proyek+" "+x.ppbj+" "+x.noTrans+" "+x.sumber,q))return false;return true;});
   }
@@ -26,18 +26,18 @@ var PAT=(function(){
     var R=PA.ringT||{belum:0,sudah:0,tertua:0,lewatBatas:0,batas:3},vis=tampil(),sel=terpilih(),nSel=vis.filter(function(x){return S[x.key];}).length;
     var body=vis.slice(0,500).map(function(x){
       var merah=x.status==="Belum"&&x.umur>R.batas;
-      return '<tr><td><input type="checkbox" data-tk="'+esc(x.key)+'"'+(S[x.key]?" checked":"")+'></td><td data-l="Tanggal">'+esc(x.tgl)+'</td><td data-l="Penerimaan"><b>'+esc(x.doc)+'</b><small>'+esc(x.sumber||"")+'</small></td><td data-l="No PPBJ">'+(x.ppbj?'<b>'+esc(x.ppbj)+'</b>':'<span class="bd w">tanpa PPBJ</span>')+'</td><td data-l="Proyek">'+esc(x.proyek||"-")+'</td><td class="nm" data-l="Barang / Jumlah">'+x.n+' / '+fmtN(x.qty)+'<div><button class="gh" data-tlh="'+esc(x.key)+'" style="margin-top:4px">Lihat barang</button></div></td>'+
+      return '<tr><td><input type="checkbox" data-tk="'+esc(x.key)+'"'+(S[x.key]?" checked":"")+'></td><td data-l="Tanggal">'+esc(x.tgl)+'</td><td data-l="Penerimaan"><b>'+esc(x.doc)+'</b><small>'+esc(x.sumber||"")+'</small>'+(x.poNo?'<small>PO '+esc(x.poNo)+': '+(x.poLengkap?'<b style="color:var(--ok,#14612b)">PO lengkap, siap diinput</b>':'PO belum lengkap')+'</small>':'')+'</td><td data-l="No PPBJ">'+(x.ppbj?'<b>'+esc(x.ppbj)+'</b>':'<span class="bd w">tanpa PPBJ</span>')+'</td><td data-l="Proyek">'+esc(x.proyek||"-")+'</td><td class="nm" data-l="Barang / Jumlah">'+x.n+' / '+fmtN(x.qty)+'<div><button class="gh" data-tlh="'+esc(x.key)+'" style="margin-top:4px">Lihat barang</button></div></td>'+
         '<td data-l="Status">'+(x.status==="Sudah"?'<span class="bd d">Sudah</span><small>'+esc(x.noTrans)+'</small><small>'+esc(x.tglIn)+(x.oleh?" - "+esc(x.oleh):"")+'</small>':'<span class="bd '+(merah?"b":"w")+'">Belum</span><small'+(merah?' style="color:var(--red,#a82424);font-weight:700"':"")+'>'+x.umur+' hari'+(merah?' &middot; lewat '+R.batas+' hari':"")+'</small>')+(x.cat?'<small>'+esc(x.cat)+'</small>':"")+'</td></tr>';
     }).join("");
     pane().innerHTML=bar()+
      '<div class="sum"><div><b'+(R.belum?' style="color:'+(R.lewatBatas?"var(--red,#a82424)":"var(--warn-t,#6b4300)")+'"':"")+'>'+R.belum+'</b><span>Penerimaan belum disesuaikan di Accurate</span></div><div><b>'+R.tertua+' hari</b><span>Yang tertua belum</span></div><div><b'+(R.lewatBatas?' style="color:var(--red,#c0392b)"':"")+'>'+R.lewatBatas+'</b><span>Lewat batas '+R.batas+' hari (merah)</span></div><div><b>'+R.sudah+'</b><span>Sudah diinput</span></div></div>'+
      '<div class="note">Daftar ini khusus barang yang DITERIMA dan menambah stok (halaman Penerimaan Barang dan penerimaan lewat Pembelian). Terpisah dari daftar BPB. Di Accurate, buat penerimaan/penyesuaian persediaan sesuai jumlah masuk, lalu lampirkan PDF surat jalan.</div>'+
-     '<div class="bar"><select id="tas">'+[["Belum","Belum diinput"],["Sudah","Sudah diinput"],["","Semua status"]].map(function(o){return '<option value="'+o[0]+'"'+(F.status===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select><label class="fl">Dari <input type="date" id="tad" value="'+esc(F.dari)+'"></label><label class="fl">Sampai <input type="date" id="taz" value="'+esc(F.sampai)+'"></label><input id="taq" placeholder="Cari nomor / proyek / No transaksi" value="'+esc(F.q)+'"><button class="gh" id="tar">Segarkan</button></div>'+
+     '<div class="bar"><select id="tas">'+[["Belum","Belum diinput"],["Sudah","Sudah diinput"],["","Semua status"]].map(function(o){return '<option value="'+o[0]+'"'+(F.status===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select><select id="tapo"><option value="">Semua penerimaan</option><option value="lengkap"'+(F.po==="lengkap"?" selected":"")+'>Hanya PO lengkap</option></select><label class="fl">Dari <input type="date" id="tad" value="'+esc(F.dari)+'"></label><label class="fl">Sampai <input type="date" id="taz" value="'+esc(F.sampai)+'"></label><input id="taq" placeholder="Cari nomor / proyek / No transaksi" value="'+esc(F.q)+'"><button class="gh" id="tar">Segarkan</button></div>'+
      '<div class="bar"><label class="fl"><input type="checkbox" id="tall"'+(vis.length&&nSel===Math.min(vis.length,500)?" checked":"")+'> Pilih semua yang tampil</label><b id="tasel">'+sel.length+' dipilih</b><button class="gh" id="tax">Unduh Excel (jumlah masuk)</button><button class="gh" id="tag">Unduh PDF surat jalan (gabungan)</button><button class="gh" id="taz2">Unduh ZIP (1 PDF per penerimaan)</button></div>'+
      '<div class="bar"><input id="tano" placeholder="No transaksi penerimaan di Accurate" maxlength="80"><input id="tact" placeholder="Catatan (opsional)" maxlength="200"><button class="sv" id="tat">Tandai sudah diinput</button><button class="gh" id="tab2">Kembalikan ke Belum</button></div>'+
      (vis.length?'<table><thead><tr><th></th><th>Tanggal</th><th>Penerimaan</th><th>No PPBJ</th><th>Proyek</th><th class="nm">Barang / Jumlah</th><th>Status</th></tr></thead><tbody>'+body+'</tbody></table>'+(vis.length>500?'<div class="note">Menampilkan 500 dari '+vis.length+'. Persempit filter.</div>':""):'<div class="card msg">Tidak ada penerimaan yang cocok dengan filter.</div>');
     pasangBar();
-    $("tas").onchange=function(){F.status=this.value;draw();};$("tad").onchange=function(){F.dari=this.value;draw();};$("taz").onchange=function(){F.sampai=this.value;draw();};
+    $("tas").onchange=function(){F.status=this.value;draw();};$("tapo").onchange=function(){F.po=this.value;draw();};$("tad").onchange=function(){F.dari=this.value;draw();};$("taz").onchange=function(){F.sampai=this.value;draw();};
     $("taq").onkeydown=function(e){if(e.key==="Enter"){F.q=this.value;draw();}};$("taq").onchange=function(){F.q=this.value;draw();};$("tar").onclick=function(){loadAccurate();};
     $("tall").onchange=function(){var on=this.checked;vis.slice(0,500).forEach(function(x){if(on)S[x.key]=1;else delete S[x.key];});draw();};
     document.querySelectorAll("[data-tk]").forEach(function(c){c.onchange=function(){var k=c.getAttribute("data-tk");if(c.checked)S[k]=1;else delete S[k];$("tasel").textContent=terpilih().length+" dipilih";};});

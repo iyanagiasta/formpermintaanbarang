@@ -4,7 +4,7 @@
   var d = document, K = "sctk_menu_admin";
   var MENU = [["Harian", [["kerja", "Daftar Kerja"], ["pantau", "Pantauan BPB"], ["serah", "Serah Barang"], ["terima", "Terima Barang"], ["mutasi", "Mutasi"]]],
     ["Stok", [["stok", "Stok & Harga"], ["opname", "Selisih Opname"], ["kimia", "Opname Kimia"], ["kpi", "KPI Gudang"], ["baopname", "BA Opname"], ["kedaluwarsa", "Kedaluwarsa"], ["buffer", "Buffer Paket"], ["barangmati", "Barang Mati"], ["accurate", "Accurate"], ["komparasi", "Komparasi"]]],
-    ["Proyek & Pembelian", [["proyek", "Proyek"], ["pengajuan", "Pengajuan"], ["pembelian", "Pembelian"], ["realisasi", "Realisasi"]]],
+    ["Proyek & Pembelian", [["proyek", "Proyek"], ["pengajuan", "Pengajuan"], ["pembelian", "Pengadaan"], ["realisasi", "Realisasi"]]],
     ["Laporan", [["laporan", "Laporan"], ["lapatasan", "Laporan Atasan"], ["telusur", "Telusur"], ["analisa", "Analisa Barang"], ["arsip", "Arsip Bukti"]]],
     ["Data & Sistem", [["masterbarang", "Master Barang"], ["label", "Label"], ["pengumuman", "Pengumuman"], ["sistem", "Sistem"], ["kecepatan", "Kecepatan"], ["panduan", "Panduan"]]]];
   var HALAMAN = {"pengadaan.html": "pembelian", "realisasi.html": "realisasi", "label.html": "label", "pembelian.html": "pembelian"};

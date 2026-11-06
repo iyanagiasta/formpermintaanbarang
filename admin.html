@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=49"></script>
+<script src="ukur.js?v=58"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -316,7 +316,7 @@ async function onAct(b){
 function pane(){return document.getElementById("pane")||app;}
 var MENU=[["Harian",[["kerja","Daftar Kerja"],["pantau","Pantauan BPB"],["serah","Serah Barang"],["terima","Terima Barang"],["mutasi","Mutasi"]]],
  ["Stok",[["stok","Stok & Harga"],["opname","Selisih Opname"],["kimia","Opname Kimia"],["kpi","KPI Gudang"],["baopname","BA Opname"],["kedaluwarsa","Kedaluwarsa"],["buffer","Buffer Paket"],["barangmati","Barang Mati"],["accurate","Accurate"],["komparasi","Komparasi"]]],
- ["Proyek & Pembelian",[["proyek","Proyek"],["pengajuan","Pengajuan"],["pembelian","Pembelian \u2197"],["realisasi","Realisasi \u2197"]]],
+ ["Proyek & Pembelian",[["proyek","Proyek"],["pengajuan","Pengajuan"],["pembelian","Pengadaan \u2197"],["realisasi","Realisasi \u2197"]]],
  ["Laporan",[["laporan","Laporan"],["lapatasan","Laporan Atasan"],["telusur","Telusur"],["analisa","Analisa Barang"],["arsip","Arsip Bukti"]]],
  ["Data & Sistem",[["masterbarang","Master Barang"],["label","Label \u2197"],["pengumuman","Pengumuman"],["sistem","Sistem"],["kecepatan","Kecepatan"],["panduan","Panduan"]]]];
 function namaTab(t){var n=t;MENU.forEach(function(g){g[1].forEach(function(x){if(x[0]===t)n=x[1];});});return n;}

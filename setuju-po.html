@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<meta charset="utf-8">
+<script src="ukur.js?v=58"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persetujuan Purchase Order</title>
+<style>
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--red:#a82424;--green:#1b8a3a}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--red:#f0a0a0}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.top{background:var(--navy);color:#fff;text-align:center;padding:14px 12px;border-bottom:4px solid var(--gold)}.top h1{margin:0;font-size:16px;letter-spacing:1.5px}.top div{font-size:11px;letter-spacing:2px;color:#e3c98f;margin-top:3px}
+.wrap{max-width:900px;margin:0 auto;padding:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.dt{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.dt label{display:block;font-size:12px;color:var(--mut)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse}th{background:var(--navy);color:#fff;text-align:left;padding:7px;font-size:12px;white-space:nowrap}td{border-top:1px solid var(--line);padding:7px;vertical-align:top}.nm{text-align:right;white-space:nowrap}
+.naik{color:var(--red);font-weight:700}.turun{color:var(--green);font-weight:700}.mut{color:var(--mut);font-size:12px}
+textarea{width:100%;min-height:70px;padding:9px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+button{font:600 14px "Segoe UI",Roboto,Arial,sans-serif;padding:12px 22px;border:0;border-radius:8px;color:#fff;cursor:pointer}button:disabled{opacity:.5}.ok{background:var(--green)}.no{background:#a82424}
+.tag{display:inline-block;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;background:#e3edf3;color:#17588f}
+.msg{text-align:center;padding:26px;color:var(--mut)}.err{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="top"><h1>PERSETUJUAN PURCHASE ORDER</h1><div>PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="wrap" id="app"><div class="msg">Memuat...</div></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+var Q=new URLSearchParams(location.search),NO=Q.get("no")||"",T=Q.get("t")||"",app=document.getElementById("app"),D=null;
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function rp(n){return "Rp "+Math.round(Number(n)||0).toLocaleString("id-ID");}
+function tgl(s){var m=/^(\d{4})-(\d\d)-(\d\d)/.exec(String(s||""));return m?m[3]+"/"+m[2]+"/"+m[1]:String(s||"");}
+async function api(b){var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+async function muat(){
+  if(!NO||!T){app.innerHTML='<div class="card msg err">Tautan tidak lengkap.</div>';return;}
+  try{D=await api({action:"poSetujuInfo",no:NO,t:T});}catch(e){app.innerHTML='<div class="card msg err">Gagal terhubung ke server.</div>';return;}
+  if(!D.ok){app.innerHTML='<div class="card msg err">'+esc(D.msg||"Tautan tidak valid.")+'</div>';return;}
+  gambar();
+}
+function gambar(){
+  var p=D.po,rg=D.ringkas||{},h='<div class="card"><h2 style="margin:0 0 8px">PO '+esc(p.no)+(p.versi>1?' <span class="tag">revisi versi '+p.versi+'</span>':'')+'</h2><div class="dt">'+
+   '<div><label>Vendor</label><b>'+esc(p.vendor)+'</b><div class="mut">'+esc((p.attn?"Attn "+p.attn:"")+(p.telepon?" · "+p.telepon:""))+'</div></div>'+
+   '<div><label>Tanggal PO</label>'+esc(tgl(p.tgl))+'</div><div><label>PPBJ / Proyek</label>'+esc(p.ppbj)+'<div class="mut">'+esc(p.proyek)+'</div></div>'+
+   '<div><label>Diunggah oleh</label>'+esc(p.oleh)+'<div class="mut">'+esc(p.waktu)+'</div></div></div>';
+  h+='<div class="tw" style="margin-top:10px"><table><thead><tr><th>No</th><th>Uraian</th><th class="nm">Qty</th><th class="nm">Harga PO</th><th class="nm">Harga PPBJ</th><th class="nm">Selisih</th><th class="nm">Total</th></tr></thead><tbody>'+
+   D.rows.map(function(x){var s=x.selisih===null?'<span class="mut">-</span>':'<span class="'+(x.selisih>0?'naik':x.selisih<0?'turun':'')+'">'+(x.selisih>0?'+':'')+String(x.selisih).replace(".",",")+'%</span>';
+    return '<tr><td>'+x.no+'</td><td>'+esc(x.nama)+(x.jenis==="Jasa"?' <span class="mut">(jasa)</span>':'')+'</td><td class="nm">'+esc(String(x.qty).replace(".",","))+' '+esc(x.satuan)+'</td><td class="nm">'+rp(x.harga)+'</td><td class="nm">'+(x.hargaAng?rp(x.hargaAng):'<span class="mut">-</span>')+'</td><td class="nm">'+s+'</td><td class="nm">'+rp(x.total)+'</td></tr>';}).join("")+'</tbody></table></div>'+
+   '<p class="mut">Harga PO sudah termasuk PPN. Harga PPBJ = harga anggaran pada PPBJ awal. Selisih positif (merah) berarti PO lebih mahal dari anggaran.</p>'+
+   '<p>Harga jual '+rp(rg.hargaJual)+' · PPN '+rp(rg.ppn)+(Number(rg.diskon)?' · Diskon '+rp(rg.diskon):'')+(Number(rg.biayaLain)?' · Biaya lain '+rp(rg.biayaLain)+'':'')+' · <b>Total '+rp(rg.total)+'</b></p></div>';
+  if(D.versiLama&&D.versiLama.length)h+='<div class="card"><b>Riwayat revisi</b>'+D.versiLama.map(function(v){return '<div class="mut">Versi '+v.versi+' diganti '+esc(v.waktu)+' oleh '+esc(v.oleh)+': '+esc(v.alasan)+' ('+esc(v.ringkas)+')</div>';}).join("")+'</div>';
+  if(D.bisa){
+    h+='<div class="card"><b>Keputusan Anda</b>'+(D.status!=="Menunggu persetujuan"?'<div class="mut">PO sudah berjalan atas izin sebelumnya; tanda tangan Anda menyusul.</div>':'')+'<p><textarea id="cat" placeholder="Catatan (wajib bila menolak)"></textarea></p><button class="ok" id="bs">SETUJU</button> <button class="no" id="bt">TOLAK</button><div id="inf" class="mut" style="margin-top:8px"></div></div>';
+  }else{
+    h+='<div class="card"><b>Status: '+esc(D.status)+'</b>'+(p.penyetuju?'<div class="mut">Diputuskan oleh '+esc(p.penyetuju)+' · '+esc(p.wPutus)+(p.cPutus?' · '+esc(p.cPutus):'')+'</div>':'')+'</div>';
+  }
+  app.innerHTML=h;
+  if(D.bisa){document.getElementById("bs").onclick=function(){putus("setuju");};document.getElementById("bt").onclick=function(){putus("tolak");};}
+}
+async function putus(k){
+  var cat=document.getElementById("cat").value.trim(),inf=document.getElementById("inf");
+  if(k==="tolak"&&!cat){inf.innerHTML='<span class="err">Isi alasan penolakan.</span>';return;}
+  if(!confirm(k==="setuju"?"Setujui PO ini?":"Tolak PO ini?"))return;
+  document.getElementById("bs").disabled=document.getElementById("bt").disabled=true;inf.textContent="Menyimpan...";
+  try{var r=await api({action:"poSetujuAksi",no:NO,t:T,putusan:k,catatan:cat});
+    if(!r.ok){inf.innerHTML='<span class="err">'+esc(r.msg||"Gagal.")+'</span>';document.getElementById("bs").disabled=document.getElementById("bt").disabled=false;return;}
+    app.innerHTML='<div class="card msg"><h2>'+esc(r.msg)+'</h2><div class="mut">Pengadaan sudah diberi tahu lewat email.</div></div>';
+  }catch(e){inf.innerHTML='<span class="err">Gagal terhubung ke server.</span>';document.getElementById("bs").disabled=document.getElementById("bt").disabled=false;}
+}
+muat();
+</script>
+</body>
+</html>

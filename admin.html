@@ -1236,6 +1236,21 @@ function drawAccurate(){
   $("pat").onclick=function(){paTandai(this,"sudah");};$("pab").onclick=function(){paTandai(this,"belum");};$("pah").onclick=function(){paHapus(this);};
   if(window.PAU)PAU.pasang();
 }
+/** Nama berkas PDF bukti: "No BPB-Nama Proyek" (karakter terlarang di nama berkas diganti spasi; bila tanpa nama proyek, hanya nomor). */
+function paNamaBerkas(d){
+  var bersih=function(t){return String(t==null?"":t).replace(/[\\\/:*?"<>|\r\n\t]+/g," ").replace(/\s+/g," ").trim();};
+  var no=bersih(d.doc)||"dokumen",pr=bersih(d.proyek);
+  var nama=pr?no+"-"+pr:no;
+  return nama.length>120?nama.slice(0,120).trim():nama;
+}
+/** Nama PDF gabungan di tab Accurate: satu dokumen = "No BPB-Nama Proyek"; beberapa dokumen dari SATU proyek = nama proyek itu; campuran proyek = bukti_accurate_tanggal. */
+function paNamaGabungan(docs,stamp){
+  if(docs.length===1)return paNamaBerkas(docs[0]);
+  var bersih=function(t){return String(t==null?"":t).replace(/[\\\/:*?"<>|\r\n\t]+/g," ").replace(/\s+/g," ").trim();};
+  var p0=bersih(docs[0]&&docs[0].proyek);
+  if(p0&&docs.every(function(d){return bersih(d.proyek).toLowerCase()===p0.toLowerCase();}))return p0.length>120?p0.slice(0,120).trim():p0;
+  return "bukti_accurate_"+stamp;
+}
 function paSimpan(bytes,nama,tipe){var b=new Blob([bytes],{type:tipe}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=nama;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},4000);}
 async function paTandai(btn,aksi){
   var sel=paTerpilih();if(!sel.length){toast("Pilih dokumen dulu.",true);return;}
@@ -1291,11 +1306,11 @@ async function paPdf(btn,zip){
     var stamp=new Date().toISOString().slice(0,10);
     if(zip){
       var files=[];
-      for(var j=0;j<docs.length;j++){btn.textContent="Membuat PDF "+(j+1)+"/"+docs.length+"...";files.push({name:String(docs[j].doc).replace(/[\\\/:*?"<>|\s]+/g,"-")+".pdf",bytes:await BuktiPdf.buatSatu(docs[j],sig)});}
+      for(var j=0;j<docs.length;j++){btn.textContent="Membuat PDF "+(j+1)+"/"+docs.length+"...";files.push({name:paNamaBerkas(docs[j])+".pdf",bytes:await BuktiPdf.buatSatu(docs[j],sig)});}
       paSimpan(BuktiPdf.buatZip(files),"bukti_accurate_"+stamp+".zip","application/zip");
     }else{
       var bytes=await BuktiPdf.buatGabungan(docs,sig,function(i,n){btn.textContent="Membuat PDF "+i+"/"+n+"...";});
-      paSimpan(bytes,"bukti_accurate_"+stamp+".pdf","application/pdf");
+      paSimpan(bytes,paNamaGabungan(docs,stamp)+".pdf","application/pdf");
     }
     toast("Unduhan siap: "+docs.length+" dokumen."+(lewat.length?" Dilewati "+lewat.length+": "+lewat.slice(0,3).join("; ")+(lewat.length>3?" ...":""):""),lewat.length>0&&!docs.length);
   }catch(e){toast("Gagal membuat PDF: "+(e&&e.message?e.message:"coba lagi"),true);}

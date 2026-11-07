@@ -63,7 +63,7 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 <div class="wrap" id="app"></div><div id="toast"></div>
 <script>
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
-var KODE="",BARANG=[],ITEMS=[],ATT=[],F={jenis:"UMO",kategori:"Opex",pengaju:"",dept:"",email:"",tgl:"",ppbj:"",proyek:"",perihal:"",revisiDari:""},BUSY=false,app=document.getElementById("app");
+var KODE="",DEPTS=[],PPBJL=[],BARANG=[],ITEMS=[],ATT=[],F={jenis:"UMO",kategori:"Opex",pengaju:"",dept:"",email:"",tgl:"",ppbj:"",proyek:"",perihal:"",revisiDari:""},BUSY=false,app=document.getElementById("app");
 var Q=new URLSearchParams(location.search);
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},6000);}
@@ -79,7 +79,7 @@ function loginView(msg){
 }
 async function masuk(){
   var v=document.getElementById("kd").value.trim();if(!v)return;KODE=v;document.getElementById("go").disabled=true;
-  try{var r=await api({action:"pbBarang"});if(!r.ok){KODE="";loginView(r.msg||"Kode tidak dikenali. Periksa lagi atau minta ke admin gudang.");return;}BARANG=r.items||[];try{localStorage.setItem("sctk_pic",KODE)}catch(e){}await mulai();}
+  try{var r=await api({action:"pbBarang"});if(!r.ok){KODE="";loginView(r.msg||"Kode tidak dikenali. Periksa lagi atau minta ke admin gudang.");return;}BARANG=r.items||[];DEPTS=r.depts||[];PPBJL=r.ppbj||[];try{localStorage.setItem("sctk_pic",KODE)}catch(e){}await mulai();}
   catch(e){KODE="";loginView("Gagal terhubung ke server.");}
 }
 async function mulai(){
@@ -96,27 +96,41 @@ function itemDari(x){var h=x.harga;if((h==null||h==="")&&x.kode){var b=BARANG.fi
 function total(){return ITEMS.reduce(function(a,x){return a+numIn(x.qty)*numIn(x.harga);},0);}
 function gambar(){
   app.innerHTML='<div class="card"><div class="note">Isi pengajuan pembelian. Alurnya: <b>Atasan departemen &rarr; Pengadaan/Accounting &rarr; Atasan Accounting</b>, dan untuk <b>Capex</b> ditambah satu penyetuju lagi. Semua lewat email dengan tanda tangan otomatis. Barang boleh dipilih dari database stok atau diketik bebas (di luar stok).</div>'+
-  '<div class="pgf"><div><label>Jenis pengajuan</label><select id="f_jenis"><option value="UMO">UMO (Uang Muka Operasional)</option><option value="PPBJ">PPBJ</option></select></div><div><label>Kategori</label><select id="f_kat"><option value="Opex">Opex</option><option value="Capex">Capex</option></select></div><div><label>Yang mengajukan (nama)</label><input type="text" id="f_pengaju"></div><div><label>Departemen</label><input type="text" id="f_dept" placeholder="mis. RM, Produksi, Gudang"></div></div>'+
-  '<div class="pgf"><div><label>Email pengaju (untuk kabar persetujuan)</label><input type="text" id="f_email"></div><div><label>Tanggal</label><input type="date" id="f_tgl"></div><div><label>No PPBJ <span class="note">(wajib bila jenis PPBJ)</span></label><div class="fr" style="margin:0;flex-wrap:nowrap"><input type="text" id="f_ppbj" style="flex:1;min-width:0"><button class="gh" id="f_cari" type="button">Ambil</button></div></div><div><label>Nama proyek <span class="note">(isi bila PPBJ belum ada)</span></label><input type="text" id="f_proyek"></div></div>'+
-  '<div class="pgf"><div style="grid-column:1/-1"><label>Perihal / keterangan</label><input type="text" id="f_perihal" placeholder="mis. Pembelian meter air untuk pelanggan baru"></div></div></div>'+
+  '<div class="pgf"><div><label>Jenis pengajuan</label><select id="f_jenis"><option value="UMO">UMO (Uang Muka Operasional)</option><option value="PPBJ">PPBJ</option></select></div><div><label>Kategori</label><select id="f_kat"><option value="Opex">Opex</option><option value="Capex">Capex</option></select></div><div><label>Yang mengajukan (nama)</label><input type="text" id="f_pengaju"></div><div><label>Departemen</label><select id="f_dept"></select></div></div>'+
+  '<div class="pgf"><div><label>Email pengaju (untuk kabar persetujuan)</label><input type="text" id="f_email"></div><div><label>Tanggal</label><input type="date" id="f_tgl"></div><div><label>No PPBJ <span class="note">(wajib bila jenis PPBJ)</span></label><div class="fr" style="margin:0;flex-wrap:nowrap"><input type="text" id="f_ppbj" list="dl_ppbj" autocomplete="off" placeholder="ketik atau pilih dari daftar" style="flex:1;min-width:0"><datalist id="dl_ppbj"></datalist><button class="gh" id="f_cari" type="button">Ambil</button></div></div><div><label>Nama proyek <span class="note">(isi bila PPBJ belum ada)</span></label><input type="text" id="f_proyek"></div></div>'+
+  '<div class="pgf"><div style="grid-column:1/-1"><label>Perihal / keterangan <span style="color:#a82424">*</span> <span class="note">(wajib untuk UMO; tulis keperluan seperti di form Accurate)</span></label><input type="text" id="f_perihal" placeholder="mis. Uang muka pembelian material pipa untuk perbaikan jaringan Blok C"></div></div></div>'+
   '<div class="card"><b>Rincian barang / pekerjaan</b><div class="hd" style="margin-top:8px"><span>Nama barang</span><span>Satuan</span><span>Qty</span><span>Harga perkiraan</span><span>Keterangan</span><span></span></div><div id="items"></div><div class="fr"><button class="gh" id="addrow" type="button">+ Tambah baris</button><span style="margin-left:auto">Total perkiraan: <b id="tot"></b></span></div></div>'+
   '<div class="card"><div class="fr" style="margin-top:0"><b>Lampiran</b><input type="file" id="f_file" accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf" multiple><span class="note">PDF dan foto (JPG, PNG). Digabung jadi satu PDF.</span></div><div id="pg_l"></div>'+
   '<div class="fr"><button class="gh" id="pg_x">Unduh PDF draf</button><button class="sv" id="pg_a">Ajukan lewat email</button><span class="note" id="pg_i"></span></div><div class="note" id="pg_r"></div></div>'+
   '<h2 style="font-size:15px;margin:18px 0 0">Pengajuan saya</h2><div id="pg_h" class="card note">Memuat...</div>';
+  function isiPilihan(){
+    var sd=document.getElementById("f_dept"),h='<option value="">- pilih departemen -</option>';
+    if(!DEPTS.length){sd.outerHTML='<input type="text" id="f_dept" placeholder="mis. RM, Produksi, Gudang">';}else{DEPTS.forEach(function(d){h+='<option>'+esc(d)+'</option>';});sd.innerHTML=h;}
+    document.getElementById("dl_ppbj").innerHTML=PPBJL.map(function(x){return '<option value="'+esc(x.ppbj)+'">'+esc(x.ket||"")+'</option>';}).join("");
+  }
+  isiPilihan();
   var m={f_jenis:"jenis",f_kat:"kategori",f_pengaju:"pengaju",f_dept:"dept",f_email:"email",f_tgl:"tgl",f_ppbj:"ppbj",f_proyek:"proyek",f_perihal:"perihal"};
   Object.keys(m).forEach(function(id){var el=document.getElementById(id);el.value=F[m[id]]||"";el.oninput=el.onchange=function(){F[m[id]]=this.value;if(id==="f_pengaju")riwayat();};});
+  var sdd=document.getElementById("f_dept");if(F.dept&&sdd.value!==F.dept){if(DEPTS.length)F.dept="";}
+  var ip=document.getElementById("f_ppbj");ip.addEventListener("change",pilihPpbj);ip.addEventListener("input",function(){if(PPBJL.some(function(x){return x.ppbj===ip.value.trim();}))pilihPpbj();});
   document.getElementById("f_cari").onclick=ambilPpbj;
   document.getElementById("addrow").onclick=function(){ITEMS.push({kode:"",nama:"",satuan:"",qty:"",harga:"",ket:""});gambarItems();var r=document.querySelectorAll("#items .ir");var l=r[r.length-1];if(l)l.querySelector("input").focus();};
   document.getElementById("f_file").onchange=function(){tambahAtt(this.files);this.value="";};
   document.getElementById("pg_x").onclick=function(){kerja(false);};document.getElementById("pg_a").onclick=function(){kerja(true);};
   gambarItems();gambarAtt();riwayat();
 }
-async function ambilPpbj(){
+function pilihPpbj(){
+  var p=document.getElementById("f_ppbj").value.trim(),x=PPBJL.filter(function(y){return y.ppbj===p;})[0];if(!x)return;
+  if(x.ket){F.proyek=x.ket;document.getElementById("f_proyek").value=x.ket;}
+  if(x.dept&&DEPTS.indexOf(x.dept)>=0){F.dept=x.dept;document.getElementById("f_dept").value=x.dept;}
+  ambilPpbj(true);
+}
+async function ambilPpbj(diam){
   var p=document.getElementById("f_ppbj").value.trim();if(!p){toast("Isi No PPBJ dulu.",true);return;}
   try{var r=await api({action:"kbGet",ppbj:p});if(!r.ok){toast(r.msg||"Tidak ditemukan.",true);return;}
     if(r.nama){F.proyek=r.nama;document.getElementById("f_proyek").value=r.nama;}if(r.dept&&!F.dept){F.dept=r.dept;document.getElementById("f_dept").value=r.dept;}
     if(r.kategori){F.kategori=r.kategori;document.getElementById("f_kat").value=r.kategori;}
-    toast(r.nama?("Proyek: "+r.nama+(r.kategori?" ("+r.kategori+")":"")):"PPBJ belum punya nama proyek, isi manual.");
+    if(diam!==true)toast(r.nama?("Proyek: "+r.nama+(r.kategori?" ("+r.kategori+")":"")):"PPBJ belum punya nama proyek, isi manual.");
   }catch(e){toast("Gagal terhubung ke server.",true);}
 }
 function gambarItems(){
@@ -166,7 +180,7 @@ function cek(ajukan){
   if(F.jenis==="PPBJ"&&!F.ppbj.trim())return "Jenis PPBJ wajib mengisi No PPBJ.";
   var it=itemsKirim();if(!it.length)return "Isi minimal satu barang.";
   for(var i=0;i<it.length;i++){if(!(it[i].qty>0))return "Qty baris "+(i+1)+" harus lebih dari 0.";if(!it[i].kode&&!String(it[i].nama).trim())return "Nama barang baris "+(i+1)+" kosong.";}
-  if(ajukan){if(!F.dept.trim())return "Isi departemen pengaju.";if(!F.ppbj.trim()&&!F.proyek.trim())return "Isi No PPBJ, atau nama proyek bila PPBJ belum ada.";if(F.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(F.email))return "Format email pengaju tidak valid.";}
+  if(ajukan){if(!F.dept.trim())return "Pilih departemen pengaju.";if(F.jenis==="UMO"&&F.perihal.trim().length<10)return "Perihal UMO wajib diisi (minimal 10 huruf), tulis keperluan seperti di form Accurate.";if(!F.ppbj.trim()&&!F.proyek.trim())return "Isi No PPBJ, atau nama proyek bila PPBJ belum ada.";if(F.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(F.email))return "Format email pengaju tidak valid.";}
   return "";
 }
 async function kerja(ajukan){
@@ -210,7 +224,7 @@ async function riwayat(){
 }
 (function(){
   var k="";try{k=localStorage.getItem("sctk_pic")||"";}catch(e){}
-  if(k||PINADM){KODE=k;api({action:"pbBarang"}).then(function(r){if(r.ok){BARANG=r.items||[];mulai();}else{KODE="";PINADM="";try{localStorage.removeItem("sctk_pic");sessionStorage.removeItem("sctk_admin")}catch(e){}loginView("");}}).catch(function(){KODE="";loginView("");});}
+  if(k||PINADM){KODE=k;api({action:"pbBarang"}).then(function(r){if(r.ok){BARANG=r.items||[];DEPTS=r.depts||[];PPBJL=r.ppbj||[];mulai();}else{KODE="";PINADM="";try{localStorage.removeItem("sctk_pic");sessionStorage.removeItem("sctk_admin")}catch(e){}loginView("");}}).catch(function(){KODE="";loginView("");});}
   else loginView("");
 })();
 </script>

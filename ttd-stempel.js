@@ -129,6 +129,20 @@
     return await doc.save();
   };
 
+  /** PDF gabungan: hanya halaman form UMO (indeks halUmo, mulai 0) yang dicari kotak tanda tangannya, supaya lampiran tidak ikut terbaca. */
+  T.halamanSaja = function (hal, idx) { return hal.map(function (h, i) { return {w: h.w, h: h.h, items: i === idx ? h.items : []}; }); };
+  T.periksaGabungan = function (hal, halUmo, bahan) { if (!(halUmo >= 0) || halUmo >= hal.length) return {ok: false, masalah: ['Halaman form UMO tidak ada di PDF gabungan.']}; return T.periksa('UMO', T.halamanSaja(hal, halUmo), bahan); };
+  T.stempelGabungan = async function (PL, bytes, hal, halUmo, bahan) { return T.stempel(PL, bytes, T.halamanSaja(hal, halUmo), 'UMO', bahan); };
+  /** Memeriksa hasil tempel dengan membaca ulang PDF: jumlah halaman sama, dan halaman form memuat keterangan serta kode verifikasi. */
+  T.cekHasil = function (halSebelum, halSesudah, halUmo, bahan) {
+    if (halSesudah.length !== halSebelum.length) return {ok: false, msg: 'Jumlah halaman berubah setelah ditempel (' + halSebelum.length + ' menjadi ' + halSesudah.length + ').'};
+    var p = halSesudah[halUmo]; if (!p) return {ok: false, msg: 'Halaman form tidak ditemukan setelah ditempel.'};
+    var teks = p.items.map(function (i) { return i.s; }).join(' ').replace(/\s+/g, '').toLowerCase();
+    if (teks.indexOf('ditandatanganielektronik') < 0) return {ok: false, msg: 'Keterangan tanda tangan tidak terbaca pada hasil.'};
+    if (teks.indexOf(String(bahan.kode).replace(/\s+/g, '').toLowerCase()) < 0) return {ok: false, msg: 'Kode verifikasi tidak terbaca pada hasil.'};
+    return {ok: true};
+  };
+
   if (typeof module !== 'undefined' && module.exports) module.exports = T;
   root.TTD = T;
 })(typeof window !== 'undefined' ? window : globalThis);

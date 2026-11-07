@@ -33,6 +33,52 @@
     return await doc.save();
   }
 
+  /* PDF gabungan lampiran untuk pengajuan pembelian: halaman daftar isi di depan, lalu tiap berkas sesuai urutan.
+     items: [{file, pdf:bool, label, asli:bool, jpg:{bytes,w,h}|null, form:bool}]. Berkas yang rusak DILEWATI (dicatat di gagal), tidak menggagalkan yang lain.
+     Hasil: {bytes, gagal:[{nama,alasan}], daftar:[{nama,hal,jml}], halForm} (hal = halaman awal, mulai 1, sudah termasuk daftar isi; halForm = indeks mulai 0 form UMO atau -1). */
+  async function buatGabungan(items, onProgress, gambarKeJpeg) {
+    var L = W.PDFLib, doc = await L.PDFDocument.create(), HF = await doc.embedFont(L.StandardFonts.Helvetica), HB = await doc.embedFont(L.StandardFonts.HelveticaBold);
+    var gagal = [], rek = [], mulai = 0;
+    for (var i = 0; i < items.length; i++) {
+      var a = items[i]; if (onProgress) onProgress(i + 1, items.length);
+      var sebelum = doc.getPageCount();
+      try {
+        if (a.pdf) { var src = await L.PDFDocument.load(await a.file.arrayBuffer(), { ignoreEncryption: true }), pg = await doc.copyPages(src, src.getPageIndices()); pg.forEach(function (p) { doc.addPage(p); }); }
+        else {
+          var im, g, ab = a.asli ? await a.file.arrayBuffer() : null, tipe = String(a.file.type || "").toLowerCase();
+          if (a.asli && /jpe?g/.test(tipe)) { im = await doc.embedJpg(ab); g = { w: im.width, h: im.height }; }
+          else if (a.asli && /png/.test(tipe)) { im = await doc.embedPng(ab); g = { w: im.width, h: im.height }; }
+          else { g = a.jpg || await gambarKeJpeg(a.file); im = await doc.embedJpg(g.bytes); }
+          var land = g.w > g.h * 1.15, PW = land ? 841.89 : 595.28, PH = land ? 595.28 : 841.89, m = 28, top = 44, sc = Math.min((PW - 2 * m) / g.w, (PH - m - top) / g.h), dw = g.w * sc, dh = g.h * sc, p = doc.addPage([PW, PH]);
+          p.drawText(asc((a.label || "Lampiran " + (i + 1)) + ": " + a.file.name).slice(0, 110), { x: m, y: PH - 28, size: 9, font: HF, color: L.rgb(.3, .35, .4) });
+          p.drawImage(im, { x: (PW - dw) / 2, y: PH - top - dh, width: dw, height: dh });
+        }
+        rek.push({ nama: a.label || a.file.name, berkas: a.file.name, mulai: sebelum, jml: doc.getPageCount() - sebelum, form: !!a.form });
+      } catch (e) {
+        while (doc.getPageCount() > sebelum) doc.removePage(doc.getPageCount() - 1);
+        gagal.push({ nama: a.file.name, alasan: e && e.message ? e.message : "file rusak atau terkunci" });
+      }
+    }
+    var tocN = 0, per = 38;
+    if (rek.length) {
+      tocN = Math.ceil(rek.length / per);
+      for (var t = 0; t < tocN; t++) {
+        var tp = doc.insertPage(t, [595.28, 841.89]), y = 800;
+        tp.drawText(t ? "DAFTAR ISI BERKAS (lanjutan)" : "DAFTAR ISI BERKAS", { x: 40, y: y, size: 15, font: HB, color: L.rgb(.1, .2, .3) }); y -= 28;
+        tp.drawText("No", { x: 40, y: y, size: 9, font: HB }); tp.drawText("Berkas", { x: 70, y: y, size: 9, font: HB }); tp.drawText("Halaman", { x: 480, y: y, size: 9, font: HB }); y -= 6;
+        tp.drawLine({ start: { x: 40, y: y }, end: { x: 555, y: y }, thickness: .6, color: L.rgb(.5, .55, .6) }); y -= 16;
+        rek.slice(t * per, (t + 1) * per).forEach(function (r, k) {
+          var no = t * per + k + 1, h1 = r.mulai + tocN + 1, h2 = h1 + r.jml - 1;
+          tp.drawText(String(no), { x: 40, y: y, size: 10, font: HF });
+          tp.drawText(asc(r.nama).slice(0, 62), { x: 70, y: y, size: 10, font: r.form ? HB : HF });
+          tp.drawText(h1 === h2 ? String(h1) : h1 + " - " + h2, { x: 480, y: y, size: 10, font: HF }); y -= 17;
+        });
+      }
+    }
+    var daftar = rek.map(function (r) { return { nama: r.nama, hal: r.mulai + tocN + 1, jml: r.jml }; }), hf = rek.filter(function (r) { return r.form; })[0];
+    return { bytes: await doc.save(), gagal: gagal, daftar: daftar, halForm: hf ? hf.mulai + tocN : -1 };
+  }
+
   /* opts: {data:{nomor,tgl,pengaju,dept,perihal,oto,proyek}, ttd:[{label,nama,waktu,img,cat}] (5), status, tolakOleh, alasanTolak, lampiranNama:[...], lampiranBytes:Uint8Array|null} */
   async function buatPdf(opts) {
     var L = W.PDFLib, rgb = L.rgb, d = opts.data, doc = await L.PDFDocument.create();
@@ -245,5 +291,5 @@
     if (opts.lampiranBytes && opts.lampiranBytes.length) { var src = await L.PDFDocument.load(opts.lampiranBytes, { ignoreEncryption: true }), cp = await doc.copyPages(src, src.getPageIndices()); cp.forEach(function (p) { doc.addPage(p); }); }
     return await doc.save();
   }
-  W.PengajuanPdf = { buatPdf: buatPdf, buatPdfBeli: buatPdfBeli, buatBundle: buatBundle, asc: asc };
+  W.PengajuanPdf = { buatPdf: buatPdf, buatPdfBeli: buatPdfBeli, buatBundle: buatBundle, buatGabungan: buatGabungan, asc: asc };
 })(window);

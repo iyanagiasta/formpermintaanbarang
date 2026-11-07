@@ -5,7 +5,7 @@
   'use strict';
   var U = root.POUI; if (!U) return;
   var E = U.ekstra = U.ekstra || {};
-  var S = {q: '', jenis: '', tunggu: {po: [], umo: []}, gagal: [], sapu: false, hasil: null};
+  var S = {q: '', jenis: '', status: '', tunggu: {po: [], umo: []}, gagal: [], sapu: false, hasil: null};
   function $(id) { return document.getElementById(id); }
   function each(host, sel, fn) { Array.prototype.forEach.call(host.querySelectorAll(sel), fn); }
   async function ap(body) { try { return await api(body); } catch (e) { toast('Gagal terhubung ke server.', true); return {ok: false, msg: 'Gagal terhubung ke server.'}; } }
@@ -74,18 +74,21 @@
     if (!root.TTD) throw new Error('Modul tanda tangan belum termuat. Muat ulang halaman (Ctrl+F5).');
     if (!root.KBI || !KBI.muatPdfjs) throw new Error('Pembaca PDF belum termuat. Muat ulang halaman (Ctrl+F5).');
     var b = await ap({action: 'ttdBahan', jenis: jenis, ref: ref}); if (!b.ok) throw new Error(b.msg || 'Gagal mengambil bahan tanda tangan.');
-    var bytes = jenis === 'PO' ? b64Bytes(b.pdf) : bytesAsli, L = await KBI.muatPdfjs(), hal = await KBI.pdfKeHalaman(L, bytes.slice().buffer);
-    return {b: b, bytes: bytes, hal: hal};
+    var bytes = jenis === 'PO' ? b64Bytes(b.pdf) : (b.baru ? b64Bytes(b.gabungan) : bytesAsli);
+    if (!bytes) throw new Error('Pilih PDF Form Pengajuan Uang Muka dari Accurate dulu (UMO ini tidak punya form di lampiran pengajuannya).');
+    var L = await KBI.muatPdfjs(), hal = await KBI.pdfKeHalaman(L, bytes.slice().buffer);
+    return {b: b, bytes: bytes, hal: hal, L: L};
   }
   /** opsi: {bytesAsli, override, pratinjau}. Hasil {ok, msg, masalah}. */
   async function tempel(jenis, ref, opsi) {
     opsi = opsi || {};
     try {
-      var x = await siapkan(jenis, ref, opsi.bytesAsli), pr = TTD.periksa(jenis, x.hal, x.b);
+      var x = await siapkan(jenis, ref, opsi.bytesAsli), gab = jenis === 'UMO' && x.b.baru, pr = gab ? TTD.periksaGabungan(x.hal, x.b.halUmo, x.b) : TTD.periksa(jenis, x.hal, x.b);
       if (!pr.ok && !opsi.override) return {ok: false, masalah: pr.masalah};
-      var out = await TTD.stempel(PDFLib, x.bytes, x.hal, jenis, x.b);
+      var out = gab ? await TTD.stempelGabungan(PDFLib, x.bytes, x.hal, x.b.halUmo, x.b) : await TTD.stempel(PDFLib, x.bytes, x.hal, jenis, x.b);
+      if (gab) { var ch = TTD.cekHasil(x.hal, await KBI.pdfKeHalaman(x.L, out.slice().buffer), x.b.halUmo, x.b); if (!ch.ok) return {ok: false, masalah: ['Hasil tempel tidak lolos pemeriksaan: ' + ch.msg]}; }
       if (opsi.pratinjau) { bukaBlob(out, 'pratinjau.pdf', false); return {ok: true, pratinjau: true, masalah: pr.masalah}; }
-      var r = await ap({action: 'arsipSimpan', jenis: jenis, ref: ref, kodeVer: x.b.kode, pdfTtd: bytesB64(out), pdfAsli: jenis === 'UMO' ? bytesB64(x.bytes) : undefined});
+      var r = await ap({action: 'arsipSimpan', jenis: jenis, ref: ref, kodeVer: x.b.kode, pdfTtd: bytesB64(out)});
       return {ok: !!r.ok, msg: r.msg};
     } catch (e) { return {ok: false, masalah: [e.message || 'Gagal menempel tanda tangan.']}; }
   }
@@ -124,9 +127,9 @@
         }).join('') + '</tbody></table></div><div class="fr">' + (ok ? '' : '<button class="gold" id="arsok">Letak sudah benar, tempel otomatis</button>') + '<button class="sv" id="arsall">Tempel &amp; arsipkan semua PO</button></div>';
     }
     if (um.length) {
-      h += '<h4 style="margin:10px 0 4px">UMO (' + um.length + ')</h4><div class="note">Unduh dulu "Form Pengajuan Uang Muka" dari Accurate (PDF), pilih berkasnya di sini, lalu tempel. Tanda tangan penyetuju masuk ke kotak "Kepala Departemen/Direktur" (penyetuju Capex bila UMO Capex, selain itu Atasan Langsung).</div>' +
+      h += '<h4 style="margin:10px 0 4px">UMO (' + um.length + ')</h4><div class="note">UMO yang form Accurate-nya sudah terlampir di pengajuan ditempel langsung dari PDF gabungannya (kolom PDF dikosongkan). Untuk UMO lama tanpa form terlampir, unduh "Form Pengajuan Uang Muka" dari Accurate lalu pilih berkasnya. Tanda tangan masuk ke kotak "Kepala Departemen/Direktur".</div>' +
         '<div class="tw"><table><thead><tr><th>UMO</th><th>Pengaju / perihal</th><th class="nm">Jumlah</th><th>PDF dari Accurate</th></tr></thead><tbody>' + um.map(function (x) {
-          return '<tr><td><b>' + esc(x.nomor) + '</b></td><td>' + esc(x.pihak) + '<small>' + esc(x.perihal) + '</small></td><td class="nm">' + rpx(x.total) + '</td><td><input type="file" accept="application/pdf,.pdf" data-uf="' + esc(x.ref) + '" style="max-width:190px"> <button class="gh" data-uv="' + esc(x.ref) + '">Pratinjau</button> <button class="sv" data-ut="' + esc(x.ref) + '">Tempel &amp; arsipkan</button></td></tr>';
+          return '<tr><td><b>' + esc(x.nomor) + '</b></td><td>' + esc(x.pihak) + '<small>' + esc(x.perihal) + '</small></td><td class="nm">' + rpx(x.total) + '</td><td>' + (x.gabungan ? '<span class="tag ok">form ada di lampiran</span> ' : '') + '<input type="file" accept="application/pdf,.pdf" data-uf="' + esc(x.ref) + '" style="max-width:190px"> <button class="gh" data-uv="' + esc(x.ref) + '">Pratinjau</button> <button class="sv" data-ut="' + esc(x.ref) + '">Tempel &amp; arsipkan</button> <button class="gh" data-uo="' + esc(x.ref) + '" title="Dipakai bila pemeriksaan jumlah menolak tetapi Anda sudah memastikan berkasnya benar">Tempel tetap</button></td></tr>';
         }).join('') + '</tbody></table></div>';
     }
     if (S.gagal.length) h += '<h4 style="margin:10px 0 4px">Perlu diperiksa</h4>' + S.gagal.map(function (g) { return '<div class="at"><span><b>' + esc(g.jenis + ' ' + g.nomor) + '</b><br><span class="err">' + esc(g.alasan) + '</span></span>' + (g.jenis === 'PO' ? '<button class="gh" data-ov="' + esc(g.ref) + '">Tempel tetap (saya sudah memeriksa)</button>' : '') + '</div>'; }).join('');
@@ -135,9 +138,9 @@
   function gambar() {
     app.innerHTML = U.nav('arsip') + kartuTunggu() +
       '<div class="card"><h3 style="margin-top:0">Arsip tanda tangan</h3><div class="note">Dokumen bertanda tangan sebagai bukti. Terlihat hanya oleh Pengadaan dan admin utama. Pencarian toleran salah ketik: nomor, vendor, perihal, PPBJ, penyetuju.</div>' +
-      '<div class="fr"><input type="text" id="arq" placeholder="Cari nomor, vendor, perihal, PPBJ, penyetuju..." value="' + esc(S.q) + '" style="flex:1;min-width:200px"><select id="arj"><option value="">PO dan UMO</option><option value="PO">PO</option><option value="UMO">UMO</option></select><button class="sv" id="arcari">Cari</button></div><div id="arhasil"><div class="msg">Memuat...</div></div></div>';
-    U.pasangNav(); $('arj').value = S.jenis;
-    $('arcari').onclick = function () { S.q = $('arq').value.trim(); S.jenis = $('arj').value; cari(); }; $('arq').onkeydown = function (e) { if (e.key === 'Enter') $('arcari').click(); }; $('arj').onchange = function () { $('arcari').click(); };
+      '<div class="fr"><input type="text" id="arq" placeholder="Cari: nomor, pengaju, perihal, PPBJ, proyek, departemen, penyetuju, nama lampiran, bulan, nilai..." value="' + esc(S.q) + '" style="flex:1;min-width:200px"><select id="arj"><option value="">PO dan UMO</option><option value="PO">PO</option><option value="UMO">UMO</option></select><select id="arst"><option value="">Semua status</option><option>Menunggu tahap berikut</option><option>Disetujui lengkap</option></select><button class="sv" id="arcari">Cari</button></div><div class="note">Contoh: <i>kompresor oktober</i> &middot; <i>pipa di atas 5 juta</i> &middot; <i>antara 1 dan 3 juta bambang</i> &middot; <i>nota toko abc</i>. Toleran salah ketik.</div><div id="arhasil"><div class="msg">Memuat...</div></div></div>';
+    U.pasangNav(); $('arj').value = S.jenis; $('arst').value = S.status; $('arst').onchange = function () { $('arcari').click(); };
+    $('arcari').onclick = function () { S.q = $('arq').value.trim(); S.jenis = $('arj').value; S.status = $('arst').value; cari(); }; $('arq').onkeydown = function (e) { if (e.key === 'Enter') $('arcari').click(); }; $('arj').onchange = function () { $('arcari').click(); };
     pasangTunggu(); cari();
   }
   function info(t, bad) { var el = $('arsinfo'); if (el) el.innerHTML = bad ? '<span class="err">' + esc(t) + '</span>' : esc(t); else toast(t, !!bad); }
@@ -160,19 +163,19 @@
       lokal('ttd_letak_ok_PO', '1'); all.disabled = true; info('Menempel...'); var r = await sapuPo(S.tunggu.po.filter(function (x) { return x.ada; }), false); if (r.n || r.gagal.length) E.arsip(); else all.disabled = false;
     };
     function file(ref) { var el = host.querySelector('input[data-uf="' + ref + '"]'); return el && el.files && el.files[0]; }
-    async function umo(btn, ref, pratinjau) {
-      var f = file(ref); if (!f) { toast('Pilih PDF Form Pengajuan Uang Muka dari Accurate dulu.', true); return; }
-      var bytes = new Uint8Array(await f.arrayBuffer()); proses(btn, 'UMO', ref, {bytesAsli: bytes, pratinjau: pratinjau, override: pratinjau});
+    async function umo(btn, ref, pratinjau, paksa) {
+      var f = file(ref), bytes = f ? new Uint8Array(await f.arrayBuffer()) : undefined; proses(btn, 'UMO', ref, {bytesAsli: bytes, pratinjau: pratinjau, override: pratinjau || paksa});
     }
     each(host, 'button[data-uv]', function (b) { b.onclick = function () { umo(b, b.getAttribute('data-uv'), true); }; });
     each(host, 'button[data-ut]', function (b) { b.onclick = function () { umo(b, b.getAttribute('data-ut'), false); }; });
+    each(host, 'button[data-uo]', function (b) { b.onclick = function () { if (confirm('Tempel tanda tangan walau pemeriksaan jumlah menemukan ketidakcocokan? Pastikan form UMO-nya benar.')) umo(b, b.getAttribute('data-uo'), false, true); }; });
   }
   async function cari() {
-    var r = await ap({action: 'arsipDaftar', q: S.q, jenis: S.jenis}), el = $('arhasil'); if (!el) return;
+    var r = await ap({action: 'arsipDaftar', q: S.q, jenis: S.jenis, status: S.status}), el = $('arhasil'); if (!el) return;
     if (!r.ok) { el.innerHTML = '<div class="msg err">' + esc(r.msg || 'Gagal.') + '</div>'; return; }
     S.hasil = r.data;
-    el.innerHTML = '<div class="note">' + r.data.length + ' dari ' + r.total + ' dokumen' + (S.q ? ' untuk "' + esc(S.q) + '"' : '') + '.</div>' + (r.data.length ? '<div class="tw"><table><thead><tr><th>Dokumen</th><th>Pihak / perihal</th><th>Penyetuju</th><th>Kode verifikasi</th><th></th></tr></thead><tbody>' + r.data.map(function (a) {
-      return '<tr><td><b>' + esc(a.jenis + ' ' + a.nomor) + '</b><small>' + (a.ppbj ? 'PPBJ ' + esc(a.ppbj) : '') + '</small></td><td>' + esc(a.pihak) + '<small>' + esc(a.perihal) + '</small></td><td>' + esc(a.penyetuju) + '<small>' + esc(a.waktuSetuju) + '</small></td><td><code>' + esc(a.kode) + '</code></td><td><button class="sv" data-au="' + esc(a.id) + '">Unduh</button> <button class="gh" data-ar="' + esc(a.id) + '">Rincian</button>' + (a.jenis === 'PO' ? ' <button class="gh" data-ap="' + esc(a.ref) + '">Paket bukti</button>' : '') + '</td></tr>';
+    el.innerHTML = '<div class="note">' + r.data.length + ' dari ' + r.total + ' dokumen' + (S.q ? ' untuk "' + esc(S.q) + '"' : '') + (r.saring && r.saring.length ? ' (penyaring: ' + r.saring.map(esc).join(', ') + ')' : '') + '.</div>' + (r.data.length ? '<div class="tw"><table><thead><tr><th>Dokumen</th><th>Pihak / perihal</th><th>Penyetuju</th><th>Kode verifikasi</th><th></th></tr></thead><tbody>' + r.data.map(function (a) {
+      return '<tr><td><b>' + esc(a.jenis + ' ' + a.nomor) + '</b><small>' + (a.ppbj ? 'PPBJ ' + esc(a.ppbj) : '') + (a.dept ? ' · ' + esc(a.dept) : '') + '</small>' + (a.status ? '<small class="' + (/Dibatalkan/.test(a.status) ? 'err' : '') + '">' + esc(a.status) + '</small>' : '') + '</td><td>' + esc(a.pihak) + '<small>' + esc(a.perihal) + (a.total ? ' · ' + rpx(a.total) : '') + '</small>' + (a.lamp ? '<small>Lampiran: ' + esc(a.lamp) + '</small>' : '') + '</td><td>' + esc(a.penyetuju) + '<small>' + esc(a.waktuSetuju) + '</small></td><td><code>' + esc(a.kode) + '</code></td><td><button class="sv" data-au="' + esc(a.id) + '">Unduh</button> <button class="gh" data-ar="' + esc(a.id) + '">Rincian</button>' + (a.jenis === 'PO' ? ' <button class="gh" data-ap="' + esc(a.ref) + '">Paket bukti</button>' : '') + '</td></tr>';
     }).join('') + '</tbody></table></div>' : '<div class="msg">Belum ada dokumen yang cocok.</div>');
     var baris = function (id) { return S.hasil.filter(function (x) { return x.id === id; })[0]; };
     each(el, 'button[data-au]', function (b) { b.onclick = async function () { b.disabled = true; var a = baris(b.getAttribute('data-au')), x = await ap({action: 'arsipFile', id: a.id, which: 'ttd'}); b.disabled = false; if (!x.ok) { toast(x.msg || 'Gagal.', true); return; } bukaBlob(b64Bytes(x.data), namaBerkas([a.jenis + ' ' + a.nomor, '(bertanda tangan)'], 'pdf'), true); }; });
@@ -184,7 +187,7 @@
     var r = await ap({action: 'arsipRincian', id: id}), b = m.querySelector('#arsb'); if (!r.ok) { b.innerHTML = '<div class="msg err">' + esc(r.msg || 'Gagal.') + '</div>'; return; }
     var a = r.arsip;
     b.innerHTML = '<h3 style="margin-top:0">' + esc(a.jenis + ' ' + a.nomor) + '</h3><div class="note">' + esc(a.pihak) + (a.perihal ? ' · ' + esc(a.perihal) : '') + (a.ppbj ? ' · PPBJ ' + esc(a.ppbj) : '') + '</div>' +
-      '<p>Disetujui oleh <b>' + esc(a.penyetuju) + '</b> pada ' + esc(a.waktuSetuju) + '.<br>Kode verifikasi <code>' + esc(a.kode) + '</code> · diarsipkan ' + esc(a.diarsipkan) + ' oleh ' + esc(a.oleh) + '.</p>' +
+      (a.status ? '<div class="note">Status: <b>' + esc(a.status) + '</b>' + (a.total ? ' · Nilai ' + rpx(a.total) : '') + (a.dept ? ' · ' + esc(a.dept) : '') + '</div>' : '') + (a.lamp ? '<div class="note">Isi PDF gabungan: ' + esc(a.lamp) + '</div>' : '') + '<p>Disetujui oleh <b>' + esc(a.penyetuju) + '</b> pada ' + esc(a.waktuSetuju) + '.<br>Kode verifikasi <code>' + esc(a.kode) + '</code> · diarsipkan ' + esc(a.diarsipkan) + ' oleh ' + esc(a.oleh) + '.</p>' +
       '<div class="note" style="word-break:break-all">Sidik jari berkas (SHA-256): ' + esc(a.hash) + '</div><div class="note">Halaman verifikasi publik (tanpa membuka isi dokumen): <a href="' + esc(a.verUrl) + '" target="_blank" rel="noopener">' + esc(a.verUrl) + '</a></div>' +
       '<div class="fr"><button class="sv" id="arck">Cek keaslian berkas</button>' + (a.adaAsli ? '<button class="gh" id="aras">Unduh salinan asli Accurate</button>' : '') + '<span id="arcs" class="note"></span></div>' +
       '<h4 style="margin:10px 0 4px">Riwayat persetujuan</h4>' + (r.riwayat.length ? r.riwayat.map(function (x) { return '<div class="at"><span>' + esc(x) + '</span></div>'; }).join('') : '<div class="note">Tidak ada catatan.</div>') +

@@ -54,7 +54,7 @@ async function muat(){
   if(!ID||!TK){app.innerHTML='<div class="card msg err">Tautan tidak lengkap.</div>';return;}
   try{var r=await api({action:"pbInfo",id:ID,t:TK});
     if(!r.ok){app.innerHTML='<div class="card msg err">'+esc(r.msg||"Tautan tidak valid.")+'</div>';return;}
-    D=r;gambar();
+    D=r;await tanyaMuat();gambar();
     if(r.kind==="cetak"&&r.meta.status==="Disetujui"&&!r.adaFinal)simpanFinal();
   }catch(e){app.innerHTML='<div class="card msg err">Gagal terhubung ke server.</div>';}
 }
@@ -72,8 +72,9 @@ function gambar(){
   var aksi="";
   if(D.kind==="setuju"&&aktif)aksi='<div class="card"><b>Keputusan Anda'+(D.who?' ('+esc(D.who)+')':'')+'</b><div class="note">Periksa dokumen dan lampiran lewat tombol Unduh PDF lengkap. Tanda tangan Anda akan dibubuhkan otomatis setelah menyetujui.</div><textarea id="cat" maxlength="500" placeholder="Catatan (wajib bila menolak)"></textarea><div class="fr"><button class="ok" id="ok">SETUJU</button><button class="no" id="no">TOLAK</button></div></div>';
   app.innerHTML='<div class="card"><div class="fr" style="margin-top:0"><b style="font-size:16px">'+esc(m.nomor)+'</b> '+chip(st)+'</div><dl><dt>Jenis</dt><dd>'+(m.jenis==="UMO"?"UMO (Uang Muka Operasional)":"PPBJ")+' - <b>'+esc(m.kategori)+'</b></dd>'+(m.darurat?'<dt>Darurat</dt><dd class="err">'+esc(m.alasanDarurat)+'</dd>':'')+'<dt>Pengaju</dt><dd>'+esc(m.pengaju)+' ('+esc(m.dept)+')</dd><dt>Proyek</dt><dd>'+esc(m.proyek||"-")+'</dd><dt>No PPBJ</dt><dd>'+esc(m.ppbj||"-")+'</dd>'+(m.perihal?'<dt>Perihal</dt><dd>'+esc(m.perihal)+'</dd>':'')+'<dt>Diajukan</dt><dd>'+esc(m.waktu)+'</dd><dt>Total perkiraan</dt><dd><b>'+rp(m.total)+'</b></dd>'+(m.revisi?'<dt>Revisi dari</dt><dd>'+esc(m.revisi)+'</dd>':'')+(m.catatan?'<dt>Catatan</dt><dd>'+esc(m.catatan)+'</dd>':'')+'<dt>Lampiran</dt><dd>'+(m.adaLampiran?'Ada (digabung di PDF)':'Tidak ada')+'</dd>'+(st==="Ditolak"?'<dt>Ditolak oleh</dt><dd class="err">'+esc(m.tolakOleh)+': '+esc(m.alasanTolak)+'</dd>':'')+'</dl>'+
-   '<div class="fr"><button id="pdf">Unduh PDF lengkap</button><span class="note" id="pinfo"></span></div></div>'+per+aksi+'<div class="card"><b>Persetujuan</b>'+steps+'</div>'+tabel;
+   '<div class="fr"><button id="pdf">Unduh PDF lengkap</button><span class="note" id="pinfo"></span></div></div>'+per+'<div class="card" id="tj"></div>'+aksi+'<div class="card"><b>Persetujuan</b>'+steps+'</div>'+tabel;
   document.getElementById("pdf").onclick=function(){unduh(false);};
+  tanyaGambar(aktif);
   var ok=document.getElementById("ok");if(ok){ok.onclick=function(){putuskan("approve");};document.getElementById("no").onclick=function(){putuskan("reject");};}
 }
 async function susunPdf(){
@@ -91,6 +92,20 @@ async function unduh(){
 async function simpanFinal(){
   try{if(!window.PDFLib||!window.PengajuanPdf)return;var bytes=await susunPdf();if(bytes.length>20*1048576)return;
     var r=await api({action:"pbFinal",id:ID,t:TK,pdf:bytesB64(bytes)});if(r.ok&&!r.sudah)toast("PDF final tersimpan di Google Drive.");}catch(e){}
+}
+var TH=[];
+async function tanyaMuat(){if(D.kind!=="setuju"){TH=[];return;}try{var r=await api({action:"pbDiskusi",id:ID,t:TK});TH=r.ok?r.data:[];}catch(e){TH=[];}}
+function tanyaGambar(aktif){
+  var el=document.getElementById("tj");if(!el)return;var bisa=D.kind==="setuju"&&aktif;
+  if(!bisa&&!TH.length){el.style.display="none";return;}
+  var h='<b>Tanya jawab dengan Pengadaan</b>'+(TH.length?TH.map(function(m){return '<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;max-width:92%;'+(m.peran==="Penyetuju"?'margin-left:auto;background:rgba(23,88,143,.12)':'')+'"><div class="note">'+esc(m.dari)+' · '+esc(m.waktu)+'</div>'+esc(m.isi).replace(/\n/g,"<br>")+'</div>';}).join(""):'<div class="note">Belum ada pertanyaan. Bila ada yang perlu dijelaskan sebelum memutuskan, tulis di bawah. Pengadaan akan menjawab lewat email.</div>');
+  if(bisa)h+='<textarea id="tq" maxlength="800" placeholder="Tulis pertanyaan Anda untuk Pengadaan"></textarea><div class="fr"><button id="tb">Ada pertanyaan</button><span class="note" id="ti"></span></div>';
+  el.innerHTML=h;
+  var b=document.getElementById("tb");if(b)b.onclick=async function(){
+    var q=document.getElementById("tq").value.trim();if(!q){toast("Tulis pertanyaan dulu.",true);return;}
+    b.disabled=true;
+    try{var r=await api({action:"pbTanya",id:ID,t:TK,isi:q});if(!r.ok){toast(r.msg||"Gagal.",true);b.disabled=false;return;}
+      await tanyaMuat();tanyaGambar(aktif);toast(r.msg);}catch(e){toast("Gagal terhubung ke server.",true);b.disabled=false;}};
 }
 async function putuskan(act){
   var cat=(document.getElementById("cat").value||"").trim();

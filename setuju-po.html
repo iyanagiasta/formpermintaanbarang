@@ -17,7 +17,7 @@
 textarea{width:100%;min-height:70px;padding:9px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
 button{font:600 14px "Segoe UI",Roboto,Arial,sans-serif;padding:12px 22px;border:0;border-radius:8px;color:#fff;cursor:pointer}button:disabled{opacity:.5}.ok{background:var(--green)}.no{background:#a82424}
 .tag{display:inline-block;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;background:#e3edf3;color:#17588f}
-.msg{text-align:center;padding:26px;color:var(--mut)}.err{color:var(--red)}
+.bub{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;max-width:92%}.bub.me{background:#e3edf3;margin-left:auto}.bub small{display:block;color:var(--mut);margin-bottom:2px}.warn{background:#fff3cd;border:1px solid #e0b84a;color:#5c4400;border-radius:8px;padding:8px 10px;margin:8px 0}@media (prefers-color-scheme:dark){.bub.me{background:#23384a}.warn{background:#3d3412;border-color:#8a7020;color:#f0d98a}}.msg{text-align:center;padding:26px;color:var(--mut)}.err{color:var(--red)}
 </style>
 </head>
 <body>
@@ -34,26 +34,28 @@ async function muat(){
   if(!NO||!T){app.innerHTML='<div class="card msg err">Tautan tidak lengkap.</div>';return;}
   try{D=await api({action:"poSetujuInfo",no:NO,t:T});}catch(e){app.innerHTML='<div class="card msg err">Gagal terhubung ke server.</div>';return;}
   if(!D.ok){app.innerHTML='<div class="card msg err">'+esc(D.msg||"Tautan tidak valid.")+'</div>';return;}
-  gambar();
+  await tanyaMuat();gambar();
 }
 function gambar(){
   var p=D.po,rg=D.ringkas||{},h='<div class="card"><h2 style="margin:0 0 8px">PO '+esc(p.no)+(p.versi>1?' <span class="tag">revisi versi '+p.versi+'</span>':'')+'</h2><div class="dt">'+
    '<div><label>Vendor</label><b>'+esc(p.vendor)+'</b><div class="mut">'+esc((p.attn?"Attn "+p.attn:"")+(p.telepon?" · "+p.telepon:""))+'</div></div>'+
    '<div><label>Tanggal PO</label>'+esc(tgl(p.tgl))+'</div><div><label>PPBJ / Proyek</label>'+esc(p.ppbj)+'<div class="mut">'+esc(p.proyek)+'</div></div>'+
    '<div><label>Diunggah oleh</label>'+esc(p.oleh)+'<div class="mut">'+esc(p.waktu)+'</div></div></div>';
+  var kt=D.konteks||{};if(kt.vendorStatus==='Nonaktif')h+='<div class="warn"><b>Perhatian:</b> vendor ini berstatus <b>Nonaktif</b> di data vendor.</div>';if(kt.vendorBaru)h+='<div class="mut" style="margin-top:8px">Vendor ini belum ada di data vendor (vendor baru).</div>';
   h+='<div class="tw" style="margin-top:10px"><table><thead><tr><th>No</th><th>Uraian</th><th class="nm">Qty</th><th class="nm">Harga PO</th><th class="nm">Harga PPBJ</th><th class="nm">Selisih</th><th class="nm">Total</th></tr></thead><tbody>'+
    D.rows.map(function(x){var s=x.selisih===null?'<span class="mut">-</span>':'<span class="'+(x.selisih>0?'naik':x.selisih<0?'turun':'')+'">'+(x.selisih>0?'+':'')+String(x.selisih).replace(".",",")+'%</span>';
-    return '<tr><td>'+x.no+'</td><td>'+esc(x.nama)+(x.jenis==="Jasa"?' <span class="mut">(jasa)</span>':'')+'</td><td class="nm">'+esc(String(x.qty).replace(".",","))+' '+esc(x.satuan)+'</td><td class="nm">'+rp(x.harga)+'</td><td class="nm">'+(x.hargaAng?rp(x.hargaAng):'<span class="mut">-</span>')+'</td><td class="nm">'+s+'</td><td class="nm">'+rp(x.total)+'</td></tr>';}).join("")+'</tbody></table></div>'+
+    return '<tr><td>'+x.no+'</td><td>'+esc(x.nama)+(x.jenis==="Jasa"?' <span class="mut">(jasa)</span>':'')+'</td><td class="nm">'+esc(String(x.qty).replace(".",","))+' '+esc(x.satuan)+'</td><td class="nm">'+rp(x.harga)+(x.hargaLalu?'<div class="mut">Terakhir '+rp(x.hargaLalu)+' ('+(x.selisihLalu>0?'+':'')+String(x.selisihLalu).replace('.',',')+'%)</div>':'')+'</td><td class="nm">'+(x.hargaAng?rp(x.hargaAng):'<span class="mut">-</span>')+'</td><td class="nm">'+s+'</td><td class="nm">'+rp(x.total)+'</td></tr>';}).join("")+'</tbody></table></div>'+
    '<p class="mut">Harga PO sudah termasuk PPN. Harga PPBJ = harga anggaran pada PPBJ awal. Selisih positif (merah) berarti PO lebih mahal dari anggaran.</p>'+
    '<p>Harga jual '+rp(rg.hargaJual)+' · PPN '+rp(rg.ppn)+(Number(rg.diskon)?' · Diskon '+rp(rg.diskon):'')+(Number(rg.biayaLain)?' · Biaya lain '+rp(rg.biayaLain)+'':'')+' · <b>Total '+rp(rg.total)+'</b></p></div>';
   if(D.lampiran&&D.lampiran.length)h+='<div class="card"><b>Lampiran ('+D.lampiran.length+')</b>'+D.lampiran.map(function(f){return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid #e3e8ec"><span>'+esc(f.nama)+(f.ket?'<br><small class="mut">'+esc(f.ket)+'</small>':'')+'</span><button data-lf="'+esc(f.id)+'">Buka</button></div>';}).join("")+'</div>';
   if(D.versiLama&&D.versiLama.length)h+='<div class="card"><b>Riwayat revisi</b>'+D.versiLama.map(function(v){return '<div class="mut">Versi '+v.versi+' diganti '+esc(v.waktu)+' oleh '+esc(v.oleh)+': '+esc(v.alasan)+' ('+esc(v.ringkas)+')</div>';}).join("")+'</div>';
+  h+='<div class="card" id="tj"></div>';
   if(D.bisa){
     h+='<div class="card"><b>Keputusan Anda</b>'+(D.status!=="Menunggu persetujuan"?'<div class="mut">PO sudah berjalan atas izin sebelumnya; tanda tangan Anda menyusul.</div>':'')+'<p><textarea id="cat" placeholder="Catatan (wajib bila menolak)"></textarea></p><button class="ok" id="bs">SETUJU</button> <button class="no" id="bt">TOLAK</button><div id="inf" class="mut" style="margin-top:8px"></div></div>';
   }else{
     h+='<div class="card"><b>Status: '+esc(D.status)+'</b>'+(p.penyetuju?'<div class="mut">Diputuskan oleh '+esc(p.penyetuju)+' · '+esc(p.wPutus)+(p.cPutus?' · '+esc(p.cPutus):'')+'</div>':'')+'</div>';
   }
-  app.innerHTML=h;
+  app.innerHTML=h;tanyaGambar();
   Array.prototype.forEach.call(app.querySelectorAll("button[data-lf]"),function(b){b.onclick=async function(){
     b.disabled=true;
     try{var r=await api({action:"poSetujuFile",no:NO,t:T,fileId:b.getAttribute("data-lf")});if(!r.ok){alert(r.msg||"Gagal membuka lampiran.");b.disabled=false;return;}
@@ -64,6 +66,20 @@ function gambar(){
     }catch(e){alert("Gagal membuka lampiran.");}
     b.disabled=false;};});
   if(D.bisa){document.getElementById("bs").onclick=function(){putus("setuju");};document.getElementById("bt").onclick=function(){putus("tolak");};}
+}
+var TH=[];
+async function tanyaMuat(){try{var r=await api({action:"poDiskusi",no:NO,t:T});TH=r.ok?r.data:[];}catch(e){TH=[];}}
+function tanyaGambar(){
+  var el=document.getElementById("tj");if(!el)return;
+  if(!D.bisa&&!TH.length){el.style.display="none";return;}
+  var h='<b>Tanya jawab dengan Pengadaan</b>'+(TH.length?TH.map(function(m){return '<div class="bub'+(m.peran==="Penyetuju"?' me':'')+'"><small>'+esc(m.dari)+' · '+esc(m.waktu)+'</small>'+esc(m.isi).replace(/\n/g,"<br>")+'</div>';}).join(""):'<div class="mut">Belum ada pertanyaan. Bila ada yang perlu dijelaskan sebelum memutuskan, tulis di bawah. Pengadaan akan menjawab lewat email.</div>');
+  if(D.bisa)h+='<p><textarea id="tq" maxlength="800" placeholder="Tulis pertanyaan Anda untuk Pengadaan"></textarea></p><button id="tb" style="background:var(--navy)">Ada pertanyaan</button><div id="ti" class="mut" style="margin-top:8px"></div>';
+  el.innerHTML=h;
+  var b=document.getElementById("tb");if(b)b.onclick=async function(){
+    var q=document.getElementById("tq").value.trim(),ti=document.getElementById("ti");if(!q){ti.innerHTML='<span class="err">Tulis pertanyaan dulu.</span>';return;}
+    b.disabled=true;ti.textContent="Mengirim...";
+    try{var r=await api({action:"poTanya",no:NO,t:T,isi:q});if(!r.ok){ti.innerHTML='<span class="err">'+esc(r.msg||"Gagal.")+'</span>';b.disabled=false;return;}
+      await tanyaMuat();tanyaGambar();var t2=document.getElementById("ti");if(t2)t2.textContent=r.msg;}catch(e){ti.innerHTML='<span class="err">Gagal terhubung ke server.</span>';b.disabled=false;}};
 }
 async function putus(k){
   var cat=document.getElementById("cat").value.trim(),inf=document.getElementById("inf");

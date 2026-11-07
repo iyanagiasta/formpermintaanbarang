@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Verifikasi Dokumen</title>
+<style>
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--red:#a82424;--green:#1b8a3a}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--red:#f0a0a0;--green:#7fd89a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:15px}
+.top{background:var(--navy);color:#fff;text-align:center;padding:14px 12px;border-bottom:4px solid var(--gold)}.top h1{margin:0;font-size:16px;letter-spacing:1.5px}.top div{font-size:11px;letter-spacing:2px;color:#e3c98f;margin-top:3px}
+.wrap{max-width:560px;margin:0 auto;padding:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.mut{color:var(--mut);font-size:13px}.ok{color:var(--green)}.err{color:var(--red)}
+dl{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;margin:10px 0 0}dt{color:var(--mut)}dd{margin:0;word-break:break-word}
+input{width:100%;padding:11px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);text-transform:uppercase;letter-spacing:1px}
+button{font:600 14px "Segoe UI",Roboto,Arial,sans-serif;padding:11px 20px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer;margin-top:10px}button:disabled{opacity:.5}
+</style>
+</head>
+<body>
+<div class="top"><h1>VERIFIKASI DOKUMEN</h1><div>PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="wrap">
+ <div class="card"><label for="k" class="mut">Kode verifikasi pada dokumen (contoh: A1B2-C3D4-E5F6)</label><input id="k" maxlength="14" autocomplete="off" placeholder="XXXX-XXXX-XXXX"><button id="cek">Periksa</button></div>
+ <div id="hasil"></div>
+ <div class="mut">Halaman ini hanya memastikan bahwa kode tercatat di arsip perusahaan beserta nomor dokumen, penyetuju, dan waktunya. Isi dokumen tidak ditampilkan. Tanda tangan di dokumen berupa gambar tanda tangan elektronik dengan kode verifikasi; bukan tanda tangan digital bersertifikat.</div>
+</div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+async function api(b){var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+var $k=document.getElementById("k"),$h=document.getElementById("hasil"),$b=document.getElementById("cek");
+function rapikan(v){var s=String(v||"").toUpperCase().replace(/[^0-9A-F]/g,"").slice(0,12);return s.replace(/^(.{4})(.{0,4})(.{0,4}).*$/,function(m,a,b,c){return a+(b?"-"+b:"")+(c?"-"+c:"");});}
+async function periksa(){
+  var k=rapikan($k.value);$k.value=k;
+  if(k.length!==14){$h.innerHTML='<div class="card err">Kode harus 12 karakter (huruf A-F dan angka), contoh A1B2-C3D4-E5F6.</div>';return;}
+  $b.disabled=true;$h.innerHTML='<div class="card mut">Memeriksa...</div>';
+  try{var r=await api({action:"ttdVerifikasi",k:k});
+    if(!r.ok){$h.innerHTML='<div class="card"><b class="err">Tidak terverifikasi</b><div class="mut" style="margin-top:6px">'+esc(r.msg||"Kode tidak ditemukan.")+'</div></div>';}
+    else $h.innerHTML='<div class="card"><b class="ok" style="font-size:17px">&#10003; Terverifikasi</b><div class="mut">Dokumen ini tercatat di arsip PT Sarana Catur Tirta Kelola.</div><dl><dt>Jenis</dt><dd>'+esc(r.jenis)+'</dd><dt>Nomor</dt><dd><b>'+esc(r.nomor)+'</b></dd><dt>Disetujui oleh</dt><dd>'+esc(r.penyetuju)+'</dd><dt>Waktu persetujuan</dt><dd>'+esc(r.waktu)+'</dd><dt>Diarsipkan</dt><dd>'+esc(r.diarsipkan)+'</dd></dl></div>';
+  }catch(e){$h.innerHTML='<div class="card err">Gagal terhubung ke server. Coba lagi.</div>';}
+  $b.disabled=false;
+}
+$k.oninput=function(){var p=this.selectionStart===this.value.length;this.value=rapikan(this.value);};
+$b.onclick=periksa;$k.onkeydown=function(e){if(e.key==="Enter")periksa();};
+var q=new URLSearchParams(location.search).get("k");if(q){$k.value=rapikan(q);periksa();}
+</script>
+</body>
+</html>

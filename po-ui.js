@@ -12,7 +12,7 @@
   function angka(n) { return Math.round(Number(n) || 0).toLocaleString('id-ID'); }
 
   var BD = {}, TABGRUP = {po_tunggu: 'daftar', po_jalan: 'daftar', po_kirim: 'daftar', po_datang: 'daftar', klaim: 'klaim', umo_ppbj: 'umo', umo_real: 'umo', umo_ttd: 'umo', umo_tolak: 'umo', revisi: 'revisi', termin: 'termin', harga_mahal: 'harga'};
-  var NAVGRP = [['Kerja', [['antrean', 'Hari ini'], ['papan', 'Papan PPBJ']]], ['PO', [['unggah', 'Unggah PO'], ['daftar', 'Daftar PO'], ['harga', 'Harga di atas anggaran'], ['rekap', 'Rekap dan laporan'], ['berkas', 'Berkas PO'], ['tutup', 'Penutupan bulan']]],
+  var NAVGRP = [['Kerja', [['antrean', 'Hari ini'], ['papan', 'Papan PPBJ']]], ['PO', [['unggah', 'Unggah PO'], ['daftar', 'Daftar PO'], ['harga', 'Harga di atas anggaran'], ['rekap', 'Rekap dan laporan'], ['berkas', 'Berkas PO'], ['arsip', 'Arsip'], ['tutup', 'Penutupan bulan']]],
     ['Barang datang', [['beli', 'Pembelian'], ['akan', 'Akan datang'], ['klaim', 'Klaim vendor'], ['jadwal', 'Jadwal datang'], ['jalan', 'Perjalanan PPBJ'], ['menipis', 'Stok menipis']]], ['Uang dan proyek', [['kokpit', 'Kokpit biaya'], ['umo', 'UMO'], ['termin', 'Jasa termin'], ['revisi', 'Revisi PPBJ'], ['boq', 'BOQ']]], ['Data', [['vendor', 'Vendor']]]];
   function gaya() {
     if ($('pogaya')) return; var s = document.createElement('style'); s.id = 'pogaya';
@@ -46,7 +46,7 @@
   U.tampil = function (tab) {
     tab = ({hargamahal: 'harga'})[tab] || tab; S.tab = tab;
     if (tab === 'beli') { tampilList(); return; }
-    var f = {antrean: antrean, papan: papan, unggah: unggah, daftar: daftar, harga: harga, rekap: rekap, akan: akan, klaim: klaim, jalan: function () { return jalan(''); }, umo: umo, termin: termin, revisi: revisi, boq: function () { return boq(''); }, vendor: function () { return E_.vendor ? E_.vendor('') : vendor(); }, kokpit: function () { return E_.kokpit(); }, berkas: function () { return E_.berkas(); }, jadwal: function () { return E_.jadwal(); }, tutup: function () { return E_.tutup(); }, atur: atur, jejak: jejak, pantau: pantau, sehat: sehat, menipis: menipis}[tab];
+    var f = {antrean: antrean, papan: papan, unggah: unggah, daftar: daftar, harga: harga, rekap: rekap, akan: akan, klaim: klaim, jalan: function () { return jalan(''); }, umo: umo, termin: termin, revisi: revisi, boq: function () { return boq(''); }, vendor: function () { return E_.vendor ? E_.vendor('') : vendor(); }, kokpit: function () { return E_.kokpit(); }, berkas: function () { return E_.berkas(); }, arsip: function () { return E_.arsip(); }, jadwal: function () { return E_.jadwal(); }, tutup: function () { return E_.tutup(); }, atur: atur, jejak: jejak, pantau: pantau, sehat: sehat, menipis: menipis}[tab];
     if (f) return f();
   };
 
@@ -201,6 +201,7 @@
       try { var fl = await siapFile([f]); var r = await api({action: 'poLampir', no: m.no, files: fl}); toast(r.msg || (r.ok ? 'Tersimpan.' : 'Gagal.'), !r.ok); if (r.ok) detail(m.no); } catch (e) { toast(e.message || 'Gagal.', true); }
       this.disabled = false;
     };
+    if (U.tanyaPasang) U.tanyaPasang(box, 'PO', m.no, 'Pertanyaan penyetuju dijawab di sini. Pesan WhatsApp sudah berisi sapaan dan tautan.');
     if (U.catatanPasang) U.catatanPasang(box, 'PO', m.no);
     box.scrollIntoView && box.scrollIntoView({behavior: 'smooth', block: 'start'});
   }
@@ -286,10 +287,12 @@
       '<div id="umnota">' + (nb ? gambarNotaMasuk() : '') + '</div><div id="umod"></div>' +
       '<div class="card" data-judul="Daftar UMO">' + (l.length ? '<div class="tw"><table><thead><tr><th>Nomor / Pengaju</th><th>Perihal</th><th>PPBJ</th><th class="nm">Uang muka</th><th class="nm">Aktual</th><th>Umur / status</th><th>Posisi bola</th><th></th></tr></thead><tbody>' + l.map(function (x) {
         return '<tr><td><b>' + esc(x.nomor) + '</b><small>' + esc(x.pengaju) + (x.dept ? ' · ' + esc(x.dept) : '') + '</small>' + (x.pengajuTunggak ? '<small class="err">punya ' + x.pengajuTunggak + ' UMO lewat batas</small>' : '') + '</td><td>' + esc(x.perihal) + '</td><td>' + (x.menungguPpbj ? '<span class="tag bad">belum ada</span>' : esc(x.ppbj)) + '</td><td class="nm">' + angka(x.total) + '</td><td class="nm">' + angka(x.realisasi) + '</td><td>' + umStatus(x) + '</td><td>' + esc(x.bola || '') + '</td><td>' +
-        (x.menungguPpbj ? '<button class="gh" data-pp="' + esc(x.id) + '">Isi PPBJ</button> ' : '') + (x.pesanIni || x.pesan ? '<button class="gh" data-m="' + esc(x.id) + '">Pesan</button> ' : '') + (x.status === 'Disetujui' && !x.selesai ? '<button class="gh" data-nl="' + esc(x.id) + '">Tautan nota</button> ' : '') + (x.pelunasan && !x.pelunasan.sudah ? '<button data-pl="' + esc(x.id) + '">Catat pelunasan</button> ' : '') + (x.status === 'Disetujui' ? '<button class="gh" data-r="' + esc(x.id) + '">Realisasi</button>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Tidak ada UMO yang cocok.</div>') + '</div>';
+        (x.menungguPpbj ? '<button class="gh" data-pp="' + esc(x.id) + '">Isi PPBJ</button> ' : '') + (x.pesanIni || x.pesan ? '<button class="gh" data-m="' + esc(x.id) + '">Pesan</button> ' : '') + (x.status === 'Disetujui' && !x.selesai ? '<button class="gh" data-nl="' + esc(x.id) + '">Tautan nota</button> ' : '') + (x.pelunasan && !x.pelunasan.sudah ? '<button data-pl="' + esc(x.id) + '">Catat pelunasan</button> ' : '') + (x.status !== 'Disetujui' && x.status !== 'Ditolak' && x.status !== 'Dibatalkan' ? '<button class="gh" data-tj="' + esc(x.id) + '">Tanya jawab</button> ' : '') + (x.status === 'Disetujui' ? '<button class="gh" data-ars="1">Arsip TTD</button> <button class="gh" data-r="' + esc(x.id) + '">Realisasi</button>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Tidak ada UMO yang cocok.</div>') + '</div>';
     U.pasangNav(); if (U.alat) U.alat(); $('umf').value = UM.f; $('umf').onchange = function () { UM.f = this.value; gambarUmo(); }; $('umq').onchange = function () { UM.q = this.value; gambarUmo(); };
     var cari = function (id) { return UM.data.filter(function (z) { return z.id === id; })[0]; };
     Array.prototype.forEach.call(app.querySelectorAll('button[data-m]'), function (b) { b.onclick = function () { pesanUmo(cari(b.getAttribute('data-m'))); }; });
+    Array.prototype.forEach.call(app.querySelectorAll('button[data-tj]'), function (b) { b.onclick = function () { var z = cari(b.getAttribute('data-tj')); if (U.tanyaModal) U.tanyaModal('UMO', z.id, 'UMO ' + z.nomor + ' · ' + z.pengaju + ' · ' + z.perihal); }; });
+    Array.prototype.forEach.call(app.querySelectorAll('button[data-ars]'), function (b) { b.onclick = function () { U.tampil('arsip'); }; });
     Array.prototype.forEach.call(app.querySelectorAll('button[data-pp]'), function (b) { b.onclick = function () { pilihPpbj(cari(b.getAttribute('data-pp'))); }; });
     Array.prototype.forEach.call(app.querySelectorAll('button[data-nl]'), function (b) { b.onclick = async function () { b.disabled = true; try { var r = await api({action: 'rlNotaLink', id: b.getAttribute('data-nl')}); if (!r.ok) { toast(r.msg || 'Gagal.', true); b.disabled = false; return; } tautanNota(cari(b.getAttribute('data-nl')), r); } catch (e) { toast('Gagal terhubung ke server.', true); } b.disabled = false; }; });
     Array.prototype.forEach.call(app.querySelectorAll('button[data-pl]'), function (b) { b.onclick = function () { pelunasanUmo(cari(b.getAttribute('data-pl'))); }; });

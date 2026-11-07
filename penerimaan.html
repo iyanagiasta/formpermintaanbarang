@@ -37,6 +37,9 @@ table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;colo
 .tag{display:inline-block;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;background:#e3edf3;color:#17588f}.tag.ok{background:#dff3e4;color:#14612b}.tag.bad{background:#fde8e8;color:#8a1c28}.tag.w{background:#fff3cd;color:#7a5b00}
 .can{text-decoration:line-through;color:var(--mut)}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#17588f;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:#c0392b}
+.kp{margin:10px 0}.kp .kh{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}.kp .kh b{font-size:15px}.kp small{color:var(--mut,#667)}
+.kp .bar2{height:6px;background:var(--line,#dde);border-radius:4px;overflow:hidden;min-width:90px;margin-top:3px}.kp .bar2 i{display:block;height:100%;background:#2e8b57}
+.kp table{margin-top:8px}.kp td.nm,.kp th.nm{text-align:right;white-space:nowrap}.kp .lk{color:#17683c;font-weight:700}.kp .sk{color:#a8620a;font-weight:700}
 </style>
 <link rel="stylesheet" href="tema-halaman.css">
 <script src="nama-berkas.js"></script><script src="tema.js"></script>
@@ -87,12 +90,20 @@ function pesananDipilih(){return PES.filter(function(p){return p.ppbj===F.ppbj;}
 async function formBaru(){
   if(!SATU){formBaruLama();return;}
   var el=document.getElementById("isi");el.innerHTML='<div class="card"><div class="msg">Memuat daftar barang yang menunggu diterima...</div></div>';
-  var r;try{r=await api({action:"plList"});}catch(e){el.innerHTML='<div class="card"><p class="err">Gagal terhubung ke server.</p></div>';return;}
+  var r;try{r=await api({action:"plList",rincian:true});}catch(e){el.innerHTML='<div class="card"><p class="err">Gagal terhubung ke server.</p></div>';return;}
   if(!r.ok){el.innerHTML='<div class="card"><p class="err">'+esc(r.msg||"Gagal.")+'</p></div>';return;}
   var d=(r.data||[]).filter(function(x){return x.status!=="Diterima lengkap"&&x.status!=="Dibatalkan";});
   var h='<div class="card"><h3>Barang menunggu diterima <span class="tag">'+d.length+' pembelian</span></h3><div class="note">Semua penerimaan lewat satu jalur: pilih pembelian/PO di bawah, lalu catat jumlah Baik, Rusak, atau Salah kirim beserta foto surat jalan. Stok bertambah hanya untuk barang yang Baik; yang rusak atau salah kirim otomatis menjadi klaim vendor.</div><div class="note"><b>Barang tanpa PO tidak bisa diterima di sini.</b> Minta Pengadaan mencatat pembelian atau PO-nya lebih dulu, lalu barangnya muncul di daftar ini.</div></div>';
   if(!d.length)h+='<div class="card"><div class="note">Tidak ada pembelian yang menunggu diterima.</div></div>';
-  else h+='<div class="card"><div class="tw"><table><thead><tr><th>Pembelian</th><th>Supplier / PO</th><th>Proyek</th><th>Status</th><th></th></tr></thead><tbody>'+d.map(function(x){return '<tr><td><b>'+esc(x.nomor)+'</b><small>'+esc(x.tgl||"")+'</small></td><td>'+esc(x.supplier||"")+'<small>PO '+esc(x.po||"-")+'</small></td><td>'+esc(x.proyek||x.ppbj||"")+'<small>'+esc(x.ppbj||"")+'</small></td><td>'+esc(x.status)+'</td><td><a href="pengadaan.html?terima='+encodeURIComponent(x.id)+'"><button type="button">Terima</button></a></td></tr>';}).join("")+'</tbody></table></div></div>';
+  else h+=d.map(function(x){
+    var it=x.items||[],nL=0;it.forEach(function(i){if(Math.round((i.qBeli-i.qTerima)*1000)/1000<=0)nL++;});
+    var pc=x.persen||0,sebagian=x.qTerima>0;
+    var baris=it.map(function(i){var sisa=Math.round((i.qBeli-i.qTerima)*1000)/1000,p=i.qBeli>0?Math.min(100,Math.round(i.qTerima/i.qBeli*100)):0;
+      return '<tr><td>'+esc(i.nama)+'</td><td class="nm">'+fq(i.qBeli)+' '+esc(i.satuan||"")+'</td><td class="nm">'+fq(i.qTerima)+'<div class="bar2"><i style="width:'+p+'%"></i></div></td><td class="nm">'+(sisa>0?'<span class="sk">sisa '+fq(sisa)+'</span>':'<span class="lk">lengkap</span>')+'</td></tr>';}).join("");
+    return '<div class="card kp"><div class="kh"><div><b>'+esc(x.nomor)+'</b> <small>'+esc(x.tgl||"")+'</small><br>'+esc(x.supplier||"")+' <small>PO '+esc(x.po||"-")+'</small><br><small>'+esc(x.proyek||x.ppbj||"")+(x.proyek&&x.ppbj?' ('+esc(x.ppbj)+')':'')+'</small></div>'+
+      '<div style="text-align:right"><span class="tag '+(sebagian?'w':'')+'">'+esc(sebagian?'Sebagian':x.status)+'</span><br><small>'+(it.length?nL+' dari '+it.length+' barang lengkap':'')+'</small><div class="bar2"><i style="width:'+pc+'%"></i></div></div></div>'+
+      (it.length?'<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Dipesan</th><th class="nm">Diterima</th><th class="nm">Sisa</th></tr></thead><tbody>'+baris+'</tbody></table></div>':'')+
+      '<div class="fr" style="margin-top:8px"><a href="pengadaan.html?terima='+encodeURIComponent(x.id)+'"><button type="button">'+(sebagian?'Terima barang berikutnya':'Terima barang')+'</button></a></div></div>';}).join("");
   el.innerHTML=h;
 }
 function formBaruLama(){

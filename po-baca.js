@@ -104,7 +104,8 @@
     var pesan = [], salah = [], jml = 0, tot = function (z) { return isNaN(z) ? 0 : z; };
     baris.forEach(function (r) {
       if (isNaN(r.qty) || isNaN(r.harga) || isNaN(r.total) || !(r.qty > 0)) { salah.push(r.no); pesan.push('Baris ' + r.no + ': qty/harga/total tidak terbaca utuh.'); return; }
-      if (Math.abs(r.qty * r.harga - r.total) > 1.01) { salah.push(r.no); pesan.push('Baris ' + r.no + ': qty x harga (' + Math.round(r.qty * r.harga) + ') tidak sama dengan total (' + r.total + ').'); }
+      if (Math.abs(r.qty * r.harga - r.total) > 1.01 + r.qty) {   /* harga satuan dibulatkan ke rupiah penuh di PDF Accurate: selisih sampai 1 rupiah per satuan wajar */
+         salah.push(r.no); pesan.push('Baris ' + r.no + ': qty x harga (' + Math.round(r.qty * r.harga) + ') tidak sama dengan total (' + r.total + ').'); }
       if (!r.nama) { salah.push(r.no); pesan.push('Baris ' + r.no + ': nama barang kosong.'); }
       jml += r.total;
     });

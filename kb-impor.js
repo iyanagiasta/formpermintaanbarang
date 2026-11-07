@@ -429,7 +429,7 @@
     function mintaAlasan(p, tombol, sudah) {
       var a = root.prompt('Alasan revisi PPBJ ' + p.ppbj + ' (wajib, mis. permintaan proyek bertambah):', '');
       a = a == null ? '' : String(a).trim();
-      if (!a) { kabar('Alasan revisi wajib diisi. RAB belum diganti.', true); tombol.disabled = false; tombol.textContent = 'Simpan RAB'; return; }
+      if (!a) { try { root.alert('Alasan revisi wajib diisi. RAB belum diganti.\n\nKlik Simpan RAB lagi lalu isi alasannya.'); } catch (e) { kabar('Alasan revisi wajib diisi. RAB belum diganti.', true); } tombol.disabled = false; tombol.textContent = 'Simpan RAB'; return; }
       return simpanDok(p, tombol, true, sudah, a);
     }
     function simpanDok(p, tombol, ganti, sudah, alasan) {

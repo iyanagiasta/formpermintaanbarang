@@ -12,7 +12,7 @@
 
   var BD = {}, TABGRUP = {po_tunggu: 'daftar', po_jalan: 'daftar', po_kirim: 'daftar', po_datang: 'daftar', klaim: 'klaim', umo_ppbj: 'umo', umo_real: 'umo', umo_ttd: 'umo', umo_tolak: 'umo', revisi: 'revisi', termin: 'termin', harga_mahal: 'harga'};
   var NAVGRP = [['Kerja', [['antrean', 'Antrean'], ['papan', 'Papan PPBJ']]], ['PO', [['unggah', 'Unggah PO'], ['daftar', 'Daftar PO'], ['harga', 'Harga di atas anggaran'], ['rekap', 'Rekap dan laporan']]],
-    ['Barang datang', [['beli', 'Pembelian'], ['akan', 'Akan datang'], ['klaim', 'Klaim vendor'], ['jalan', 'Perjalanan PPBJ'], ['menipis', 'Stok menipis']]], ['Uang dan proyek', [['umo', 'UMO'], ['termin', 'Jasa termin'], ['revisi', 'Revisi PPBJ'], ['boq', 'BOQ SL']]], ['Data', [['vendor', 'Vendor']]]];
+    ['Barang datang', [['beli', 'Pembelian'], ['akan', 'Akan datang'], ['klaim', 'Klaim vendor'], ['jalan', 'Perjalanan PPBJ'], ['menipis', 'Stok menipis']]], ['Uang dan proyek', [['umo', 'UMO'], ['termin', 'Jasa termin'], ['revisi', 'Revisi PPBJ'], ['boq', 'BOQ']]], ['Data', [['vendor', 'Vendor']]]];
   function gaya() {
     if ($('pogaya')) return; var s = document.createElement('style'); s.id = 'pogaya';
     s.textContent = '#potabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}#potabs .gl{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);margin:0 2px 0 10px}#potabs .bd{font-style:normal;background:#c0392b;color:#fff;border-radius:9px;padding:0 6px;font-size:11px;margin-left:4px}.po-alat{margin:6px 0}.po-alat input{flex:1;min-width:180px}#trkm{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:80;display:flex;align-items:center;justify-content:center;padding:12px}#trkm>div{background:var(--card);color:var(--ink);border-radius:10px;padding:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto}';
@@ -661,40 +661,11 @@
     return [['No', 'Uraian', 'Satuan', 'Qty', 'Harga rencana', 'Total rencana', 'Harga aktual (PO, sebelum PPN)', 'Total aktual', 'Selisih', 'Selisih %', 'No PO']].concat(r.rows.map(function (x) { return [x.no, x.uraian, x.satuan, x.qty, x.harga, x.rencana, x.aktualHarga == null ? '' : x.aktualHarga, x.aktual == null ? '' : x.aktual, x.selisih == null ? '' : x.selisih, x.persen == null ? '' : x.persen, x.po]; }))
       .concat([['', 'TOTAL', '', '', '', r.totalRencana, '', r.totalAktual, r.selisih, '', '']]);
   };
-  async function boq(nama) {
-    app.innerHTML = U.nav('boq') + '<div class="msg">Memuat...</div>'; U.pasangNav();
-    var r; try { r = await api({action: 'boqList', proyek: nama}); } catch (e) { toast('Gagal terhubung ke server.', true); return; }
-    if (!r.ok) { toast(r.msg || 'Gagal.', true); return; }
-    if (nama) { boqDetail(r); return; }
-    app.innerHTML = U.nav('boq') + '<div class="card"><h3 style="margin-top:0">BOQ proyek SL</h3><div class="note">BOQ berdiri sendiri (terpisah dari PPBJ): daftar uraian, volume, dan harga rencana. Harga aktual diisi otomatis dari PO yang dibuat untuk barang yang sama. Tempel dari Excel dengan kolom <b>Uraian, Satuan, Qty, Harga, Kode (opsional)</b>.</div>' +
-      '<div class="pgf"><div><label>Nama proyek SL</label><input type="text" id="bqp"></div><div><label>No PPBJ terkait (opsional)</label><input type="text" id="bqj"></div></div>' +
-      '<textarea id="bqt" placeholder="Tempel di sini (salin dari Excel), satu baris per uraian" style="width:100%;min-height:120px;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit"></textarea>' +
-      '<div class="fr"><input type="file" id="bqf" accept=".xlsx,.xls,.csv"><button id="bqs">Simpan BOQ</button></div><div id="bqm" class="note"></div></div>' +
-      '<div class="card"><h3 style="margin-top:0">BOQ tersimpan</h3>' + (r.daftar.length ? '<div class="tw"><table><thead><tr><th>Proyek</th><th>PPBJ</th><th class="nm">Baris</th><th class="nm">Total rencana</th><th></th></tr></thead><tbody>' + r.daftar.map(function (d) { return '<tr><td><b>' + esc(d.proyek) + '</b></td><td>' + esc(d.ppbj || '-') + '</td><td class="nm">' + d.baris + '</td><td class="nm">' + angka(d.total) + '</td><td><button class="gh" data-bq="' + esc(d.proyek) + '">Buka</button></td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Belum ada BOQ.</div>') + '</div>';
-    U.pasangNav();
-    Array.prototype.forEach.call(app.querySelectorAll('button[data-bq]'), function (b) { b.onclick = function () { boq(b.getAttribute('data-bq')); }; });
-    $('bqs').onclick = async function () {
-      var pr = $('bqp').value.trim(); if (!pr) { toast('Isi nama proyek SL.', true); return; } this.disabled = true;
-      try {
-        var aoa, f = $('bqf').files && $('bqf').files[0];
-        if (f) { if (typeof XLSX === 'undefined') { toast('Pembaca Excel belum termuat.', true); this.disabled = false; return; } var wb = XLSX.read(await f.arrayBuffer(), {type: 'array'}); aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header: 1, defval: ''}); }
-        else aoa = $('bqt').value.split(/\r?\n/).map(function (l) { return l.split(/\t|;/); });
-        var b = U.bacaBoq(aoa); if (b.salah.length) { toast('Baris tidak terbaca: ' + b.salah.slice(0, 5).join(', ') + '. Periksa kolom Qty dan Harga.', true); this.disabled = false; return; } if (!b.rows.length) { toast('Tidak ada baris BOQ.', true); this.disabled = false; return; }
-        var x = await api({action: 'boqSimpan', proyek: pr, ppbj: $('bqj').value.trim(), rows: b.rows});
-        if (x.perlu === 'ganti') { if (confirm('BOQ proyek ini sudah ada. Ganti seluruhnya?')) x = await api({action: 'boqSimpan', proyek: pr, ppbj: $('bqj').value.trim(), rows: b.rows, ganti: true}); else { this.disabled = false; return; } }
-        toast(x.msg || (x.ok ? 'Tersimpan.' : 'Gagal.'), !x.ok); if (x.ok) boq(pr);
-      } catch (e) { toast(e.message || 'Gagal.', true); }
-      this.disabled = false; };
+  async function boq() {
+    app.innerHTML = U.nav('boq') + '<div id="boqroot"></div>'; U.pasangNav();
+    if (!window.BoqUI) { $('boqroot').innerHTML = '<div class="msg">Modul BOQ belum termuat. Muat ulang halaman.</div>'; return; }
+    BoqUI.mount($('boqroot'), {api: api, toast: toast});
   }
-  function boqDetail(r) {
-    app.innerHTML = U.nav('boq') + '<div class="card"><h3 style="margin-top:0">BOQ ' + esc(r.proyek) + '</h3><div class="note">PPBJ terkait: ' + esc(r.ppbj || '-') + '. Harga aktual dari PO (sebelum PPN) untuk ' + r.terisi + ' dari ' + r.rows.length + ' baris.</div>' +
-      '<div class="sum"><div><b>' + rp(r.totalRencana) + '</b><span>Total rencana</span></div><div><b>' + rp(r.totalAktual) + '</b><span>Total aktual (baris ber-PO)</span></div><div><b>' + rp(r.selisih) + '</b><span>Selisih (baris ber-PO)</span></div></div>' +
-      '<div class="tw"><table><thead><tr><th>No</th><th>Uraian</th><th class="nm">Qty</th><th class="nm">Harga rencana</th><th class="nm">Harga aktual</th><th class="nm">Selisih</th><th>PO</th></tr></thead><tbody>' + r.rows.map(function (x) { return '<tr><td>' + x.no + '</td><td>' + esc(x.uraian) + '<small>' + esc(x.satuan) + '</small></td><td class="nm">' + String(x.qty).replace('.', ',') + '</td><td class="nm">' + angka(x.harga) + '</td><td class="nm">' + (x.aktualHarga == null ? '-' : angka(x.aktualHarga)) + '</td><td class="nm">' + (x.selisih == null ? '-' : angka(x.selisih) + ' (' + String(x.persen).replace('.', ',') + '%)') + '</td><td>' + esc(x.po || '') + '</td></tr>'; }).join('') + '</tbody></table></div>' +
-      '<div class="fr"><button class="gh" id="bqx">Unduh Excel</button><button class="gh" id="bqk">Kembali</button></div></div>';
-    U.pasangNav(); $('bqk').onclick = function () { boq(''); };
-    $('bqx').onclick = function () { unduhAoa(U.boqAoa(r), NB.buat('xlsx', 'BOQ', r.proyek), 'BOQ'); };
-  }
-
   /* ---------- Alat umum: cari di tabel, Excel, PDF (Tambahan 57) ---------- */
   function normT(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
   /** Isi tabel yang sedang tampil (kolom tanpa judul, yaitu tombol aksi, dibuang). Baris yang disaring ikut tersaring. */
@@ -734,10 +705,13 @@
     try { await muatPdf(); } catch (e) { toast(e.message, true); return false; }
     try {
       var J = window.jspdf.jsPDF, lebar = Math.max.apply(null, seksi.map(function (s) { return s.kolom.length; })), doc = new J({orientation: lebar > 6 ? 'landscape' : 'portrait', unit: 'pt', format: 'a4'}), y = 44;
-      doc.setFontSize(14); doc.text(String(judul), 40, y); doc.setFontSize(9); doc.text(String(sub || ''), 40, y + 14); y += 30;
+      var PW = doc.internal.pageSize.getWidth();
+      doc.setDrawColor(10, 42, 67); doc.setLineWidth(1.2); doc.rect(40, y - 14, PW - 80, 50);
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(10, 42, 67); doc.setFontSize(10); doc.text('PT SARANA CATUR TIRTA KELOLA', 50, y + 2);
+      doc.setFontSize(13); doc.text(String(judul), 50, y + 20); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text(String(sub || ''), PW - 50, y + 20, {align: 'right'}); doc.setTextColor(20, 20, 20); y += 52;
       seksi.forEach(function (s) {
         if (s.judul) { doc.setFontSize(11); doc.text(String(s.judul), 40, y + 8); y += 14; }
-        doc.autoTable({head: [s.kolom], body: s.baris.map(function (r) { return r.map(function (c) { return c == null ? '' : String(c); }); }), startY: y, margin: {left: 40, right: 40, bottom: 36}, styles: {fontSize: 8, cellPadding: 3}, headStyles: {fillColor: [26, 108, 171]}});
+        doc.autoTable({head: [s.kolom], body: s.baris.map(function (r) { return r.map(function (c) { return c == null ? '' : String(c); }); }), startY: y, margin: {left: 40, right: 40, bottom: 36}, headStyles: {fillColor: [10, 42, 67], textColor: 255}, styles: {fontSize: 8, cellPadding: 3, lineColor: [150, 160, 170], lineWidth: 0.4}});
         y = (doc.lastAutoTable && doc.lastAutoTable.finalY ? doc.lastAutoTable.finalY : y) + 20;
       });
       var n = doc.getNumberOfPages ? doc.getNumberOfPages() : 1;

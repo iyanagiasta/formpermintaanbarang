@@ -474,7 +474,7 @@
     RV.list = l;
     var grup = urutG.map(function (k) {
       var g = G[k], perlu = g.rows.filter(function (x) { return x.status === 'Perlu tindakan'; }).length;
-      return '<div class="card"><b>Revisi PPBJ ' + esc(g.ppbj) + '</b> · ' + g.rows.length + ' barang berubah · ' + perlu + ' perlu tindakan ' + (perlu ? '<span class="tag ' + (g.tingkat === 'merah' ? 'bad' : g.tingkat === 'kuning' ? 'w' : 'n') + '">' + (g.umur || 0) + ' hari</span>' : '<span class="tag ok">selesai</span>') +
+      return '<div class="card" data-judul="' + esc('Revisi PPBJ - ' + g.ppbj + ' - ' + String(g.waktu).slice(0, 10)) + '"><b>Revisi PPBJ ' + esc(g.ppbj) + '</b> · ' + g.rows.length + ' barang berubah · ' + perlu + ' perlu tindakan ' + (perlu ? '<span class="tag ' + (g.tingkat === 'merah' ? 'bad' : g.tingkat === 'kuning' ? 'w' : 'n') + '">' + (g.umur || 0) + ' hari</span>' : '<span class="tag ok">selesai</span>') +
         '<div class="note">' + esc(g.waktu) + ' oleh ' + esc(g.oleh) + (g.alasan ? ' · <b>Alasan:</b> ' + esc(g.alasan) : ' · <i>alasan tidak dicatat (revisi lama)</i>') + '</div>' +
         '<div class="tw"><table><thead><tr><th>Barang</th><th>Perubahan</th><th>PO terkait dan petunjuk</th><th>Status</th><th></th></tr></thead><tbody>' + g.rows.map(function (x) {
           var idx = RV.list.indexOf(x), pos = String(x.po || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
@@ -583,7 +583,7 @@
     if (!app) return;
     Array.prototype.forEach.call(app.querySelectorAll('.tw'), function (w) {
       if (w.getAttribute('data-alat') || (w.closest && w.closest('#tb'))) return; var tb = w.querySelector('table'); if (!tb) return; w.setAttribute('data-alat', '1');
-      var judul = ((w.closest && w.closest('.card') && w.closest('.card').querySelector('h3')) || {textContent: 'Daftar'}).textContent.replace(/\s+/g, ' ').trim().slice(0, 60) || 'Daftar';
+      var kd = w.closest && w.closest('.card'), judul = ((kd && kd.getAttribute('data-judul')) || ((kd && kd.querySelector('h3')) || {textContent: 'Daftar'}).textContent).replace(/\s+/g, ' ').trim().slice(0, 70) || 'Daftar';
       var n = tb.querySelectorAll('tbody tr').length, bar = document.createElement('div'); bar.className = 'fr po-alat';
       bar.innerHTML = (n > 4 ? '<input type="text" class="poq" placeholder="Cari di tabel ini...">' : '') + '<button class="gh" data-ex="x">Excel</button><button class="gh" data-ex="p">PDF</button>';
       w.parentNode.insertBefore(bar, w);
@@ -776,7 +776,7 @@
     var bl = r.beli.filter(function (b) { return !q || (b.nama + ' ' + b.kode).toLowerCase().indexOf(q) >= 0; });
     var tagS = function (st) { return st === 'Rebutan' ? '<span class="tag w">Rebutan</span>' : '<span class="tag bad">Kurang</span>'; }, tagP = function (t) { return '<span class="tag ' + (t === 'Sudah dipesan' || t === 'Sudah datang' ? 'ok' : t === 'Sebagian datang' ? 'w' : 'n') + '">' + esc(t) + '</span>'; };
     var isi = MN.v === 'proyek'
-      ? (pr.length ? pr.map(function (P, ix) { return '<div class="card"><b>' + esc(P.ppbj) + '</b> · ' + esc(P.ket) + (P.dept ? ' <small>' + esc(P.dept) + '</small>' : '') + ' <span class="tag bad">' + P.nKurang + ' kurang</span>' + (P.nRebutan ? ' <span class="tag w">' + P.nRebutan + ' rebutan</span>' : '') +
+      ? (pr.length ? pr.map(function (P, ix) { return '<div class="card" data-judul="' + esc('Kebutuhan Material - PPBJ ' + P.ppbj) + '"><b>' + esc(P.ppbj) + '</b> · ' + esc(P.ket) + (P.dept ? ' <small>' + esc(P.dept) + '</small>' : '') + ' <span class="tag bad">' + P.nKurang + ' kurang</span>' + (P.nRebutan ? ' <span class="tag w">' + P.nRebutan + ' rebutan</span>' : '') +
           '<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Dibutuhkan</th><th class="nm">Stok bebas</th><th class="nm">Kurang</th><th>Status</th><th>Pesanan</th></tr></thead><tbody>' + P.items.map(function (i) { return '<tr><td>' + esc(i.nama) + '<small>' + esc(i.kode) + '</small></td><td class="nm">' + qs(i.butuh) + ' ' + esc(i.satuan) + '</td><td class="nm">' + qs(i.bebas) + '</td><td class="nm"><b>' + qs(i.kurang) + '</b></td><td>' + tagS(i.status) + '</td><td>' + tagP(i.pesanan) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
           '<div class="fr"><button class="gh" data-mx="' + ix + '">Unduh Excel</button><button class="gh" data-mp="' + ix + '">Unduh PDF</button></div></div>'; }).join('') : '<div class="card"><div class="note">' + (q ? 'Tidak ada proyek yang cocok.' : 'Tidak ada proyek aktif yang kekurangan material.') + '</div></div>')
       : '<div class="card">' + (bl.length ? '<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Total dibutuhkan</th><th class="nm">Stok bebas</th><th class="nm">Perlu dibeli</th><th class="nm">Perkiraan nilai</th><th>Catatan</th></tr></thead><tbody>' + bl.map(function (b) { return '<tr><td>' + esc(b.nama) + '<small>' + esc(b.kode) + '</small></td><td class="nm">' + qs(b.total) + ' ' + esc(b.satuan) + '</td><td class="nm">' + qs(b.bebas) + '</td><td class="nm"><b>' + qs(b.kurang) + '</b></td><td class="nm">' + (b.nilai == null ? '-' : rp(b.nilai)) + '</td><td>' + (b.rebutan ? '<span class="tag w">Rebutan antar proyek</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Tidak ada barang yang perlu dibeli.</div>') + '</div>';

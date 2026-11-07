@@ -493,7 +493,7 @@
     var ws = bukuForm('024/PB/X/2026', 'Contoh: Pekerjaan Pengembangan Jaringan', 'Capex', '2026-10-14', [[1, 'TEE REDUCER HDPE dn 250 x 110 mm', '', '', '', 1, 'PCS', 1316575, 'STOCK'], [2, 'FLANGE PN 10 dn 10 Inch -- 250 mm', '', '', 'Type Long', 2, 'PCS', 1100000, 'ORDER'], [3, 'KARET PACKING M', '', '', '', 3.5, 'METER', 200000, 'ORDER']], XL);
     var pt = XL.utils.aoa_to_sheet([['Petunjuk template kebutuhan proyek'], [''], ['1. Satu sheet = satu No PPBJ. Untuk beberapa PPBJ, salin sheet "Kebutuhan" lalu isi masing-masing.'], ['2. Isi No PPBJ, Peruntukan, dan Kategori di bagian atas. Kolom dibaca dari JUDUL kolomnya, jadi urutan kolom boleh berubah asal judulnya tetap.'], ['3. Nama Barang sebaiknya sama dengan nama di database. Bila Kode Barang diisi, kode itu dipakai lebih dulu.'], ['4. Harga Satuan hanya harga anggaran RAB; TIDAK mengubah harga stok.'], ['5. Status ORDER = barang akan dibeli; STOCK = diambil dari stok. Dicatat sebagai info.'], ['6. Departemen tidak dibaca dari file. Atur di tab Isi Kebutuhan Proyek.'], ['7. Setelah dipilih, tabel pratinjau selalu ditampilkan dulu; tidak ada yang tersimpan sebelum Anda menekan Simpan.']]);
     pt['!cols'] = [{wch: 120}];
-    var wb = XL.utils.book_new(); XL.utils.book_append_sheet(wb, ws, 'Kebutuhan'); XL.utils.book_append_sheet(wb, pt, 'Petunjuk'); XL.writeFile(wb, 'template-kebutuhan-proyek.xlsx');
+    var wb = XL.utils.book_new(); XL.utils.book_append_sheet(wb, ws, 'Kebutuhan'); XL.utils.book_append_sheet(wb, pt, 'Petunjuk'); XL.writeFile(wb, NB.buat('xlsx', 'Template Kebutuhan Proyek'));
   };
   /** Ekspor RAB tersimpan ke format template. */
   KBI.ekspor = function (api, ppbj) {
@@ -504,7 +504,7 @@
       if (!r.items || !r.items.length) { kabar('PPBJ ini belum punya RAB tersimpan.', true); return; }
       var baris = r.items.map(function (x, n) { return [n + 1, x.nama, x.kode, x.merk || '', x.spek || '', x.qty, x.satuan || '', x.harga === '' || x.harga == null ? '' : x.harga, x.status || 'STOCK']; });
       var wb = XL.utils.book_new(); XL.utils.book_append_sheet(wb, bukuForm(r.ppbj || ppbj, r.nama || '', r.kategori || '', r.tglButuh || '', baris, XL), 'Kebutuhan');
-      XL.writeFile(wb, 'rab-' + String(r.ppbj || ppbj).replace(/[^\w-]+/g, '_') + '.xlsx');
+      XL.writeFile(wb, NB.buat('xlsx', 'RAB PPBJ', r.ppbj || ppbj, r.nama || ''));
     }).catch(function () { kabar('Gagal terhubung ke server.', true); });
   };
 

@@ -55,7 +55,7 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="cari-pintar.js"></script><script src="tema.js"></script><script src="menu-admin.js"></script>
+<script src="cari-pintar.js"></script><script src="nama-berkas.js"></script><script src="tema.js"></script><script src="menu-admin.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -192,7 +192,7 @@ async function kerja(ajukan){
       inf.textContent="Menyusun PDF...";
       var tot=total(),data={nomor:"",tgl:F.tgl,jenis:F.jenis,kategori:F.kategori,pengaju:F.pengaju,dept:F.dept,ppbj:F.ppbj,proyek:F.proyek,perihal:F.perihal,items:it.map(function(x){return {kode:x.kode,nama:x.nama||x.kode,satuan:x.satuan,qty:x.qty,harga:x.harga,subtotal:Math.round(x.qty*x.harga*100)/100,ket:x.ket};}),total:Math.round(tot*100)/100};
       var bytes=await PengajuanPdf.buatPdfBeli({data:data,ttd:[{label:"Diajukan Oleh",nama:F.pengaju},{label:"Atasan Langsung"},{label:"Pengadaan / Accounting"},{label:"Atasan Accounting"}].concat(F.kategori==="Capex"?[{label:"Penyetuju Capex"}]:[]),status:"",lampiranNama:ATT.map(function(a){return a.file.name;}),lampiranBytes:bundle});
-      var blob=new Blob([bytes],{type:"application/pdf"}),a2=document.createElement("a");a2.href=URL.createObjectURL(blob);a2.download="draf-pembelian-"+F.tgl+".pdf";document.body.appendChild(a2);a2.click();setTimeout(function(){URL.revokeObjectURL(a2.href);a2.remove();},1500);
+      var blob=new Blob([bytes],{type:"application/pdf"}),a2=document.createElement("a");a2.href=URL.createObjectURL(blob);a2.download=NB.buat("pdf","Draf Pengajuan Pembelian",F.pengaju);document.body.appendChild(a2);a2.click();setTimeout(function(){URL.revokeObjectURL(a2.href);a2.remove();},1500);
       inf.textContent="";toast("PDF draf siap ("+ukuranTxt(blob.size)+"). Ini versi tanpa tanda tangan; untuk persetujuan digital pakai Ajukan lewat email.");
     }
   }catch(e){toast("Gagal: "+(e&&e.message?e.message:"kesalahan tak dikenal"),true);inf.textContent="";}

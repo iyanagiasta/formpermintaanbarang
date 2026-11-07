@@ -38,7 +38,7 @@ button.gh{background:transparent;color:var(--navy);border:1px solid var(--navy)}
 @media print{.btns,.noprint{display:none}body{background:#fff}}
 </style>
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="tema.js"></script>
+<script src="nama-berkas.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -74,7 +74,7 @@ function render(){
     var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([["Laporan Pemakaian Barang - PT Sarana Catur Tirta Kelola"],["Periode",tg(f.dari)+" s.d. "+tg(f.sampai)],[d.narasi],[],["Nilai",T_.nilai],["Baris",T_.baris],["Nilai periode lalu",B.nilai.lalu]]),"Ringkasan");
     [["dept","Per Departemen"],["proyek","Per Proyek"],["kategori","Per Kategori"],["barang","Per Barang"]].forEach(function(g){var L=(d.rekap||{})[g[0]]||[];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([[g[1],"Baris","Qty","Nilai","Periode lalu"]].concat(L.map(function(x){return [x.label||x.k,x.baris,x.qty,x.nilai,x.lalu];}))),g[1]);});
-    XLSX.writeFile(wb,"laporan_pemakaian_"+f.dari+"_sd_"+f.sampai+".xlsx");};
+    XLSX.writeFile(wb,NB.buat("xlsx","Laporan Pemakaian",NB.periode(f.dari,f.sampai)));};
 }
 (async function(){
   if(!T){app.innerHTML='<div class="card msg err">Tautan tidak lengkap. Minta tautan baru ke Gudang.</div>';return;}

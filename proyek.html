@@ -43,7 +43,7 @@ h2{font-size:15px;margin:18px 0 6px}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="tema.js"></script>
+<script src="nama-berkas.js"></script><script src="tema.js"></script>
 <script defer src="kb-impor.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
@@ -127,7 +127,7 @@ function unduhCek(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a2),"Dokumen");
   var a3=[["Dokumen","Tanggal","Pemohon","Barang","Qty","Status"]];r.proses.forEach(function(x){a3.push([x.doc,x.tgl,x.pemohon,x.nama,x.qty,x.status]);});
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a3),"Dalam Proses");
-  XLSX.writeFile(wb,"cek-ppbj-"+String(r.ppbj).replace(/[^\w-]+/g,"_")+".xlsx");
+  XLSX.writeFile(wb,NB.buat("xlsx","Cek PPBJ",r.ppbj));
 }
 /* ================= ISI KEBUTUHAN ================= */
 function opsiDept(cur){

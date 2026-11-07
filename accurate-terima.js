@@ -98,7 +98,7 @@ var PAT=(function(){
       var tot={};rows.forEach(function(x){var k=x.kode||x.nama,t=tot[k]||(tot[k]={kode:x.kode,nama:x.nama,satuan:x.satuan,qty:0});t.qty+=x.qty;});
       XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([["Total per Barang"],[],["Kode Barang","Nama Barang","Satuan","Total Masuk"]].concat(Object.keys(tot).sort().map(function(k){var t=tot[k];return [t.kode,t.nama,t.satuan,Math.round(t.qty*1000)/1000];}))),"Total per Barang");
       XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([["Tanggal","No Penerimaan","Proyek","No PPBJ","Jumlah Barang","Total Jumlah","Status","No Transaksi Accurate"]].concat(sel.map(function(x){return [x.tgl,x.doc,x.proyek,x.ppbj,x.n,x.qty,x.status,x.noTrans];}))),"Daftar Penerimaan");
-      XLSX.writeFile(wb,"penerimaan_barang_"+new Date().toISOString().slice(0,10)+".xlsx");
+      XLSX.writeFile(wb,NB.buat("xlsx","Penerimaan Barang Accurate"));
       toast("Excel siap: "+sel.length+" penerimaan, "+rows.length+" baris barang (jumlah masuk saja).",!rows.length);
     }catch(e){toast("Gagal terhubung ke server.",true);}
     btn.disabled=false;
@@ -123,11 +123,11 @@ var PAT=(function(){
         var files=[];
         for(var j=0;j<docs.length;j++){btn.textContent="Membuat PDF "+(j+1)+"/"+docs.length+"...";var h=await BuktiPdf.buatSuratJalan([docs[j]]);lewat=lewat.concat(h.dilewati);if(h.bytes)files.push({name:paNamaBerkas(docs[j])+".pdf",bytes:h.bytes});}
         if(!files.length){toast("Tidak ada halaman yang bisa dibuat. "+(lewat[0]||""),true);btn.disabled=false;btn.textContent=tek;return;}
-        paSimpan(BuktiPdf.buatZip(files),"suratjalan_penerimaan_"+stamp+".zip","application/zip");
+        paSimpan(BuktiPdf.buatZip(files),NB.buat("zip","Surat Jalan Penerimaan",docs.length+" penerimaan"),"application/zip");
       }else{
         var h2=await BuktiPdf.buatSuratJalan(docs,function(i,n){btn.textContent="Membuat PDF "+i+"/"+n+"...";});lewat=lewat.concat(h2.dilewati);
         if(!h2.bytes){toast("Tidak ada halaman yang bisa dibuat. "+(lewat[0]||""),true);btn.disabled=false;btn.textContent=tek;return;}
-        var nm=paNamaGabungan(docs,stamp);if(/^bukti_accurate_/.test(nm))nm="suratjalan_penerimaan_"+stamp;
+        var nm=paNamaGabungan(docs,stamp);if(/^Bukti Accurate - /.test(nm))nm=NB.buat("","Surat Jalan Penerimaan",docs.length+" penerimaan");
         paSimpan(h2.bytes,nm+".pdf","application/pdf");
       }
       toast("Unduhan siap: "+docs.length+" penerimaan."+(lewat.length?" Dilewati "+lewat.length+": "+lewat.slice(0,3).join("; ")+(lewat.length>3?" ...":""):""));

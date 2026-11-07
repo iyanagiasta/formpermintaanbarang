@@ -38,7 +38,7 @@ button.gh{background:transparent;color:var(--navy);border:1px solid var(--navy)}
 @media print{.btns,.noprint{display:none}body{background:#fff}}
 </style>
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="tema.js"></script>
+<script src="nama-berkas.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -75,7 +75,7 @@ function render(){
     var rows=[["Waktu","Kode","Nama","Jenis","Sumber","Qty","Harga","Nilai","Saldo","Referensi","Departemen","Proyek","Keterangan"]].concat(d.data.map(function(m){return [m.waktu,m.kode,m.nama,m.jenis,m.sumber,m.qty,m.harga==null?"":m.harga,m.nilai==null?"":m.nilai,m.saldo,m.ref,m.dept,m.proyek,m.ket];}));
     var ws2=XLSX.utils.aoa_to_sheet(rows),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws1,"Ringkasan");XLSX.utils.book_append_sheet(wb,ws2,"Rincian");
     [["dept","Per Departemen"],["proyek","Per Proyek"],["barang","Per Barang"]].forEach(function(g){var L=(d.rekap||{})[g[0]]||[];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([[g[1],"Catatan","Qty Bersih","Nilai Bersih"]].concat(L.map(function(x){return [x.k,x.n,x.qty,x.nilai];}))),g[1]);});
-    XLSX.writeFile(wb,"mutasi_gudang_"+f.dari+"_sd_"+f.sampai+".xlsx");};
+    XLSX.writeFile(wb,NB.buat("xlsx","Mutasi Gudang",NB.periode(f.dari,f.sampai)));};
 }
 (async function(){
   if(!T){app.innerHTML='<div class="card msg err">Tautan tidak lengkap. Minta tautan baru ke Gudang.</div>';return;}

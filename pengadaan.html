@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<title>Pembelian dan Penerimaan - Gudang SCTK</title>
+<title>Pengadaan - Gudang SCTK</title>
 <style>
 .sres{display:grid;gap:4px;margin:4px 0}.hs{display:block;text-align:left;width:100%;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;cursor:pointer}.hs:hover,.hs:focus-visible{border-color:var(--gold);outline:none}.hs small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 .rw{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:9px;margin-top:4px}.rr{display:flex;gap:8px;align-items:center;padding:7px 9px;border-top:1px solid var(--line)}.rr:first-child{border-top:0}.rr>span{flex:1;min-width:0}.rr small{display:block;color:var(--mut);font-size:12px}.rr input{width:84px;padding:6px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--ink);text-align:right}
@@ -64,7 +64,7 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="tema.js"></script><script src="menu-admin.js"></script><script src="kb-impor.js"></script><script src="po-baca.js"></script><script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script><script src="pdfpengajuan.js?v=59"></script><script src="kompres.js?v=59"></script><script src="pdf-realisasi.js?v=59"></script><script src="real-berkas.js?v=59"></script><script src="po-ui.js"></script>
+<script src="nama-berkas.js"></script><script src="tema.js"></script><script src="menu-admin.js"></script><script src="kb-impor.js"></script><script src="po-baca.js"></script><script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script><script src="pdfpengajuan.js?v=59"></script><script src="kompres.js?v=59"></script><script src="pdf-realisasi.js?v=59"></script><script src="real-berkas.js?v=59"></script><script src="po-ui.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -91,7 +91,7 @@ async function masuk(){
   try{var r=await api({action:"plList"});if(!r.ok){KODE="";loginView(r.msg||"Kode tidak dikenali. Periksa lagi atau minta ke admin gudang.");return;}try{localStorage.setItem("sctk_pic",KODE);}catch(e){}terima(r);}
   catch(e){KODE="";loginView("Gagal terhubung ke server.");}
 }
-function terima(r){LIST=r.data||[];HAK=r.hak||[];PERAN=r.peran||"";BATAS=r.batasDarurat||7;if(!FIL.set){FIL.set=1;if(!bisa("input")&&bisa("terima"))FIL.st="terima";}if(window.POUI&&bisa("input")&&!FIL.mulai){FIL.mulai=1;POUI.tampil("antrean");POUI.muatBadge();return;}tampilList();}
+function terima(r){LIST=r.data||[];HAK=r.hak||[];PERAN=r.peran||"";BATAS=r.batasDarurat||7;var qT="";try{qT=new URLSearchParams(location.search).get("terima")||"";}catch(e){}if(qT&&!window.__qTerima){window.__qTerima=1;window.__dariAkan=false;buka(qT).then(function(ok){if(!ok)tampilList();});return;}if(!FIL.set){FIL.set=1;if(!bisa("input")&&bisa("terima"))FIL.st="terima";}if(window.POUI&&bisa("input")&&!FIL.mulai){FIL.mulai=1;POUI.tampil("antrean");POUI.muatBadge();return;}tampilList();}
 async function muat(){try{var r=await api({action:"plList"});if(!r.ok){toast(r.msg||"Gagal memuat.",true);return;}terima(r);}catch(e){toast("Gagal terhubung ke server.",true);}}
 function stCls(x){return x.status==="Dibatalkan"?"bad":x.status==="Diterima lengkap"?"ok":x.status==="Sebagian diterima"?"w":"n";}
 function tersaring(){
@@ -132,11 +132,12 @@ async function excel(){
     var ids={};tersaring().forEach(function(x){ids[x.id]=1;});var d=r.data.filter(function(x){return ids[x.id];});
     var h=[["No Pembelian","Tanggal","No PO","Supplier","No PPBJ","Proyek","No Pengajuan","Darurat","Pengesahan","Status","Total Nilai","Qty Dibeli","Qty Diterima","Diterima %","Penerimaan (kali)","File Surat Jalan","Surat Jalan Kurang","Diinput Oleh"]].concat(d.map(function(x){return [x.nomor,x.tgl,x.po,x.supplier,x.ppbj,x.proyek,x.nomp,x.darurat?"Ya":"",x.darurat?x.sah:"",x.status,x.total,x.qBeli,x.qTerima,x.persen,x.nTerima,x.nSj,x.dokBelum?"Ya":"",x.oleh];}));
     var ri=[["No Pembelian","Supplier","No PO","Kode Barang","Nama Barang","Satuan","Qty Beli","Harga","Subtotal","Qty Diterima"]];d.forEach(function(x){(x.items||[]).forEach(function(i){ri.push([x.nomor,x.supplier,x.po,i.kode,i.nama,i.satuan,i.qBeli,i.harga,i.sub,i.qTerima]);});});
-    var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ri),"Rincian Barang");XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(h),"Daftar Pembelian");XLSX.writeFile(wb,"pembelian-"+hariIni()+".xlsx");
+    var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ri),"Rincian Barang");XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(h),"Daftar Pembelian");XLSX.writeFile(wb,NB.buat("xlsx","Daftar Pembelian"));
   }catch(e){toast("Gagal terhubung ke server.",true);}
 }
 /* ===== detail ===== */
-async function buka(id){try{var r=await api({action:"plDetail",id:id});if(!r.ok){toast(r.msg||"Gagal.",true);return;}CUR=r;gambarDetail();}catch(e){toast("Gagal terhubung ke server.",true);}}
+function kembaliDetail(){if(window.__dariAkan&&window.POUI){window.__dariAkan=false;POUI.tampil("akan");return;}muat();}
+async function buka(id){try{var r=await api({action:"plDetail",id:id});if(!r.ok){toast(r.msg||"Gagal.",true);return false;}CUR=r;gambarDetail();return true;}catch(e){toast("Gagal terhubung ke server.",true);return false;}}
 function gambarDetail(){
   var r=CUR,m=r.meta,hak=r.hak||[],bataled=m.status==="Dibatalkan",selesai=m.status==="Diterima lengkap";
   var itemsH=r.items.map(function(i){var sisa=Math.round((i.qBeli-i.qTerima)*1000)/1000;
@@ -154,7 +155,7 @@ function gambarDetail(){
   (hak.indexOf("input")>=0&&!bataled?'<div class="fr">'+(m.dokManual?'<button class="gh" id="dk">Cabut tanda lengkap</button>':'<button class="gh" id="dk">Tandai dokumen lengkap...</button>')+'</div>':'')+'</div>'+
   '<div class="card"><b>Riwayat penerimaan</b>'+(r.log.length?'<div class="tw"><table><thead><tr><th>Waktu</th><th>Barang</th><th class="nm">Qty</th><th>Oleh</th></tr></thead><tbody>'+r.log.map(function(l){return '<tr><td>'+esc(l.waktu)+'</td><td>'+esc(l.nama)+'<small>'+(l.stok?'masuk stok':'tidak masuk stok')+(l.cat?' · '+esc(l.cat):'')+'</small></td><td class="nm">'+fq(l.qty)+'</td><td>'+esc(l.oleh)+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="note">Belum ada penerimaan.</div>')+'</div>'+
   (hak.indexOf("input")>=0&&!bataled&&m.nTerima===0?'<div class="fr"><button class="gh" id="bt">Batalkan pembelian</button></div>':'');
-  document.getElementById("kb").onclick=muat;
+  document.getElementById("kb").onclick=kembaliDetail;
   app.querySelectorAll("[data-f]").forEach(function(b){b.onclick=function(){unduh(b.getAttribute("data-f"),b);};});
   app.querySelectorAll("[data-sisa]").forEach(function(a){a.onclick=function(e){e.preventDefault();app.querySelector('[data-tq="'+a.getAttribute("data-sisa")+'"]').value=a.getAttribute("data-v").replace(".",",");};});
   var tf=document.getElementById("tf");if(tf){FILES=[];tf.onchange=function(){FILES=Array.prototype.slice.call(tf.files);document.getElementById("tfn").textContent=FILES.length+" file dipilih";};document.getElementById("ts").onclick=konfirmTerima;}
@@ -219,7 +220,7 @@ async function formBaru(){
   '<div class="dt"><div style="grid-column:1/-1"><label>Catatan</label><input type="text" id="n_ct"></div></div></div>'+
   '<div class="card"><b>Barang</b><div id="n_it"></div><div class="fr"><button class="gh" id="n_add">+ Tambah baris</button><span style="margin-left:auto">Total: <b id="n_tot"></b></span></div><div class="note">Ketik nama barang dan pilih dari daftar stok. Barang yang tidak ada di daftar (jasa, dll) boleh diketik bebas; tidak menambah stok.</div></div>'+
   '<div class="card"><div class="fr" style="margin-top:0"><b>Surat jalan (opsional sekarang)</b><input type="file" id="n_f" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf"><span class="note">Boleh beberapa file; bisa ditambah kemudian.</span></div><div class="fr"><button class="sv" id="n_save">Simpan pembelian</button><span class="note" id="n_info"></span></div></div>';
-  document.getElementById("kb").onclick=muat;document.getElementById("n_add").onclick=function(){ITEMS.push({kode:"",nama:"",satuan:"",qty:"",harga:""});gItems();};
+  document.getElementById("kb").onclick=kembaliDetail;document.getElementById("n_add").onclick=function(){ITEMS.push({kode:"",nama:"",satuan:"",qty:"",harga:""});gItems();};
   document.getElementById("n_dar").onchange=function(){document.getElementById("n_dw").hidden=!this.checked;};
   document.getElementById("n_pj").onchange=pilihPj;document.getElementById("n_f").onchange=function(){FILES=Array.prototype.slice.call(this.files);};document.getElementById("n_save").onclick=simpanBaru;gItems();
 }

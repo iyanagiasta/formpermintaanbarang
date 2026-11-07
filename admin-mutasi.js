@@ -85,7 +85,7 @@ var MX=(function(){
       $("ks_x").onclick=async function(){var b=this;b.disabled=true;
         try{var u=await api({action:"adminKartuStok",kode:s.kode,dari:s.dari,sampai:s.sampai,unduh:true});if(!u.ok){toast(u.msg||"Gagal.",true);}else{
           var rows=[["Kartu Stok",u.info.nama,u.info.kode,"Periode",s.dari?tgl(s.dari)+" s.d. "+tgl(s.sampai||hari(0)):"Seluruh riwayat"],["Saldo awal",u.awal,"Masuk",u.masuk,"Keluar",u.keluar,"Penyesuaian",u.penyesuaian,"Saldo akhir",u.akhir],[],["Waktu","Jenis","Sumber","Qty","Saldo","Saldo Sumber","Referensi","Departemen","Proyek","Keterangan","Oleh","Harga","Lompatan Saldo"]].concat(u.rows.map(function(m){return [m.waktu,m.jenis,m.sumber,m.qty,m.saldo,m.saldoSumber,m.ref,m.dept,m.proyek,m.ket,m.oleh,m.harga==null?"":m.harga,m.lompat||""];}));
-          unduhXlsx("kartu_stok_"+u.info.kode+".xlsx","Kartu Stok",rows,[18,14,10,10,10,12,18,14,18,30,12,10,12]);}
+          unduhXlsx(NB.buat("xlsx","Kartu Stok",u.info.kode),"Kartu Stok",rows,[18,14,10,10,10,12,18,14,18,30,12,10,12]);}
         }catch(e){toast("Gagal terhubung ke server.",true);}b.disabled=false;};
       pasangKs($("ks_h"));
     }
@@ -101,7 +101,7 @@ var MX=(function(){
       try{var u=await api({action:"adminMutasiLaporan",dari:s.dari,sampai:s.sampai,unduh:true});if(!u.ok)toast(u.msg||"Gagal.",true);else{
         var rows=[["Laporan Mutasi Persediaan",tgl(u.dari)+" s.d. "+tgl(u.sampai)],[u.catatan],[],["Kode","Nama Barang","Satuan","Saldo Awal","Masuk","Keluar","Penyesuaian","Saldo Akhir","Selisih Tak Terjelaskan","Harga","Nilai Awal","Nilai Masuk","Nilai Keluar","Nilai Penyesuaian","Nilai Akhir"]].concat(u.rows.map(function(x){return [x.kode,x.nama,x.satuan,x.awal,x.masuk,x.keluar,x.adj,x.akhir,x.takJelas||"",x.harga==null?"":x.harga,x.nAwal==null?"":x.nAwal,x.nMasuk,x.nKeluar,x.nAdj,x.nAkhir==null?"":x.nAkhir];}));
         rows.push([],["TOTAL NILAI","","","","","","","","","",u.nilai.awal,u.nilai.masuk,u.nilai.keluar,u.nilai.adj,u.nilai.akhir]);
-        unduhXlsx("laporan_persediaan_"+u.dari+"_sd_"+u.sampai+".xlsx","Persediaan",rows,[16,40,8,11,11,11,11,11,12,11,14,14,14,14,14]);}
+        unduhXlsx(NB.buat("xlsx","Laporan Persediaan",NB.periode(u.dari,u.sampai)),"Persediaan",rows,[16,40,8,11,11,11,11,11,12,11,14,14,14,14,14]);}
       }catch(e){toast("Gagal terhubung ke server.",true);}b.disabled=false;};
     if(s.data)tampil();else muat();
     async function muat(){
@@ -130,7 +130,7 @@ var MX=(function(){
     $("tg_x").onclick=async function(){var b=this;b.disabled=true;
       try{var u=await api({action:"adminStokPada",tanggal:s.tanggal,unduh:true});if(!u.ok)toast(u.msg||"Gagal.",true);else{
         var rows=[["Stok per tanggal",tgl(u.tanggal)],[u.catatan||""],[],["Kode","Nama Barang","Satuan","Bekas","Moka","Accurate","Total","Harga","Nilai (Moka+Accurate)","Stok Sekarang"]].concat(u.rows.map(function(x){return [x.kode,x.nama,x.satuan,x.q[0],x.q[1],x.q[2],x.total,x.harga==null?"":x.harga,x.nilai==null?"":x.nilai,x.kini];}));
-        unduhXlsx("stok_per_"+u.tanggal+".xlsx","Stok",rows,[16,40,8,10,10,10,10,12,16,12]);}
+        unduhXlsx(NB.buat("xlsx","Stok per Tanggal",u.tanggal),"Stok",rows,[16,40,8,10,10,10,10,12,16,12]);}
       }catch(e){toast("Gagal terhubung ke server.",true);}b.disabled=false;};
     if(s.data)tampil();else muat();
     async function muat(){

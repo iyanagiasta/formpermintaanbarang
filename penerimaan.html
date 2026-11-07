@@ -39,7 +39,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;colo
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#17588f;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:#c0392b}
 </style>
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="tema.js"></script>
+<script src="nama-berkas.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -47,7 +47,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;colo
 <div class="wrap" id="app"></div><div id="toast"></div>
 <script>
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
-var KODE="",PINADM="",ADMIN=false,NAMA="",PES=[],PROY=[],BARANG=[],FILES=[],ITEMS=[],F={sumber:"ppbj",ppbj:"",po:"",proyek:"",cat:"",alasan:""},TAB="baru",BUSY=false,KUNCI="",app=document.getElementById("app");
+var SATU=false,KODE="",PINADM="",ADMIN=false,NAMA="",PES=[],PROY=[],BARANG=[],FILES=[],ITEMS=[],F={sumber:"ppbj",ppbj:"",po:"",proyek:"",cat:"",alasan:""},TAB="baru",BUSY=false,KUNCI="",app=document.getElementById("app");
 try{PINADM=sessionStorage.getItem("sctk_admin")||"";KODE=localStorage.getItem("sctk_pic")||"";}catch(e){}
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},8000);}
@@ -70,7 +70,7 @@ async function mulai(diam){
     var r=await api({action:"terimaPesanan"});
     if(!r.ok){if(diam)return false;KODE="";try{localStorage.removeItem("sctk_pic");}catch(e){}loginView(r.msg||"Kode tidak dikenali. Periksa lagi atau minta ke admin gudang.");return false;}
     try{if(KODE)localStorage.setItem("sctk_pic",KODE);}catch(e){}
-    PES=r.data||[];PROY=r.proyek||[];ADMIN=!!r.admin;NAMA=r.nama||"";muatBarang();tampil();return true;
+    SATU=!!r.satuJalur;PES=r.data||[];PROY=r.proyek||[];ADMIN=!!r.admin;NAMA=r.nama||"";muatBarang();tampil();return true;
   }catch(e){if(diam)return false;KODE="";loginView("Gagal terhubung ke server.");return false;}
 }
 async function muatBarang(){
@@ -84,7 +84,18 @@ function tampil(){
 }
 /* ===== form ===== */
 function pesananDipilih(){return PES.filter(function(p){return p.ppbj===F.ppbj;})[0]||null;}
-function formBaru(){
+async function formBaru(){
+  if(!SATU){formBaruLama();return;}
+  var el=document.getElementById("isi");el.innerHTML='<div class="card"><div class="msg">Memuat daftar barang yang menunggu diterima...</div></div>';
+  var r;try{r=await api({action:"plList"});}catch(e){el.innerHTML='<div class="card"><p class="err">Gagal terhubung ke server.</p></div>';return;}
+  if(!r.ok){el.innerHTML='<div class="card"><p class="err">'+esc(r.msg||"Gagal.")+'</p></div>';return;}
+  var d=(r.data||[]).filter(function(x){return x.status!=="Diterima lengkap"&&x.status!=="Dibatalkan";});
+  var h='<div class="card"><h3>Barang menunggu diterima <span class="tag">'+d.length+' pembelian</span></h3><div class="note">Semua penerimaan lewat satu jalur: pilih pembelian/PO di bawah, lalu catat jumlah Baik, Rusak, atau Salah kirim beserta foto surat jalan. Stok bertambah hanya untuk barang yang Baik; yang rusak atau salah kirim otomatis menjadi klaim vendor.</div><div class="note"><b>Barang tanpa PO tidak bisa diterima di sini.</b> Minta Pengadaan mencatat pembelian atau PO-nya lebih dulu, lalu barangnya muncul di daftar ini.</div></div>';
+  if(!d.length)h+='<div class="card"><div class="note">Tidak ada pembelian yang menunggu diterima.</div></div>';
+  else h+='<div class="card"><div class="tw"><table><thead><tr><th>Pembelian</th><th>Supplier / PO</th><th>Proyek</th><th>Status</th><th></th></tr></thead><tbody>'+d.map(function(x){return '<tr><td><b>'+esc(x.nomor)+'</b><small>'+esc(x.tgl||"")+'</small></td><td>'+esc(x.supplier||"")+'<small>PO '+esc(x.po||"-")+'</small></td><td>'+esc(x.proyek||x.ppbj||"")+'<small>'+esc(x.ppbj||"")+'</small></td><td>'+esc(x.status)+'</td><td><a href="pengadaan.html?terima='+encodeURIComponent(x.id)+'"><button type="button">Terima</button></a></td></tr>';}).join("")+'</tbody></table></div></div>';
+  el.innerHTML=h;
+}
+function formBaruLama(){
   var h='<div class="card"><h3>1. Barang datang dari mana?</h3><div class="fr"><button class="'+(F.sumber==="ppbj"?"":"gh")+'" id="s1">Pesanan PPBJ</button><button class="'+(F.sumber==="po"?"":"gh")+'" id="s2">PO / tanpa PPBJ</button></div>';
   if(F.sumber==="ppbj"){h+='<div id="psel"></div><label class="l">Cari proyek (No PPBJ, nama proyek, departemen, atau nama PIC)</label><input id="pq" placeholder="mis. cibadak, atap, RM, Ramji" autocomplete="off"><div id="phasil"></div><div class="fr" style="margin-top:6px"><button class="gh" id="pshow" type="button"></button></div><div id="info" class="note"></div>';}
   else{h+='<label class="l">No PO (boleh kosong)</label><input id="po" value="'+esc(F.po)+'"><label class="l">Untuk proyek (ketik, atau pilih)</label><input id="proy" value="'+esc(F.proyek)+'" placeholder="Ketik nama proyek / No PPBJ / PIC, atau tulis bebas" autocomplete="off"><div id="phasil"></div><div class="fr" style="margin-top:6px"><button class="gh" id="pshow" type="button"></button></div><div class="note">Bila memilih nomor PPBJ, PIC proyek ikut tampil di ringkasan.</div>';}

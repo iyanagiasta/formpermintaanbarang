@@ -62,7 +62,7 @@ tr.lama td{background:var(--beli)}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="tema.js"></script><script src="menu-admin.js"></script>
+<script src="nama-berkas.js"></script><script src="tema.js"></script><script src="menu-admin.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -117,7 +117,7 @@ function gambarTb(){
 function excel(){
   if(!window.XLSX){toast("Pustaka Excel belum termuat.",true);return;}
   var rows=[["Nomor","Jenis","Kategori","Pengaju","Departemen","No PPBJ","Proyek","Perihal","Disetujui","Umur (hari)","Pengajuan","Realisasi","Selisih","Selisih %","Status Realisasi","Catatan Penutupan"]].concat(tersaring().map(function(x){return [x.nomor,x.jenis,x.kategori,x.pengaju,x.dept,x.ppbj,x.proyek,x.perihal,x.disetujuiTgl,x.disetujuiHari,x.total,x.realisasi,x.selisih,x.persen,x.stReal,x.catatanTutup||""];}));
-  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),"Realisasi");XLSX.writeFile(wb,"realisasi-pembelian-"+hariIni()+".xlsx");
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),"Realisasi");XLSX.writeFile(wb,NB.buat("xlsx","Rekap Realisasi Pembelian"));
 }
 async function buka(id){
   try{var r=await api({action:"rlDetail",id:id});if(!r.ok){toast(r.msg||"Gagal.",true);return;}CUR=r;gambarDetail();}catch(e){toast("Gagal terhubung ke server.",true);}

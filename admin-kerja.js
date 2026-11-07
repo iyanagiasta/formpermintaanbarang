@@ -262,7 +262,7 @@ async function lihatKondisi(paksa){
   var v=document.getElementById("la_v");toast("Menghitung kondisi gudang... bisa 10-60 detik.");
   var r;try{r=await api({action:"adminKondisiGet",paksa:!!paksa});}catch(e){toast("Gagal terhubung.",true);return;}
   if(!r.ok){toast(r.msg||"Gagal",true);return;}
-  var nama="kondisi_gudang_"+r.info.sampai+".xlsx";
+  var nama=NB.buat("xlsx","Kondisi Gudang",r.info.sampai);
   v.innerHTML='<div class="card"><div class="bar noprint"><button id="kn_x">Unduh Excel</button><button id="kn_p" class="gh">Cetak / PDF</button><button id="kn_c" class="gh">Tutup</button></div><div id="kn_i"></div></div>';
   LPR.render(document.getElementById("kn_i"),r.data,r.info);
   document.getElementById("kn_x").onclick=function(){if(!LPR.excel(r.data,r.info,nama))toast("Pembaca Excel belum termuat.",true);};
@@ -286,11 +286,11 @@ async function buatLap(req){
 }
 async function lihatLap(id,unduh){
   var r=await api({action:"adminLaporanGet",id:id});if(!r.ok){toast(r.msg||"Gagal",true);return;}
-  if(unduh){if(!LPR.excel(r.data,r.info,"laporan_gudang_"+r.info.dari+"_"+r.info.sampai+".xlsx"))toast("Pembaca Excel belum termuat.",true);return;}
+  if(unduh){if(!LPR.excel(r.data,r.info,NB.buat("xlsx","Laporan Gudang",NB.periode(r.info.dari,r.info.sampai))))toast("Pembaca Excel belum termuat.",true);return;}
   var v=document.getElementById("la_v");if(!v)return;
   v.innerHTML='<div class="card"><div class="bar noprint"><button id="la_cx">Unduh Excel</button><button id="la_cp" class="gh">Cetak / PDF</button><button id="la_cc" class="gh">Tutup</button></div><div id="la_vi"></div></div>';
   LPR.render(document.getElementById("la_vi"),r.data,r.info);
-  document.getElementById("la_cx").onclick=function(){LPR.excel(r.data,r.info,"laporan_gudang_"+r.info.dari+"_"+r.info.sampai+".xlsx");};
+  document.getElementById("la_cx").onclick=function(){LPR.excel(r.data,r.info,NB.buat("xlsx","Laporan Gudang",NB.periode(r.info.dari,r.info.sampai)));};
   document.getElementById("la_cp").onclick=function(){window.print();};document.getElementById("la_cc").onclick=function(){v.innerHTML="";};
   v.scrollIntoView({behavior:"smooth",block:"start"});
 }

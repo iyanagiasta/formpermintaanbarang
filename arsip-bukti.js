@@ -128,7 +128,7 @@ var ARB=(function(){
         for(var j=0;j<docs.length;j++){btn.textContent="Membuat PDF "+(j+1)+"/"+docs.length+"...";files.push({name:String(docs[j].doc).replace(/[\\\/:*?"<>|\s]+/g,"-")+".pdf",bytes:await BuktiPdf.buatSatu(docs[j],sig)});}
         for(var k=0;k<docsT.length;k++){btn.textContent="Membuat PDF surat jalan "+(k+1)+"/"+docsT.length+"...";var h=await BuktiPdf.buatSuratJalan([docsT[k]]);(h.dilewati||[]).forEach(function(x){lewat.push(x);});if(h.bytes)files.push({name:namaSatu(docsT[k])+".pdf",bytes:h.bytes});}
         if(!files.length){toast0("Tidak ada halaman yang bisa dibuat. "+(lewat[0]||""),true);return;}
-        simpan(BuktiPdf.buatZip(files),"arsip-bukti_"+stamp+".zip","application/zip");
+        simpan(BuktiPdf.buatZip(files),NB.buat("zip","Arsip Bukti",n+" dokumen"),"application/zip");
       }else if(mode==="satu"){
         if(docs.length)simpan(await BuktiPdf.buatSatu(docs[0],sig),String(docs[0].doc).replace(/[\\\/:*?"<>|\s]+/g,"-")+".pdf","application/pdf");
         else{var h1=await BuktiPdf.buatSuratJalan([docsT[0]]);(h1.dilewati||[]).forEach(function(x){lewat.push(x);});if(!h1.bytes){toast0("Tidak ada halaman yang bisa dibuat. "+(lewat[0]||""),true);return;}simpan(h1.bytes,namaSatu(docsT[0])+".pdf","application/pdf");}
@@ -137,8 +137,8 @@ var ARB=(function(){
         if(docs.length)parts.push(await BuktiPdf.buatGabungan(docs,sig,function(i,n2){btn.textContent="Membuat PDF "+i+"/"+n2+"...";}));
         if(docsT.length){var h2=await BuktiPdf.buatSuratJalan(docsT,function(i,n2){btn.textContent="Membuat surat jalan "+i+"/"+n2+"...";});(h2.dilewati||[]).forEach(function(x){lewat.push(x);});if(h2.bytes)parts.push(h2.bytes);}
         if(!parts.length){toast0("Tidak ada halaman yang bisa dibuat. "+(lewat[0]||""),true);return;}
-        var byt=parts.length>1?await gabungBytes(parts):parts[0],nm="arsip-bukti_"+stamp;
-        if(!docs.length&&window.paNamaGabungan){nm=paNamaGabungan(docsT,stamp);if(/^bukti_accurate_/.test(nm))nm="suratjalan_penerimaan_"+stamp;}
+        var byt=parts.length>1?await gabungBytes(parts):parts[0],nm=NB.buat("","Arsip Bukti",n+" dokumen");
+        if(!docs.length&&window.paNamaGabungan){nm=paNamaGabungan(docsT,stamp);if(/^Bukti Accurate - /.test(nm))nm=NB.buat("","Surat Jalan Penerimaan",docsT.length+" penerimaan");}
         simpan(byt,nm+".pdf","application/pdf");
       }
       toast0(n+" dokumen diunduh."+(lewat.length?" Dilewati "+lewat.length+": "+lewat.slice(0,2).join("; "):""));

@@ -133,7 +133,7 @@ var LPR=(function(){
     add("Ringkasan Mutasi",[["Jenis","Jumlah transaksi","Qty masuk","Qty keluar","Nilai bersih"]].concat(d.ringMut),[26,16,12,12,16]);
     add("Mutasi",[["Waktu","Kode","Barang","Jenis","Sumber","Qty (+/-)","Saldo sumber","Referensi","Departemen","Proyek","Keterangan","Oleh","Harga"]].concat(d.mutasi),[16,14,34,14,10,10,12,18,14,22,30,12,12]);
     add("Stok",[["Kode","Barang","Satuan","Bekas","Moka","Accurate","Total","Harga","Nilai (Moka+Accurate)"]].concat(d.stok),[14,36,8,9,9,10,9,12,16]);
-    XLSX.writeFile(wb,nama||("laporan_gudang_"+(info.sampai||"")+".xlsx"));return true;
+    XLSX.writeFile(wb,nama||NB.buat("xlsx","Laporan Gudang",info.sampai));return true;
   }
   return {render:render,excel:excel,esc:esc,rp:rp,nf:nf,tgl:tgl,juta:juta,tbl:tbl,injectCss:injectCss};
 })();

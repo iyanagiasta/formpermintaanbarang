@@ -34,7 +34,7 @@ h2{font-size:15px;margin:16px 0 6px}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="tema.js"></script>
+<script src="nama-berkas.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -84,7 +84,7 @@ async function susunPdf(){
 async function unduh(){
   if(!window.PDFLib||!window.PengajuanPdf){toast("Pustaka PDF belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
   if(BUSY)return;BUSY=true;var b=document.getElementById("pdf"),inf=document.getElementById("pinfo");b.disabled=true;inf.textContent="Menyusun PDF dan lampiran...";
-  try{var bytes=await susunPdf(),a=document.createElement("a");a.href=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));a.download="pembelian-"+String(D.meta.nomor).replace(/[^\w-]+/g,"-")+".pdf";document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);inf.textContent="";}
+  try{var bytes=await susunPdf(),a=document.createElement("a");a.href=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));a.download=NB.buat("pdf","Pengajuan Pembelian "+(D.meta.jenis||""),D.meta.nomor,D.meta.perihal);document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);inf.textContent="";}
   catch(e){toast("Gagal membuat PDF: "+(e&&e.message?e.message:"kesalahan"),true);inf.textContent="";}
   BUSY=false;b.disabled=false;
 }

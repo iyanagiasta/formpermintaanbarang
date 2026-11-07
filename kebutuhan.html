@@ -47,7 +47,7 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="tema.js"></script>
+<script src="nama-berkas.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -209,7 +209,7 @@ function unduhExcel(){
   r.gabungan.rows.forEach(function(x){gab.push(baris(x).concat(x.perProyek));});
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(gab),"Gabungan");
   r.proyek.forEach(function(p,i){var a=[head()];p.rows.forEach(function(x){a.push(baris(x));});XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),String(i+1)+" "+p.nama.replace(/[\[\]:*?\/\\]/g," ").slice(0,26));});
-  XLSX.writeFile(wb,"kebutuhan-proyek-"+new Date().toISOString().slice(0,10)+".xlsx");
+  XLSX.writeFile(wb,NB.buat("xlsx","Cek Kebutuhan Proyek",(r.proyek.length===1&&r.proyek[0].ppbj)?"PPBJ "+r.proyek[0].ppbj:""));
 }
 
 /* ---------- pengajuan: PDF bergaya Bukti Pengambilan + lampiran digabung + ajukan lewat email ---------- */
@@ -288,7 +288,7 @@ async function buatDokumen(ajukan){
     } else {
       inf.textContent="Menyusun PDF...";
       var bytes=await PengajuanPdf.buatPdf({data:data,ttd:[{nama:PGJ.pengaju},{},{},{},{}],status:"",lampiranNama:ATT.map(function(a){return a.file.name;}),lampiranBytes:bundle});
-      var blob=new Blob([bytes],{type:"application/pdf"}),nm="pengajuan-kebutuhan-"+(HAS.proyek.length===1&&HAS.proyek[0].ppbj?String(HAS.proyek[0].ppbj).replace(/[^\w-]+/g,"_")+"-":"")+PGJ.tgl+".pdf",a2=document.createElement("a");
+      var blob=new Blob([bytes],{type:"application/pdf"}),nm=NB.buat("pdf","Draf Pengajuan Kebutuhan Proyek",(HAS.proyek.length===1&&HAS.proyek[0].ppbj?"PPBJ "+HAS.proyek[0].ppbj:""),PGJ.pengaju),a2=document.createElement("a");
       a2.href=URL.createObjectURL(blob);a2.download=nm;document.body.appendChild(a2);a2.click();setTimeout(function(){URL.revokeObjectURL(a2.href);a2.remove();},1500);
       inf.textContent="";toast("PDF siap ("+ukuranTxt(blob.size)+"). Ini versi draf tanpa tanda tangan; untuk persetujuan digital pakai Ajukan lewat email.");
     }

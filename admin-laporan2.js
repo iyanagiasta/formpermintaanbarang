@@ -59,7 +59,7 @@ var LX=(function(){
     Array.prototype.forEach.call(pane().querySelectorAll("[data-lt]"),function(b){b.onclick=function(){S.tab=b.getAttribute("data-lt");pusat();};});
     Array.prototype.forEach.call(pane().querySelectorAll("[data-lj]"),function(b){b.onclick=function(){S.jenis=b.getAttribute("data-lj");pusat();};});
     Array.prototype.forEach.call(pane().querySelectorAll("tr.dd"),function(tr){tr.onclick=function(){rinci(S.tab,L[+tr.getAttribute("data-ri")]);};});
-    $("lxxl").onclick=function(){xlsx("laporan_pintar_"+S.dari+"_sd_"+S.sampai+".xlsx",[["Ringkasan",[["Laporan Pemakaian Barang"],["Periode",tgl(S.dari)+" s.d. "+tgl(S.sampai)],[r.narasi],[],["Nilai",T.nilai],["Baris",T.baris],["Periode lalu (nilai)",B.nilai.lalu],["Perubahan %",B.nilai.persen==null?"":B.nilai.persen]]]].concat(TABS.map(function(x){return [x[1],[[x[1],"Baris","Qty","Nilai","Periode lalu","Perubahan %"]].concat(((r.rekap||{})[x[0]]||[]).map(function(y){return [y.label||y.k,y.baris,y.qty,y.nilai,y.lalu,y.persen==null?"":y.persen];}))];})));};
+    $("lxxl").onclick=function(){xlsx(NB.buat("xlsx","Laporan Pintar",NB.periode(S.dari,S.sampai)),[["Ringkasan",[["Laporan Pemakaian Barang"],["Periode",tgl(S.dari)+" s.d. "+tgl(S.sampai)],[r.narasi],[],["Nilai",T.nilai],["Baris",T.baris],["Periode lalu (nilai)",B.nilai.lalu],["Perubahan %",B.nilai.persen==null?"":B.nilai.persen]]]].concat(TABS.map(function(x){return [x[1],[[x[1],"Baris","Qty","Nilai","Periode lalu","Perubahan %"]].concat(((r.rekap||{})[x[0]]||[]).map(function(y){return [y.label||y.k,y.baris,y.qty,y.nilai,y.lalu,y.persen==null?"":y.persen];}))];})));};
     if($("lxgoacc"))$("lxgoacc").onclick=function(){goTab("accurate");};
   }
   function kartuAcc(pa){

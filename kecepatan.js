@@ -51,7 +51,7 @@ var KPF=(function(){
       var wb=XLSX.utils.book_new(),t=new Date(),p=function(n){return String(n).padStart(2,"0");},cap=t.getFullYear()+p(t.getMonth()+1)+p(t.getDate());
       if(jenis==="detail"){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([r.headDetail].concat(r.detail)),"Rincian");}
       else{XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([r.headRingkas].concat(r.ringkas)),"Ringkasan Harian");XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([r.headUkuran].concat(r.ukuran)),"Ukuran Sheet");}
-      XLSX.writeFile(wb,"kecepatan_"+jenis+"_"+cap+".xlsx");
+      XLSX.writeFile(wb,NB.buat("xlsx","Kecepatan Aplikasi",jenis==="detail"?"Rincian":"Ringkasan"));
       toast0((jenis==="detail"?r.detail.length+" baris rincian":r.ringkas.length+" baris ringkasan")+" diunduh."+(r.terpotong&&jenis==="detail"?" (dipotong 30.000 terbaru)":""));
     }catch(e){toast0("Gagal: "+(e&&e.message||e),true);}
     finally{btn.disabled=false;btn.textContent=tek;}

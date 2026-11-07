@@ -63,7 +63,7 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="cari-pintar.js"></script><script src="tema.js"></script><script src="menu-admin.js"></script>
+<script src="cari-pintar.js"></script><script src="nama-berkas.js"></script><script src="tema.js"></script><script src="menu-admin.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -417,7 +417,7 @@ async function cetak(uji){
   var pw2=peringatan();if(pw2.length)toast("Perhatian: "+pw2[0],true);
   info.textContent="Menyusun PDF...";
   try{var by=await buatPdf(PILIH,S,uji),bl=new Blob([by],{type:"application/pdf"}),u=URL.createObjectURL(bl);window.open(u,"_blank");
-    var a=document.createElement("a");a.href=u;a.download=(uji?"uji-label-":(S.model==='polos'?"label-polos-":"label-barcode-"))+new Date().toISOString().slice(0,10)+".pdf";document.body.appendChild(a);a.click();setTimeout(function(){a.remove();},1500);
+    var a=document.createElement("a");a.href=u;a.download=NB.buat("pdf",uji?"Uji Label":(S.model==='polos'?"Label Polos":"Label Barcode"));document.body.appendChild(a);a.click();setTimeout(function(){a.remove();},1500);
     info.textContent=uji?"PDF uji siap.":"PDF siap: "+totalLabel()+" label.";if(pesan.length)toast("Perhatian: "+pesan.slice(0,3).join("; "),true);}
   catch(e){info.textContent="";toast("Gagal membuat PDF: "+(e&&e.message?e.message:"kesalahan"),true);}
 }
@@ -563,7 +563,7 @@ async function cetakRak(uji){
   if(!uji&&!PILRAK.length){toast("Pilih rak dulu.",true);return;}
   var info=document.getElementById("rinfo");info.textContent="Menyusun PDF...";
   try{var by=await buatPdfRak(PILRAK,RS,uji),u=URL.createObjectURL(new Blob([by],{type:"application/pdf"}));window.open(u,"_blank");
-    var a=document.createElement("a");a.href=u;a.download=(uji?"uji-label-rak-":"label-rak-")+new Date().toISOString().slice(0,10)+".pdf";document.body.appendChild(a);a.click();setTimeout(function(){a.remove();},1500);
+    var a=document.createElement("a");a.href=u;a.download=NB.buat("pdf",uji?"Uji Label Rak":"Label Rak");document.body.appendChild(a);a.click();setTimeout(function(){a.remove();},1500);
     info.textContent=uji?"PDF uji siap.":"PDF siap: "+PILRAK.reduce(function(x,y){return x+y.n;},0)+" label.";}
   catch(e){info.textContent="";toast("Gagal membuat PDF: "+(e&&e.message?e.message:"kesalahan"),true);}
 }

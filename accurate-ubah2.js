@@ -160,7 +160,7 @@ var PAU2=(function(){
     try{var r=await api({action:"adminUbahRiwayat"});if(!r.ok){toast(r.msg||"Gagal.",true);return;}
       var wb=XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([["ID Ubah","Waktu","Oleh","Jenis","No Dokumen","Bagian","Perubahan","Alasan","Status","Diurungkan Oleh","Diurungkan Waktu","Status Accurate Sebelumnya"]].concat((r.rows||[]).map(function(x){return [x.id,x.waktu,x.oleh,x.jenis,x.doc,x.bagian,x.ring,x.alasan,x.status,x.diurungkanOleh,x.diurungkanWaktu,x.paSeb];}))),"Riwayat Perubahan");
-      XLSX.writeFile(wb,"riwayat_perubahan_dokumen_"+new Date().toISOString().slice(0,10)+".xlsx");
+      XLSX.writeFile(wb,NB.buat("xlsx","Riwayat Perubahan Dokumen"));
       toast("Excel siap: "+(r.rows||[]).length+" perubahan"+(r.total>(r.rows||[]).length?" (2.000 terbaru dari "+r.total+")":"")+".");
     }catch(e){toast("Gagal terhubung ke server.",true);}finally{b.disabled=false;}
   }

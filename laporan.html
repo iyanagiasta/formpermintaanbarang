@@ -24,7 +24,7 @@ button.gh{background:transparent;color:var(--navy);border:1px solid var(--line)}
 @media print{.top,.bar{display:none!important}.card{border:0;padding:0}}
 </style>
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="tema.js"></script>
+<script src="nama-berkas.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -44,7 +44,7 @@ var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1
     if(!r.ok){el.innerHTML='<div class="msg err">'+LPR.esc(r.msg||"Tidak bisa dibuka.")+'</div>';return;}
     LPR.render(el,r.data,r.info);document.title=(r.info.jenis==="Live"?"Kondisi Gudang":r.info.jenis==="Bulanan"?"Laporan Gudang "+r.info.periode:"Laporan Gudang")+" - SCTK";if(r.info.jenis==="Live")document.querySelector(".top h1").textContent="KONDISI GUDANG";
     document.getElementById("bar").style.display="flex";document.getElementById("bk").textContent="Tautan berlaku sampai "+r.berlaku;
-    document.getElementById("bx").onclick=function(){if(!LPR.excel(r.data,r.info,(r.info.jenis==="Live"?"kondisi_gudang_"+r.info.sampai:"laporan_gudang_"+r.info.dari+"_"+r.info.sampai)+".xlsx"))alert("Pembaca Excel belum termuat. Periksa internet lalu muat ulang.");};
+    document.getElementById("bx").onclick=function(){if(!LPR.excel(r.data,r.info,(r.info.jenis==="Live"?NB.buat("xlsx","Kondisi Gudang",r.info.sampai):NB.buat("xlsx","Laporan Gudang",NB.periode(r.info.dari,r.info.sampai)))))alert("Pembaca Excel belum termuat. Periksa internet lalu muat ulang.");};
     document.getElementById("bp").onclick=function(){window.print();};
   }catch(e){el.innerHTML='<div class="msg err">Gagal memuat. Periksa koneksi lalu muat ulang halaman.</div>';}
 })();

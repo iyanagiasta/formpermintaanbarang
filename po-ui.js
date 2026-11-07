@@ -198,7 +198,7 @@
     try {
       var r = await api({action: 'poFile', no: no, fileId: fid}); if (!r.ok) { toast(r.msg || 'Gagal.', true); btn.disabled = false; return; }
       var bin = atob(r.data), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
-      var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([u], {type: r.mime || 'application/pdf'})); a.download = r.nama || 'po.pdf'; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+      var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([u], {type: r.mime || 'application/pdf'})); a.download = (function () { var asli = String(r.nama || 'po.pdf'), em = /\.([A-Za-z0-9]{2,5})$/.exec(asli); return NB.buat(em ? em[1] : 'pdf', 'PO ' + no, asli.replace(/^\d+-/, '').replace(/\.[A-Za-z0-9]{2,5}$/, '')); })(); document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
     } catch (e) { toast('Gagal mengunduh.', true); }
     btn.disabled = false;
   }
@@ -236,7 +236,7 @@
   function gambarUmo() {
     var l = UM.data.filter(function (x) { return UM.f === 'semua' || (UM.f === 'ppbj' && x.menungguPpbj) || (UM.f === 'real' && x.status === 'Disetujui' && !x.selesai) || (UM.f === 'ttd' && x.selesai && x.tanda.status !== 'Disetujui'); });
     var nP = UM.data.filter(function (x) { return x.menungguPpbj; }).length;
-    app.innerHTML = U.nav('umo') + '<div class="card"><h3 style="margin-top:0">UMO <span class="tag ' + (nP ? 'bad' : 'ok') + '">' + nP + ' menunggu PPBJ</span></h3><div class="note">UMO harus memiliki PPBJ. Untuk UMO tanpa PPBJ, kirim pesan pengingat ke pemohon lewat WhatsApp (disalin atau dibuka langsung), lalu isi No PPBJ-nya di sini.</div>' +
+    app.innerHTML = U.nav('umo') + '<div class="card"><h3 style="margin-top:0">UMO <span class="tag ' + (nP ? 'bad' : 'ok') + '">' + nP + ' menunggu PPBJ</span></h3><div class="note">UMO harus memiliki PPBJ. Untuk UMO tanpa PPBJ, kirim pesan pengingat ke pemohon (tombol Salin pesan, lalu tempel di aplikasi pesan Anda), lalu isi No PPBJ-nya di sini.</div>' +
       '<div class="fr"><select id="umf"><option value="semua">Semua UMO</option><option value="ppbj">Menunggu PPBJ</option><option value="real">Realisasi belum ditutup</option><option value="ttd">Menunggu tanda tangan realisasi</option></select></div>' +
       (l.length ? '<div class="tw"><table><thead><tr><th>Nomor / Pengaju</th><th>Perihal</th><th>PPBJ</th><th class="nm">Uang muka</th><th class="nm">Aktual</th><th>Status</th><th></th></tr></thead><tbody>' + l.map(function (x) { return '<tr><td><b>' + esc(x.nomor) + '</b><small>' + esc(x.pengaju) + (x.dept ? ' · ' + esc(x.dept) : '') + '</small></td><td>' + esc(x.perihal) + '</td><td>' + (x.menungguPpbj ? '<span class="tag bad">Menunggu PPBJ · ' + x.hari + ' hari</span>' : esc(x.ppbj)) + '</td><td class="nm">' + rp(x.total) + '</td><td class="nm">' + rp(x.realisasi) + '</td><td><span class="tag ' + (x.status === 'Disetujui' ? 'n' : 'w') + '">' + esc(x.status) + '</span><small>Realisasi: ' + esc(x.stReal) + '</small>' + (x.selesai ? '<small>Tanda tangan: ' + esc(x.tanda.status) + '</small>' : '') + '</td><td>' + (x.menungguPpbj ? '<button class="gh" data-m="' + esc(x.id) + '">Pesan ke pemohon</button> <button class="gh" data-pp="' + esc(x.id) + '">Isi PPBJ</button> ' : '') + (x.status === 'Disetujui' ? '<button class="gh" data-r="' + esc(x.id) + '">Realisasi</button>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="msg">Tidak ada UMO.</div>') + '</div><div id="umod"></div>';
     U.pasangNav(); $('umf').value = UM.f; $('umf').onchange = function () { UM.f = this.value; gambarUmo(); };
@@ -249,7 +249,7 @@
   }
   function salin(id) { var t = $(id); t.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* abaikan */ } try { if (navigator.clipboard) navigator.clipboard.writeText(t.value); ok = true; } catch (e2) { /* abaikan */ } toast(ok ? 'Pesan disalin.' : 'Blok teks lalu salin manual.', !ok); }
   function pesanUmo(x) {
-    $('umod').innerHTML = '<div class="card blk"><h3 style="margin-top:0">Pesan ke pemohon (' + esc(x.nomor) + ')</h3><textarea id="umt" style="width:100%;min-height:150px;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit">' + esc(x.pesan) + '</textarea><div class="fr"><button class="sv" id="umc">Salin pesan</button><a href="' + esc(x.wa) + '" target="_blank" rel="noopener"><button class="gh" type="button">Buka WhatsApp</button></a></div></div>';
+    $('umod').innerHTML = '<div class="card blk"><h3 style="margin-top:0">Pesan ke pemohon (' + esc(x.nomor) + ')</h3><textarea id="umt" style="width:100%;min-height:150px;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit">' + esc(x.pesan) + '</textarea><div class="fr"><button class="sv" id="umc">Salin pesan</button></div></div>';
     $('umc').onclick = function () { salin('umt'); }; $('umod').scrollIntoView && $('umod').scrollIntoView({behavior: 'smooth', block: 'start'});
   }
   async function realisasi(id) {
@@ -263,8 +263,8 @@
       (dt.entries.filter(function (e) { return e.jenis === 'Realisasi'; }).length ? '<div class="tw"><table><thead><tr><th>Tanggal</th><th>Uraian</th><th>No Akun</th><th>No Bukti</th><th>Nota</th><th class="nm">Nilai</th><th></th></tr></thead><tbody>' + dt.entries.filter(function (e) { return e.jenis === 'Realisasi'; }).map(function (e) { return '<tr class="' + (e.status !== 'Aktif' ? 'can' : '') + '"><td>' + esc(tglId(e.tgl)) + '</td><td>' + esc(e.uraian) + (e.cat ? '<small>' + esc(e.cat) + '</small>' : '') + (e.status !== 'Aktif' ? '<small>Dibatalkan: ' + esc(e.batalAlasan) + '</small>' : '') + '</td><td>' + esc(e.akun || '-') + '</td><td>' + esc(e.bukti || '-') + '</td><td>' + (e.nota || []).map(function (f, i) { return '<a href="#" data-n="' + esc(e.id) + '|' + esc(f.id) + '|' + esc(f.nama) + '">foto ' + (i + 1) + '</a>'; }).join(' ') + '</td><td class="nm">' + rp(e.nilai) + '</td><td>' + (e.status === 'Aktif' && !tutup ? '<button class="gh" data-x="' + esc(e.id) + '">Batalkan</button>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Belum ada catatan realisasi.</div>') +
       (tutup ? '<div class="note">Realisasi sudah ditutup. Untuk mengubah, minta admin membuka kembali.</div>' : '<h3 style="margin:12px 0 4px">Tambah catatan realisasi</h3><div class="pgf"><div><label>Tanggal</label><input type="text" id="rtg" placeholder="YYYY-MM-DD" value="' + hariIni() + '"></div><div style="grid-column:span 2"><label>Uraian (apa yang dibelanjakan)</label><input type="text" id="rur"></div><div><label>Nilai</label><input type="text" inputmode="decimal" id="rni"></div><div><label>No Akun (isi manual)</label><input type="text" id="rak" placeholder="mis. 5132.005"></div><div><label>No Bukti / Nota</label><input type="text" id="rbu"></div><div style="grid-column:1/-1"><label>Catatan (wajib bila melebihi toleransi)</label><input type="text" id="rca"></div></div><div class="fr"><label class="gh" style="padding:9px 13px;border:1px solid var(--line);border-radius:8px;cursor:pointer">Foto nota<input type="file" id="rfo" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf" style="display:none"></label><span class="note" id="rfn"></span><button class="sv" id="rsv">Simpan catatan</button><button class="gh" id="rtp">Tutup realisasi</button></div>') +
       '<div class="fr"><button class="gh" id="rfm">Unduh Form Realisasi (Excel)</button><button class="gh" id="rkk">Unduh Laporan Kas Kecil (Excel)</button></div></div>';
-    $('rfm').onclick = function () { unduhAoa(U.formAoa(d), 'Form Realisasi ' + d.nomor.replace(/[\\/]/g, '-') + '.xlsx', 'Form Realisasi'); };
-    $('rkk').onclick = function () { unduhAoa(U.kasAoa(d), 'Kas Kecil ' + d.nomor.replace(/[\\/]/g, '-') + '.xlsx', 'Kas Kecil'); };
+    $('rfm').onclick = function () { unduhAoa(U.formAoa(d), NB.buat('xlsx', 'Form Realisasi UMO', d.nomor, d.pengaju), 'Form Realisasi'); };
+    $('rkk').onclick = function () { unduhAoa(U.kasAoa(d), NB.buat('xlsx', 'Laporan Kas Kecil', d.nomor, d.pengaju), 'Kas Kecil'); };
     if ($('rmin')) $('rmin').onclick = async function () { this.disabled = true; try { var r = await api({action: 'rlMinta', id: id}); toast(r.msg || (r.ok ? 'Terkirim.' : 'Gagal.'), !r.ok); } catch (e) { toast('Gagal terhubung ke server.', true); } this.disabled = false; };
     Array.prototype.forEach.call(box.querySelectorAll('a[data-n]'), function (a) { a.onclick = async function (ev) { ev.preventDefault(); var p = a.getAttribute('data-n').split('|');
       try { var r = await api({action: 'rlNota', rid: p[0], fileId: p[1]}); if (!r.ok) { toast(r.msg || 'Gagal.', true); return; } var bin = atob(r.data), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); var l = document.createElement('a'); l.href = URL.createObjectURL(new Blob([u], {type: r.mime})); l.download = r.nama || 'nota'; document.body.appendChild(l); l.click(); setTimeout(function () { URL.revokeObjectURL(l.href); l.remove(); }, 4000); } catch (e) { toast('Gagal mengunduh.', true); } }; });
@@ -305,7 +305,7 @@
   async function pesanKlaim(id) {
     var box = $('klpesan'); box.innerHTML = '<div class="msg">Menyusun pesan...</div>';
     try { var r = await api({action: 'klaimPesan', id: id}); if (!r.ok) { toast(r.msg || 'Gagal.', true); box.innerHTML = ''; return; }
-      box.innerHTML = '<div class="card blk"><h3 style="margin-top:0">Pesan ke vendor (' + r.jumlah + ' barang)</h3><textarea id="klt" style="width:100%;min-height:170px;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit">' + esc(r.teks) + '</textarea><div class="fr"><button class="sv" id="klc">Salin pesan</button>' + (r.wa ? '<a href="' + esc(r.wa) + '" target="_blank" rel="noopener"><button class="gh" type="button">Buka WhatsApp</button></a>' : '<span class="note">Nomor telepon vendor belum ada di tab Vendor, jadi tautan WhatsApp tidak tersedia.</span>') + '</div></div>';
+      box.innerHTML = '<div class="card blk"><h3 style="margin-top:0">Pesan ke vendor (' + r.jumlah + ' barang)</h3><textarea id="klt" style="width:100%;min-height:170px;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit">' + esc(r.teks) + '</textarea><div class="fr"><button class="sv" id="klc">Salin pesan</button></div></div>';
       $('klc').onclick = function () { var t = $('klt'); t.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* abaikan */ } try { if (navigator.clipboard) navigator.clipboard.writeText(t.value); ok = true; } catch (e) { /* abaikan */ } toast(ok ? 'Pesan disalin.' : 'Blok teks lalu salin manual.', !ok); };
       box.scrollIntoView && box.scrollIntoView({behavior: 'smooth', block: 'start'});
     } catch (e) { toast('Gagal terhubung ke server.', true); }
@@ -323,7 +323,7 @@
     if (!ppbj) { toast('Isi No PPBJ.', true); return; } var h = $('jh'); h.innerHTML = '<div class="msg">Memuat...</div>';
     try { var r = await api({action: 'poPerjalanan', ppbj: ppbj}); if (!r.ok) { h.innerHTML = '<div class="card err">' + esc(r.msg || 'Gagal.') + '</div>'; return; }
       var rg = r.ringkas;
-      h.innerHTML = '<div class="card blk"><b>' + esc(r.ppbj) + '</b> · ' + esc(r.proyek) + '<div class="sum"><div><b>' + rg.barang + '</b><span>Barang</span></div><div><b>' + rg.belumPo + '</b><span>Belum dibuatkan PO</span></div><div><b>' + rg.lengkap + '</b><span>Sudah datang lengkap</span></div><div><b>' + r.po.length + '</b><span>PO</span></div></div>' +
+      h.innerHTML = (r.tanpaPo ? '<div class="note"><span class="tag n">Tidak perlu PO</span> ' + esc(r.tanpaPo.alasan) + ' <small>Ditandai ' + esc(r.tanpaPo.oleh) + (r.tanpaPo.waktu ? ' · ' + esc(r.tanpaPo.waktu) : '') + '</small></div>' : '') + '<div class="card blk"><b>' + esc(r.ppbj) + '</b> · ' + esc(r.proyek) + '<div class="sum"><div><b>' + rg.barang + '</b><span>Barang</span></div><div><b>' + rg.belumPo + '</b><span>Belum dibuatkan PO</span></div><div><b>' + rg.lengkap + '</b><span>Sudah datang lengkap</span></div><div><b>' + r.po.length + '</b><span>PO</span></div></div>' +
         '<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">RAB</th><th class="nm">Dipesan</th><th class="nm">Datang</th><th class="nm">Sisa</th><th>Status</th><th>PO</th></tr></thead><tbody>' + r.rows.map(function (x) { return '<tr><td>' + esc(x.nama) + '<small>' + esc(x.kode || 'tanpa kode') + '</small></td><td class="nm">' + (x.qtyRab ? esc(String(x.qtyRab).replace('.', ',')) : '-') + '</td><td class="nm">' + esc(String(x.qPo).replace('.', ',')) + '</td><td class="nm">' + esc(String(x.qTerima).replace('.', ',')) + '</td><td class="nm">' + esc(String(x.sisa).replace('.', ',')) + '</td><td><span class="tag ' + (x.status === 'Sudah datang lengkap' ? 'ok' : x.status === 'Belum dibuatkan PO' ? 'bad' : 'w') + '">' + esc(x.status) + '</span></td><td>' + x.po.map(function (p) { return esc(p.no) + '<small>' + esc(p.vendor) + '</small>'; }).join('') + '</td></tr>'; }).join('') + '</tbody></table></div></div>' +
         (r.pesan ? '<div class="card"><b>Pesan untuk pemohon (barang yang sudah tiba)</b><textarea id="jt" style="width:100%;min-height:150px;margin-top:6px;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit">' + esc(r.pesan) + '</textarea><div class="fr"><button class="sv" id="jc">Salin pesan</button></div></div>' : '<div class="note">Belum ada barang yang tiba, jadi belum ada pesan untuk pemohon.</div>');
       h.insertAdjacentHTML('afterbegin', '<div class="fr"><button class="gh" id="jlk">Tautan pelacakan untuk pemohon</button></div>'); $('jlk').onclick = function () { lacakDialog(ppbj); }; h.insertAdjacentHTML('afterbegin', '<div class="fr"><button class="gh" id="jrw">Riwayat lengkap PPBJ</button></div>'); $('jrw').onclick = function () { riwayat('ppbj', ppbj); };
@@ -393,7 +393,7 @@
     r.grup.forEach(function (g) {
       if (!g.n) return;
       h += '<div class="card"><h3 style="margin-top:0">' + esc(g.judul) + ' <span class="tag w">' + g.n + '</span> <button class="gh" data-ab="' + esc(g.tab) + '">Buka</button></h3>' + (g.info ? '<div class="note">' + esc(g.info) + '</div>' : '') +
-        '<div class="tw"><table><tbody>' + g.items.map(function (x) { return '<tr><td><b>' + esc(x.judul) + '</b>' + (x.tingkat ? ' <span class="tag ' + (x.tingkat === 'merah' ? 'bad' : 'w') + '">' + (x.tingkat === 'merah' ? 'terlambat' : 'perlu dipantau') + '</span>' : '') + '<div class="note">' + esc(x.ket || '') + '</div></td><td class="nm">' + (x.hari ? x.hari + ' hari' : '') + '</td><td>' + (x.wa ? '<a class="gh" target="_blank" rel="noopener" href="' + esc(x.wa) + '">WhatsApp vendor</a>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' + (g.n > g.items.length ? '<div class="note">Menampilkan ' + g.items.length + ' dari ' + g.n + '.</div>' : '') + '</div>';
+        '<div class="tw"><table><tbody>' + g.items.map(function (x) { return '<tr><td><b>' + esc(x.judul) + '</b>' + (x.tingkat ? ' <span class="tag ' + (x.tingkat === 'merah' ? 'bad' : 'w') + '">' + (x.tingkat === 'merah' ? 'terlambat' : 'perlu dipantau') + '</span>' : '') + '<div class="note">' + esc(x.ket || '') + '</div></td><td class="nm">' + (x.hari ? x.hari + ' hari' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' + (g.n > g.items.length ? '<div class="note">Menampilkan ' + g.items.length + ' dari ' + g.n + '.</div>' : '') + '</div>';
     });
     if (!r.grup.some(function (g) { return g.n; })) h += '<div class="card"><div class="note">Tidak ada pekerjaan tertunda. Semua beres.</div></div>';
     app.innerHTML = U.nav('antrean') + h; U.pasangNav();
@@ -424,7 +424,7 @@
         (r.data.length ? '<div class="tw"><table><thead><tr><th>No PO</th><th>Tanggal</th><th>Vendor</th><th>PPBJ</th><th>Status</th><th class="nm">Total</th></tr></thead><tbody>' + r.data.slice(0, 200).map(function (m) { return '<tr><td>' + esc(m.no) + '</td><td>' + tgl(m.tgl) + '</td><td>' + esc(m.vendor) + '</td><td>' + esc(m.ppbj) + '</td><td>' + esc(m.status) + '</td><td class="nm">' + angka(m.total) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Tidak ada PO yang cocok.</div>') + '</div>';
     }
     $('rkc').onclick = tarik;
-    $('rkx').onclick = async function () { await tarik(); if (RK.r && RK.r.data.length) unduhAoa(U.rekapAoa(RK.r, F.detail), 'Rekap PO' + (F.detail ? ' per barang' : '') + '.xlsx', 'Rekap PO'); else toast('Tidak ada data untuk diunduh.', true); };
+    $('rkx').onclick = async function () { await tarik(); if (RK.r && RK.r.data.length) unduhAoa(U.rekapAoa(RK.r, F.detail), NB.buat('xlsx', 'Rekap PO', F.detail ? 'per barang' : ''), 'Rekap PO'); else toast('Tidak ada data untuk diunduh.', true); };
     if (RK.r) tampil();
   }
 
@@ -519,7 +519,7 @@
       '<div class="tw"><table><thead><tr><th>No</th><th>Uraian</th><th class="nm">Qty</th><th class="nm">Harga rencana</th><th class="nm">Harga aktual</th><th class="nm">Selisih</th><th>PO</th></tr></thead><tbody>' + r.rows.map(function (x) { return '<tr><td>' + x.no + '</td><td>' + esc(x.uraian) + '<small>' + esc(x.satuan) + '</small></td><td class="nm">' + String(x.qty).replace('.', ',') + '</td><td class="nm">' + angka(x.harga) + '</td><td class="nm">' + (x.aktualHarga == null ? '-' : angka(x.aktualHarga)) + '</td><td class="nm">' + (x.selisih == null ? '-' : angka(x.selisih) + ' (' + String(x.persen).replace('.', ',') + '%)') + '</td><td>' + esc(x.po || '') + '</td></tr>'; }).join('') + '</tbody></table></div>' +
       '<div class="fr"><button class="gh" id="bqx">Unduh Excel</button><button class="gh" id="bqk">Kembali</button></div></div>';
     U.pasangNav(); $('bqk').onclick = function () { boq(''); };
-    $('bqx').onclick = function () { unduhAoa(U.boqAoa(r), 'BOQ ' + r.proyek.replace(/[\\/]/g, '-') + '.xlsx', 'BOQ'); };
+    $('bqx').onclick = function () { unduhAoa(U.boqAoa(r), NB.buat('xlsx', 'BOQ', r.proyek), 'BOQ'); };
   }
 
   /* ---------- Alat umum: cari di tabel, Excel, PDF (Tambahan 57) ---------- */
@@ -543,7 +543,7 @@
       var inp = bar.querySelector('.poq'); if (inp) inp.oninput = function () { var t = normT(inp.value).split(' ').filter(Boolean); Array.prototype.forEach.call(tb.querySelectorAll('tbody tr'), function (tr) { var tx = normT(tr.textContent); tr.style.display = t.every(function (k) { return tx.indexOf(k) >= 0; }) ? '' : 'none'; }); };
       bar.onclick = function (e) {
         var j = e.target && e.target.getAttribute && e.target.getAttribute('data-ex'); if (!j) return; var d = U.tabelAoa(tb); if (!d.rows.length) { toast('Tidak ada baris untuk diunduh.', true); return; }
-        var nama = judul.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') + '-' + new Date().toISOString().slice(0, 10);
+        var nama = NB.buat('', judul);
         if (j === 'x') unduhAoa([d.head].concat(d.rows), nama + '.xlsx', judul.slice(0, 28));
         else U.unduhPdf(judul, 'Dicetak ' + new Date().toLocaleDateString('id-ID') + (inp && inp.value ? ' · saringan: ' + inp.value : ''), [{judul: '', kolom: d.head, baris: d.rows}], nama + '.pdf');
       };
@@ -588,27 +588,40 @@
   }
   function lompat(tab, ref) { if (tab === 'daftar') { daftar().then(function () { detail(ref); }); } else if (tab === 'jalan') jalan(ref); else U.tampil(tab); }
   /* ---------- Papan: mengapa belum datang ---------- */
-  var PN = {f: 'macet', data: []};
+  var PN = {f: 'macet', data: [], admin: false};
   async function papan() {
     app.innerHTML = U.nav('papan') + '<div class="msg">Memuat...</div>'; U.pasangNav();
-    try { var r = await api({action: 'papanList'}); if (!r.ok) { toast(r.msg || 'Gagal.', true); return; } PN.data = r.data || []; } catch (e) { toast('Gagal terhubung ke server.', true); return; }
+    try { var r = await api({action: 'papanList'}); if (!r.ok) { toast(r.msg || 'Gagal.', true); return; } PN.data = r.data || []; PN.admin = !!r.admin; } catch (e) { toast('Gagal terhubung ke server.', true); return; }
     gambarPapan();
   }
   function gambarPapan() {
-    var l = PN.data.filter(function (x) { return PN.f === 'semua' || x.kode !== 'lengkap'; }), mac = PN.data.filter(function (x) { return x.kode !== 'lengkap' && x.tingkat; }).length;
+    var l = PN.data.filter(function (x) { return PN.f === 'semua' || (x.kode !== 'lengkap' && x.kode !== 'tanpapo'); }), mac = PN.data.filter(function (x) { return x.kode !== 'lengkap' && x.kode !== 'tanpapo' && x.tingkat; }).length;
     app.innerHTML = U.nav('papan') + '<div class="card"><h3 style="margin-top:0">Mengapa belum datang <span class="tag ' + (mac ? 'bad' : 'ok') + '">' + mac + ' tersangkut</span></h3><div class="note">Satu baris per PPBJ dengan alasan utamanya, diurutkan dari yang paling mendesak. Terisi otomatis dari data PO, penerimaan, klaim, dan revisi.</div>' +
       '<div class="fr"><select id="pnf"><option value="macet">Yang belum lengkap</option><option value="semua">Semua PPBJ</option></select></div>' +
-      (l.length ? '<div class="tw"><table><thead><tr><th>PPBJ / Proyek</th><th>Alasan</th><th class="nm">Hari</th><th></th></tr></thead><tbody>' + l.map(function (x) { return '<tr><td><b>' + esc(x.ppbj) + '</b><small>' + esc(x.proyek) + (x.dept ? ' · ' + esc(x.dept) : '') + '</small></td><td><span class="tag ' + (x.tingkat === 'merah' ? 'bad' : x.tingkat === 'kuning' ? 'w' : x.kode === 'lengkap' ? 'ok' : 'n') + '">' + esc(x.alasan) + '</span></td><td class="nm">' + (x.hari || '') + '</td><td><button class="gh" data-pj="' + esc(x.ppbj) + '">Perjalanan</button> <button class="gh" data-pl="' + esc(x.ppbj) + '">Tautan pemohon</button></td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Tidak ada PPBJ yang tersangkut.</div>') + '</div>';
+      (l.length ? '<div class="tw"><table><thead><tr><th>PPBJ / Proyek</th><th>Alasan</th><th class="nm">Hari</th><th></th></tr></thead><tbody>' + l.map(function (x) { return '<tr><td><b>' + esc(x.ppbj) + '</b><small>' + esc(x.proyek) + (x.dept ? ' · ' + esc(x.dept) : '') + '</small></td><td><span class="tag ' + (x.tingkat === 'merah' ? 'bad' : x.tingkat === 'kuning' ? 'w' : x.kode === 'lengkap' ? 'ok' : 'n') + '">' + esc(x.alasan) + '</span>' + (x.tpo ? '<small>Ditandai ' + esc(x.tpo.oleh) + (x.tpo.waktu ? ' · ' + esc(x.tpo.waktu) : '') + '</small>' : '') + '</td><td class="nm">' + (x.hari || '') + '</td><td><button class="gh" data-pj="' + esc(x.ppbj) + '">Perjalanan</button> <button class="gh" data-pl="' + esc(x.ppbj) + '">Tautan pemohon</button>' + (PN.admin && x.kode === 'belumpo' ? ' <button class="gh" data-tp="' + esc(x.ppbj) + '">Tidak perlu PO</button>' : '') + (PN.admin && x.kode === 'tanpapo' ? ' <button class="gh" data-tl="' + esc(x.ppbj) + '">Batalkan tanda</button>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Tidak ada PPBJ yang tersangkut.</div>') + '</div>';
     U.pasangNav(); $('pnf').value = PN.f; $('pnf').onchange = function () { PN.f = this.value; gambarPapan(); };
     Array.prototype.forEach.call(app.querySelectorAll('button[data-pj]'), function (b) { b.onclick = function () { jalan(b.getAttribute('data-pj')); }; });
     Array.prototype.forEach.call(app.querySelectorAll('button[data-pl]'), function (b) { b.onclick = function () { lacakDialog(b.getAttribute('data-pl')); }; });
+    Array.prototype.forEach.call(app.querySelectorAll('button[data-tp]'), function (b) { b.onclick = function () { tandaiTanpaPo(b.getAttribute('data-tp')); }; });
+    Array.prototype.forEach.call(app.querySelectorAll('button[data-tl]'), function (b) { b.onclick = function () { lepasTanpaPo(b.getAttribute('data-tl')); }; });
+  }
+  /** Admin utama: PPBJ yang memang tidak butuh PO (mis. barang dari stok). Alasan wajib; PO yang diunggah kemudian melepas tanda otomatis. */
+  async function tandaiTanpaPo(ppbj) {
+    var al = prompt('Alasan PPBJ ' + ppbj + ' tidak perlu PO (wajib):', ''); if (al === null) return; al = al.trim();
+    if (!al) { toast('Alasan wajib diisi.', true); return; }
+    if (!confirm('Tandai PPBJ ' + ppbj + ' sebagai "Tidak perlu PO"?\nAlasan: ' + al + '\n\nPPBJ keluar dari daftar belum lengkap, tetap tampil di Semua PPBJ. Bisa dibatalkan kapan saja.')) return;
+    try { var r = await api({action: 'tpoSet', ppbj: ppbj, alasan: al}); toast(r.msg || (r.ok ? 'Tersimpan.' : 'Gagal.'), !r.ok); if (r.ok) papan(); } catch (e) { toast('Gagal terhubung ke server.', true); }
+  }
+  async function lepasTanpaPo(ppbj) {
+    if (!confirm('Batalkan tanda "Tidak perlu PO" untuk PPBJ ' + ppbj + '? PPBJ kembali masuk daftar belum dibuatkan PO.')) return;
+    try { var r = await api({action: 'tpoLepas', ppbj: ppbj}); toast(r.msg || (r.ok ? 'Dibatalkan.' : 'Gagal.'), !r.ok); if (r.ok) papan(); } catch (e) { toast('Gagal terhubung ke server.', true); }
   }
   /** Tautan pelacakan baca-saja untuk pemohon: tanpa harga dan nama vendor, tanpa login. */
   async function lacakDialog(ppbj) {
     var r; try { r = await api({action: 'trackLink', ppbj: ppbj}); } catch (e) { toast('Gagal terhubung ke server.', true); return; } if (!r.ok) { toast(r.msg || 'Gagal.', true); return; }
     var u = new URL('lacak.html', location.href); u.search = ''; u.hash = ''; var url = u.toString() + '?p=' + encodeURIComponent(r.ppbj) + '&t=' + r.token, teks = r.pesanAwal + url + '\n\nTerima kasih.';
     var d = document.createElement('div'); d.id = 'trkm';
-    d.innerHTML = '<div><h3 style="margin-top:0">Tautan pelacakan ' + esc(r.ppbj) + '</h3><div class="note">Pemohon dapat memantau progres barang tanpa login. Isinya hanya status dan jumlah barang (tanpa harga dan vendor). Tautan berlaku selama PPBJ berjalan dan sampai 30 hari setelah selesai.</div><textarea id="trkt" style="width:100%;min-height:150px;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit">' + esc(teks) + '</textarea><div class="fr"><button class="sv" id="trkc">Salin pesan</button><a class="gh" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(teks) + '">Buka WhatsApp</a><button class="gh" id="trkx">Tutup</button></div></div>';
+    d.innerHTML = '<div><h3 style="margin-top:0">Tautan pelacakan ' + esc(r.ppbj) + '</h3><div class="note">Pemohon dapat memantau progres barang tanpa login. Isinya hanya status dan jumlah barang (tanpa harga dan vendor). Tautan berlaku selama PPBJ berjalan dan sampai 30 hari setelah selesai.</div><textarea id="trkt" style="width:100%;min-height:150px;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit">' + esc(teks) + '</textarea><div class="fr"><button class="sv" id="trkc">Salin pesan</button><button class="gh" id="trkx">Tutup</button></div></div>';
     document.body.appendChild(d); $('trkx').onclick = function () { d.remove(); };
     $('trkc').onclick = function () { var t = $('trkt'); t.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* abaikan */ } try { if (navigator.clipboard) navigator.clipboard.writeText(t.value); ok = true; } catch (e2) { /* abaikan */ } toast(ok ? 'Pesan disalin.' : 'Blok teks lalu salin manual.', !ok); };
   }
@@ -625,7 +638,8 @@
     app.innerHTML = U.nav('akan') + '<div class="msg">Memuat...</div>'; U.pasangNav();
     var r; try { r = await api({action: 'akanDatang'}); } catch (e) { toast('Gagal terhubung ke server.', true); return; } if (!r.ok) { toast(r.msg || 'Gagal.', true); return; }
     app.innerHTML = U.nav('akan') + '<div class="card"><h3 style="margin-top:0">Barang yang akan datang <span class="tag n">' + r.data.length + ' PO</span></h3><div class="note">PO yang sudah dikirim ke vendor. Perkiraan tiba dihitung dari rata-rata waktu tunggu vendor itu sebelumnya, jadi hanya perkiraan.</div></div>' +
-      (r.data.length ? r.data.map(function (x) { return '<div class="card"><b>PO ' + esc(x.po) + '</b> · ' + esc(x.vendor) + '<div class="note">' + esc(x.proyek || x.ppbj) + ' · dikirim ' + tgl(x.tglKirim) + (x.hari != null ? ' (' + x.hari + ' hari lalu)' : '') + (x.perkiraanTiba ? ' · perkiraan tiba <b>' + tgl(x.perkiraanTiba) + '</b>' : '') + '</div><div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Sisa datang</th></tr></thead><tbody>' + x.items.map(function (i) { return '<tr><td>' + esc(i.nama) + '</td><td class="nm">' + String(i.sisa).replace('.', ',') + ' ' + esc(i.satuan) + '</td></tr>'; }).join('') + '</tbody></table></div></div>'; }).join('') : '<div class="card"><div class="note">Belum ada barang yang sedang dalam perjalanan.</div></div>');
+      (r.data.length ? r.data.map(function (x) { return '<div class="card"><b>PO ' + esc(x.po) + '</b> · ' + esc(x.vendor) + '<div class="note">' + esc(x.proyek || x.ppbj) + ' · dikirim ' + tgl(x.tglKirim) + (x.hari != null ? ' (' + x.hari + ' hari lalu)' : '') + (x.perkiraanTiba ? ' · perkiraan tiba <b>' + tgl(x.perkiraanTiba) + '</b>' : '') + '</div><div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Sisa datang</th></tr></thead><tbody>' + x.items.map(function (i) { return '<tr><td>' + esc(i.nama) + '</td><td class="nm">' + String(i.sisa).replace('.', ',') + ' ' + esc(i.satuan) + '</td></tr>'; }).join('') + '</tbody></table></div>' + (r.bisaTerima && x.id && typeof window.buka === 'function' ? '<div class="fr"><button class="sv" data-tb="' + esc(x.id) + '">Terima barang</button></div>' : '') + '</div>'; }).join('') : '<div class="card"><div class="note">Belum ada barang yang sedang dalam perjalanan.</div></div>');
+    Array.prototype.forEach.call(app.querySelectorAll('button[data-tb]'), function (b) { b.onclick = function () { window.__dariAkan = true; window.buka(b.getAttribute('data-tb')); }; });
     U.pasangNav();
   }
   /* ---------- Rekap periode (bulanan, tahunan, rentang tanggal) ---------- */
@@ -659,8 +673,8 @@
       $('rpc').disabled = false; return RP.r;
     }
     $('rpc').onclick = tarik;
-    $('rpx').onclick = async function () { var r = await tarik(); if (r) unduhBanyak(U.periodeSeksi(r), 'Rekap ' + r.judul.replace(/[^\w\- ]+/g, '').replace(/\s+/g, '-') + '.xlsx'); };
-    $('rpp').onclick = async function () { var r = await tarik(); if (r) U.unduhPdf('Rekap Pengadaan - ' + r.judul, 'Dicetak ' + new Date().toLocaleDateString('id-ID'), U.periodeSeksi(r), 'Rekap-' + r.judul.replace(/[^\w\- ]+/g, '').replace(/\s+/g, '-') + '.pdf'); };
+    $('rpx').onclick = async function () { var r = await tarik(); if (r) unduhBanyak(U.periodeSeksi(r), NB.buat('xlsx', 'Rekap Pengadaan', r.judul)); };
+    $('rpp').onclick = async function () { var r = await tarik(); if (r) U.unduhPdf('Rekap Pengadaan - ' + r.judul, 'Dicetak ' + new Date().toLocaleDateString('id-ID'), U.periodeSeksi(r), NB.buat('pdf', 'Rekap Pengadaan', r.judul)); };
   }
 
   function kartuVendorHtml(q) {

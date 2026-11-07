@@ -36,9 +36,10 @@ var app=document.getElementById("app"),Q=new URLSearchParams(location.search);
 function gambar(x){
   var now=x.selesai?-1:x.posisi;
   var tl='<ul class="tl">'+x.tahap.map(function(t,i){var c=t.ok?"ok":(i===now?"now":"");return '<li class="'+c+'"><span class="dot">'+(t.ok?"&#10003;":(i+1))+'</span><span class="tx"><b>'+esc(t.k)+'</b>'+(i===now?'<span class="note">Tahap saat ini</span>':'')+'</span></li>';}).join("")+'</ul>';
+  var bola=(!x.selesai&&x.bola)?'<div class="note" id="lbola">Saat ini diproses oleh: <b>'+esc(x.bola)+'</b>.</div>':'';
   var perk=x.perkiraan?'<div class="note">Perkiraan: vendor biasanya mengirim dalam sekitar '+x.perkiraan.rata+' hari'+(x.perkiraan.sisa>0?' (sekitar '+x.perkiraan.sisa+' hari lagi)':' (sudah lewat dari rata-rata, mohon bersabar atau tanyakan ke Pengadaan)')+'. Ini hanya perkiraan.</div>':'';
   var bar=x.barang.length?'<table><thead><tr><th>Barang</th><th class="nm">Dipesan</th><th class="nm">Datang</th><th>Status</th></tr></thead><tbody>'+x.barang.map(function(b){return '<tr><td>'+esc(b.nama)+'</td><td class="nm">'+fq(b.qty)+' '+esc(b.satuan)+'</td><td class="nm">'+fq(b.datang)+'</td><td><span class="tag '+(b.selesai?"ok":(b.datang>0?"w":"n"))+'">'+esc(b.label)+'</span></td></tr>';}).join("")+'</tbody></table>':'<div class="note">Belum ada barang yang diproses.</div>';
-  return '<div class="card"><h2>'+esc(x.proyek||x.ppbj)+'</h2><div class="note">PPBJ '+esc(x.ppbj)+(x.dept?' · '+esc(x.dept):'')+'</div>'+(x.selesai?'<p><span class="tag ok">Semua barang sudah diterima di gudang</span></p>':'')+tl+perk+'</div><div class="card"><b>Barang</b>'+bar+'</div><div class="note" style="text-align:center">Diperbarui '+esc(x.diperbarui||"")+' · halaman ini membaca data langsung dari sistem gudang.</div>';
+  return '<div class="card"><h2>'+esc(x.proyek||x.ppbj)+'</h2><div class="note">PPBJ '+esc(x.ppbj)+(x.dept?' · '+esc(x.dept):'')+'</div>'+(x.selesai?'<p><span class="tag ok">Semua barang sudah diterima di gudang</span></p>':'')+tl+bola+perk+'</div><div class="card"><b>Barang</b>'+bar+'</div><div class="note" style="text-align:center">Diperbarui '+esc(x.diperbarui||"")+' · halaman ini membaca data langsung dari sistem gudang.</div>';
 }
 async function publik(){
   try{var r=await api({action:"trackPublik",ppbj:Q.get("p")||"",t:Q.get("t")||""});

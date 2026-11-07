@@ -194,7 +194,7 @@ function gambarRows(akhir){
 }
 function tombolSimpan(){return '<div class="fr"><button class="sv" id="simpan">Simpan kebutuhan</button><button class="gh" id="reset">Kosongkan form</button></div>';}
 function pasangSimpan(){document.getElementById("simpan").onclick=simpan;document.getElementById("reset").onclick=function(){if(FORM.rows.length&&!confirm("Kosongkan form ini? Isian yang belum disimpan hilang."))return;FORM=formBaru();viewIsi();};}
-async function simpan(ganti){
+async function simpan(ganti,alasan){
   var f=FORM;f.ppbj=document.getElementById("fp").value.trim();f.nama=document.getElementById("fn").value.trim();f.dept=document.getElementById("fd").value.trim();f.kategori=document.getElementById("fk").value;
   if(!f.ppbj){toast("No PPBJ wajib diisi.",true);return;}if(!f.kategori){toast("Pilih kategori Capex atau Opex untuk proyek ini.",true);return;}if(!f.nama){toast("Nama proyek wajib diisi.",true);return;}
   if(!f.rows.length){toast("Isi minimal satu barang.",true);return;}
@@ -202,9 +202,9 @@ async function simpan(ganti){
   var items=f.rows.map(function(x){return {kode:x.kode,qty:x.qty};}),pakai={};items.forEach(function(x){pakai[String(x.kode).toUpperCase()]=1;});var rinci=(f.rinci||[]).filter(function(x){return pakai[String(x.kode).toUpperCase()];});
   var b=document.getElementById("simpan");b.disabled=true;
   try{
-    var r=await api({action:"kbSimpan",ppbj:f.ppbj,nama:f.nama,dept:f.dept,kategori:f.kategori,items:items,ganti:ganti===true,rinci:rinci,meta:f.meta||{},jagaDept:!!f.rinci});
-    if(r.perlu==="ganti"){
-      if(confirm("PPBJ "+f.ppbj+" sudah punya kebutuhan ("+r.ada+" barang).\n\nGanti SELURUHNYA dengan daftar ini ("+items.length+" barang)? Versi lama tersimpan di riwayat.")){b.disabled=false;return simpan(true);}
+    var r=await api({action:"kbSimpan",ppbj:f.ppbj,nama:f.nama,dept:f.dept,kategori:f.kategori,items:items,ganti:ganti===true,alasan:alasan||"",rinci:rinci,meta:f.meta||{},jagaDept:!!f.rinci});
+    if(r.perlu==="alasan"||r.perlu==="ganti"){
+      if(r.perlu==="alasan"||confirm("PPBJ "+f.ppbj+" sudah punya kebutuhan ("+r.ada+" barang).\n\nGanti SELURUHNYA dengan daftar ini ("+items.length+" barang)? Versi lama tersimpan di riwayat.")){var al=prompt("Alasan revisi PPBJ "+f.ppbj+" (wajib, mis. permintaan proyek bertambah):","");al=al==null?"":String(al).trim();if(!al){toast("Alasan revisi wajib diisi. RAB belum diganti.",true);b.disabled=false;return;}b.disabled=false;return simpan(true,al);}
       b.disabled=false;return;
     }
     toast(r.msg||(r.ok?"Tersimpan.":"Gagal."),!r.ok);

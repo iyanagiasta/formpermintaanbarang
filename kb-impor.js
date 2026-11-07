@@ -425,15 +425,24 @@
       if (bi) bi.onclick = function () { var p = payload(); opt.isi(p, doc); hasil.diisi++; lanjut(); };
     }
     function ulangStatus() { }
-    function simpanDok(p, tombol, ganti, sudah) {
+    /* Mengganti RAB yang sudah ada = revisi PPBJ: alasan wajib, tampil di tab Revisi PPBJ Pengadaan. */
+    function mintaAlasan(p, tombol, sudah) {
+      var a = root.prompt('Alasan revisi PPBJ ' + p.ppbj + ' (wajib, mis. permintaan proyek bertambah):', '');
+      a = a == null ? '' : String(a).trim();
+      if (!a) { kabar('Alasan revisi wajib diisi. RAB belum diganti.', true); tombol.disabled = false; tombol.textContent = 'Simpan RAB'; return; }
+      return simpanDok(p, tombol, true, sudah, a);
+    }
+    function simpanDok(p, tombol, ganti, sudah, alasan) {
       tombol.disabled = true; tombol.textContent = 'Menyimpan...';
       var b = {action: 'kbSimpan', ppbj: p.ppbj, nama: p.nama, dept: '', jagaDept: true, kategori: p.kategori, items: p.items.map(function (x) { return {kode: x.kode, qty: x.qty}; }), rinci: p.rinci, meta: p.meta, ganti: ganti === true};
+      if (alasan) b.alasan = alasan;
       opt.api(b).then(function (r) {
         if (r.perlu === 'ganti') {
           var ya = root.confirm('PPBJ ' + p.ppbj + ' sudah punya kebutuhan (' + r.ada + ' barang).\n\nGanti SELURUHNYA dengan daftar impor ini (' + p.items.length + ' barang)? Versi lama tersimpan di riwayat.');
-          if (ya) return simpanDok(p, tombol, true, sudah);
+          if (ya) return mintaAlasan(p, tombol, sudah);
           tombol.disabled = false; tombol.textContent = 'Simpan RAB'; return;
         }
+        if (r.perlu === 'alasan') return mintaAlasan(p, tombol, sudah);
         if (!r.ok) { kabar(r.msg || 'Gagal menyimpan.', true); tombol.disabled = false; tombol.textContent = 'Simpan RAB'; return; }
         kabar(r.msg || 'Tersimpan.');
         if (opt.onSimpan) try { opt.onSimpan(r, p); } catch (e) {}

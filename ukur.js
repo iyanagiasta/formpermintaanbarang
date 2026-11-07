@@ -5,7 +5,7 @@
 (function (W) {
   "use strict";
   if (W.__ukur) return; W.__ukur = 1;
-  var VA = "T61", PELUANG = 0.3, MAKS_ANTRE = 200, JEDA = 30000, KELOMPOK = 15;
+  var VA = "T63", PELUANG = 0.3, MAKS_ANTRE = 200, JEDA = 30000, KELOMPOK = 15;
   try { if ((navigator.webdriver && !W.UKUR_TEST) || localStorage.getItem("sctk_ukur_off") === "1") return; } catch (e) { if (navigator.webdriver && !W.UKUR_TEST) return; }
   if (typeof W.fetch !== "function") return;
   var asli = W.fetch.bind(W), antre = [], urlApi = "", timer = null;

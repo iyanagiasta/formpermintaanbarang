@@ -16,14 +16,15 @@
   function gaya() {
     if ($('pogaya')) return; var s = document.createElement('style'); s.id = 'pogaya';
     s.textContent = '#potabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}#potabs .gl{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);margin:0 2px 0 10px}#potabs .bd{font-style:normal;background:#c0392b;color:#fff;border-radius:9px;padding:0 6px;font-size:11px;margin-left:4px}.po-alat{margin:6px 0}.po-alat input{flex:1;min-width:180px}#trkm{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:80;display:flex;align-items:center;justify-content:center;padding:12px}#trkm>div{background:var(--card);color:var(--ink);border-radius:10px;padding:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto}';
+    s.textContent += '@media(min-width:900px){#app:has(>#potabs.pside){display:grid;grid-template-columns:208px minmax(0,1fr);column-gap:14px;align-items:start}#app:has(>#potabs.pside)>*{grid-column:2;min-width:0}#app>#potabs.pside{grid-column:1;grid-row:1/span 60;position:sticky;top:8px;max-height:calc(100vh - 16px);overflow-y:auto;overscroll-behavior:contain;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:2px;padding:6px;border:1px solid var(--line,#c3ccd3);border-radius:6px;background:var(--card,#fff)}#potabs.pside .gl{margin:12px 4px 3px}#potabs.pside .gl:first-of-type{margin-top:4px}#potabs.pside button{text-align:left;width:100%;border-radius:4px}#potabs.pside input#pocq{max-width:none;min-width:0;width:100%;box-sizing:border-box;margin-bottom:4px}}@media print{body.cetak-jalan #jh>.fr,body.cetak-jalan #jh textarea,body.cetak-jalan #jc,body.cetak-jalan .hdr,body.cetak-jalan header{display:none!important}body.cetak-jalan{font-size:11px}@page{size:A4;margin:10mm}#potabs,#mnadm,#mnbuka,.po-alat,#toast{display:none!important}#app>#potabs.pside{display:none!important}#app:has(>#potabs.pside){display:block}}';
     document.head.appendChild(s);
   }
   U.nav = function (tab) {
     var g;
     if (bisa('input')) { g = NAVGRP.slice(); if (typeof PERAN !== 'undefined' && PERAN === 'Admin') g = g.concat([['Admin', [['pantau', 'Pantau'], ['sehat', 'Cek kesehatan'], ['atur', 'Pengaturan'], ['jejak', 'Jejak aktivitas']]]]); }
-    else if (bisa('terima') || bisa('lihat')) g = [['Barang datang', [['beli', 'Pembelian'], ['akan', 'Akan datang']]]];
+    else if (bisa('terima') || bisa('lihat')) g = [['Barang datang', [['beli', 'Pembelian'], ['akan', 'Akan datang']].concat(typeof PERAN !== 'undefined' && PERAN === 'Manager Gudang' ? [['menipis', 'Stok menipis']] : [])]];   /* Manager Gudang boleh membaca Stok menipis */
     else return '';
-    return '<div class="tabs" id="potabs">' + (bisa('input') ? '<input type="text" id="pocq" placeholder="Cari PO, PPBJ, barang, vendor..." style="min-width:200px;flex:1;max-width:320px">' : '') +
+    return '<div class="tabs' + (bisa('input') ? ' pside' : '') + '" id="potabs">' + (bisa('input') ? '<input type="text" id="pocq" placeholder="Cari PO, PPBJ, barang, vendor..." style="min-width:200px;flex:1;max-width:320px">' : '') +
       g.map(function (gr) { return '<span class="gl">' + gr[0] + '</span>' + gr[1].map(function (x) { var n = BD[x[0]]; return '<button data-t="' + x[0] + '" class="' + (x[0] === tab ? 'on' : '') + '">' + x[1] + (n ? ' <i class="bd">' + n + '</i>' : '') + '</button>'; }).join(''); }).join('') + '</div>';
   };
   U.pasangNav = function () {
@@ -316,8 +317,27 @@
     if (!S.lst) { try { var rl = await api({action: 'poList'}); S.lst = (rl && rl.data) || []; } catch (e) { S.lst = []; } }
     var pp = {}; S.lst.forEach(function (x) { if (x.ppbj) pp[x.ppbj] = x.proyek; });
     app.innerHTML = U.nav('jalan') + '<div class="card"><h3 style="margin-top:0">Perjalanan PPBJ</h3><div class="note">Dari barang ORDER di PPBJ sampai PO dan barang tiba di gudang.</div><div class="fr"><input type="text" id="jp" list="jdl" placeholder="No PPBJ" value="' + esc(ppbj) + '" style="flex:1;min-width:200px"><button id="jb">Lihat</button></div><datalist id="jdl">' + Object.keys(pp).map(function (k) { return '<option value="' + esc(k) + '">' + esc(pp[k]) + '</option>'; }).join('') + '</datalist></div><div id="jh"></div>';
-    U.pasangNav(); $('jb').onclick = function () { jalanTampil($('jp').value.trim()); }; $('jp').onkeydown = function (e) { if (e.key === 'Enter') $('jb').click(); };
+    U.pasangNav(); $('jb').onclick = function () { cariJalan($('jp').value.trim(), pp); }; $('jp').onkeydown = function (e) { if (e.key === 'Enter') $('jb').click(); };
     if (ppbj) jalanTampil(ppbj);
+  }
+  /** Cari pintar: ketik No PPBJ, sebagian No PPBJ, atau nama proyek. Satu hasil langsung dibuka, beberapa hasil jadi pilihan. */
+  async function cariJalan(q, pp) {
+    if (!q) { toast('Isi No PPBJ atau nama proyek.', true); return; }
+    if (pp && pp[q]) { jalanTampil(q); return; }
+    var h = $('jh'); h.innerHTML = '<div class="msg">Mencari...</div>'; var r;
+    try { r = await api({action: 'trackCari', q: q}); } catch (e) { toast('Gagal terhubung ke server.', true); h.innerHTML = ''; return; }
+    var hs = (r && r.ok && r.hasil) || [];
+    if (!hs.length) { jalanTampil(q); return; }
+    if (hs.length === 1) { $('jp').value = hs[0].ppbj; jalanTampil(hs[0].ppbj); return; }
+    h.innerHTML = '<div class="card"><b>' + hs.length + ' proyek cocok dengan "' + esc(q) + '"</b>. Pilih salah satu:' + hs.map(function (x) { return '<div class="fr"><button class="gh" data-jp="' + esc(x.ppbj) + '">' + esc(x.ppbj) + '</button> <span>' + esc(x.proyek || '') + (x.dept ? ' · ' + esc(x.dept) : '') + '</span></div>'; }).join('') + '</div>';
+    Array.prototype.forEach.call(h.querySelectorAll('button[data-jp]'), function (b) { b.onclick = function () { $('jp').value = b.getAttribute('data-jp'); jalanTampil(b.getAttribute('data-jp')); }; });
+  }
+  /** PDF lewat dialog cetak peramban: nama berkas usulan = judul halaman (jenis dokumen - No PPBJ - proyek, tanpa tanggal unduh). */
+  function cetakJalan(r) {
+    var lama = document.title, nm = (window.NB && NB.buat ? NB.buat('', 'Perjalanan PPBJ', r.ppbj, r.proyek) : 'Perjalanan PPBJ ' + r.ppbj).replace(/\.$/, '');
+    document.title = nm; document.body.classList.add('cetak-jalan');
+    var sel = function () { document.title = lama; document.body.classList.remove('cetak-jalan'); window.removeEventListener('afterprint', sel); };
+    window.addEventListener('afterprint', sel); try { window.print(); } catch (e) { sel(); }
   }
   async function jalanTampil(ppbj) {
     if (!ppbj) { toast('Isi No PPBJ.', true); return; } var h = $('jh'); h.innerHTML = '<div class="msg">Memuat...</div>';
@@ -326,6 +346,8 @@
       h.innerHTML = (r.tanpaPo ? '<div class="note"><span class="tag n">Tidak perlu PO</span> ' + esc(r.tanpaPo.alasan) + ' <small>Ditandai ' + esc(r.tanpaPo.oleh) + (r.tanpaPo.waktu ? ' · ' + esc(r.tanpaPo.waktu) : '') + '</small></div>' : '') + '<div class="card blk"><b>' + esc(r.ppbj) + '</b> · ' + esc(r.proyek) + '<div class="sum"><div><b>' + rg.barang + '</b><span>Barang</span></div><div><b>' + rg.belumPo + '</b><span>Belum dibuatkan PO</span></div><div><b>' + rg.lengkap + '</b><span>Sudah datang lengkap</span></div><div><b>' + r.po.length + '</b><span>PO</span></div></div>' +
         '<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">RAB</th><th class="nm">Dipesan</th><th class="nm">Datang</th><th class="nm">Sisa</th><th>Status</th><th>PO</th></tr></thead><tbody>' + r.rows.map(function (x) { return '<tr><td>' + esc(x.nama) + '<small>' + esc(x.kode || 'tanpa kode') + '</small></td><td class="nm">' + (x.qtyRab ? esc(String(x.qtyRab).replace('.', ',')) : '-') + '</td><td class="nm">' + esc(String(x.qPo).replace('.', ',')) + '</td><td class="nm">' + esc(String(x.qTerima).replace('.', ',')) + '</td><td class="nm">' + esc(String(x.sisa).replace('.', ',')) + '</td><td><span class="tag ' + (x.status === 'Sudah datang lengkap' ? 'ok' : x.status === 'Belum dibuatkan PO' ? 'bad' : 'w') + '">' + esc(x.status) + '</span></td><td>' + x.po.map(function (p) { return esc(p.no) + '<small>' + esc(p.vendor) + '</small>'; }).join('') + '</td></tr>'; }).join('') + '</tbody></table></div></div>' +
         (r.pesan ? '<div class="card"><b>Pesan untuk pemohon (barang yang sudah tiba)</b><textarea id="jt" style="width:100%;min-height:150px;margin-top:6px;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit">' + esc(r.pesan) + '</textarea><div class="fr"><button class="sv" id="jc">Salin pesan</button></div></div>' : '<div class="note">Belum ada barang yang tiba, jadi belum ada pesan untuk pemohon.</div>');
+      h.insertAdjacentHTML('afterbegin', '<div class="card" id="jgr"><b>Posisi dan garis waktu</b>' + garisHtml(r) + '</div>');
+      h.insertAdjacentHTML('afterbegin', '<div class="fr"><button class="gh" id="jpdf">Cetak / simpan PDF</button></div>'); $('jpdf').onclick = function () { cetakJalan(r); };
       h.insertAdjacentHTML('afterbegin', '<div class="fr"><button class="gh" id="jlk">Tautan pelacakan untuk pemohon</button></div>'); $('jlk').onclick = function () { lacakDialog(ppbj); }; h.insertAdjacentHTML('afterbegin', '<div class="fr"><button class="gh" id="jrw">Riwayat lengkap PPBJ</button></div>'); $('jrw').onclick = function () { riwayat('ppbj', ppbj); };
       if ($('jc')) $('jc').onclick = function () { var t = $('jt'); t.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* abaikan */ } try { if (navigator.clipboard) navigator.clipboard.writeText(t.value); ok = true; } catch (e) { /* abaikan */ } toast(ok ? 'Pesan disalin.' : 'Blok teks lalu salin manual.', !ok); };
     } catch (e) { toast('Gagal terhubung ke server.', true); h.innerHTML = ''; }
@@ -436,16 +458,41 @@
     try { var r = await api({action: 'revisiList'}); if (!r.ok) { toast(r.msg || 'Gagal.', true); return; } RV.data = r.data || []; } catch (e) { toast('Gagal terhubung ke server.', true); return; }
     gambarRevisi();
   }
+  function salinTeks(t) { var ok = false, ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { ok = document.execCommand('copy'); } catch (e) { /* abaikan */ } ta.remove(); try { if (navigator.clipboard) { navigator.clipboard.writeText(t); ok = true; } } catch (e) { /* abaikan */ } toast(ok ? 'Pesan disalin.' : 'Salin manual dari kotak teks.', !ok); }
+  /** Catatan tindakan revisi: pilihan cepat + kolom bebas. */
+  function catatanRevisi(petunjuk, kirim) {
+    var d = document.createElement('div'), cepat = ['PO direvisi', 'Vendor dihubungi', 'Tidak perlu diubah']; d.id = 'trkm';
+    d.innerHTML = '<div><h3 style="margin-top:0">Tandai revisi sudah ditangani</h3>' + (petunjuk ? '<div class="note">' + esc(petunjuk) + '</div>' : '') + '<div class="fr">' + cepat.map(function (c) { return '<button class="gh" data-cc="' + esc(c) + '">' + esc(c) + '</button>'; }).join('') + '</div><input type="text" id="rvc" maxlength="190" placeholder="Catatan tindakan (wajib; pilih di atas atau ketik sendiri)" style="width:100%;box-sizing:border-box"><div class="fr"><button class="sv" id="rvs">Simpan</button><button class="gh" id="rvx">Batal</button></div></div>';
+    document.body.appendChild(d); d.onclick = function (e) { if (e.target === d) d.remove(); };
+    Array.prototype.forEach.call(d.querySelectorAll('button[data-cc]'), function (b) { b.onclick = function () { var t = $('rvc'); t.value = (t.value ? t.value.replace(/[\s.]+$/, '') + '. ' : '') + b.getAttribute('data-cc'); t.focus(); }; });
+    $('rvx').onclick = function () { d.remove(); }; $('rvs').onclick = function () { var v = $('rvc').value.trim(); if (!v) { toast('Isi catatan tindakan.', true); return; } d.remove(); kirim(v); }; $('rvc').focus();
+  }
   function gambarRevisi() {
-    var l = RV.data.filter(function (x) { return RV.semua || x.status === 'Perlu tindakan'; }), n = RV.data.filter(function (x) { return x.status === 'Perlu tindakan'; }).length;
-    app.innerHTML = U.nav('revisi') + '<div class="card"><h3 style="margin-top:0">Revisi PPBJ <span class="tag ' + (n ? 'bad' : 'ok') + '">' + n + ' perlu tindakan</span></h3><div class="note">Setiap kali kebutuhan (RAB) suatu PPBJ diganti, sistem membandingkan per barang. Barang yang sudah masuk PO <b>tidak diubah otomatis</b>; ditandai "Perlu tindakan" supaya Pengadaan memeriksa PO-nya (revisi PO, hubungi vendor, atau abaikan). Perubahan pada barang yang belum di PO hanya dicatat.</div>' +
-      '<div class="fr"><label><input type="checkbox" id="rvall"' + (RV.semua ? ' checked' : '') + '> tampilkan semua catatan</label></div>' +
-      (l.length ? '<div class="tw"><table><thead><tr><th>Waktu</th><th>PPBJ / Barang</th><th>Perubahan</th><th class="nm">Qty lama</th><th class="nm">Qty baru</th><th>PO terkait</th><th>Status</th><th></th></tr></thead><tbody>' + l.map(function (x) { return '<tr><td>' + esc(x.waktu) + '<small>' + esc(x.oleh) + '</small></td><td><b>' + esc(x.ppbj) + '</b><small>' + esc(x.nama) + '</small></td><td>' + esc(x.ubah) + '</td><td class="nm">' + String(x.qLama).replace('.', ',') + '</td><td class="nm">' + String(x.qBaru).replace('.', ',') + '</td><td>' + esc(x.po || '-') + (x.po ? '<small>qty di PO ' + String(x.qPo).replace('.', ',') + '</small>' : '') + '</td><td><span class="tag ' + (x.status === 'Perlu tindakan' ? 'bad' : 'ok') + '">' + esc(x.status) + '</span>' + (x.cSelesai ? '<small>' + esc(x.cSelesai) + '</small>' : '') + '</td><td>' + (x.status === 'Perlu tindakan' ? '<button class="gh" data-rv="' + esc(x.id) + '">Tandai ditangani</button>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Tidak ada revisi yang perlu tindakan.</div>') + '</div>';
+    var q = (RV.q || '').toLowerCase(), cocok = function (x) { return !q || (x.ppbj + ' ' + x.nama + ' ' + x.kode + ' ' + (x.alasan || '') + ' ' + (x.po || '')).toLowerCase().indexOf(q) >= 0; };
+    var l = RV.data.filter(function (x) { return (RV.semua || x.status === 'Perlu tindakan') && cocok(x); }), n = RV.data.filter(function (x) { return x.status === 'Perlu tindakan'; }).length, G = {}, urutG = [];
+    l.forEach(function (x) { var k = x.kelompok || (x.ppbj + '|' + String(x.waktu).slice(0, 16)); if (!G[k]) { G[k] = {k: k, ppbj: x.ppbj, waktu: x.waktu, oleh: x.oleh, alasan: x.alasan, umur: x.umur || 0, tingkat: '', rows: []}; urutG.push(k); } var g = G[k]; g.rows.push(x); if (x.tingkat === 'merah' || (x.tingkat === 'kuning' && g.tingkat !== 'merah')) g.tingkat = x.tingkat; });
+    RV.list = l;
+    var grup = urutG.map(function (k) {
+      var g = G[k], perlu = g.rows.filter(function (x) { return x.status === 'Perlu tindakan'; }).length;
+      return '<div class="card"><b>Revisi PPBJ ' + esc(g.ppbj) + '</b> · ' + g.rows.length + ' barang berubah · ' + perlu + ' perlu tindakan ' + (perlu ? '<span class="tag ' + (g.tingkat === 'merah' ? 'bad' : g.tingkat === 'kuning' ? 'w' : 'n') + '">' + (g.umur || 0) + ' hari</span>' : '<span class="tag ok">selesai</span>') +
+        '<div class="note">' + esc(g.waktu) + ' oleh ' + esc(g.oleh) + (g.alasan ? ' · <b>Alasan:</b> ' + esc(g.alasan) : ' · <i>alasan tidak dicatat (revisi lama)</i>') + '</div>' +
+        '<div class="tw"><table><thead><tr><th>Barang</th><th>Perubahan</th><th>PO terkait dan petunjuk</th><th>Status</th><th></th></tr></thead><tbody>' + g.rows.map(function (x) {
+          var idx = RV.list.indexOf(x), pos = String(x.po || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+          return '<tr><td><b>' + esc(x.nama) + '</b><small>' + (x.jenis === 'Jasa' ? 'Jasa' : esc(x.kode)) + '</small></td><td>' + esc(x.ubah) + (x.jenis === 'Jasa' ? '' : '<small>' + String(x.qLama).replace('.', ',') + ' &rarr; ' + String(x.qBaru).replace('.', ',') + '</small>') + '</td><td>' + (pos.length ? pos.map(function (no) { return '<button class="gh" data-bpo="' + esc(no) + '">Buka PO ' + esc(no) + '</button>'; }).join(' ') + (x.jenis === 'Jasa' ? '' : '<small>qty di PO ' + String(x.qPo).replace('.', ',') + (x.sudahDatang ? ' · sudah datang ' + String(x.sudahDatang).replace('.', ',') : '') + '</small>') : '-') + (x.petunjuk ? '<small' + (x.lewat ? ' style="color:var(--bad,#c0392b);font-weight:700"' : '') + '>' + esc(x.petunjuk) + '</small>' : '') + '</td><td><span class="tag ' + (x.status === 'Perlu tindakan' ? 'bad' : 'ok') + '">' + esc(x.status) + '</span>' + (x.cSelesai ? '<small>' + esc(x.cSelesai) + '</small>' : '') + '</td><td>' + (x.status === 'Perlu tindakan' ? '<button class="gh" data-rv="' + esc(x.id) + '" data-ri="' + idx + '">Tandai ditangani</button>' : '') + (x.pesan ? ' <button class="gh" data-rp="' + idx + '">Salin pesan ke vendor</button>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
+    }).join('');
+    app.innerHTML = U.nav('revisi') + '<div class="card"><h3 style="margin-top:0">Revisi PPBJ <span class="tag ' + (n ? 'bad' : 'ok') + '">' + n + ' perlu tindakan</span></h3><div class="note">Setiap kali kebutuhan (RAB) suatu PPBJ diganti, sistem membandingkan per barang. Barang yang sudah masuk PO <b>tidak diubah otomatis</b>; ditandai "Perlu tindakan" beserta petunjuknya supaya Pengadaan memeriksa PO-nya (revisi PO, hubungi vendor, atau abaikan). Perubahan pada barang yang belum di PO hanya dicatat. Tiap unggahan ulang wajib membawa alasan.</div>' +
+      '<div class="fr"><input type="search" id="rvq" placeholder="Cari PPBJ, barang, alasan, atau No PO" value="' + esc(RV.q || '') + '" style="flex:1;min-width:200px"><label><input type="checkbox" id="rvall"' + (RV.semua ? ' checked' : '') + '> tampilkan semua catatan</label></div></div>' +
+      (grup || '<div class="card"><div class="note">' + (RV.semua || q ? 'Tidak ada catatan yang cocok.' : 'Tidak ada revisi yang perlu tindakan.') + '</div></div>');
     U.pasangNav(); $('rvall').onchange = function () { RV.semua = this.checked; gambarRevisi(); };
-    Array.prototype.forEach.call(app.querySelectorAll('button[data-rv]'), function (b) { b.onclick = async function () {
-      var c = prompt('Catatan tindakan (mis. PO direvisi, vendor dihubungi, tidak perlu diubah):'); if (!c) return; b.disabled = true;
-      try { var r = await api({action: 'revisiSelesai', id: b.getAttribute('data-rv'), catatan: c}); toast(r.msg || (r.ok ? 'Tersimpan.' : 'Gagal.'), !r.ok); if (r.ok) revisi(); } catch (e) { toast('Gagal terhubung ke server.', true); }
-      b.disabled = false; }; });
+    $('rvq').onkeydown = function (e) { if (e.key === 'Enter') { RV.q = this.value.trim(); gambarRevisi(); var e2 = $('rvq'); if (e2) { e2.focus(); e2.setSelectionRange(e2.value.length, e2.value.length); } } };
+    Array.prototype.forEach.call(app.querySelectorAll('button[data-bpo]'), function (b) { b.onclick = function () { lompat('daftar', b.getAttribute('data-bpo')); }; });
+    Array.prototype.forEach.call(app.querySelectorAll('button[data-rp]'), function (b) { b.onclick = function () { salinTeks(RV.list[Number(b.getAttribute('data-rp'))].pesan); }; });
+    Array.prototype.forEach.call(app.querySelectorAll('button[data-rv]'), function (b) { b.onclick = function () {
+      var x = RV.list[Number(b.getAttribute('data-ri'))] || {};
+      catatanRevisi(x.petunjuk || '', async function (c) {
+        b.disabled = true;
+        try { var r = await api({action: 'revisiSelesai', id: b.getAttribute('data-rv'), catatan: c}); toast(r.msg || (r.ok ? 'Tersimpan.' : 'Gagal.'), !r.ok); if (r.ok) revisi(); } catch (e) { toast('Gagal terhubung ke server.', true); }
+        b.disabled = false; }); }; });
   }
   /* ---------- Jasa termin (Tambahan 56) ---------- */
   async function termin() {
@@ -588,22 +635,39 @@
   }
   function lompat(tab, ref) { if (tab === 'daftar') { daftar().then(function () { detail(ref); }); } else if (tab === 'jalan') jalan(ref); else U.tampil(tab); }
   /* ---------- Papan: mengapa belum datang ---------- */
-  var PN = {f: 'macet', data: [], admin: false};
+  var PN = {f: 'macet', b: '', data: [], admin: false};
+  var BOLAKLS = {Pengadaan: 'w', Penyetuju: 'n', Vendor: 'bad', Gudang: 'w'};
+  function bolaTag(x) { return x.bola ? '<span class="tag ' + (BOLAKLS[x.bola] || 'n') + '">' + esc(x.bola) + '</span>' : '<small>-</small>'; }
   async function papan() {
     app.innerHTML = U.nav('papan') + '<div class="msg">Memuat...</div>'; U.pasangNav();
     try { var r = await api({action: 'papanList'}); if (!r.ok) { toast(r.msg || 'Gagal.', true); return; } PN.data = r.data || []; PN.admin = !!r.admin; } catch (e) { toast('Gagal terhubung ke server.', true); return; }
     gambarPapan();
   }
   function gambarPapan() {
-    var l = PN.data.filter(function (x) { return PN.f === 'semua' || (x.kode !== 'lengkap' && x.kode !== 'tanpapo'); }), mac = PN.data.filter(function (x) { return x.kode !== 'lengkap' && x.kode !== 'tanpapo' && x.tingkat; }).length;
+    var l = PN.data.filter(function (x) { return (PN.f === 'semua' || (x.kode !== 'lengkap' && x.kode !== 'tanpapo')) && (!PN.b || x.bola === PN.b); }), mac = PN.data.filter(function (x) { return x.kode !== 'lengkap' && x.kode !== 'tanpapo' && x.tingkat; }).length;
     app.innerHTML = U.nav('papan') + '<div class="card"><h3 style="margin-top:0">Mengapa belum datang <span class="tag ' + (mac ? 'bad' : 'ok') + '">' + mac + ' tersangkut</span></h3><div class="note">Satu baris per PPBJ dengan alasan utamanya, diurutkan dari yang paling mendesak. Terisi otomatis dari data PO, penerimaan, klaim, dan revisi.</div>' +
-      '<div class="fr"><select id="pnf"><option value="macet">Yang belum lengkap</option><option value="semua">Semua PPBJ</option></select></div>' +
-      (l.length ? '<div class="tw"><table><thead><tr><th>PPBJ / Proyek</th><th>Alasan</th><th class="nm">Hari</th><th></th></tr></thead><tbody>' + l.map(function (x) { return '<tr><td><b>' + esc(x.ppbj) + '</b><small>' + esc(x.proyek) + (x.dept ? ' · ' + esc(x.dept) : '') + '</small></td><td><span class="tag ' + (x.tingkat === 'merah' ? 'bad' : x.tingkat === 'kuning' ? 'w' : x.kode === 'lengkap' ? 'ok' : 'n') + '">' + esc(x.alasan) + '</span>' + (x.tpo ? '<small>Ditandai ' + esc(x.tpo.oleh) + (x.tpo.waktu ? ' · ' + esc(x.tpo.waktu) : '') + '</small>' : '') + '</td><td class="nm">' + (x.hari || '') + '</td><td><button class="gh" data-pj="' + esc(x.ppbj) + '">Perjalanan</button> <button class="gh" data-pl="' + esc(x.ppbj) + '">Tautan pemohon</button>' + (PN.admin && x.kode === 'belumpo' ? ' <button class="gh" data-tp="' + esc(x.ppbj) + '">Tidak perlu PO</button>' : '') + (PN.admin && x.kode === 'tanpapo' ? ' <button class="gh" data-tl="' + esc(x.ppbj) + '">Batalkan tanda</button>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Tidak ada PPBJ yang tersangkut.</div>') + '</div>';
-    U.pasangNav(); $('pnf').value = PN.f; $('pnf').onchange = function () { PN.f = this.value; gambarPapan(); };
+      '<div class="fr"><select id="pnf"><option value="macet">Yang belum lengkap</option><option value="semua">Semua PPBJ</option></select> <select id="pnb" aria-label="Pemegang bola"><option value="">Semua pemegang bola</option><option>Pengadaan</option><option>Penyetuju</option><option>Vendor</option><option>Gudang</option></select></div>' +
+      (l.length ? '<div class="tw"><table><thead><tr><th>PPBJ / Proyek</th><th>Alasan</th><th>Pemegang bola</th><th class="nm">Hari</th><th></th></tr></thead><tbody>' + l.map(function (x) { return '<tr><td><b>' + esc(x.ppbj) + '</b><small>' + esc(x.proyek) + (x.dept ? ' · ' + esc(x.dept) : '') + '</small></td><td><span class="tag ' + (x.tingkat === 'merah' ? 'bad' : x.tingkat === 'kuning' ? 'w' : x.kode === 'lengkap' ? 'ok' : 'n') + '">' + esc(x.alasan) + '</span>' + (x.tpo ? '<small>Ditandai ' + esc(x.tpo.oleh) + (x.tpo.waktu ? ' · ' + esc(x.tpo.waktu) : '') + '</small>' : '') + '</td><td>' + bolaTag(x) + '</td><td class="nm">' + (x.hari || '') + '</td><td><button class="gh" data-dt="' + esc(x.ppbj) + '">Detail</button> <button class="gh" data-pj="' + esc(x.ppbj) + '">Perjalanan</button> <button class="gh" data-pl="' + esc(x.ppbj) + '">Tautan pemohon</button>' + (PN.admin && x.kode === 'belumpo' ? ' <button class="gh" data-tp="' + esc(x.ppbj) + '">Tidak perlu PO</button>' : '') + (PN.admin && x.kode === 'tanpapo' ? ' <button class="gh" data-tl="' + esc(x.ppbj) + '">Batalkan tanda</button>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Tidak ada PPBJ yang tersangkut.</div>') + '</div>';
+    U.pasangNav(); $('pnf').value = PN.f; $('pnf').onchange = function () { PN.f = this.value; gambarPapan(); }; $('pnb').value = PN.b; $('pnb').onchange = function () { PN.b = this.value; gambarPapan(); };
+    Array.prototype.forEach.call(app.querySelectorAll('button[data-dt]'), function (b) { b.onclick = function () { detailPapan(b.getAttribute('data-dt')); }; });
     Array.prototype.forEach.call(app.querySelectorAll('button[data-pj]'), function (b) { b.onclick = function () { jalan(b.getAttribute('data-pj')); }; });
     Array.prototype.forEach.call(app.querySelectorAll('button[data-pl]'), function (b) { b.onclick = function () { lacakDialog(b.getAttribute('data-pl')); }; });
     Array.prototype.forEach.call(app.querySelectorAll('button[data-tp]'), function (b) { b.onclick = function () { tandaiTanpaPo(b.getAttribute('data-tp')); }; });
     Array.prototype.forEach.call(app.querySelectorAll('button[data-tl]'), function (b) { b.onclick = function () { lepasTanpaPo(b.getAttribute('data-tl')); }; });
+  }
+  /* ---------- Garis waktu dan detail PPBJ (dipakai Papan dan Perjalanan) ---------- */
+  function tglWkt(w) { var m = /^(\d{4})-(\d\d)-(\d\d)(?: (\d\d:\d\d))?/.exec(String(w || '')); return m ? m[3] + '/' + m[2] + '/' + m[1] + (m[4] ? ' ' + m[4] : '') : String(w || ''); }
+  function garisHtml(d) {
+    var po = d.posisi ? '<div class="note"><b>Posisi sekarang:</b> ' + esc(d.posisi.alasan || '') + (d.posisi.bola ? ' · pemegang bola <b>' + esc(d.posisi.bola) + '</b>' : '') + (d.perkiraanTiba ? ' · perkiraan tiba <b>' + tgl(d.perkiraanTiba) + '</b>' : '') + (d.klaimTerbuka ? ' · <span class="tag bad">' + d.klaimTerbuka + ' klaim vendor terbuka</span>' : '') + '</div>' : '';
+    var g = d.garis || [];
+    return po + (g.length ? '<ol class="garis" style="list-style:none;margin:8px 0;padding:0 0 0 14px;border-left:3px solid var(--line,#c3ccd3)">' + g.map(function (e) { return '<li style="margin:0 0 9px;padding-left:8px"><b>' + esc(e.jenis) + '</b> <small>' + tglWkt(e.waktu) + '</small><br><span class="note" style="margin:0">' + esc(e.ket) + '</span></li>'; }).join('') + '</ol>' : '<div class="note">Belum ada kejadian tercatat untuk PPBJ ini (belum ada PO).</div>');
+  }
+  async function detailPapan(ppbj) {
+    var r; try { r = await api({action: 'poPerjalanan', ppbj: ppbj}); } catch (e) { toast('Gagal terhubung ke server.', true); return; }
+    if (!r.ok) { if (r.tanpaPo) { r = {ok: true}; } else { toast(r.msg || 'Gagal.', true); return; } }
+    var d = document.createElement('div'); d.id = 'trkm';
+    d.innerHTML = '<div><h3 style="margin-top:0">Detail ' + esc(ppbj) + (r.proyek ? ' · ' + esc(r.proyek) : '') + '</h3>' + garisHtml(r) + '<div class="fr"><button class="gh" id="dtp">Buka Perjalanan lengkap</button><button class="gh" id="dtx">Tutup</button></div></div>';
+    document.body.appendChild(d); d.onclick = function (e) { if (e.target === d) d.remove(); }; $('dtx').onclick = function () { d.remove(); }; $('dtp').onclick = function () { d.remove(); jalan(ppbj); };
   }
   /** Admin utama: PPBJ yang memang tidak butuh PO (mis. barang dari stok). Alasan wajib; PO yang diunggah kemudian melepas tanda otomatis. */
   async function tandaiTanpaPo(ppbj) {
@@ -696,12 +760,36 @@
     $('rwx').onclick = function () { ov.remove(); };
   }
   /* ---------- Stok menipis ---------- */
+  /* ---------- Stok menipis: kekurangan material dari PPBJ terdaftar (hanya lihat dan unduh) ---------- */
+  var MN = {v: 'proyek', q: '', r: null};
+  function qs(n) { return String(n == null ? '' : n).replace('.', ','); }
   async function menipis() {
     app.innerHTML = U.nav('menipis') + '<div class="msg">Memuat...</div>'; U.pasangNav();
-    var r; try { r = await api({action: 'stokMenipis'}); } catch (e) { toast('Gagal terhubung ke server.', true); return; } if (!r.ok) { toast(r.msg || 'Gagal.', true); return; }
-    app.innerHTML = U.nav('menipis') + '<div class="card"><h3 style="margin-top:0">Stok menipis</h3><div class="note">Dihitung dari pola serah keluar ' + r.periode + ' hari terakhir. Muncul bila stok diperkirakan habis dalam ' + r.ambang + ' hari. Barang dengan serah keluar kurang dari 3 kali tidak ikut dihitung. Ini perkiraan, bukan perintah beli.</div>' +
-      (r.data.length ? '<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Stok</th><th class="nm">Pakai per hari</th><th class="nm">Cukup untuk</th><th class="nm">Pesanan belum datang</th><th>Status</th></tr></thead><tbody>' + r.data.map(function (x) { return '<tr><td>' + esc(x.nama) + '<small>' + esc(x.kode) + '</small></td><td class="nm">' + angka(x.stok) + ' ' + esc(x.satuan) + '</td><td class="nm">' + String(x.pakaiPerHari).replace('.', ',') + '</td><td class="nm">' + String(x.sisaHari).replace('.', ',') + ' hari</td><td class="nm">' + angka(x.poTerbuka) + '</td><td><span class="tag ' + (x.status === 'Perlu dipesan' ? 'bad' : 'ok') + '">' + esc(x.status) + '</span></td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Tidak ada barang yang diperkirakan habis dalam waktu dekat.</div>') + '</div>';
-    U.pasangNav();
+    var r; try { r = await api({action: 'stokMenipis'}); } catch (e) { toast('Gagal terhubung ke server.', true); return; } if (!r.ok) { toast(r.msg || 'Gagal.', true); app.innerHTML = U.nav('menipis') + '<div class="card err">' + esc(r.msg || 'Gagal.') + '</div>'; U.pasangNav(); return; }
+    MN.r = r; gambarMenipis();
+  }
+  function seksiProyek(P) { return {judul: 'PPBJ ' + P.ppbj, kolom: ['Kode', 'Barang', 'Satuan', 'Dibutuhkan', 'Stok bebas', 'Kurang', 'Status', 'Pesanan'], baris: P.items.map(function (i) { return [i.kode, i.nama, i.satuan, i.butuh, i.bebas, i.kurang, i.status === 'Rebutan' ? 'Rebutan antar proyek' : 'Kurang', i.pesanan]; })}; }
+  function seksiBeli(r) { return {judul: 'Total beli', kolom: ['Kode', 'Barang', 'Satuan', 'Total dibutuhkan', 'Stok bebas', 'Perlu dibeli', 'Perkiraan nilai', 'Catatan'], baris: r.beli.map(function (b) { return [b.kode, b.nama, b.satuan, b.total, b.bebas, b.kurang, b.nilai == null ? '' : b.nilai, b.rebutan ? 'Rebutan antar proyek' : '']; })}; }
+  function gambarMenipis() {
+    var r = MN.r, q = (MN.q || '').toLowerCase(), g = r.ringkas;
+    var pr = r.proyek.filter(function (P) { return !q || (P.ppbj + ' ' + P.ket + ' ' + P.dept + ' ' + P.items.map(function (i) { return i.nama; }).join(' ')).toLowerCase().indexOf(q) >= 0; });
+    var bl = r.beli.filter(function (b) { return !q || (b.nama + ' ' + b.kode).toLowerCase().indexOf(q) >= 0; });
+    var tagS = function (st) { return st === 'Rebutan' ? '<span class="tag w">Rebutan</span>' : '<span class="tag bad">Kurang</span>'; }, tagP = function (t) { return '<span class="tag ' + (t === 'Sudah dipesan' || t === 'Sudah datang' ? 'ok' : t === 'Sebagian datang' ? 'w' : 'n') + '">' + esc(t) + '</span>'; };
+    var isi = MN.v === 'proyek'
+      ? (pr.length ? pr.map(function (P, ix) { return '<div class="card"><b>' + esc(P.ppbj) + '</b> · ' + esc(P.ket) + (P.dept ? ' <small>' + esc(P.dept) + '</small>' : '') + ' <span class="tag bad">' + P.nKurang + ' kurang</span>' + (P.nRebutan ? ' <span class="tag w">' + P.nRebutan + ' rebutan</span>' : '') +
+          '<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Dibutuhkan</th><th class="nm">Stok bebas</th><th class="nm">Kurang</th><th>Status</th><th>Pesanan</th></tr></thead><tbody>' + P.items.map(function (i) { return '<tr><td>' + esc(i.nama) + '<small>' + esc(i.kode) + '</small></td><td class="nm">' + qs(i.butuh) + ' ' + esc(i.satuan) + '</td><td class="nm">' + qs(i.bebas) + '</td><td class="nm"><b>' + qs(i.kurang) + '</b></td><td>' + tagS(i.status) + '</td><td>' + tagP(i.pesanan) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
+          '<div class="fr"><button class="gh" data-mx="' + ix + '">Unduh Excel</button><button class="gh" data-mp="' + ix + '">Unduh PDF</button></div></div>'; }).join('') : '<div class="card"><div class="note">' + (q ? 'Tidak ada proyek yang cocok.' : 'Tidak ada proyek aktif yang kekurangan material.') + '</div></div>')
+      : '<div class="card">' + (bl.length ? '<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Total dibutuhkan</th><th class="nm">Stok bebas</th><th class="nm">Perlu dibeli</th><th class="nm">Perkiraan nilai</th><th>Catatan</th></tr></thead><tbody>' + bl.map(function (b) { return '<tr><td>' + esc(b.nama) + '<small>' + esc(b.kode) + '</small></td><td class="nm">' + qs(b.total) + ' ' + esc(b.satuan) + '</td><td class="nm">' + qs(b.bebas) + '</td><td class="nm"><b>' + qs(b.kurang) + '</b></td><td class="nm">' + (b.nilai == null ? '-' : rp(b.nilai)) + '</td><td>' + (b.rebutan ? '<span class="tag w">Rebutan antar proyek</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Tidak ada barang yang perlu dibeli.</div>') + '</div>';
+    app.innerHTML = U.nav('menipis') + '<div class="card"><h3 style="margin-top:0">Stok menipis <span class="tag ' + (g.barang ? 'bad' : 'ok') + '">' + g.barang + ' barang perlu dibeli</span></h3><div class="note">Kekurangan material dari PPBJ yang terdaftar (status Aktif atau Ditunda Sebentar): kebutuhan proyek dikurangi yang sudah diserahkan dan dialokasikan, dibandingkan dengan stok bebas. Tab ini hanya untuk melihat dan mengunduh; pembelian tetap diproses lewat PPBJ dan PO. <b>Rebutan</b> = stok cukup untuk satu proyek tetapi tidak untuk semua proyek yang membutuhkan.</div>' +
+      '<div class="sum"><div><b>' + g.proyek + '</b><span>Proyek kurang</span></div><div><b>' + g.barang + '</b><span>Barang perlu dibeli</span></div><div><b>' + g.rebutan + '</b><span>Rebutan</span></div><div><b>' + rp(g.nilai) + '</b><span>Perkiraan nilai' + (g.tanpaHarga ? ' (' + g.tanpaHarga + ' barang tanpa harga)' : '') + '</span></div></div>' +
+      '<div class="fr"><select id="mnv"><option value="proyek">Per proyek</option><option value="beli">Total beli</option></select><input type="search" id="mnq" placeholder="Cari proyek, PPBJ, atau barang" value="' + esc(MN.q) + '" style="flex:1;min-width:180px"><button class="gh" id="mnxa">Unduh Excel (semua)</button><button class="gh" id="mnpa">Unduh PDF (total beli)</button><button class="sv" id="mnsl"' + (r.pesan ? '' : ' disabled') + '>Salin pesan untuk tim gudang</button></div></div>' + isi;
+    U.pasangNav(); $('mnv').value = MN.v; $('mnv').onchange = function () { MN.v = this.value; gambarMenipis(); };
+    $('mnq').onkeydown = function (e) { if (e.key === 'Enter') { MN.q = this.value.trim(); gambarMenipis(); var e2 = $('mnq'); if (e2) { e2.focus(); e2.setSelectionRange(e2.value.length, e2.value.length); } } };
+    $('mnsl').onclick = function () { salinTeks(r.pesan); };
+    $('mnxa').onclick = function () { unduhBanyak([seksiBeli(r)].concat(r.proyek.map(seksiProyek)), NB.buat('xlsx', 'Kebutuhan Material', 'Semua PPBJ Aktif')); };
+    $('mnpa').onclick = function () { U.unduhPdf('Kebutuhan Material - Total Beli', 'Barang yang perlu dibeli dari semua PPBJ aktif', [seksiBeli(r)], NB.buat('pdf', 'Kebutuhan Material', 'Total Beli')); };
+    Array.prototype.forEach.call(app.querySelectorAll('button[data-mx]'), function (b) { b.onclick = function () { var P = pr[Number(b.getAttribute('data-mx'))]; unduhBanyak([seksiProyek(P)], NB.buat('xlsx', 'Kebutuhan Material', 'PPBJ ' + P.ppbj, P.ket)); }; });
+    Array.prototype.forEach.call(app.querySelectorAll('button[data-mp]'), function (b) { b.onclick = function () { var P = pr[Number(b.getAttribute('data-mp'))]; U.unduhPdf('Kebutuhan Material - PPBJ ' + P.ppbj, P.ket, [seksiProyek(P)], NB.buat('pdf', 'Kebutuhan Material', 'PPBJ ' + P.ppbj, P.ket)); }; });
   }
   /* ---------- Pantau (admin utama) ---------- */
   var PT = {dari: '', sampai: ''};

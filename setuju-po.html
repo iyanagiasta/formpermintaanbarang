@@ -46,6 +46,7 @@ function gambar(){
     return '<tr><td>'+x.no+'</td><td>'+esc(x.nama)+(x.jenis==="Jasa"?' <span class="mut">(jasa)</span>':'')+'</td><td class="nm">'+esc(String(x.qty).replace(".",","))+' '+esc(x.satuan)+'</td><td class="nm">'+rp(x.harga)+'</td><td class="nm">'+(x.hargaAng?rp(x.hargaAng):'<span class="mut">-</span>')+'</td><td class="nm">'+s+'</td><td class="nm">'+rp(x.total)+'</td></tr>';}).join("")+'</tbody></table></div>'+
    '<p class="mut">Harga PO sudah termasuk PPN. Harga PPBJ = harga anggaran pada PPBJ awal. Selisih positif (merah) berarti PO lebih mahal dari anggaran.</p>'+
    '<p>Harga jual '+rp(rg.hargaJual)+' · PPN '+rp(rg.ppn)+(Number(rg.diskon)?' · Diskon '+rp(rg.diskon):'')+(Number(rg.biayaLain)?' · Biaya lain '+rp(rg.biayaLain)+'':'')+' · <b>Total '+rp(rg.total)+'</b></p></div>';
+  if(D.lampiran&&D.lampiran.length)h+='<div class="card"><b>Lampiran ('+D.lampiran.length+')</b>'+D.lampiran.map(function(f){return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid #e3e8ec"><span>'+esc(f.nama)+(f.ket?'<br><small class="mut">'+esc(f.ket)+'</small>':'')+'</span><button data-lf="'+esc(f.id)+'">Buka</button></div>';}).join("")+'</div>';
   if(D.versiLama&&D.versiLama.length)h+='<div class="card"><b>Riwayat revisi</b>'+D.versiLama.map(function(v){return '<div class="mut">Versi '+v.versi+' diganti '+esc(v.waktu)+' oleh '+esc(v.oleh)+': '+esc(v.alasan)+' ('+esc(v.ringkas)+')</div>';}).join("")+'</div>';
   if(D.bisa){
     h+='<div class="card"><b>Keputusan Anda</b>'+(D.status!=="Menunggu persetujuan"?'<div class="mut">PO sudah berjalan atas izin sebelumnya; tanda tangan Anda menyusul.</div>':'')+'<p><textarea id="cat" placeholder="Catatan (wajib bila menolak)"></textarea></p><button class="ok" id="bs">SETUJU</button> <button class="no" id="bt">TOLAK</button><div id="inf" class="mut" style="margin-top:8px"></div></div>';
@@ -53,6 +54,15 @@ function gambar(){
     h+='<div class="card"><b>Status: '+esc(D.status)+'</b>'+(p.penyetuju?'<div class="mut">Diputuskan oleh '+esc(p.penyetuju)+' · '+esc(p.wPutus)+(p.cPutus?' · '+esc(p.cPutus):'')+'</div>':'')+'</div>';
   }
   app.innerHTML=h;
+  Array.prototype.forEach.call(app.querySelectorAll("button[data-lf]"),function(b){b.onclick=async function(){
+    b.disabled=true;
+    try{var r=await api({action:"poSetujuFile",no:NO,t:T,fileId:b.getAttribute("data-lf")});if(!r.ok){alert(r.msg||"Gagal membuka lampiran.");b.disabled=false;return;}
+      var bin=atob(r.data),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+      var url=URL.createObjectURL(new Blob([u],{type:r.mime||"application/octet-stream"})),a=document.createElement("a");a.href=url;
+      if(/^(application\/pdf|image\/)/.test(r.mime||"")){a.target="_blank";a.rel="noopener";}else{a.download=r.nama||"lampiran";}
+      document.body.appendChild(a);a.click();a.remove();
+    }catch(e){alert("Gagal membuka lampiran.");}
+    b.disabled=false;};});
   if(D.bisa){document.getElementById("bs").onclick=function(){putus("setuju");};document.getElementById("bt").onclick=function(){putus("tolak");};}
 }
 async function putus(k){

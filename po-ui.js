@@ -58,6 +58,23 @@
     U.pasangNav();
     $('pob').onclick = baca;
   }
+  var LAMP_OFFICE = {xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel', doc: 'application/msword'};
+  /* Lampiran bebas: PDF, foto (dikecilkan), Excel, Word. Maksimal 5 berkas. */
+  async function siapLampiran(files) {
+    files = Array.prototype.slice.call(files || []); if (files.length > 5) throw new Error('Maksimal 5 lampiran.');
+    var out = [], tot = 0;
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i], em = /\.([A-Za-z0-9]+)$/.exec(f.name), ex = em ? em[1].toLowerCase() : '';
+      if (LAMP_OFFICE[ex]) {
+        if (f.size > 15 * 1048576) throw new Error(f.name + ' lebih dari 15 MB.');
+        var d = await blobB64(f); tot += d.length; out.push({nama: f.name, mime: LAMP_OFFICE[ex], data: d});
+      } else {
+        var o = (await siapFile([f]))[0]; tot += o.data.length; out.push(o);
+      }
+    }
+    if (tot > 28000000) throw new Error('Total lampiran terlalu besar (maksimal sekitar 20 MB).');
+    return out;
+  }
   async function baca() {
     var f = $('pof').files && $('pof').files[0]; if (!f) { toast('Pilih file PDF PO dulu.', true); return; }
     if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') { toast('File harus PDF.', true); return; }
@@ -92,6 +109,7 @@
     pv.rows.forEach(function (x, i) { h += '<tr data-i="' + i + '"><td>' + x.no + '</td><td>' + esc(x.nama) + '</td><td class="nm">' + esc(String(x.qty).replace('.', ',')) + ' ' + esc(x.satuan || '') + '</td><td class="nm">' + angka(x.harga) + '</td><td class="nm">' + angka(x.hargaNet) + '</td><td id="pj' + i + '"></td><td id="pk' + i + '"></td></tr>'; });
     h += '</tbody></table></div><datalist id="podl">' + (BR || []).map(function (b) { return '<option value="' + esc(b.nama) + '">' + esc(b.kode) + '</option>'; }).join('') + '</datalist>';
     h += (pv.duplikat && pv.duplikat.ada) ? '' : '<div class="fr"><label><input type="radio" name="pomd" value="baru" checked> PO baru (barang belum datang)</label><label><input type="radio" name="pomd" value="lama"> PO lama (barang sudah datang, stok tidak ditambah)</label></div>';
+    h += '<div class="note" style="margin-top:10px"><b>Lampiran (opsional)</b><br>Mis. penawaran vendor atau dokumen pendukung. PDF, foto, Excel, atau Word; maksimal 5 berkas. Penyetuju ikut melihatnya.<br><input type="file" id="polamp" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.docx,.doc,application/pdf,image/*"></div>';
     h += '<div id="poinfo" class="note"></div><div class="fr"><button class="sv" id="posv">' + ((pv.duplikat && pv.duplikat.ada) ? 'Simpan revisi PO' : 'Simpan PO') + '</button><button class="gh" id="pobt">Batal</button></div></div>';
     $('pov').innerHTML = h;
     pv.rows.forEach(function (x, i) { barisUi(i); });
@@ -129,11 +147,14 @@
     var mirip = 0; pv.rows.forEach(function (x, i) { if (x.cocok === 'mirip' && S.pil[i].jenis === 'Barang' && S.pil[i].kode && S.pil[i].kode !== x.kode) mirip++; });
     S.busy = true; status(); $('poinfo').textContent = 'Menyiapkan file...';
     try {
-      var fl = await siapFile([S.file]); $('poinfo').textContent = 'Menyimpan...';
+      var fl = await siapFile([S.file]), lamp = await siapLampiran($('polamp') ? $('polamp').files : []); $('poinfo').textContent = 'Menyimpan...';
       var baris = S.pil.map(function (p) { return p.jenis === 'Jasa' ? {jenis: 'Jasa'} : (p.kode ? {jenis: 'Barang', kode: p.kode} : {jenis: 'Barang', tanpaKode: true}); });
-      var r = rev ? await api({action: 'poRevisi', po: S.po, baris: baris, files: fl, alasan: $('poalasan').value.trim()}) : await api({action: 'poSimpan', po: S.po, baris: baris, files: fl, mode: S.mode});
+      var r = rev ? await api({action: 'poRevisi', po: S.po, baris: baris, files: fl, alasan: $('poalasan').value.trim()}) : await api({action: 'poSimpan', po: S.po, baris: baris, files: fl, lampiran: lamp, mode: S.mode});
       if (!r.ok) { toast(r.msg || 'Gagal menyimpan.', true); $('poinfo').innerHTML = '<span class="err">' + esc(r.msg || 'Gagal menyimpan.') + '</span>'; }
-      else { toast(r.msg || 'PO tersimpan.'); S.busy = false; await muat(); U.tampil('daftar'); return; }
+      else {
+        var pesan = r.msg || 'PO tersimpan.';
+        if (rev && lamp.length) { try { var rl = await api({action: 'poLampir', no: S.po.no || S.po.header && S.po.header.no, lampiran: lamp}); if (!rl.ok) pesan += ' Lampiran belum tersimpan: ' + (rl.msg || ''); } catch (e2) { pesan += ' Lampiran belum tersimpan.'; } }
+        toast(pesan); S.busy = false; await muat(); U.tampil('daftar'); return; }
     } catch (e) { toast(e.message || 'Gagal.', true); }
     S.busy = false; if ($('posv')) status();
   }
@@ -163,11 +184,17 @@
       '<div class="tw"><table><thead><tr><th>No</th><th>Nama di PO</th><th>Jenis</th><th>Kode</th><th class="nm">Qty</th><th class="nm">Harga PO</th><th class="nm">Harga PPBJ</th><th class="nm">Selisih</th><th class="nm">Sebelum PPN</th><th class="nm">Total</th></tr></thead><tbody>' + S.det.rows.map(function (x) { return '<tr><td>' + x.no + '</td><td>' + esc(x.nama) + (x.namaSistem && x.namaSistem !== x.nama ? '<small>Di sistem: ' + esc(x.namaSistem) + '</small>' : '') + '</td><td>' + esc(x.jenis) + '</td><td>' + esc(x.kode || '-') + '</td><td class="nm">' + esc(String(x.qty).replace('.', ',')) + ' ' + esc(x.satuan) + '</td><td class="nm">' + angka(x.harga) + '</td><td class="nm">' + (x.hargaAng ? angka(x.hargaAng) : '-') + '</td><td class="nm">' + (x.selisih === null || x.selisih === undefined ? '-' : '<span style="' + (x.selisih > 0 ? 'color:#a82424;font-weight:700' : '') + '">' + (x.selisih > 0 ? '+' : '') + String(x.selisih).replace('.', ',') + '%</span>') + '</td><td class="nm">' + angka(x.hargaNet) + '</td><td class="nm">' + angka(x.total) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
       (S.det.versiLama && S.det.versiLama.length ? '<div class="note"><b>Riwayat revisi:</b> ' + S.det.versiLama.map(function (v) { return 'versi ' + v.versi + ' diganti ' + esc(v.waktu) + ' oleh ' + esc(v.oleh) + ' (' + esc(v.alasan) + ')'; }).join('; ') + '</div>' : '') +
       '<div class="note">Harga jual ' + rp(rg.hargaJual) + ' · PPN ' + rp(rg.ppn) + ' · <b>Total ' + rp(rg.total) + '</b></div>' +
-      '<h3 style="margin:10px 0 4px">File PO</h3><div>' + (S.det.files.length ? S.det.files.map(function (f) { return '<div class="at"><span>' + esc(f.nama) + '<br><small>' + esc(f.oleh || '') + ' ' + esc(f.waktu || '') + '</small></span><button class="gh" data-f="' + esc(f.id) + '">Unduh</button></div>'; }).join('') : '<div class="note">Belum ada file.</div>') + '</div>' +
-      '<div class="fr"><input type="file" id="pol" accept="application/pdf,.pdf"><button class="gh" id="polb">Tambah PDF</button></div></div>';
+      '<h3 style="margin:10px 0 4px">File PO</h3><div>' + (S.det.files.length ? S.det.files.map(function (f) { return '<div class="at"><span>' + (f.lampiran ? '<b>[Lampiran]</b> ' : '') + esc(f.nama) + '<br><small>' + esc(f.oleh || '') + ' ' + esc(f.waktu || '') + '</small></span><button class="gh" data-f="' + esc(f.id) + '">Unduh</button></div>'; }).join('') : '<div class="note">Belum ada file.</div>') + '</div>' +
+      '<div class="fr"><input type="file" id="pol" accept="application/pdf,.pdf"><button class="gh" id="polb">Tambah PDF</button></div>' +
+      '<div class="fr"><input type="file" id="pola" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.docx,.doc"><button class="gh" id="polab">Tambah lampiran</button></div></div>';
     Array.prototype.forEach.call(box.querySelectorAll('button[data-f]'), function (b) { b.onclick = function () { unduh(m.no, b.getAttribute('data-f'), b); }; });
     Array.prototype.forEach.call(box.querySelectorAll('button[data-a]'), function (b) { b.onclick = function () { aksi(m, b.getAttribute('data-a'), b); }; });
     var rb = document.createElement('div'); rb.className = 'fr'; rb.innerHTML = '<button class="gh" id="rwl">Riwayat lengkap PO ini</button>'; box.firstChild.appendChild(rb); $('rwl').onclick = function () { riwayat('po', m.no); };
+    $('polab').onclick = async function () {
+      var fs = $('pola').files; if (!fs || !fs.length) { toast('Pilih lampiran dulu.', true); return; } this.disabled = true;
+      try { var lp = await siapLampiran(fs); var r = await api({action: 'poLampir', no: m.no, lampiran: lp}); toast(r.msg || (r.ok ? 'Tersimpan.' : 'Gagal.'), !r.ok); if (r.ok) detail(m.no); } catch (e) { toast(e.message || 'Gagal.', true); }
+      this.disabled = false;
+    };
     $('polb').onclick = async function () {
       var f = $('pol').files && $('pol').files[0]; if (!f) { toast('Pilih PDF dulu.', true); return; } this.disabled = true;
       try { var fl = await siapFile([f]); var r = await api({action: 'poLampir', no: m.no, files: fl}); toast(r.msg || (r.ok ? 'Tersimpan.' : 'Gagal.'), !r.ok); if (r.ok) detail(m.no); } catch (e) { toast(e.message || 'Gagal.', true); }

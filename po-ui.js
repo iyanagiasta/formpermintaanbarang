@@ -4,15 +4,16 @@
 (function (root) {
   'use strict';
   var U = {}, S = {tab: 'beli', pv: null, po: null, file: null, pil: [], mode: 'baru', busy: false, lst: null, ven: null, det: null};
-  var BR = null;
+  var BR = null, E_ = {};
+  U.ekstra = E_;
 
   function $(id) { return document.getElementById(id); }
   function tgl(s) { var m = /^(\d{4})-(\d\d)-(\d\d)/.exec(String(s || '')); return m ? m[3] + '/' + m[2] + '/' + m[1] : String(s || ''); }
   function angka(n) { return Math.round(Number(n) || 0).toLocaleString('id-ID'); }
 
   var BD = {}, TABGRUP = {po_tunggu: 'daftar', po_jalan: 'daftar', po_kirim: 'daftar', po_datang: 'daftar', klaim: 'klaim', umo_ppbj: 'umo', umo_real: 'umo', umo_ttd: 'umo', umo_tolak: 'umo', revisi: 'revisi', termin: 'termin', harga_mahal: 'harga'};
-  var NAVGRP = [['Kerja', [['antrean', 'Antrean'], ['papan', 'Papan PPBJ']]], ['PO', [['unggah', 'Unggah PO'], ['daftar', 'Daftar PO'], ['harga', 'Harga di atas anggaran'], ['rekap', 'Rekap dan laporan']]],
-    ['Barang datang', [['beli', 'Pembelian'], ['akan', 'Akan datang'], ['klaim', 'Klaim vendor'], ['jalan', 'Perjalanan PPBJ'], ['menipis', 'Stok menipis']]], ['Uang dan proyek', [['umo', 'UMO'], ['termin', 'Jasa termin'], ['revisi', 'Revisi PPBJ'], ['boq', 'BOQ']]], ['Data', [['vendor', 'Vendor']]]];
+  var NAVGRP = [['Kerja', [['antrean', 'Hari ini'], ['papan', 'Papan PPBJ']]], ['PO', [['unggah', 'Unggah PO'], ['daftar', 'Daftar PO'], ['harga', 'Harga di atas anggaran'], ['rekap', 'Rekap dan laporan'], ['berkas', 'Berkas PO'], ['tutup', 'Penutupan bulan']]],
+    ['Barang datang', [['beli', 'Pembelian'], ['akan', 'Akan datang'], ['klaim', 'Klaim vendor'], ['jadwal', 'Jadwal datang'], ['jalan', 'Perjalanan PPBJ'], ['menipis', 'Stok menipis']]], ['Uang dan proyek', [['kokpit', 'Kokpit biaya'], ['umo', 'UMO'], ['termin', 'Jasa termin'], ['revisi', 'Revisi PPBJ'], ['boq', 'BOQ']]], ['Data', [['vendor', 'Vendor']]]];
   function gaya() {
     if ($('pogaya')) return; var s = document.createElement('style'); s.id = 'pogaya';
     s.textContent = '#potabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}#potabs .gl{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);margin:0 2px 0 10px}#potabs .bd{font-style:normal;background:#c0392b;color:#fff;border-radius:9px;padding:0 6px;font-size:11px;margin-left:4px}.po-alat{margin:6px 0}.po-alat input{flex:1;min-width:180px}#trkm{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:80;display:flex;align-items:center;justify-content:center;padding:12px}#trkm>div{background:var(--card);color:var(--ink);border-radius:10px;padding:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto}';
@@ -34,18 +35,18 @@
     if (!S.obs && typeof MutationObserver !== 'undefined') { S.obs = new MutationObserver(function () { clearTimeout(S.ot); S.ot = setTimeout(U.alat, 60); }); S.obs.observe(app, {childList: true, subtree: true}); }
     U.alat();
   };
-  function setBadge(r) { BD = {antrean: r.total || 0}; (r.grup || []).forEach(function (g) { var t = TABGRUP[g.kunci]; if (t) BD[t] = (BD[t] || 0) + g.n; }); }
+  function setBadge(r) { BD = {antrean: r.total || 0}; if (r.perTab) { Object.keys(r.perTab).forEach(function (t) { BD[({hargamahal: 'harga'})[t] || t] = r.perTab[t]; }); return; } (r.grup || []).forEach(function (g) { var t = TABGRUP[g.kunci]; if (t) BD[t] = (BD[t] || 0) + g.n; }); }
   U.muatBadge = async function () {
     if (!bisa('input')) return;
     try {
-      var r = await api({action: 'pengAntrean'}); if (!r.ok) return; setBadge(r); var nb = $('potabs');
+      var r = await api({action: 'hariIni'}); if (!r.ok) return; setBadge(r); var nb = $('potabs');
       if (nb) { var on = nb.querySelector('button.on'), tmp = document.createElement('div'); tmp.innerHTML = U.nav(on ? on.getAttribute('data-t') : ''); if (tmp.firstChild) { nb.parentNode.replaceChild(tmp.firstChild, nb); U.pasangNav(); } }
     } catch (e) { /* angka di tab bersifat tambahan */ }
   };
   U.tampil = function (tab) {
     tab = ({hargamahal: 'harga'})[tab] || tab; S.tab = tab;
     if (tab === 'beli') { tampilList(); return; }
-    var f = {antrean: antrean, papan: papan, unggah: unggah, daftar: daftar, harga: harga, rekap: rekap, akan: akan, klaim: klaim, jalan: function () { return jalan(''); }, umo: umo, termin: termin, revisi: revisi, boq: function () { return boq(''); }, vendor: vendor, atur: atur, jejak: jejak, pantau: pantau, sehat: sehat, menipis: menipis}[tab];
+    var f = {antrean: antrean, papan: papan, unggah: unggah, daftar: daftar, harga: harga, rekap: rekap, akan: akan, klaim: klaim, jalan: function () { return jalan(''); }, umo: umo, termin: termin, revisi: revisi, boq: function () { return boq(''); }, vendor: function () { return E_.vendor ? E_.vendor('') : vendor(); }, kokpit: function () { return E_.kokpit(); }, berkas: function () { return E_.berkas(); }, jadwal: function () { return E_.jadwal(); }, tutup: function () { return E_.tutup(); }, atur: atur, jejak: jejak, pantau: pantau, sehat: sehat, menipis: menipis}[tab];
     if (f) return f();
   };
 
@@ -200,6 +201,7 @@
       try { var fl = await siapFile([f]); var r = await api({action: 'poLampir', no: m.no, files: fl}); toast(r.msg || (r.ok ? 'Tersimpan.' : 'Gagal.'), !r.ok); if (r.ok) detail(m.no); } catch (e) { toast(e.message || 'Gagal.', true); }
       this.disabled = false;
     };
+    if (U.catatanPasang) U.catatanPasang(box, 'PO', m.no);
     box.scrollIntoView && box.scrollIntoView({behavior: 'smooth', block: 'start'});
   }
   function aksiPo(m) {
@@ -215,10 +217,10 @@
     var body;
     if (a === 'minta') body = {action: 'poMinta', no: m.no};
     else if (a === 'jalan') { var iz = prompt('PO akan berjalan dulu tanpa tanda tangan penyetuju. Siapa yang mengizinkan?'); if (!iz) return; body = {action: 'poIzinJalan', no: m.no, izin: iz}; }
-    else if (a === 'kirim') { var t = prompt('Tanggal dikirim ke vendor (YYYY-MM-DD):', new Date().toISOString().slice(0, 10)); if (!t) return; body = {action: 'poKirimVendor', no: m.no, tgl: t}; }
+    else if (a === 'kirim') { var t = prompt('Tanggal dikirim ke vendor (YYYY-MM-DD):', new Date().toISOString().slice(0, 10)); if (!t) return; body = {action: 'poKirimVendor', no: m.no, tgl: t}; var jj = prompt('Vendor berjanji barang tiba tanggal berapa? (YYYY-MM-DD, kosongkan bila tidak ada janji)', ''); if (jj && /^\d{4}-\d{2}-\d{2}$/.test(jj.trim())) body.janjiTiba = jj.trim(); }
     else if (a === 'batal') { var al = prompt('Alasan membatalkan PO ' + m.no + ' (wajib):'); if (!al || !al.trim()) return; if (!confirm('Batalkan PO ' + m.no + '? Pembelian terkait juga dibatalkan dan tidak bisa dipulihkan.')) return; body = {action: 'poBatal', no: m.no, alasan: al}; }
     btn.disabled = true;
-    try { var r = await api(body); toast(r.msg || (r.ok ? 'Selesai.' : 'Gagal.'), !r.ok); if (r.ok) { await daftar(); detail(m.no); return; } } catch (e) { toast('Gagal terhubung ke server.', true); }
+    try { var jt = body.janjiTiba; delete body.janjiTiba; var r = await api(body); if (r.ok && jt) { try { await api({action: 'venCatat', vendor: m.vendor, isi: 'Janji tiba saat PO dikirim', janji: jt, po: m.no}); } catch (e0) { /* catatan janji tambahan */ } } toast(r.msg || (r.ok ? 'Selesai.' : 'Gagal.'), !r.ok); if (r.ok) { await daftar(); detail(m.no); return; } } catch (e) { toast('Gagal terhubung ke server.', true); }
     btn.disabled = false;
   }
   async function unduh(no, fid, btn) {
@@ -498,9 +500,9 @@
   /* ---------- Antrean kerja harian (Tambahan 55) ---------- */
   async function antrean() {
     app.innerHTML = U.nav('antrean') + '<div class="msg">Memuat...</div>'; U.pasangNav();
-    var r; try { r = await api({action: 'pengAntrean'}); } catch (e) { toast('Gagal terhubung ke server.', true); return; }
+    var r; try { r = await api({action: 'hariIni'}); } catch (e) { toast('Gagal terhubung ke server.', true); return; }
     if (!r.ok) { toast(r.msg || 'Gagal.', true); return; }
-    setBadge(r); var h = '<div class="card"><h3 style="margin-top:0">Antrean kerja Pengadaan <span class="tag ' + (r.total ? 'bad' : 'ok') + '">' + r.total + ' perlu tindakan</span></h3><div class="note">Daftar ini dihitung ulang setiap dibuka. Tekan "Buka" untuk menuju layar yang sesuai.</div></div>';
+    setBadge(r); var h = '<div class="card"><h3 style="margin-top:0">Hari ini: yang perlu Anda tindak <span class="tag ' + (r.total ? 'bad' : 'ok') + '">' + r.total + ' perlu tindakan</span></h3><div class="note">Daftar ini dihitung ulang setiap dibuka. Tekan "Buka" untuk menuju layar yang sesuai.</div></div>';
     r.grup.forEach(function (g) {
       if (!g.n) return;
       h += '<div class="card"><h3 style="margin-top:0">' + esc(g.judul) + ' <span class="tag w">' + g.n + '</span> <button class="gh" data-ab="' + esc(g.tab) + '">Buka</button></h3>' + (g.info ? '<div class="note">' + esc(g.info) + '</div>' : '') +
@@ -727,13 +729,13 @@
   /* ---------- Pencarian lintas dokumen ---------- */
   async function cari(q) {
     app.innerHTML = U.nav('') + '<div class="msg">Mencari...</div>'; U.pasangNav(); if ($('pocq')) $('pocq').value = q;
-    var r; try { r = await api({action: 'pengCari', q: q}); } catch (e) { toast('Gagal terhubung ke server.', true); return; } if (!r.ok) { toast(r.msg || 'Gagal.', true); return; }
+    var r; try { r = await api({action: 'cariSemua', q: q}); } catch (e) { toast('Gagal terhubung ke server.', true); return; } if (!r.ok) { toast(r.msg || 'Gagal.', true); return; }
     app.innerHTML = U.nav('') + '<div class="card"><h3 style="margin-top:0">Hasil pencarian "' + esc(q) + '" <span class="tag n">' + r.total + '</span></h3><div class="note">Toleran salah ketik dan penulisan nomor ("022 pb x" menemukan 022/PB/X/2026).</div></div>' +
       (r.grup.length ? r.grup.map(function (g) { return '<div class="card"><b>' + esc(g.jenis) + '</b> <span class="tag n">' + g.hasil.length + '</span>' + g.hasil.map(function (x) { return '<div class="at"><span><b>' + esc(x.judul) + '</b><br><small>' + esc(x.ket) + '</small></span><button class="gh" data-cj="' + esc(g.tab) + '" data-cr="' + esc(x.ref) + '">Buka</button></div>'; }).join('') + '</div>'; }).join('') : '<div class="card"><div class="note">Tidak ada yang cocok. Coba kata yang lebih pendek.</div></div>');
     U.pasangNav(); if ($('pocq')) $('pocq').value = q;
     Array.prototype.forEach.call(app.querySelectorAll('button[data-cj]'), function (b) { b.onclick = function () { lompat(b.getAttribute('data-cj'), b.getAttribute('data-cr')); }; });
   }
-  function lompat(tab, ref) { if (tab === 'daftar') { daftar().then(function () { detail(ref); }); } else if (tab === 'jalan') jalan(ref); else U.tampil(tab); }
+  function lompat(tab, ref) { if (tab === 'daftar') { daftar().then(function () { detail(ref); }); } else if (tab === 'jalan') jalan(ref); else if (tab === 'vendor') E_.vendor(ref); else if (tab === 'boq') boq(ref); else U.tampil(tab); }
   /* ---------- Papan: mengapa belum datang ---------- */
   var PN = {f: 'macet', b: '', data: [], admin: false};
   var BOLAKLS = {Pengadaan: 'w', Penyetuju: 'n', Vendor: 'bad', Gudang: 'w'};
@@ -905,6 +907,7 @@
       '<div class="card"><h3 style="margin-top:0">Hal yang perlu perhatian</h3>' + (r.perhatian.length ? '<div class="tw"><table><thead><tr><th>Waktu</th><th>Siapa</th><th>Kejadian</th><th>Referensi</th><th>Hasil</th></tr></thead><tbody>' + r.perhatian.map(function (x) { return '<tr><td>' + esc(x.waktu) + '</td><td>' + esc(x.siapa) + '</td><td>' + esc(x.label) + '</td><td>' + esc(x.ref) + (x.ref ? ' <a href="#" data-rw="' + esc(x.ref) + '">riwayat</a>' : '') + '</td><td>' + esc(x.hasil) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Tidak ada.</div>') + '</div>' +
       '<div class="card"><h3 style="margin-top:0">Aktivitas harian</h3>' + (r.harian.length ? r.harian.map(function (h) { return '<div class="fr" style="gap:8px"><span style="width:90px;font-size:12px">' + esc(h.tgl) + '</span><span style="display:inline-block;height:10px;border-radius:5px;background:var(--acc,#2b6cb0);width:' + Math.max(4, Math.round(h.n / mx * 60)) + '%"></span><span class="note">' + h.n + '</span></div>'; }).join('') + '<div class="note">Jenis aksi: ' + r.aksi.slice(0, 8).map(function (a) { return esc(a.aksi) + ' ' + a.n; }).join(' · ') + '</div>' : '<div class="note">Belum ada aktivitas.</div>') + '</div>';
     U.pasangNav();
+    if (U.siklusPasang) U.siklusPasang(app);
     $('ptg').onclick = function () { PT.dari = $('ptd').value; PT.sampai = $('pts').value; pantau(); };
     Array.prototype.forEach.call(app.querySelectorAll('a[data-rw]'), function (a) { a.onclick = function (e) { e.preventDefault(); riwayat('po', a.getAttribute('data-rw')); }; });
   }
@@ -934,5 +937,6 @@
     U.pasangNav(); $('jpf').onchange = function () { S.jp = this.checked; jejak(); };
   }
 
+  U.unduhBanyak = unduhBanyak; U.unduhAoa = unduhAoa; U.salinTeks = salinTeks;
   root.POUI = U; if (typeof module !== 'undefined') module.exports = U;
 })(typeof window !== 'undefined' ? window : this);

@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=58"></script>
+<script src="ukur.js?v=59"></script><script src="akses.js?v=59"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Lacak Barang Pesanan</title>
@@ -46,7 +46,7 @@ async function publik(){
   }catch(e){app.innerHTML='<div class="card err">Gagal terhubung ke server. Coba lagi.</div>';}
 }
 function formCari(msg){
-  app.innerHTML='<div class="card"><h2>Cari progres barang</h2><div class="note">Masukkan kode akses Anda (kode PIC), lalu ketik No PPBJ atau nama proyek.</div><div class="fr" style="margin-top:8px"><input type="password" id="kd" placeholder="Kode akses"><input type="text" id="q" placeholder="No PPBJ atau nama proyek"><button id="go">Cari</button></div>'+(msg?'<p class="err">'+esc(msg)+'</p>':'')+'</div><div id="hs"></div>';
+  app.innerHTML='<div class="card"><h2>Cari progres barang</h2><div class="note">Masukkan kode akses Anda, lalu ketik No PPBJ atau nama proyek. Belum punya kode? Minta kepada admin gudang.</div><div class="fr" style="margin-top:8px"><input type="password" id="kd" placeholder="Kode akses"><input type="text" id="q" placeholder="No PPBJ atau nama proyek"><button id="go">Cari</button></div>'+(msg?'<p class="err">'+esc(msg)+'</p>':'')+'</div><div id="hs"></div>';
   var k=document.getElementById("kd");try{k.value=localStorage.getItem("sctk_pic")||"";}catch(e){}
   document.getElementById("go").onclick=cari;document.getElementById("q").onkeydown=function(e){if(e.key==="Enter")cari();};
 }

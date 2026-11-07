@@ -169,7 +169,7 @@
       var bh = 54, top = PH, n = 70, c0 = [6, 32, 58], c1 = [10, 58, 92], c2 = [15, 111, 147];
       for (var i = 0; i < n; i++) { var t = i / (n - 1), a = t < .55 ? c0 : c1, b = t < .55 ? c1 : c2, u = t < .55 ? t / .55 : (t - .55) / .45; page.drawRectangle({ x: i * PW / n, y: top - bh, width: PW / n + 1, height: bh, color: rgb((a[0] + (b[0] - a[0]) * u) / 255, (a[1] + (b[1] - a[1]) * u) / 255, (a[2] + (b[2] - a[2]) * u) / 255) }); }
       page.drawRectangle({ x: 0, y: top - bh - 3.4, width: PW, height: 3.4, color: GOLD });
-      var t1 = "PENGAJUAN PEMBELIAN", w1 = FT.widthOfTextAtSize(t1, 15); page.drawText(t1, { x: (PW - w1) / 2, y: top - 26, size: 15, font: FT, color: rgb(1, 1, 1) });
+      var t1 = opts.judul || "PENGAJUAN PEMBELIAN", w1 = FT.widthOfTextAtSize(t1, 15); page.drawText(t1, { x: (PW - w1) / 2, y: top - 26, size: 15, font: FT, color: rgb(1, 1, 1) });
       var t2 = "PT SARANA CATUR TIRTA KELOLA", w2 = FB.widthOfTextAtSize(t2, 8); page.drawText(t2, { x: (PW - w2) / 2, y: top - 40, size: 8, font: FB, color: hex("#e3c98f") });
       y = top - bh - 3.4 - 12;
     }

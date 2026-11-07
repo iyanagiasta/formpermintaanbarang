@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=58"></script>
+<script src="ukur.js?v=59"></script><script src="akses.js?v=59"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -86,7 +86,7 @@ function loginView(msg){
 async function masuk(){
   var v=document.getElementById("kd").value.trim(),n=document.getElementById("nm").value.trim();if(!v||!n){document.getElementById("lerr").textContent="Isi nama dan kode akses.";return;}
   KODE=v;NAMA=n;document.getElementById("go").disabled=true;
-  try{var r=await api({action:"rlList"});if(!r.ok){KODE="";loginView(r.msg||"Kode salah.");return;}try{localStorage.setItem("sctk_pic",KODE);var o=JSON.parse(localStorage.getItem("sctk_pgj")||"{}");o.pengaju=NAMA;localStorage.setItem("sctk_pgj",JSON.stringify(o));}catch(e){}terima(r);}
+  try{var r=await api({action:"rlList"});if(!r.ok){KODE="";loginView(r.msg||"Kode tidak dikenali. Periksa lagi atau minta ke admin gudang.");return;}try{localStorage.setItem("sctk_pic",KODE);var o=JSON.parse(localStorage.getItem("sctk_pgj")||"{}");o.pengaju=NAMA;localStorage.setItem("sctk_pgj",JSON.stringify(o));}catch(e){}terima(r);}
   catch(e){KODE="";loginView("Gagal terhubung ke server.");}
 }
 function terima(r){LIST=r.data||[];TOL=r.toleransi||10;ADMIN=!!r.admin;tampilList();}

@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=58"></script>
+<script src="ukur.js?v=59"></script><script src="akses.js?v=59"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -74,12 +74,12 @@ var PINADM="";try{PINADM=sessionStorage.getItem("sctk_admin")||"";}catch(e){}
 async function api(b){b.kode=KODE;if(PINADM&&!KODE)b.pin=PINADM;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
 function tglHariIni(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
 function loginView(msg){
-  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Kode akses PIC / atasan / gudang</b></p><div class="note" style="margin-bottom:8px">Ajukan pembelian UMO atau PPBJ. Untuk PIC, atasan, dan gudang.</div><input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode akses"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
+  app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Masukkan kode akses</b></p><div class="note" style="margin-bottom:8px">Halaman ini memerlukan kode akses. Silakan masukkan kode Anda, atau minta akses langsung kepada admin gudang.</div><input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode akses"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
   var i=document.getElementById("kd");i.focus();i.onkeydown=function(e){if(e.key==="Enter")masuk();};document.getElementById("go").onclick=masuk;
 }
 async function masuk(){
   var v=document.getElementById("kd").value.trim();if(!v)return;KODE=v;document.getElementById("go").disabled=true;
-  try{var r=await api({action:"pbBarang"});if(!r.ok){KODE="";loginView(r.msg||"Kode salah.");return;}BARANG=r.items||[];try{localStorage.setItem("sctk_pic",KODE)}catch(e){}await mulai();}
+  try{var r=await api({action:"pbBarang"});if(!r.ok){KODE="";loginView(r.msg||"Kode tidak dikenali. Periksa lagi atau minta ke admin gudang.");return;}BARANG=r.items||[];try{localStorage.setItem("sctk_pic",KODE)}catch(e){}await mulai();}
   catch(e){KODE="";loginView("Gagal terhubung ke server.");}
 }
 async function mulai(){

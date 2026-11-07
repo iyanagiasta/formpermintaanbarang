@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=58"></script>
+<script src="ukur.js?v=59"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Persetujuan Realisasi UMO</title>
 <style>
@@ -20,37 +20,52 @@ button{font:600 14px "Segoe UI",Roboto,Arial,sans-serif;padding:12px 22px;border
 </style>
 </head>
 <body>
-<div class="top"><h1>PERSETUJUAN REALISASI UMO</h1><div>PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="top"><h1 id="jud">PERSETUJUAN REALISASI UMO</h1><div>PT SARANA CATUR TIRTA KELOLA</div></div>
 <div class="wrap" id="app"><div class="msg">Memuat...</div></div>
 <script>
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
-var Q=new URLSearchParams(location.search),ID=Q.get("id")||"",T=Q.get("t")||"",app=document.getElementById("app"),D=null;
+var Q=new URLSearchParams(location.search),ID=Q.get("id")||"",T=Q.get("t")||"",TH=Q.get("k")==="2"?2:1,app=document.getElementById("app"),D=null;
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function rp(n){return "Rp "+Math.round(Number(n)||0).toLocaleString("id-ID");}
 function tgl(s){var m=/^(\d{4})-(\d\d)-(\d\d)/.exec(String(s||""));return m?m[3]+"/"+m[2]+"/"+m[1]:String(s||"");}
 async function api(b){var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
 async function muat(){
   if(!ID||!T){app.innerHTML='<div class="card msg err">Tautan tidak lengkap.</div>';return;}
-  try{var r=await api({action:"rlSetujuInfo",id:ID,t:T});}catch(e){app.innerHTML='<div class="card msg err">Gagal terhubung ke server.</div>';return;}
+  try{var r=await api({action:"rlSetujuInfo",id:ID,t:T,tahap:TH});}catch(e){app.innerHTML='<div class="card msg err">Gagal terhubung ke server.</div>';return;}
   if(!r.ok){app.innerHTML='<div class="card msg err">'+esc(r.msg||"Tautan tidak valid.")+'</div>';return;}
   D=r.data;gambar();
 }
 function gambar(){
   var d=D,ps=d.persetujuan,sel=d.selisih;
+  if(TH===2)document.getElementById('jud').textContent='PEMERIKSAAN REALISASI UMO';
   var h='<div class="card"><h2 style="margin:0 0 8px">'+esc(d.jenis)+' '+esc(d.nomor)+'</h2><div class="dt"><div><label>Diajukan oleh</label><b>'+esc(d.pengaju)+'</b><div class="mut">'+esc(d.dept)+'</div></div><div><label>Keperluan</label>'+esc(d.perihal)+'</div><div><label>PPBJ / Proyek</label>'+esc(d.ppbj||"-")+'<div class="mut">'+esc(d.proyek)+'</div></div></div>'+
    '<div class="dt" style="margin-top:10px"><div><label>Uang muka</label><b>'+rp(d.uangMuka)+'</b></div><div><label>Aktual</label><b>'+rp(d.aktual)+'</b></div><div><label>Lebih / (kurang)</label><b'+(sel>0?' class="err"':'')+'>'+(sel<0?'('+rp(-sel)+')':rp(sel))+'</b></div></div>'+
    '<div class="tw" style="margin-top:10px"><table><thead><tr><th>Tanggal</th><th>Uraian</th><th>No Akun</th><th>No Bukti</th><th class="nm">Nilai</th></tr></thead><tbody>'+d.entries.map(function(e){return '<tr><td>'+esc(tgl(e.tgl))+'</td><td>'+esc(e.uraian)+(e.cat?'<div class="mut">'+esc(e.cat)+'</div>':'')+'</td><td>'+esc(e.akun||"-")+'</td><td>'+esc(e.bukti||"-")+(e.nota&&e.nota.length?'<div class="mut">'+e.nota.length+' foto nota</div>':'')+'</td><td class="nm">'+rp(e.nilai)+'</td></tr>';}).join("")+'</tbody></table></div></div>';
+  if(TH===2&&d.persetujuan1&&d.persetujuan1.status==='Disetujui')h+='<div class="card"><b>Sudah disetujui</b> oleh '+esc(d.persetujuan1.penyetuju)+(d.persetujuan1.waktuPutus?' · '+esc(d.persetujuan1.waktuPutus):'')+'<div class="mut">Sebagai atasan langsung departemen '+esc(d.dept||'')+', Anda diminta memeriksa dan menandatangani realisasi ini.</div></div>';
+  if(d.berkas)h+='<div class="card"><b>Berkas realisasi (PDF)</b><div class="mut">Form pengajuan, form realisasi, laporan kas kecil, nota, dan lampiran dalam satu berkas.</div><p><button class="ok" style="background:var(--navy)" id="bb">Buka PDF lengkap</button> <span class="mut" id="bbi"></span></p></div>';
   if(d.bisa){h+='<div class="card"><b>Keputusan Anda</b><p><textarea id="cat" placeholder="Catatan (wajib bila menolak)"></textarea></p><button class="ok" id="bs">SETUJU</button> <button class="no" id="bt">TOLAK</button><div id="inf" class="mut" style="margin-top:8px"></div></div>';}
   else h+='<div class="card"><b>Status: '+esc(ps.status)+'</b><div class="mut">'+esc(ps.penyetuju)+(ps.waktuPutus?' · '+esc(ps.waktuPutus):'')+(ps.cat?' · '+esc(ps.cat):'')+'</div></div>';
   app.innerHTML=h;
+  var bb=document.getElementById('bb');if(bb)bb.onclick=bukaBerkas;
   if(d.bisa){document.getElementById("bs").onclick=function(){putus("setuju");};document.getElementById("bt").onclick=function(){putus("tolak");};}
+}
+async function bukaBerkas(){
+  var bb=document.getElementById('bb'),inf=document.getElementById('bbi');bb.disabled=true;inf.textContent='Mengambil berkas...';
+  try{var r=await api({action:'rlSetujuBerkas',id:ID,t:T,tahap:TH});
+    if(!r.ok){inf.innerHTML='<span class="err">'+esc(r.msg||'Berkas tidak terbaca.')+'</span>';bb.disabled=false;return;}
+    var s=atob(r.data),u=new Uint8Array(s.length);for(var i=0;i<s.length;i++)u[i]=s.charCodeAt(i);
+    var url=URL.createObjectURL(new Blob([u],{type:'application/pdf'})),w=window.open(url,'_blank');
+    if(!w){var l=document.createElement('a');l.href=url;l.download=r.nama||'realisasi.pdf';document.body.appendChild(l);l.click();l.remove();}
+    inf.textContent='';
+  }catch(e){inf.innerHTML='<span class="err">Gagal terhubung ke server.</span>';}
+  bb.disabled=false;
 }
 async function putus(k){
   var cat=document.getElementById("cat").value.trim(),inf=document.getElementById("inf");
   if(k==="tolak"&&!cat){inf.innerHTML='<span class="err">Isi alasan penolakan.</span>';return;}
   if(!confirm(k==="setuju"?"Setujui realisasi ini?":"Tolak realisasi ini?"))return;
   document.getElementById("bs").disabled=document.getElementById("bt").disabled=true;inf.textContent="Menyimpan...";
-  try{var r=await api({action:"rlSetujuAksi",id:ID,t:T,putusan:k,catatan:cat});
+  try{var r=await api({action:"rlSetujuAksi",id:ID,t:T,tahap:TH,putusan:k,catatan:cat});
     if(!r.ok){inf.innerHTML='<span class="err">'+esc(r.msg||"Gagal.")+'</span>';document.getElementById("bs").disabled=document.getElementById("bt").disabled=false;return;}
     app.innerHTML='<div class="card msg"><h2>'+esc(r.msg)+'</h2><div class="mut">Pengadaan sudah diberi tahu lewat email.</div></div>';
   }catch(e){inf.innerHTML='<span class="err">Gagal terhubung ke server.</span>';document.getElementById("bs").disabled=document.getElementById("bt").disabled=false;}

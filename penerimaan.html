@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=58"></script><script src="cari-pintar.js"></script>
+<script src="ukur.js?v=59"></script><script src="akses.js?v=59"></script><script src="cari-pintar.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Penerimaan Barang - Gudang SCTK</title>
@@ -56,7 +56,7 @@ function numIn(v){var s=String(v==null?"":v).trim().replace(/[^\d.,-]/g,"");if(!
 function rid(){return "k"+Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
 async function api(b){if(KODE)b.kode=KODE;else if(PINADM)b.pin=PINADM;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
 function loginView(msg){
-  app.innerHTML='<div class="card" style="max-width:380px;margin:26px auto"><p style="margin-top:0"><b>Kode akses</b></p><div class="note" style="margin-bottom:8px">Staff Gudang: kode akses. Admin: PIN admin.</div><input id="kd" type="password" autocomplete="off" placeholder="Kode akses atau PIN admin"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button>'+(msg?'<p class="err">'+esc(msg)+'</p>':'')+'</div>';
+  app.innerHTML='<div class="card" style="max-width:380px;margin:26px auto"><p style="margin-top:0"><b>Masukkan kode akses</b></p><div class="note" style="margin-bottom:8px">Halaman ini memerlukan kode akses. Silakan masukkan kode Anda, atau minta akses langsung kepada admin gudang.</div><input id="kd" type="password" autocomplete="off" placeholder="Kode akses"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button>'+(msg?'<p class="err">'+esc(msg)+'</p>':'')+'</div>';
   var i=document.getElementById("kd");i.onkeydown=function(e){if(e.key==="Enter")masuk();};document.getElementById("go").onclick=masuk;
 }
 async function masuk(){
@@ -68,7 +68,7 @@ async function masuk(){
 async function mulai(diam){
   try{
     var r=await api({action:"terimaPesanan"});
-    if(!r.ok){if(diam)return false;KODE="";try{localStorage.removeItem("sctk_pic");}catch(e){}loginView(r.msg||"Kode salah.");return false;}
+    if(!r.ok){if(diam)return false;KODE="";try{localStorage.removeItem("sctk_pic");}catch(e){}loginView(r.msg||"Kode tidak dikenali. Periksa lagi atau minta ke admin gudang.");return false;}
     try{if(KODE)localStorage.setItem("sctk_pic",KODE);}catch(e){}
     PES=r.data||[];PROY=r.proyek||[];ADMIN=!!r.admin;NAMA=r.nama||"";muatBarang();tampil();return true;
   }catch(e){if(diam)return false;KODE="";loginView("Gagal terhubung ke server.");return false;}

@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=58"></script>
+<script src="ukur.js?v=59"></script><script src="akses.js?v=59"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bukti Pengembalian Barang Sisa Proyek - PT Sarana Catur Tirta Kelola</title>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -111,8 +111,8 @@ table th:nth-child(6),table td:nth-child(6),colgroup col:nth-child(6){display:no
 </div>
 
 <div id="pegbar" class="nop">
-  <span id="pegtxt">Masukkan kode pegawai untuk mengirim pengembalian dan memilih proyek.</span>
-  <span id="pegform"><input id="pegkode" type="password" autocomplete="off" placeholder="Kode pegawai"> <button class="btn" id="pegok" type="button">Buka</button></span>
+  <span id="pegtxt">Masukkan kode akses untuk mengirim pengembalian dan memilih proyek.</span>
+  <span id="pegform"><input id="pegkode" type="password" autocomplete="off" placeholder="Kode akses"> <button class="btn" id="pegok" type="button">Buka</button></span>
   <span id="pegmsg"></span>
 </div>
 <div class="wrap">
@@ -356,7 +356,7 @@ function renderStok(tr){return;
 }
 function renderAllStok(){document.querySelectorAll("#rows tr").forEach(renderStok);}
 function pegUI(ok,msg){
-  document.getElementById("pegtxt").innerHTML=ok?'<span class="ok">Kode pegawai diterima.</span> <a href="#" id="peglo">Keluar</a>':"Masukkan kode pegawai untuk mengirim pengembalian dan memilih proyek.";
+  document.getElementById("pegtxt").innerHTML=ok?'<span class="ok">Kode akses diterima.</span> <a href="#" id="peglo">Keluar</a>':"Masukkan kode akses untuk mengirim pengembalian dan memilih proyek.";
   document.getElementById("pegform").style.display=ok?"none":"";
   var m=document.getElementById("pegmsg");m.className=ok?"ok":"bad";m.textContent=msg||"";
   document.getElementById("proyhint").style.display=(ok&&PROYEK.length)?"":"none";
@@ -612,7 +612,7 @@ async function kirim(){
     var n=tr.querySelector(".nama").value.trim();if(!n)return;
     items.push({kode:tr.querySelector(".kode").value.trim(),nama:n,satuan:tr.querySelector(".sat").value.trim(),jumlah:tr.querySelector(".jml").value.trim()});
   });
-  if(!KODEPEG){toast("Masukkan kode pegawai di bagian atas dulu, lalu klik Buka.",false);return;}
+  if(!KODEPEG){toast("Masukkan kode akses di bagian atas dulu, lalu klik Buka.",false);return;}
   if(!DB.size){toast("Daftar barang belum termuat. Tunggu sebentar atau muat ulang halaman.",false);return;}
   if(!g("by")||!g("dept")||!items.length){toast("Isi Nama Pengembali, Nama Departemen, dan minimal satu barang dulu.",false);return;}
   if(!g("ppbj")){toast("Isi dari proyek mana sisa barang ini (pilih dari daftar atau ketik).",false);return;}

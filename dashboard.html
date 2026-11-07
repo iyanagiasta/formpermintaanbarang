@@ -2,7 +2,7 @@
 <html lang="id" data-tema="terang">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=58"></script>
+<script src="ukur.js?v=59"></script><script src="akses.js?v=59"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Sistem Gudang SCTK</title>
@@ -80,7 +80,7 @@ function mintaKode(judul,ket,verif){
     async function ok(){
       var v=di.value.trim();if(!v){di.focus();return;}
       dg.disabled=true;de.textContent="";
-      try{var r=await verif(v);if(r&&r.ok){tutup(v);return;}de.textContent=(r&&r.msg)||"Kode tidak diterima.";}
+      try{var r=await verif(v);if(r&&r.ok){tutup(v);return;}de.textContent=(r&&r.msg)||"Kode tidak dikenali. Periksa lagi atau minta ke admin gudang.";}
       catch(e){de.textContent="Gagal terhubung ke server. Periksa internet lalu coba lagi.";}
       dg.disabled=false;di.select();
     }
@@ -92,19 +92,19 @@ function mintaKode(judul,ket,verif){
 async function pastikanPegawai(){
   var k=st("sctk_kode");
   if(k){try{var r=await api({action:"proyek",kode:k});if(r.ok)return k;}catch(e){return k;}st("sctk_kode",null);}
-  var v=await mintaKode("Kode akses pegawai","Masukkan kode akses pegawai untuk melanjutkan. Kode cukup dimasukkan sekali di perangkat ini.",function(x){return api({action:"proyek",kode:x});});
+  var v=await mintaKode("Masukkan kode akses","Halaman ini memerlukan kode akses. Silakan masukkan kode Anda, atau minta akses langsung kepada admin gudang.",function(x){return api({action:"proyek",kode:x});});
   if(v)st("sctk_kode",v);return v;
 }
 async function pastikanPic(){
   var k=st("sctk_pic"),pin=st("sctk_admin",undefined,true);
   if(k||pin){try{var r=await api({action:"proyekPic",kode:k,pin:k?undefined:pin});if(r.ok)return true;}catch(e){return true;}st("sctk_pic",null);}
-  var v=await mintaKode("Kode akses PIC / atasan / gudang","Menu ini untuk PIC, atasan, Manager Gudang, dan Staff Gudang. Masukkan kode akses Anda.",function(x){return api({action:"proyekPic",kode:x});});
+  var v=await mintaKode("Masukkan kode akses","Halaman ini memerlukan kode akses. Silakan masukkan kode Anda, atau minta akses langsung kepada admin gudang.",function(x){return api({action:"proyekPic",kode:x});});
   if(v)st("sctk_pic",v);return !!v;
 }
 async function pastikanAdmin(){
   var pin=st("sctk_admin",undefined,true);
   if(pin){try{var r=await api({action:"adminSistem",pin:pin});if(r.ok)return pin;}catch(e){return pin;}st("sctk_admin",null,true);}
-  var v=await mintaKode("Kode admin","Khusus admin gudang. Masukkan kode admin Anda.",function(x){return api({action:"adminSistem",pin:x});});
+  var v=await mintaKode("Masukkan kode akses","Halaman ini memerlukan kode akses. Silakan masukkan kode Anda, atau minta akses langsung kepada admin gudang.",function(x){return api({action:"adminSistem",pin:x});});
   if(v)st("sctk_admin",v,true);return v;
 }
 async function buka(aksi,btn){
@@ -131,8 +131,9 @@ async function buka(aksi,btn){
 }
 function keluar(){st("sctk_kode",null);st("sctk_pic",null);st("sctk_admin",null,true);tampilAwal();}
 /* ---- tampilan ---- */
+function ADM(){return !!st("sctk_admin",undefined,true);}
 function big(aksi,ik,judul,ket,tag,adm){
-  return '<button class="big'+(adm?" adm":"")+'" type="button" data-aksi="'+aksi+'"><span class="hd">'+ikon(ik)+'<b>'+esc(judul)+'</b></span><small>'+esc(ket)+'</small><span class="tag'+(adm?" a":"")+'">Akses: '+tag+'</span></button>';
+  return '<button class="big'+(adm?" adm":"")+'" type="button" data-aksi="'+aksi+'"><span class="hd">'+ikon(ik)+'<b>'+esc(judul)+'</b></span><small>'+esc(ket)+'</small>'+(ADM()?'<span class="tag'+(adm?" a":"")+'">Akses: '+tag+'</span>':'')+'</button>';
 }
 function kartu(){
   return '<div class="pgm" id="pgm" role="region" aria-label="Pengumuman"></div><div class="sec"><h3>Permintaan dan stok</h3></div><div class="menu">'+
@@ -152,8 +153,17 @@ function kartu(){
    '</div>'+'<div class="sec"><h3>Alat dan administrasi</h3></div><div class="menu">'+
    big("masterbarang","plus","Pengajuan Master Barang","Ajukan barang baru yang belum ada di daftar. Gudang menerima pengajuan lalu memasukkannya ke Accurate.","kode pegawai")+
    big("label","barcode","Cetak Label Barcode","Cetak label barcode dan label Tom & Jerry berisi nama barang, barcode, dan kotak Slow / Fast Moving.","PIC, atasan, atau gudang")+
-   big("admin","admin","Admin Gudang","Pantauan persetujuan, serah barang, stok dan harga, opname, proyek, mutasi, laporan, dan cadangan.","khusus admin",true)+
+   (ADM()?big("admin","admin","Admin Gudang","Pantauan persetujuan, serah barang, stok dan harga, opname, proyek, mutasi, laporan, dan cadangan.","khusus admin",true):"")+
    '</div>';
+}
+var KET=0,KETT=0;
+function ketukRahasia(){
+  var n=Date.now();if(n-KETT>5000)KET=0;   /* jeda lebih dari ~5 detik mengulang hitungan */
+  KETT=n;KET++;if(KET>=7){KET=0;buka("admin");}
+}
+function pasangRahasia(){
+  var lg=document.querySelector(".logo"),jd=document.querySelector(".brand h1");
+  [lg,jd].forEach(function(e){if(e){e.style.cursor="default";e.onclick=ketukRahasia;}});
 }
 function pasangKartu(){
   Array.prototype.forEach.call(document.querySelectorAll(".big"),function(b){b.onclick=function(){buka(b.getAttribute("data-aksi"),b);};});
@@ -235,7 +245,7 @@ async function papan(){
   }catch(e){}
 }
 function tampilAwal(){
-  app.innerHTML='<div id="adm-stat"></div>'+kartu()+'<div id="adm-box"></div>';pasangKartu();bar();papan();
+  app.innerHTML='<div id="adm-stat"></div>'+kartu()+'<div id="adm-box"></div>';pasangKartu();pasangRahasia();bar();papan();
   var pin=st("sctk_admin",undefined,true);if(pin)ringkasAdmin(pin);
 }
 (function(){

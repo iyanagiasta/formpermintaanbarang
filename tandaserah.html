@@ -2,7 +2,7 @@
 <html lang="id">
 <head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta charset="utf-8">
-<script src="ukur.js?v=58"></script>
+<script src="ukur.js?v=59"></script><script src="akses.js?v=59"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Tandai Penyerahan Barang - Gudang SCTK</title>
@@ -65,7 +65,7 @@ async function masuk(){
   var v=document.getElementById("kd").value.trim();if(!v)return;
   var b=document.getElementById("go");b.disabled=true;KODE=v;
   var r;try{r=await api({action:"tandaList"});}catch(e){b.disabled=false;document.getElementById("lerr").textContent="Tidak bisa terhubung. Periksa internet.";return;}
-  if(!r.ok){KODE="";b.disabled=false;document.getElementById("lerr").textContent=r.msg||"Kode salah.";return;}
+  if(!r.ok){KODE="";b.disabled=false;document.getElementById("lerr").textContent=r.msg||"Kode tidak dikenali. Periksa lagi atau minta ke admin gudang.";return;}
   simpan(v);mulai();
 }
 function mulai(){

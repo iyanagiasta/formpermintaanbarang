@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Perjalanan Kerja Gudang - SCTK</title>
+<style>
+:root{--biru:#1a6cab;--tua:#0d3b66;--muda:#cfe6f7;--pucat:#eaf4fb;--abu:#4d6475;--garis:#c3d3df;--ok:#14602f;--okbg:#dff1e5;--kn:#8a5200;--knbg:#fff0cf;--bad:#a82424;--teks:#10283c}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#dfe9f1;color:var(--teks);font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif}
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#kanvas{width:1280px;height:720px;flex:none;transform-origin:center center;position:relative}
+.slide{position:absolute;inset:0;background:#fff;display:none;overflow:hidden;box-shadow:0 6px 30px rgba(13,59,102,.18)}
+.slide.on{display:block}
+.hd{position:absolute;left:0;right:0;top:0;height:78px;background:var(--biru);color:#fff;display:flex;align-items:center;gap:16px;padding:0 40px}
+.hd .lg{width:50px;height:50px;background:#fff;border-radius:6px;display:grid;place-items:center;flex:none}.hd .lg img{width:100%;height:100%;object-fit:contain;padding:4px}
+.hd .nm{font-size:20px;font-weight:600;letter-spacing:.4px;opacity:.95}.hd .bg{margin-left:auto;font-size:20px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.isi{position:absolute;left:40px;right:40px;top:96px;bottom:56px}
+.jd{font-size:38px;line-height:1.18;font-weight:800;color:var(--tua);margin:0 0 14px}
+.sub{font-size:24px;color:var(--abu);margin:0 0 14px;line-height:1.3}
+.ft{position:absolute;left:0;right:0;bottom:0;height:44px;background:var(--pucat);border-top:1px solid var(--garis);display:flex;align-items:center;gap:18px;padding:0 40px;font-size:18px;color:var(--abu)}
+.ft b{color:var(--tua);font-size:20px}.ft .sp{margin-left:auto}
+.bd{display:inline-block;border-radius:999px;padding:3px 12px;font-size:17px;font-weight:700;white-space:nowrap}
+.bd.otomatis{background:var(--okbg);color:var(--ok)}.bd.manual{background:var(--muda);color:var(--tua)}.bd.perkiraan{background:#fff;color:var(--kn);border:2px dashed var(--kn)}.bd.tunggu{background:var(--knbg);color:var(--kn)}.bd.ok{background:var(--okbg);color:var(--ok)}
+.kartu{background:var(--pucat);border:1px solid var(--garis);border-radius:10px;padding:16px 20px}
+.angka{font-size:62px;font-weight:800;color:var(--tua);line-height:1}.angka small{font-size:26px;font-weight:700;color:var(--abu);margin-left:4px}
+.lbl{font-size:21px;color:var(--abu);margin-top:8px;line-height:1.25}
+.grid{display:grid;gap:18px}
+.alur{display:grid;grid-template-columns:1fr 46px 1fr 46px 1fr;align-items:stretch;margin-bottom:14px}
+.alur .k{border-radius:10px;padding:14px 18px;font-size:23px;line-height:1.3;border:1px solid var(--garis);background:#fff}
+.alur .k h4{margin:0 0 6px;font-size:17px;letter-spacing:1px;text-transform:uppercase;color:var(--abu)}
+.alur .m{background:#fdecec;border-color:#efc0c0}.alur .t{background:var(--pucat)}.alur .h{background:var(--okbg);border-color:#a9d6b8}
+.alur .pn{display:flex;align-items:center;justify-content:center;font-size:34px;color:var(--biru)}
+.dampak{font-size:20px;color:var(--abu);margin:-6px 0 14px 4px}
+.tl{position:relative;margin-top:8px}
+.tl .it{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:10px 0;border-bottom:1px solid var(--garis);align-items:start}
+.tl .tg{font-size:22px;font-weight:700;color:var(--biru)}.tl .jl{font-size:25px;font-weight:700;color:var(--tua)}.tl .ur{font-size:21px;color:var(--abu);margin-top:2px;line-height:1.28}
+table{border-collapse:collapse;width:100%}th,td{padding:7px 10px;border-bottom:1px solid var(--garis);text-align:left;font-size:21px}th{background:var(--pucat);color:var(--tua);font-size:18px;letter-spacing:.5px;text-transform:uppercase}td.n,th.n{text-align:right}
+.fot{display:grid;grid-template-columns:1fr 1fr;gap:22px}.fot figure{margin:0}.fot .ph{height:370px;background:var(--pucat);border:2px dashed var(--garis);border-radius:10px;display:grid;place-items:center;color:var(--abu);font-size:22px;overflow:hidden;position:relative}
+.fot .ph img{width:100%;height:100%;object-fit:cover}.fot figcaption{font-size:22px;font-weight:700;color:var(--tua);margin-top:8px}
+.gal{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.gal .ph{height:150px;background:var(--pucat);border:1px solid var(--garis);border-radius:8px;overflow:hidden;display:grid;place-items:center;color:var(--abu);font-size:18px;text-align:center;padding:6px}.gal img{width:100%;height:100%;object-fit:cover}.gal .cp{font-size:18px;color:var(--tua);margin-top:4px;line-height:1.2}
+.duaKol{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.cat{font-size:19px;color:var(--abu);margin-top:10px;line-height:1.35}
+.kos{font-size:26px;color:var(--abu);text-align:center;padding-top:150px}
+/* kontrol */
+#nav{position:fixed;left:0;right:0;top:0;display:flex;gap:8px;justify-content:center;padding:14px 8px;z-index:20;transition:opacity .25s;pointer-events:none}#nav button{pointer-events:auto}
+#putar{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:25;background:var(--knbg);color:var(--kn);border:1px solid var(--kn);border-radius:8px;padding:8px 10px;font-size:14px;text-align:center;font-weight:600}
+#nav.sembunyi{opacity:0}#nav.sembunyi button{pointer-events:none}
+#nav button{font:600 15px Inter,"Segoe UI",Arial,sans-serif;border:1px solid var(--garis);background:#fff;color:var(--tua);border-radius:8px;padding:9px 14px;cursor:pointer;box-shadow:0 1px 4px rgba(13,59,102,.12)}
+#nav button:hover{background:var(--pucat)}
+#daftar{position:fixed;left:0;top:0;bottom:0;width:340px;max-width:90vw;background:#fff;border-right:1px solid var(--garis);padding:14px;overflow:auto;z-index:30;display:none;box-shadow:4px 0 24px rgba(13,59,102,.2)}
+#daftar.on{display:block}#daftar h3{margin:0 0 8px;color:var(--tua)}#daftar a{display:block;padding:9px 10px;border-radius:6px;color:var(--teks);text-decoration:none;font-size:15px;cursor:pointer}#daftar a:hover,#daftar a.on{background:var(--muda)}
+#msg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#dfe9f1;z-index:40}#msg.on{display:flex}
+#msg .bx{background:#fff;border:1px solid var(--garis);border-radius:12px;padding:26px;max-width:420px;width:92%;text-align:center}
+#msg h2{margin:0 0 6px;color:var(--tua)}#msg p{color:var(--abu);margin:6px 0 14px;font-size:15px}#msg input{width:100%;font:16px Inter,Arial,sans-serif;padding:12px;border:1px solid var(--garis);border-radius:8px;margin-bottom:10px}
+#msg button{font:600 15px Inter,Arial,sans-serif;border:0;background:var(--biru);color:#fff;border-radius:8px;padding:12px 18px;width:100%;cursor:pointer}.err{color:var(--bad);font-size:14px;min-height:18px;margin-top:8px}
+#cetak{display:none}
+@media print{
+  @page{size:1280px 720px;margin:0}
+  html,body{background:#fff;height:auto}#stage,#nav,#daftar,#msg{display:none!important}
+  #cetak{display:block}#cetak .slide{position:relative;display:block;width:1280px;height:720px;page-break-after:always;break-after:page;box-shadow:none;overflow:hidden}
+}
+</style>
+</head>
+<body>
+<div id="stage"><div id="kanvas"></div></div>
+<div id="nav" class="sembunyi" aria-label="Kontrol presentasi">
+  <button type="button" id="bDaftar" title="Daftar bagian">&#9776; Daftar</button>
+  <button type="button" id="bPrev" title="Sebelumnya (panah kiri)">&larr; Sebelumnya</button>
+  <button type="button" id="bNext" title="Berikutnya (panah kanan)">Berikutnya &rarr;</button>
+  <button type="button" id="bFull" title="Layar penuh (F)">Layar penuh</button>
+  <button type="button" id="bPdf" title="Simpan sebagai PDF (P)">Simpan PDF</button>
+</div>
+<div id="putar">Putar HP ke samping (lanskap) agar tampilan lebih besar.</div>
+<div id="daftar"></div>
+<div id="msg" class="on"><div class="bx"><h2 id="mj">Memuat...</h2><p id="mp"></p><div id="mf" style="display:none"><input id="mi" type="password" autocomplete="off" placeholder=""><button id="mb" type="button">Buka</button></div><div class="err" id="me" role="alert"></div></div></div>
+<div id="cetak"></div>
+<script src="perj-grafik.js"></script>
+<script src="tampil-ui.js"></script>
+</body>
+</html>

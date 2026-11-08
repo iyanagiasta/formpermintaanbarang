@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Perjalanan Kerja - Gudang SCTK</title>
+<style>
+:root{--biru:#1a6cab;--tua:#0d3b66;--muda:#cfe6f7;--pucat:#eaf4fb;--abu:#4d6475;--garis:#c3d3df;--ok:#14602f;--okbg:#dff1e5;--kn:#8a5200;--knbg:#fff0cf;--bad:#a82424;--teks:#10283c;--bg:#f2f6f9}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--teks);font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.top{position:relative;background:var(--biru);color:#fff;padding:14px 16px 14px 120px}
+.top h1{margin:0;font-size:17px;letter-spacing:1px}.top div{font-size:11.5px;letter-spacing:1.5px;opacity:.9;margin-top:3px}
+.homebtn{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#fff;font-weight:600;font-size:12px;text-decoration:none;border:1px solid rgba(255,255,255,.55);border-radius:8px;padding:7px 11px}
+.wrap{max-width:1100px;margin:0 auto;padding:14px}
+.card{background:#fff;border:1px solid var(--garis);border-radius:12px;padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 8px;color:var(--tua);font-size:16px}
+input,select,textarea{font:14px inherit;font-family:inherit;padding:9px;border:1px solid var(--garis);border-radius:8px;background:#fff;color:var(--teks);max-width:100%}
+input.t,textarea.t,select.t{width:100%}textarea{min-height:64px;resize:vertical}
+button{font:600 13px Inter,"Segoe UI",Arial,sans-serif;padding:10px 14px;border:0;border-radius:8px;color:#fff;background:var(--biru);cursor:pointer}
+button.gh{background:#fff;color:var(--tua);border:1px solid var(--garis)}button.bad{background:var(--bad)}button.sm{padding:6px 10px;font-size:12px}button:disabled{opacity:.5;cursor:not-allowed}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tabs button{background:#fff;color:var(--tua);border:1px solid var(--garis)}.tabs button.on{background:var(--tua);color:#fff;border-color:var(--tua)}
+.fr{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:8px 0}.fr label{display:block;font-size:12px;color:var(--abu);margin-bottom:3px}.fr .lebar{grid-column:1/-1}
+.note{font-size:12.5px;color:var(--abu);line-height:1.45}.err{color:var(--bad)}.ok{color:var(--ok)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:7px 8px;border-bottom:1px solid var(--garis);text-align:left;vertical-align:top;font-size:13px}th{background:var(--pucat);color:var(--tua);font-size:12px}td.n,th.n{text-align:right}
+.bd{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700}.bd.d{background:var(--okbg);color:var(--ok)}.bd.w{background:var(--knbg);color:var(--kn)}.bd.l{background:var(--muda);color:var(--tua)}
+.tog{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px dashed var(--garis)}.tog input{margin-top:3px}
+.bar{height:10px;background:var(--muda);border-radius:6px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;width:0;background:var(--biru);transition:width .2s}
+.kotak{border:2px solid var(--kn);background:var(--knbg);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:13px;color:#4a3000}
+.fotos{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}.fotos .f{position:relative;width:84px;height:64px;border:1px solid var(--garis);border-radius:6px;overflow:hidden;background:var(--pucat);font-size:11px;display:grid;place-items:center}.fotos img{width:100%;height:100%;object-fit:cover}.fotos button{position:absolute;right:2px;top:2px;padding:0 6px;font-size:12px;line-height:18px;background:rgba(168,36,36,.9)}
+#toast{display:none;position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#14612b;color:#fff;padding:11px 16px;border-radius:9px;z-index:10000;max-width:90%}#toast.bad{background:#a82424}
+.pill{display:inline-block;border:1px solid var(--garis);border-radius:999px;padding:3px 10px;font-size:12px;margin:2px 4px 2px 0;background:#fff}
+</style>
+</head>
+<body>
+<div class="top"><a class="homebtn" href="dashboard.html">&larr; Halaman Utama</a><h1>PERJALANAN KERJA</h1><div>GUDANG - PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="wrap" id="app"></div>
+<div id="toast"></div>
+<script src="perjalanan-ui.js"></script>
+</body>
+</html>

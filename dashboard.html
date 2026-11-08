@@ -44,6 +44,7 @@ var app=document.getElementById("app"),who=document.getElementById("who");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function st(k,v,sess){try{var s=sess?sessionStorage:localStorage;if(v===undefined)return s.getItem(k)||"";if(v===null)s.removeItem(k);else s.setItem(k,v);}catch(e){return "";}return "";}
 var ICON={
+ ekspor:'<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v3h16v-3"/>',
  gabung:'<path d="M12 3 3 8l9 5 9-5z"/><path d="m3 13 9 5 9-5"/><path d="m3 17 9 5 9-5"/>',
  serahtanda:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="m9 11 2 2 4-4"/>',
  kimia:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M7.5 15h9"/>',
@@ -130,6 +131,7 @@ async function buka(aksi,btn){
     else if(aksi==="gabungpdf"){if(await pastikanPic())location.href="gabung.html";}
     else if(aksi==="tandaserah"){if(await pastikanPic())location.href="tandaserah.html";}
     else if(aksi==="admin"){if(await pastikanAdmin())location.href="admin.html";}
+    else if(aksi==="ekspor"){if(await pastikanAdmin())location.href="ekspor.html";}
   }finally{if(btn)btn.disabled=false;}
 }
 function keluar(){st("sctk_kode",null);st("sctk_pic",null);st("sctk_admin",null,true);tampilAwal();}
@@ -159,6 +161,7 @@ function kartu(){
    big("label","barcode","Cetak Label Barcode","Cetak label barcode dan label Tom & Jerry berisi nama barang, barcode, dan kotak Slow / Fast Moving.","PIC, atasan, atau gudang")+
    big("gabungpdf","gabung","Gabung jadi 1 PDF","Gabungkan foto kamera, gambar, PDF, dan Excel menjadi satu PDF. Bisa potong, putar, diperkecil, dan diberi nama sebelum diunduh. Diproses di perangkat ini.","Staff Gudang atau admin")+
    (ADM()?big("admin","admin","Admin Gudang","Pantauan persetujuan, serah barang, stok dan harga, opname, proyek, mutasi, laporan, dan cadangan.","khusus admin",true):"")+
+   (ADM()?big("ekspor","ekspor","Ekspor Data Perusahaan","Unduh salinan semua data (Excel) dan berkas Drive dalam paket ZIP beserta daftar pemeriksa. Rahasia seperti PIN dan kode akses tidak ikut. Hanya membaca.","khusus admin",true):"")+
    '</div>';
 }
 var KET=0,KETT=0;

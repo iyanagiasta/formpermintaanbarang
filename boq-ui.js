@@ -134,12 +134,22 @@
   async function daftar() {
     EL.innerHTML = '<div class="msg">Memuat...</div>'; var r = await muatDaftar(); if (!r) return; gambarDaftar();
   }
+  function hasilHtml(l) {
+    return (l.length ? '<div class="tw"><table><thead><tr><th>Nomor / judul</th><th>Jenis</th><th>Dept / pembuat</th><th>Status</th><th class="nm">Baris</th><th class="nm">Total rencana</th><th></th></tr></thead><tbody>' + l.map(function (x) { return '<tr><td><b>' + esc(x.nomor) + '</b><small>' + esc(x.judul) + (x.kerja ? ' · ' + esc(x.kerja) : '') + '</small></td><td>' + esc(x.jenis) + '</td><td>' + esc(x.dept) + '<small>' + esc(x.pembuat) + ' · ' + esc(x.tgl) + '</small></td><td>' + tagSt(x.status) + '</td><td class="nm">' + x.baris + '</td><td class="nm">' + angka(x.total) + '</td><td><button class="gh" data-b="' + esc(x.id) + '">Buka</button></td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="msg">Tidak ada BOQ yang cocok.</div>');
+  }
+  /** Hanya isian hasil dan jumlah dokumen yang diganti; kotak cari, pilihan status, dan posisi gulir tidak ikut berubah. */
+  function segarkanHasil() {
+    var h = $('bqhasil'); if (!h) { gambarDaftar(); return; }
+    var l = S.data.filter(function (x) { return !S.st || x.status === S.st; }); h.innerHTML = hasilHtml(l);
+    var j = $('bqjml'); if (j) j.textContent = S.jumlah + ' dokumen'; pasangBuka();
+  }
+  function pasangBuka() { Array.prototype.forEach.call(EL.querySelectorAll('button[data-b]'), function (b) { b.onclick = function () { buka(b.getAttribute('data-b')); }; }); }
   function gambarDaftar() {
     var l = S.data.filter(function (x) { return !S.st || x.status === S.st; }), cnt = {}; S.data.forEach(function (x) { cnt[x.status] = (cnt[x.status] || 0) + 1; });
-    EL.innerHTML = '<div class="card"><h3 style="margin-top:0">BOQ <span class="tag">' + S.jumlah + ' dokumen</span></h3><div class="note">Rencana kebutuhan dan biaya pekerjaan sebelum PPBJ dibuat. Semua departemen bisa membuat BOQ; Pengadaan mengisi harga aktual; persetujuan akhir oleh penyetuju BOQ lewat email.</div>' +
+    EL.innerHTML = '<div class="card"><h3 style="margin-top:0">BOQ <span class="tag" id="bqjml">' + S.jumlah + ' dokumen</span></h3><div class="note">Rencana kebutuhan dan biaya pekerjaan sebelum PPBJ dibuat. Semua departemen bisa membuat BOQ; Pengadaan mengisi harga aktual; persetujuan akhir oleh penyetuju BOQ lewat email.</div>' +
       '<div class="fr"><button class="sv" id="bqbaru">+ BOQ baru</button><input type="text" id="bqq" placeholder="Cari nomor, judul, pekerjaan, departemen...' + (S.penuh ? '' : ' (min. 3 huruf)') + '" value="' + esc(S.q) + '" style="flex:1;min-width:200px" autocomplete="off"><select id="bqst"><option value="">Semua status</option>' + ['Draft', 'Diajukan', 'Menunggu persetujuan', 'Disetujui', 'Ditolak'].map(function (s) { return '<option value="' + s + '">' + s + (cnt[s] ? ' (' + cnt[s] + ')' : '') + '</option>'; }).join('') + '</select></div><div id="bqsaran"></div>' +
-      (l.length ? '<div class="tw"><table><thead><tr><th>Nomor / judul</th><th>Jenis</th><th>Dept / pembuat</th><th>Status</th><th class="nm">Baris</th><th class="nm">Total rencana</th><th></th></tr></thead><tbody>' + l.map(function (x) { return '<tr><td><b>' + esc(x.nomor) + '</b><small>' + esc(x.judul) + (x.kerja ? ' · ' + esc(x.kerja) : '') + '</small></td><td>' + esc(x.jenis) + '</td><td>' + esc(x.dept) + '<small>' + esc(x.pembuat) + ' · ' + esc(x.tgl) + '</small></td><td>' + tagSt(x.status) + '</td><td class="nm">' + x.baris + '</td><td class="nm">' + angka(x.total) + '</td><td><button class="gh" data-b="' + esc(x.id) + '">Buka</button></td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="msg">Tidak ada BOQ yang cocok.</div>') + '</div>';
-    $('bqst').value = S.st; $('bqst').onchange = function () { S.st = this.value; gambarDaftar(); };
+      '<div id="bqhasil">' + hasilHtml(l) + '</div></div>';
+    $('bqst').value = S.st; $('bqst').onchange = function () { S.st = this.value; segarkanHasil(); };
     $('bqbaru').onclick = function () { form(null); };
     var tm = null, q = $('bqq'); q.oninput = function () {
       clearTimeout(tm); var v = q.value;
@@ -147,9 +157,9 @@
         S.q = v;
         if (S.penuh) { saringLokal(); }   /* seluruh dokumen sudah termuat: cari di browser, tanpa server dan tanpa batas minimal huruf */
         else { if (v.trim().length === 1 || v.trim().length === 2) return; var r = await muatDaftar(); if (!r) return; }
-        var pos = q.selectionStart; gambarDaftar(); var q2 = $('bqq'); q2.focus(); try { q2.setSelectionRange(pos, pos); } catch (e) { /* abaikan */ }
+        segarkanHasil();
       }, S.penuh ? 120 : 350); };
-    Array.prototype.forEach.call(EL.querySelectorAll('button[data-b]'), function (b) { b.onclick = function () { buka(b.getAttribute('data-b')); }; });
+    pasangBuka();
   }
 
   /* ---------- detail ---------- */

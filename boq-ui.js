@@ -3,7 +3,7 @@
    BoqUI.mount(el, {api, toast}) · BoqUI.dokumen(d) · BoqUI.pdf(d, ttd) · BoqUI.excel(d)  */
 (function (root) {
   'use strict';
-  var CX = null, S = {q: '', st: '', jenisList: [], dept: [], atasan: [], pengadaan: false, admin: false, nama: '', data: [], jumlah: 0}, EL = null, ED = null;
+  var CX = null, S = {q: '', st: '', all: [], penuh: null, jenisList: [], dept: [], atasan: [], pengadaan: false, admin: false, nama: '', data: [], jumlah: 0}, EL = null, ED = null;
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]; }); }
   function rp(n) { return n == null || n === '' ? '' : 'Rp ' + Math.round(Number(n) || 0).toLocaleString('id-ID'); }
@@ -118,10 +118,18 @@
   }
 
   /* ---------- daftar ---------- */
+  function teksDok(x) { return [x.nomor, x.judul, x.kerja, x.jenis, x.dept, x.pembuat, x.ppbj].join(' '); }
+  /** Saring daftar di browser (pintar, toleran salah ketik) bila seluruh dokumen sudah termuat. */
+  function saringLokal() {
+    var q = String(S.q || '').trim();
+    S.data = q.length < 2 ? S.all.slice() : (window.CARI && CARI.saring ? CARI.saring(S.all, q, teksDok, 400).hasil : S.all.filter(function (x) { var t = teksDok(x).toLowerCase(); return q.toLowerCase().split(/\s+/).every(function (w) { return t.indexOf(w) >= 0; }); }));
+    S.jumlah = S.data.length;
+  }
   async function muatDaftar() {
-    var r; try { r = await CX.api({action: 'boqDaftar', q: S.q}); } catch (e) { toast('Gagal terhubung ke server.', true); return null; }
+    var r; try { r = await CX.api({action: 'boqDaftar', q: S.penuh === false ? S.q : ''}); } catch (e) { toast('Gagal terhubung ke server.', true); return null; }
     if (!r.ok) { toast(r.msg || 'Gagal.', true); return null; }
-    S.data = r.data || []; S.jumlah = r.jumlah; S.jenisList = r.jenis || []; S.dept = r.departemen || []; S.atasan = r.atasan || []; S.pengadaan = !!r.pengadaan; S.admin = !!r.admin; S.nama = r.nama || S.nama; return r;
+    if (S.penuh !== false) { S.all = r.data || []; S.penuh = (r.jumlah || 0) <= S.all.length; }
+    S.data = r.data || []; S.jumlah = r.jumlah; if (S.penuh && S.all) saringLokal(); S.jenisList = r.jenis || []; S.dept = r.departemen || []; S.atasan = r.atasan || []; S.pengadaan = !!r.pengadaan; S.admin = !!r.admin; S.nama = r.nama || S.nama; return r;
   }
   async function daftar() {
     EL.innerHTML = '<div class="msg">Memuat...</div>'; var r = await muatDaftar(); if (!r) return; gambarDaftar();
@@ -129,12 +137,18 @@
   function gambarDaftar() {
     var l = S.data.filter(function (x) { return !S.st || x.status === S.st; }), cnt = {}; S.data.forEach(function (x) { cnt[x.status] = (cnt[x.status] || 0) + 1; });
     EL.innerHTML = '<div class="card"><h3 style="margin-top:0">BOQ <span class="tag">' + S.jumlah + ' dokumen</span></h3><div class="note">Rencana kebutuhan dan biaya pekerjaan sebelum PPBJ dibuat. Semua departemen bisa membuat BOQ; Pengadaan mengisi harga aktual; persetujuan akhir oleh penyetuju BOQ lewat email.</div>' +
-      '<div class="fr"><button class="sv" id="bqbaru">+ BOQ baru</button><input type="text" id="bqq" placeholder="Cari nomor, judul, pekerjaan, departemen... (min. 3 huruf)" value="' + esc(S.q) + '" style="flex:1;min-width:200px" autocomplete="off"><select id="bqst"><option value="">Semua status</option>' + ['Draft', 'Diajukan', 'Menunggu persetujuan', 'Disetujui', 'Ditolak'].map(function (s) { return '<option value="' + s + '">' + s + (cnt[s] ? ' (' + cnt[s] + ')' : '') + '</option>'; }).join('') + '</select></div><div id="bqsaran"></div>' +
+      '<div class="fr"><button class="sv" id="bqbaru">+ BOQ baru</button><input type="text" id="bqq" placeholder="Cari nomor, judul, pekerjaan, departemen...' + (S.penuh ? '' : ' (min. 3 huruf)') + '" value="' + esc(S.q) + '" style="flex:1;min-width:200px" autocomplete="off"><select id="bqst"><option value="">Semua status</option>' + ['Draft', 'Diajukan', 'Menunggu persetujuan', 'Disetujui', 'Ditolak'].map(function (s) { return '<option value="' + s + '">' + s + (cnt[s] ? ' (' + cnt[s] + ')' : '') + '</option>'; }).join('') + '</select></div><div id="bqsaran"></div>' +
       (l.length ? '<div class="tw"><table><thead><tr><th>Nomor / judul</th><th>Jenis</th><th>Dept / pembuat</th><th>Status</th><th class="nm">Baris</th><th class="nm">Total rencana</th><th></th></tr></thead><tbody>' + l.map(function (x) { return '<tr><td><b>' + esc(x.nomor) + '</b><small>' + esc(x.judul) + (x.kerja ? ' · ' + esc(x.kerja) : '') + '</small></td><td>' + esc(x.jenis) + '</td><td>' + esc(x.dept) + '<small>' + esc(x.pembuat) + ' · ' + esc(x.tgl) + '</small></td><td>' + tagSt(x.status) + '</td><td class="nm">' + x.baris + '</td><td class="nm">' + angka(x.total) + '</td><td><button class="gh" data-b="' + esc(x.id) + '">Buka</button></td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="msg">Tidak ada BOQ yang cocok.</div>') + '</div>';
     $('bqst').value = S.st; $('bqst').onchange = function () { S.st = this.value; gambarDaftar(); };
     $('bqbaru').onclick = function () { form(null); };
     var tm = null, q = $('bqq'); q.oninput = function () {
-      clearTimeout(tm); var v = q.value; tm = setTimeout(async function () { S.q = v; if (v.trim().length === 1 || v.trim().length === 2) return; var r = await muatDaftar(); if (!r) return; var pos = q.selectionStart; gambarDaftar(); var q2 = $('bqq'); q2.focus(); try { q2.setSelectionRange(pos, pos); } catch (e) { /* abaikan */ } }, 350); };
+      clearTimeout(tm); var v = q.value;
+      tm = setTimeout(async function () {
+        S.q = v;
+        if (S.penuh) { saringLokal(); }   /* seluruh dokumen sudah termuat: cari di browser, tanpa server dan tanpa batas minimal huruf */
+        else { if (v.trim().length === 1 || v.trim().length === 2) return; var r = await muatDaftar(); if (!r) return; }
+        var pos = q.selectionStart; gambarDaftar(); var q2 = $('bqq'); q2.focus(); try { q2.setSelectionRange(pos, pos); } catch (e) { /* abaikan */ }
+      }, S.penuh ? 120 : 350); };
     Array.prototype.forEach.call(EL.querySelectorAll('button[data-b]'), function (b) { b.onclick = function () { buka(b.getAttribute('data-b')); }; });
   }
 
@@ -217,13 +231,41 @@
   }
   function hitung() { var e = $('ftot'); if (e) e.textContent = '· ' + FR.rows.filter(function (x) { return x.uraian.trim(); }).length + ' baris · total rencana ' + rp(jumlahForm()); }
   var CT = {};
+  /* Daftar barang dan sinonim dimuat sekali (cache browser dipakai bersama form pegawai), lalu pencarian dilakukan di browser tanpa menunggu server. */
+  var BL = {l: null, p: null};
+  function muatBarang() {
+    if (!BL.l) { try { var c = JSON.parse(localStorage.getItem('sctk_barang_v3') || 'null'); if (c && c.items && c.items.length) BL.l = c.items; } catch (e) { /* abaikan */ } }
+    if (!BL.p) {
+      BL.p = Promise.all([
+        CX.api({action: 'barang'}).then(function (r) { if (r && r.ok && r.items && r.items.length) { BL.l = r.items; try { localStorage.setItem('sctk_barang_v3', JSON.stringify({t: Date.now(), items: r.items})); } catch (e) { /* abaikan */ } } }).catch(function () { /* pakai jalur server */ }),
+        CX.api({action: 'sinonim'}).then(function (r) { if (r && r.ok && window.CARI && CARI.sinonim) CARI.sinonim(r.barang || {}); }).catch(function () { /* tanpa sinonim */ })
+      ]);
+    }
+    return BL.l ? Promise.resolve(BL.l) : BL.p.then(function () { return BL.l; });
+  }
+  function lokalSiap() { return !!(BL.l && window.CARI && CARI.saring); }
+  function hasilLokal(q) {
+    return CARI.saring(BL.l, q, function (b) { return b.nama + ' ' + b.kode; }, 60).hasil.slice(0, 15).map(function (b) { return {kode: b.kode, nama: b.nama, satuan: b.satuan, bebas: null, harga: 0, lokal: true}; });
+  }
+  /** Stok bebas dan harga diambil satu kali setelah barang dipilih (bukan tiap ketikan). */
+  function lengkapiBarang(i, kode) {
+    CX.api({action: 'boqBarang', q: kode}).then(function (r) {
+      if (!r || !r.ok) return;
+      var d = (r.data || []).filter(function (x) { return String(x.kode).toLowerCase() === String(kode).toLowerCase(); })[0], row = FR && FR.rows[i];
+      if (!d || !row || row.kode !== kode || numIn(row.harga) || !d.harga) return;
+      row.harga = String(d.harga); var el = document.querySelector('input[data-f="harga"][data-i="' + i + '"]'); if (el) el.value = row.harga; hitung();
+    }).catch(function () { /* harga bisa diisi manual */ });
+  }
   function cariBarang(i, q) {
     clearTimeout(CT[i]); var box = document.querySelector('[data-sr="' + i + '"]'); if (!box) return; if (String(q).trim().length < 2) { box.innerHTML = ''; return; }
     CT[i] = setTimeout(async function () {
-      var r; try { r = await CX.api({action: 'boqBarang', q: q}); } catch (e) { return; } box = document.querySelector('[data-sr="' + i + '"]'); if (!box || !r.ok) return;
-      box.innerHTML = r.data.slice(0, 6).map(function (h, k) { return '<button type="button" class="hs" data-k="' + k + '">' + esc(h.nama) + ' <small>' + esc(h.kode) + ' · ' + esc(h.satuan) + (h.bebas != null ? ' · bebas ' + fmtQ(h.bebas) : '') + (h.harga ? ' · ' + rp(h.harga) : '') + '</small></button>'; }).join('') + (r.data.length ? '<button type="button" class="hs" data-k="x"><small>Pakai teks ini apa adanya (jasa / belum terdaftar)</small></button>' : '');
-      Array.prototype.forEach.call(box.querySelectorAll('button'), function (bt) { bt.onclick = function () { var k = bt.getAttribute('data-k'); if (k === 'x') { box.innerHTML = ''; return; } var h = r.data[Number(k)], row = FR.rows[i]; row.kode = h.kode; row.uraian = h.nama; row._nama = h.nama; row.satuan = h.satuan; if (!numIn(row.harga) && h.harga) row.harga = String(h.harga); gambarBaris(); }; });
-    }, 280);
+      var data;
+      if (lokalSiap()) data = hasilLokal(q);
+      else { var r; try { r = await CX.api({action: 'boqBarang', q: q}); } catch (e) { return; } if (!r || !r.ok) return; data = r.data; }
+      box = document.querySelector('[data-sr="' + i + '"]'); if (!box) return;
+      box.innerHTML = data.slice(0, 6).map(function (h, k) { return '<button type="button" class="hs" data-k="' + k + '">' + esc(h.nama) + ' <small>' + esc(h.kode) + ' · ' + esc(h.satuan) + (h.bebas != null ? ' · bebas ' + fmtQ(h.bebas) : '') + (h.harga ? ' · ' + rp(h.harga) : '') + '</small></button>'; }).join('') + (data.length ? '<button type="button" class="hs" data-k="x"><small>Pakai teks ini apa adanya (jasa / belum terdaftar)</small></button>' : '');
+      Array.prototype.forEach.call(box.querySelectorAll('button'), function (bt) { bt.onclick = function () { var k = bt.getAttribute('data-k'); if (k === 'x') { box.innerHTML = ''; return; } var h = data[Number(k)], row = FR.rows[i]; row.kode = h.kode; row.uraian = h.nama; row._nama = h.nama; row.satuan = h.satuan; if (!numIn(row.harga) && h.harga) row.harga = String(h.harga); gambarBaris(); if (h.lokal) lengkapiBarang(i, h.kode); }; });
+    }, lokalSiap() ? 60 : 280);
   }
   async function simpan() {
     var b = $('fsv'); if (!FR.judul.trim()) { toast('Isi judul BOQ (nama proyek).', true); return; }
@@ -274,6 +316,6 @@
     } catch (e) { box.innerHTML = '<div class="card blk err">Gagal membaca berkas: ' + esc(e.message || e) + '</div>'; }
   }
 
-  async function mount(el, ctx) { EL = el; CX = ctx; S.q = ''; S.st = ''; await daftar(); }
+  async function mount(el, ctx) { EL = el; CX = ctx; S.q = ''; S.st = ''; S.penuh = null; S.all = []; await daftar(); try { muatBarang(); } catch (e) { /* jalur server tetap jalan */ } }
   root.BoqUI = {mount: mount, dokumen: dokumen, kepala: kepala, ringkas: ringkas, tabel: tabelBaris, pdf: pdf, excel: excel, namaBerkas: namaBerkas, bacaAoa: bacaAoa, setCtx: function (c) { CX = c; }};
 })(window);

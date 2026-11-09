@@ -266,6 +266,17 @@
       row.harga = String(d.harga); var el = document.querySelector('input[data-f="harga"][data-i="' + i + '"]'); if (el) el.value = row.harga; hitung();
     }).catch(function () { /* harga bisa diisi manual */ });
   }
+  /* Daftar saran melayang di luar tabel (tabel punya overflow, jadi dipasang fixed menurut posisi kotak ketik). */
+  function taruhSaran(box) {
+    if (!box || !box.firstChild) return;
+    var inp = box.parentNode && box.parentNode.querySelector('input[data-f="uraian"]'); if (!inp) return;
+    var r = inp.getBoundingClientRect(), tinggiBawah = window.innerHeight - r.bottom - 12, tinggiAtas = r.top - 12, atas = tinggiBawah < 160 && tinggiAtas > tinggiBawah;
+    box.style.left = Math.max(4, r.left) + 'px'; box.style.width = Math.max(260, r.width) + 'px';
+    var mh = Math.max(120, Math.min(280, atas ? tinggiAtas : tinggiBawah)); box.style.maxHeight = mh + 'px';
+    if (atas) { box.style.top = 'auto'; box.style.bottom = (window.innerHeight - r.top + 2) + 'px'; } else { box.style.bottom = 'auto'; box.style.top = (r.bottom + 2) + 'px'; }
+  }
+  function taruhSemuaSaran() { Array.prototype.forEach.call(document.querySelectorAll('.sres'), taruhSaran); }
+  window.addEventListener('scroll', taruhSemuaSaran, true); window.addEventListener('resize', taruhSemuaSaran);
   function cariBarang(i, q) {
     clearTimeout(CT[i]); var box = document.querySelector('[data-sr="' + i + '"]'); if (!box) return; if (String(q).trim().length < 2) { box.innerHTML = ''; return; }
     CT[i] = setTimeout(async function () {
@@ -274,6 +285,7 @@
       else { var r; try { r = await CX.api({action: 'boqBarang', q: q}); } catch (e) { return; } if (!r || !r.ok) return; data = r.data; }
       box = document.querySelector('[data-sr="' + i + '"]'); if (!box) return;
       box.innerHTML = data.slice(0, 6).map(function (h, k) { return '<button type="button" class="hs" data-k="' + k + '">' + esc(h.nama) + ' <small>' + esc(h.kode) + ' · ' + esc(h.satuan) + (h.bebas != null ? ' · bebas ' + fmtQ(h.bebas) : '') + (h.harga ? ' · ' + rp(h.harga) : '') + '</small></button>'; }).join('') + (data.length ? '<button type="button" class="hs" data-k="x"><small>Pakai teks ini apa adanya (jasa / belum terdaftar)</small></button>' : '');
+      taruhSaran(box);
       Array.prototype.forEach.call(box.querySelectorAll('button'), function (bt) { bt.onclick = function () { var k = bt.getAttribute('data-k'); if (k === 'x') { box.innerHTML = ''; return; } var h = data[Number(k)], row = FR.rows[i]; row.kode = h.kode; row.uraian = h.nama; row._nama = h.nama; row.satuan = h.satuan; if (!numIn(row.harga) && h.harga) row.harga = String(h.harga); gambarBaris(); if (h.lokal) lengkapiBarang(i, h.kode); }; });
     }, lokalSiap() ? 60 : 280);
   }

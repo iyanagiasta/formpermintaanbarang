@@ -9,6 +9,7 @@
     ["Data & Sistem", [["masterbarang", "Master Barang"], ["label", "Label"], ["pengumuman", "Pengumuman"], ["sistem", "Sistem"], ["kecepatan", "Kecepatan"], ["panduan", "Panduan"]]]];
   var HALAMAN = {"pengadaan.html": "pembelian", "realisasi.html": "realisasi", "label.html": "label", "pembelian.html": "pembelian"};
   var LANGSUNG = {pembelian: "pengadaan.html", realisasi: "realisasi.html", label: "label.html"};
+  function sembunyiSerah() { try { return sessionStorage.getItem("sctk_serah_ada") === "0"; } catch (e) { return false; } }
   function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
   function admin() { try { return !!sessionStorage.getItem("sctk_admin"); } catch (e) { return false; } }
   function simpan(v) { try { localStorage.setItem(K, v); } catch (e) {} }
@@ -37,7 +38,7 @@
     var h = '<div class="mn"><button type="button" id="mntup" title="Sembunyikan menu">&laquo; Minimalkan</button></div><a class="kb" href="admin.html">&larr; Kembali ke Admin</a>';
     MENU.forEach(function (g) {
       h += "<h6>" + esc(g[0]) + "</h6>";
-      g[1].forEach(function (x) { var u = LANGSUNG[x[0]] || ("admin.html#" + x[0]); h += '<a href="' + u + '"' + (x[0] === cur ? ' class="on" aria-current="page"' : "") + ">" + esc(x[1]) + "</a>"; });
+      g[1].forEach(function (x) { if (x[0] === "serah" && sembunyiSerah()) return; var u = LANGSUNG[x[0]] || ("admin.html#" + x[0]); h += '<a href="' + u + '"' + (x[0] === cur ? ' class="on" aria-current="page"' : "") + ">" + esc(x[1]) + "</a>"; });
     });
     var nav = d.createElement("nav"); nav.id = "mnadm"; nav.setAttribute("aria-label", "Menu admin"); nav.innerHTML = h;
     var bk = d.createElement("button"); bk.type = "button"; bk.id = "mnbuka"; bk.textContent = "☰ Menu"; bk.setAttribute("aria-label", "Buka menu admin");

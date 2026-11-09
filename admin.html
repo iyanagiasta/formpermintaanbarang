@@ -134,7 +134,18 @@ async function api(b){
   var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});
   var j=await r.json();
   try{if(window.IDX)IDX.sesudahApi(b.action,j);}catch(e){}
+  try{serahTandai(b.action,j);}catch(e){}
   return j;
+}
+/* Tambahan 82: barang langsung terpotong saat diajukan, jadi tab Serah Barang disembunyikan selama tidak ada permintaan lama yang menunggu diserahkan. */
+function serahSembunyi(){try{return sessionStorage.getItem("sctk_serah_ada")==="0";}catch(e){return false;}}
+function serahTandai(act,j){
+  if(!j||!j.ok)return;var ada=null;
+  if(act==="adminKerja"){var it=(j.items||[]).filter(function(x){return /^Siap diserahkan/.test(x.judul);})[0];ada=!!(it&&it.n>0);}
+  else if(act==="adminSerahList")ada=(j.data||[]).length>0;
+  else if(act==="serahAda")ada=!!j.ada;
+  if(ada===null)return;var lama=serahSembunyi();try{sessionStorage.setItem("sctk_serah_ada",ada?"1":"0");}catch(e){}
+  if(lama!==serahSembunyi()&&document.getElementById("tabs")&&typeof tabsUI==="function")tabsUI();
 }
 function loginView(msg){
   app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Masuk sebagai Admin Gudang</b></p><div class="note" style="margin-bottom:8px">Pantauan, stok, opname, proyek, dan laporan. Khusus admin gudang.</div>'+
@@ -182,6 +193,7 @@ function draw(now){
   var nSet=DATA.filter(function(d){return d.menunggu;}).length,nPp=DATA.filter(function(d){return d.ppbjBelum;}).length,nLate=DATA.filter(function(d){return d.menunggu&&d.jam>=24;}).length;
   var q=(document.getElementById("q")||{}).value||"";
   tabsUI();
+  if(!window.__serahCek){window.__serahCek=1;api({action:"serahAda"}).catch(function(){});}
   pane().innerHTML=
    '<div class="sum"><div><b>'+nSet+'</b><span>Menunggu persetujuan</span></div><div><b>'+nLate+'</b><span>Menunggu 24 jam atau lebih</span></div><div><b>'+nPp+'</b><span>PPBJ belum ada</span></div></div>'+
    '<div class="bar">'+
@@ -335,7 +347,7 @@ function cepatCari(v){
 }
 function tabsUI(){
   if(!document.getElementById("pane"))app.innerHTML='<div class="adm"><nav class="side" id="side"><button type="button" class="mnbtn" id="mnbtn"></button><div id="mnbox"><button type="button" class="smmin" id="smmin" title="Sembunyikan menu agar layar lebih lebar">&laquo; Minimalkan menu</button><div class="mcari"><input id="qcepat" placeholder="Cari barang / No PPBJ" autocomplete="off"></div><div id="tabs"></div></div></nav><div id="pane"></div></div>';
-  document.getElementById("tabs").innerHTML=MENU.map(function(g){return '<div class="mgt">'+g[0]+'</div>'+g[1].map(function(t){return '<button type="button" class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");}).join("");
+  document.getElementById("tabs").innerHTML=MENU.map(function(g){return '<div class="mgt">'+g[0]+'</div>'+g[1].filter(function(t){return !(t[0]==="serah"&&TAB!=="serah"&&serahSembunyi());}).map(function(t){return '<button type="button" class="'+(TAB===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join("");}).join("");
   var mb=document.getElementById("mnbtn");mb.textContent="Menu: "+namaTab(TAB)+"  \u25BE";mb.onclick=function(){document.getElementById("side").classList.toggle("buka");};
   var qc=document.getElementById("qcepat");qc.onkeydown=function(e){if(e.key==="Enter"){var v=qc.value;qc.value="";document.getElementById("side").classList.remove("buka");cepatCari(v);}};
   (function(){var K="sctk_menu_admin",adm=document.querySelector(".adm"),bk=document.getElementById("smbuka");

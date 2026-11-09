@@ -73,7 +73,7 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="cari-pintar.js"></script><script src="nama-berkas.js"></script><script src="tema.js"></script><script src="menu-admin.js"></script><script src="kb-impor.js"></script><script src="po-baca.js"></script><script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script><script src="pdfpengajuan.js?v=59"></script><script src="kompres.js?v=59"></script><script src="pdf-realisasi.js?v=59"></script><script src="real-berkas.js?v=59"></script><script src="boq-ui.js?v=81b"></script><script src="po-ui.js"></script><script src="lintas-ui.js"></script><script src="qr-mini.js"></script><script src="ttd-stempel.js"></script><script src="arsip-ui.js"></script>
+<script src="cari-pintar.js"></script><script src="nama-berkas.js"></script><script src="tema.js"></script><script src="menu-admin.js?v=82"></script><script src="kb-impor.js"></script><script src="po-baca.js"></script><script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script><script src="pdfpengajuan.js?v=59"></script><script src="kompres.js?v=59"></script><script src="pdf-realisasi.js?v=59"></script><script src="real-berkas.js?v=59"></script><script src="boq-ui.js?v=81b"></script><script src="po-ui.js"></script><script src="lintas-ui.js"></script><script src="qr-mini.js"></script><script src="ttd-stempel.js"></script><script src="arsip-ui.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 </head>
 <body>
@@ -115,13 +115,36 @@ function tersaring(){
 }
 function tampilList(){
   CUR=null;var aktif=LIST.filter(function(x){return x.status!=="Dibatalkan"&&x.status!=="Diterima lengkap";}),dok=LIST.filter(function(x){return x.dokBelum;}),dar=LIST.filter(function(x){return x.darurat&&x.sah==="Menunggu pengesahan";}),lama=dar.filter(function(x){return x.umur>=BATAS;});
-  app.innerHTML=(window.POUI?POUI.nav("beli"):"")+'<div class="sum"><div><b>'+aktif.length+'</b><span>Belum diterima lengkap</span></div><div><b>'+dok.length+'</b><span>Surat jalan belum lengkap</span></div><div><b>'+dar.length+'</b><span>Darurat menunggu pengesahan'+(lama.length?' ('+lama.length+' lewat '+BATAS+' hari)':'')+'</span></div><div><b>'+rp(LIST.filter(function(x){return x.status!=="Dibatalkan";}).reduce(function(a,x){return a+x.total;},0))+'</b><span>Total nilai (semua)</span></div></div>'+
+  app.innerHTML=(window.POUI?POUI.nav("beli"):"")+'<div id="mk"></div><div class="sum"><div><b>'+aktif.length+'</b><span>Belum diterima lengkap</span></div><div><b>'+dok.length+'</b><span>Surat jalan belum lengkap</span></div><div><b>'+dar.length+'</b><span>Darurat menunggu pengesahan'+(lama.length?' ('+lama.length+' lewat '+BATAS+' hari)':'')+'</span></div><div><b>'+rp(LIST.filter(function(x){return x.status!=="Dibatalkan";}).reduce(function(a,x){return a+x.total;},0))+'</b><span>Total nilai (semua)</span></div></div>'+
   '<div class="card"><div class="fl">'+(bisa("input")?'<button class="sv" id="bn">+ Input pembelian</button>':'')+'<input type="text" id="fq" placeholder="Cari nomor, PO, supplier, PPBJ, proyek" style="flex:1;min-width:180px"><select id="fs"><option value="aktif">Belum diterima lengkap</option><option value="dok">Surat jalan belum lengkap</option><option value="lengkap">Diterima lengkap</option><option value="batal">Dibatalkan</option><option value="">Semua</option></select><select id="fd"><option value="">Semua jenis</option><option value="darurat">Hanya darurat</option><option value="menunggu">Darurat menunggu pengesahan</option></select><button class="gh" id="fx">Unduh Excel</button><button class="gh" id="fr">Muat ulang</button></div><div id="tb"></div></div>'+
   (bisa("sahkan")||PERAN==="Admin"?'<div class="card"><b>Ringkasan bulanan</b><div class="fl"><input type="month" id="rb" value="'+hariIni().slice(0,7)+'"><button class="gh" id="rl">Lihat</button><button class="gh" id="rk">Kirim email ke Accounting</button></div><div id="rh" class="note"></div></div>':'');
   var f={fq:"q",fs:"st",fd:"dar"};Object.keys(f).forEach(function(id){var el=document.getElementById(id);el.value=FIL[f[id]];el.oninput=el.onchange=function(){FIL[f[id]]=this.value;gambarTb();};});
   document.getElementById("fx").onclick=excel;document.getElementById("fr").onclick=muat;if(document.getElementById("bn"))document.getElementById("bn").onclick=formBaru;
   if(document.getElementById("rl")){document.getElementById("rl").onclick=function(){ringkas(false);};document.getElementById("rk").onclick=function(){ringkas(true);};}
-  if(window.POUI)POUI.pasangNav();gambarTb();
+  if(window.POUI)POUI.pasangNav();gambarTb();muatMasuk();
+}
+/* ===== Tambahan 82: tautkan catatan barang masuk manual ke PO ===== */
+var MK=[],MKBISA=false;
+async function muatMasuk(){
+  var el=document.getElementById("mk");if(!el)return;
+  try{var r=await api({action:"masukCocok"});if(!r||!r.ok||!(r.data||[]).length){el.innerHTML="";return;}MK=r.data;MKBISA=!!r.bisa;gambarMasuk();}catch(e){}
+}
+function gambarMasuk(){
+  var el=document.getElementById("mk");if(!el)return;
+  el.innerHTML='<div class="card" style="border-left:4px solid #d9a400"><b>Catatan barang masuk belum ditautkan ke PO ('+MK.length+')</b><div class="note">Dicatat gudang lewat "Catat barang masuk". Stok sudah bertambah; menautkan hanya mengurangi sisa pesanan di PO dan membawa foto surat jalan ke sana.</div>'+MK.map(function(d,i){
+    var kd=d.kandidat||[];
+    return '<div style="border-top:1px solid var(--line,#ccd);padding:8px 0"><b>'+esc(d.nomor)+'</b> <small>datang '+esc(d.tgl||d.waktu)+(d.vendor?' · '+esc(d.vendor):'')+(d.po?' · PO '+esc(d.po):'')+' · oleh '+esc(d.oleh)+'</small><div class="note">'+d.items.map(function(x){return esc(x.nama)+' <b>'+x.qty+'</b> '+esc(x.satuan);}).join(" · ")+'</div>'+
+      (kd.length&&MKBISA?'<div class="fl"><select data-mk="'+i+'">'+kd.map(function(k){return '<option value="'+esc(k.id)+'">'+esc(k.nomor)+' · '+esc(k.supplier)+' · PO '+esc(k.po||"-")+' ('+k.cocok.length+' barang cocok)</option>';}).join("")+'</select><button class="sv" data-tk="'+i+'">Tautkan</button></div>':
+       (kd.length?'<div class="note">Cocok dengan: '+kd.slice(0,3).map(function(k){return esc(k.nomor)+' (PO '+esc(k.po||"-")+')';}).join(", ")+'. Minta admin atau Staff Gudang menautkannya.</div>':'<div class="note">Belum ada pembelian yang barangnya cocok dan masih punya sisa pesanan.</div>'))+'</div>';
+  }).join("")+'</div>';
+  el.querySelectorAll("[data-tk]").forEach(function(b){b.onclick=function(){tautkanMasuk(+b.getAttribute("data-tk"),b);};});
+}
+async function tautkanMasuk(i,b){
+  var d=MK[i],sel=document.querySelector('[data-mk="'+i+'"]');if(!d||!sel)return;
+  if(!confirm("Tautkan "+d.nomor+" ke pembelian yang dipilih? Stok tidak bertambah lagi.")) return;
+  b.disabled=true;
+  try{var r=await api({action:"masukTautkan",nomor:d.nomor,id:sel.value});toast(r.msg||"Gagal.",!r.ok);if(r.ok)await muat();else b.disabled=false;}
+  catch(e){toast("Gagal terhubung ke server.",true);b.disabled=false;}
 }
 async function ringkas(kirim){
   var b=document.getElementById("rb").value;if(kirim&&!confirm("Kirim ringkasan "+b+" lewat email ke Accounting?"))return;

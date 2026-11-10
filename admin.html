@@ -20,7 +20,7 @@
 <script src="bpb-detail.js?v=79"></script>
 <script src="notif-bell.js?v=81"></script>
 <script src="accurate-ubah2.js?v=45"></script>
-<script src="accurate-terima.js?v=48"></script>
+<script src="accurate-terima.js?v=49"></script>
 <script src="arsip-bukti.js?v=44"></script>
 <script src="kecepatan.js?v=41"></script>
 <script src="proyek-order.js?v=47"></script>
@@ -371,7 +371,7 @@ function goTab(t){
   try{if(window.IDX&&PIN)IDX.mulai(api);}catch(e){}
   if(t==="pantau"){load(false);return;}
   tabsUI();
-  if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="baopname")loadBA();else if(t==="buffer")loadBF();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="kimia")KM.mount(pane());else if(t==="kpi")KPI.mount(pane());else if(t==="panduan")PDN.mount(pane());else if(t==="laporan")loadLaporan();else if(t==="kerja")loadKerja();else if(t==="lapatasan")loadLapAtasan();else if(t==="telusur")loadTelusur();else if(t==="analisa")AB.mount(pane(),api,toast);else if(t==="arsip")ARB.mount(pane(),api,toast);else if(t==="kecepatan")KPF.mount(pane(),api,toast);else if(t==="kedaluwarsa")loadKdl();else if(t==="accurate")loadAccurate();else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
+  if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="baopname")loadBA();else if(t==="buffer")loadBF();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="kimia")KM.mount(pane());else if(t==="kpi")KPI.mount(pane());else if(t==="panduan")PDN.mount(pane());else if(t==="laporan")loadLaporan();else if(t==="kerja")loadKerja();else if(t==="lapatasan")loadLapAtasan();else if(t==="telusur")loadTelusur();else if(t==="analisa")AB.mount(pane(),api,toast);else if(t==="arsip")ARB.mount(pane(),api,toast);else if(t==="kecepatan")KPF.mount(pane(),api,toast);else if(t==="kedaluwarsa")loadKdl();else if(t==="accurate"){PAF.status="Belum";if(window.PAT)PAT.mulai();loadAccurate();}else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
   try{history.replaceState(null,"","#"+t);}catch(e){}
 }
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
@@ -1236,8 +1236,8 @@ function drawAccurate(){
    '<div class="bar"><span class="note" style="margin:0">Kesiapan:</span>'+[["","Semua"],["siap","Siap diinput ("+(R.siap==null?0:R.siap)+")"],["tahan","Tertahan ("+(R.tertahan||0)+")"]].map(function(o){return '<button class="chip'+(PAF.tahan===o[0]?" on":"")+'" data-pt="'+o[0]+'">'+o[1]+'</button>';}).join("")+'<button class="gh" id="pajb" title="Barang yang membuat stok Accurate di sistem berbeda dengan Accurate asli">Penjelas selisih stok Accurate</button><button class="gh" id="pakp" title="Lengkapi No PPBJ lewat pengingat">Buka Kotak Pengingat PPBJ</button></div>'+
    (R.tertahan?'<div class="note" style="border-left:3px solid var(--red,#a82424);padding-left:8px">'+R.tertahan+' dokumen belum bisa diinput ke Accurate karena No PPBJ belum ada atau belum terdaftar di sheet Proyek'+(R.tertahanLintasBulan?'; <b>'+R.tertahanLintasBulan+'</b> di antaranya dari bulan sebelumnya (akan terlambat masuk pembukuan bulan itu)':"")+'. Lengkapi lewat Kotak Pengingat PPBJ.</div>':"")+
    '<div id="lxjb"></div>'+
-   '<div class="bar"><select id="pas">'+[["Belum","Belum diinput"],["Sudah","Sudah diinput"],["","Semua status"]].map(function(o){return '<option value="'+o[0]+'"'+(PAF.status===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select>'+
-   '<select id="paj">'+jenisOp+'</select><select id="pap" style="max-width:240px">'+ppOp+'</select><label class="fl">Dari <input type="date" id="pad" value="'+esc(PAF.dari)+'"></label><label class="fl">Sampai <input type="date" id="paz" value="'+esc(PAF.sampai)+'"></label>'+
+   '<div class="bar" id="pastab" role="group" aria-label="Status input Accurate">'+[["Belum","Belum diinput ("+R.belum+")"],["Sudah","Sudah diinput ("+R.sudah+")"],["","Semua"]].map(function(o){return '<button class="chip'+(PAF.status===o[0]?" on":"")+'" data-ps="'+o[0]+'">'+o[1]+'</button>';}).join("")+'</div>'+
+   '<div class="bar"><select id="paj">'+jenisOp+'</select><select id="pap" style="max-width:240px">'+ppOp+'</select><label class="fl">Dari <input type="date" id="pad" value="'+esc(PAF.dari)+'"></label><label class="fl">Sampai <input type="date" id="paz" value="'+esc(PAF.sampai)+'"></label>'+
    '<input id="paq" placeholder="Cari dokumen / proyek / No transaksi" value="'+esc(PAF.q)+'"><label class="fl"><input type="checkbox" id="paa"'+(PAF.acc?" checked":"")+'> hanya yang ada bagian dari stok Accurate</label><button class="gh" id="par">Segarkan</button></div>'+
    '<div class="bar"><label class="fl"><input type="checkbox" id="pall"'+(vis.length&&nSelVis===Math.min(vis.length,500)?" checked":"")+'> Pilih semua yang tampil</label><b id="pasel">'+sel.length+' dokumen dipilih</b>'+
    '<button class="gh" id="pax">Unduh Excel rincian</button><button class="gh" id="pag">Unduh PDF gabungan</button><button class="gh" id="paz2">Unduh ZIP (1 PDF per dokumen)</button></div>'+
@@ -1245,7 +1245,7 @@ function drawAccurate(){
    '<div class="note">Pilih satu atau banyak dokumen (misalnya semua dokumen satu proyek), unduh PDF gabungan untuk diunggah sekali ke Accurate, lalu isi nomor transaksi dan klik Tandai. Nomor yang sama berlaku untuk semua dokumen terpilih. Pengingat hanya dikirim ke Staff Gudang.</div>'+
    (vis.length?'<table><thead><tr><th></th><th>Tanggal</th><th>Dokumen</th><th>No PPBJ</th><th>Proyek</th><th class="nm">Barang / Qty</th><th>Sumber stok</th><th>Status</th></tr></thead><tbody>'+body+'</tbody></table>'+(vis.length>500?'<div class="note">Menampilkan 500 dari '+vis.length+'. Persempit filter.</div>':""):'<div class="card msg">Tidak ada dokumen yang cocok dengan filter.</div>');
   var $=function(i){return document.getElementById(i);};
-  $("pas").onchange=function(){PAF.status=this.value;drawAccurate();};$("paj").onchange=function(){PAF.jenis=this.value;drawAccurate();};$("pap").onchange=function(){PAF.ppbj=this.value;drawAccurate();};
+  document.querySelectorAll("[data-ps]").forEach(function(b){b.onclick=function(){PAF.status=b.getAttribute("data-ps");PAS={};drawAccurate();};});$("paj").onchange=function(){PAF.jenis=this.value;drawAccurate();};$("pap").onchange=function(){PAF.ppbj=this.value;drawAccurate();};
   $("pad").onchange=function(){PAF.dari=this.value;drawAccurate();};$("paz").onchange=function(){PAF.sampai=this.value;drawAccurate();};
   $("paa").onchange=function(){PAF.acc=this.checked;drawAccurate();};$("par").onclick=loadAccurate;
   document.querySelectorAll("[data-pt]").forEach(function(b){b.onclick=function(){PAF.tahan=b.getAttribute("data-pt");drawAccurate();};});

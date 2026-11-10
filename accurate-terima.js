@@ -39,7 +39,7 @@ var PAT=(function(){
      (vis.length?'<table><thead><tr><th></th><th>Tanggal</th><th>Penerimaan</th><th>No PPBJ</th><th>Proyek</th><th class="nm">Barang / Jumlah</th><th>Status</th></tr></thead><tbody>'+body+'</tbody></table>'+(vis.length>500?'<div class="note">Menampilkan 500 dari '+vis.length+'. Persempit filter.</div>':""):'<div class="card msg">Tidak ada penerimaan yang cocok dengan filter.</div>');
     pasangBar();
     document.querySelectorAll("[data-ts]").forEach(function(b){b.onclick=function(){F.status=b.getAttribute("data-ts");S={};draw();};});$("tapo").onchange=function(){F.po=this.value;draw();};$("tad").onchange=function(){F.dari=this.value;draw();};$("taz").onchange=function(){F.sampai=this.value;draw();};
-    $("taq").onkeydown=function(e){if(e.key==="Enter"){F.q=this.value;draw();}};$("taq").onchange=function(){F.q=this.value;draw();};$("tar").onclick=function(){loadAccurate();};
+    $("taq").onkeydown=function(e){if(e.key==="Enter"){F.q=this.value;draw();}};$("taq").onchange=function(){F.q=this.value;draw();};$("tar").onclick=function(){loadAccurate(true);};
     $("tall").onchange=function(){var on=this.checked;vis.slice(0,500).forEach(function(x){if(on)S[x.key]=1;else delete S[x.key];});draw();};
     document.querySelectorAll("[data-tk]").forEach(function(c){c.onchange=function(){var k=c.getAttribute("data-tk");if(c.checked)S[k]=1;else delete S[k];$("tasel").textContent=terpilih().length+" dipilih";};});
     $("tax").onclick=function(){excel(this);};$("tag").onclick=function(){pdf(this,false);};$("taz2").onclick=function(){pdf(this,true);};

@@ -3,7 +3,7 @@
 (function(){
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
 var app=document.getElementById("app"),KODE="",BAR=[],BYK={},SUMB=["Bekas","Moka","Accurate"],OTO=["Moka","Accurate"];
-var RAKOK=false,BOT_OK=null,BOT_P=null,PROY_P=null,SINO_SRV={},USER_NAMA="",DET={},INFO={},PAKET=null,PROY=null,PTOK=[],terakhir=null,chat=null;
+var RAKOK=false,NETOK=false,TANPA=[],BOT_OK=null,BOT_P=null,PROY_P=null,SINO_SRV={},USER_NAMA="",DET={},INFO={},PAKET=null,PROY=null,PTOK=[],terakhir=null,chat=null;
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function fq(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",")}
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -65,7 +65,7 @@ function tidakDikenal(qt){
 
 /* ===== TAMPILAN ===== */
 function add(cls,html){var d=document.createElement("div");d.className="tq-m "+cls;d.innerHTML=html;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
-function status(b,bebas){var tot=b.total;return bebas<=0?["Habis","bad"]:bebas<=Math.max(3,Math.round(tot*.1))?["Menipis","warn"]:["Aman","ok"]}
+function status(b,bebas){var tot=b.total;if(b.neto<0)return ["Kurang","bad"];return bebas<=0?["Habis","bad"]:bebas<=Math.max(3,Math.round(tot*.1))?["Menipis","warn"]:["Aman","ok"]}
 function chips(list,fn){
   var w=document.createElement("div");w.className="tq-chips";
   list.forEach(function(x){var c=document.createElement("button");c.type="button";c.className="tq-chip";c.textContent=x.label;c.onclick=function(){fn(x)};w.appendChild(c)});
@@ -83,10 +83,10 @@ async function detail(b){
 }
 async function infoPo(b){
   if(INFO[b.key])return INFO[b.key];
-  var o={po:[],setara:[],rak:null,alok:[],tercadang:0,tahu:false};
+  var o={po:[],setara:[],rak:null,alok:[],tercadang:0,butuh:[],tahu:false};
   if(BOT_OK===false)return o;
   try{var r=await bot("info",{kodes:[b.kode]});
-    if(r&&r.ok){o={po:(r.po&&r.po[b.key])||[],setara:(r.setara&&r.setara[b.key])||[],rak:(r.rak&&r.rak[b.key])||null,alok:(r.alok&&r.alok[b.key])||[],tercadang:(r.tercadang&&r.tercadang[b.key])||0,tahu:true};INFO[b.key]=o}}catch(e){}
+    if(r&&r.ok){o={po:(r.po&&r.po[b.key])||[],setara:(r.setara&&r.setara[b.key])||[],rak:(r.rak&&r.rak[b.key])||null,alok:(r.alok&&r.alok[b.key])||[],tercadang:(r.tercadang&&r.tercadang[b.key])||0,butuh:(r.butuh&&r.butuh[b.key])||[],tahu:true};if(r.net&&r.net[b.key]!==undefined){b.neto=r.net[b.key];b.bebas=Math.max(0,b.neto)}if(r.tanpaRab)TANPA=r.tanpaRab;INFO[b.key]=o}}catch(e){}
   return o;
 }
 function poHtml(o){
@@ -99,15 +99,22 @@ function kartu(b,d,rak,sementara){
   var st=status(b,d.bebas),h='<p class="tq-nm">'+esc(b.nama)+'</p><p class="tq-sm">'+esc(b.kode)+' · '+esc(b.sat||"")+'</p>';
   if(rak!==undefined)h+='<div class="tq-row"><span>Lokasi</span><b>'+(rak?lokTeks(rak):'<span class="tq-sm">belum tercatat</span>')+'</b></div>';
   var q=d.q||b.q;
-  h+='<div class="tq-row"><span>Stok di gudang</span><b>'+fq(d.total)+' '+esc(b.sat||"")+'</b></div>';
+  h+='<div class="tq-row"><span>Stok aktual di gudang</span><b>'+fq(d.total)+' '+esc(b.sat||"")+'</b></div>';
   SUMB.forEach(function(sn,i){if(q[i])h+='<div class="tq-row tq-sm"><span>&nbsp;&nbsp;Stok '+esc(sn)+'</span><span>'+fq(q[i])+' '+esc(b.sat||"")+'</span></div>'});
   if(sementara){}
-  else if(d.alok.length)d.alok.forEach(function(a){h+='<div class="tq-row"><span>Jatah proyek: '+esc(a.ppbj)+(a.ket?" - "+esc(a.ket):"")+(a.status==="Ditunda Sebentar"?" (ditunda)":"")+'</span><b>'+fq(a.qty)+' '+esc(b.sat||"")+'</b></div>'});
-  else h+='<div class="tq-row"><span>Jatah proyek</span><b>Tidak ada</b></div>';
+  else if(d.alok.length)d.alok.forEach(function(a){h+='<div class="tq-row"><span>Dikunci (alokasi): '+esc(a.ppbj)+(a.ket?" - "+esc(a.ket):"")+(a.status==="Ditunda Sebentar"?" (ditunda)":"")+'</span><b>'+fq(a.qty)+' '+esc(b.sat||"")+'</b></div>'});
+  else h+='<div class="tq-row"><span>Dikunci (alokasi)</span><b>Tidak ada</b></div>';
   if(!sementara&&d.tercadang>0)h+='<div class="tq-row"><span>Sedang diminta (belum diserahkan)</span><b>'+fq(d.tercadang)+' '+esc(b.sat||"")+'</b></div>';
-  h+='<div class="tq-bebas"><span>Stok bebas</span><b class="tq-'+st[1]+'">'+fq(Math.max(0,d.bebas))+' '+esc(b.sat||"")+'</b><span class="tq-tag tq-'+st[1]+'">'+st[0]+'</span></div>';
+  var bt=(d.butuh||[]).filter(function(x){return x.sisa>0});
+  if(!sementara&&d.butuh){
+    bt.forEach(function(x){h+='<div class="tq-row"><span>Butuh proyek: '+esc(x.ppbj)+(x.ket?" - "+esc(x.ket):"")+(x.status==="Ditunda Sebentar"?" (ditunda)":"")+'<br><span class="tq-sm">kebutuhan '+fq(x.rab)+' − diserahkan '+fq(x.serah)+' − dialokasi '+fq(x.alok)+(x.minta?' − sedang diminta '+fq(x.minta):'')+'</span></span><b>sisa '+fq(x.sisa)+' '+esc(b.sat||"")+'</b></div>'});
+    if(!bt.length&&(d.butuh||[]).length)h+='<div class="tq-row"><span>Kebutuhan proyek</span><b>Sudah terpenuhi</b></div>';
+  }
+  var nt=b.neto!==undefined?b.neto:d.bebas;
+  h+='<div class="tq-bebas"><span>Stok bebas</span><b class="tq-'+st[1]+'">'+(nt<0?'Kurang '+fq(-nt):fq(Math.max(0,d.bebas)))+' '+esc(b.sat||"")+'</b><span class="tq-tag tq-'+st[1]+'">'+st[0]+'</span></div>';
   var oto=OTO.join(" + ");
-  h+='<p class="tq-sm" style="margin-top:4px">Stok bebas = '+esc(oto)+' dikurangi jatah proyek dan yang sedang diminta'+(SUMB.indexOf("Bekas")>=0&&OTO.indexOf("Bekas")<0&&q[SUMB.indexOf("Bekas")]?' (stok Bekas tidak dihitung)':'')+'.</p>';
+  h+='<p class="tq-sm" style="margin-top:4px">Stok bebas = '+esc(oto)+' dikurangi alokasi, yang sedang diminta, dan sisa kebutuhan proyek aktif (dari rincian material PPBJ)'+(SUMB.indexOf("Bekas")>=0&&OTO.indexOf("Bekas")<0&&q[SUMB.indexOf("Bekas")]?' (stok Bekas tidak dihitung)':'')+'.</p>';
+  if(!sementara&&TANPA.length)h+='<p class="tq-sm" style="margin-top:4px">Belum ada rincian material PPBJ untuk: '+TANPA.slice(0,5).map(function(x){return esc(x.ppbj)+(x.ket?" - "+esc(x.ket):"")}).join("; ")+(TANPA.length>5?" dan "+(TANPA.length-5)+" lainnya":"")+'. Kebutuhan proyek itu belum terhitung.</p>';
   return h;
 }
 async function tampil(b,qty){
@@ -116,7 +123,7 @@ async function tampil(b,qty){
   var el=add("tq-b",kartu(b,lokalD,RAKOK?b.rak:undefined,true)+'<p class="tq-sm" style="margin-top:6px">Memeriksa jatah proyek dan lokasi rak...</p>');
   try{await BOT_P}catch(e){}
   var info=await infoPo(b),d;
-  if(info.tahu)d={alok:info.alok,tercadang:info.tercadang,bebas:b.bebas,total:b.total,q:b.q};
+  if(info.tahu)d={alok:info.alok,tercadang:info.tercadang,butuh:info.butuh,bebas:b.bebas,total:b.total,q:b.q};
   else{d=await detail(b);info={po:[],setara:[],rak:undefined,tahu:false}}
   var st=status(b,d.bebas),bebas=Math.max(0,d.bebas),h="";
   var rakF=RAKOK?b.rak:(info.tahu?info.rak:undefined);
@@ -293,8 +300,8 @@ async function masuk(){
 async function mulai(dariLogin){
   app.innerHTML='<div class="card note" style="text-align:center">Memuat data barang dan stok...</div>';
   try{
-    var rs=await Promise.all([api({action:"barang"}),api({action:"stok"}),api({action:"sinonim"}),bot("rak").catch(function(){return null})]);
-    var rb=rs[0],rk=rs[1],rn=rs[2],rr=rs[3];RAKOK=!!(rr&&rr.ok===true&&rr.rak);var RM=RAKOK?rr.rak:{};
+    var rs=await Promise.all([api({action:"barang"}),api({action:"stok"}),api({action:"sinonim"}),bot("rak").catch(function(){return null}),bot("butuh").catch(function(){return null})]);
+    var rb=rs[0],rk=rs[1],rn=rs[2],rr=rs[3],rb2=rs[4];var NET={};if(rb2&&rb2.ok===true&&rb2.net){NETOK=true;NET=rb2.net;TANPA=rb2.tanpaRab||[]}RAKOK=!!(rr&&rr.ok===true&&rr.rak);var RM=RAKOK?rr.rak:{};
     if(!rk.ok){KODE="";ls("sctk_kode",null);loginView(rk.msg||"Kode tidak dikenali.");return}
     if(!rb.ok||!rb.items){app.innerHTML='<div class="card err">Gagal memuat daftar barang.</div>';return}
     ls("sctk_kode",KODE);
@@ -304,7 +311,7 @@ async function mulai(dariLogin){
     rb.items.forEach(function(it){
       if(it.jenis==="Jasa")return;
       var key=String(it.kode).trim().toUpperCase(),e=sm[key]||[0,0,0,0],tok=norm(it.nama),q=[e[0]||0,e[1]||0,e[2]||0];
-      var b={kode:String(it.kode).trim(),key:key,nama:it.nama,sat:it.satuan,tok:tok,dasar:tok.filter(function(t){return !adaAngka(t)}),q:q,total:q[0]+q[1]+q[2],bebas:e[3]||0,rak:RM[key]?{rak:RM[key][0],gudang:RM[key][1]}:null};
+      var b={kode:String(it.kode).trim(),key:key,nama:it.nama,sat:it.satuan,tok:tok,dasar:tok.filter(function(t){return !adaAngka(t)}),q:q,total:q[0]+q[1]+q[2],bebas:Math.max(0,NET[key]!==undefined?NET[key]:(e[3]||0)),neto:NET[key]!==undefined?NET[key]:(e[3]||0),rak:RM[key]?{rak:RM[key][0],gudang:RM[key][1]}:null};
       BAR.push(b);BYK[key]=b;
     });
     USER_NAMA=ls("sctk_bot_nama")||"";

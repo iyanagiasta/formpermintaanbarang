@@ -16,8 +16,8 @@ var mati=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").match
 if(g==="kurang"||(g!=="penuh"&&(lemah||mati)))d.classList.add("reduce");
 if(g!=="penuh"&&lemah)d.classList.add("ringan");})();</script>
 <link rel="stylesheet" href="gaya-baru.css">
-<link rel="stylesheet" href="tema-wah.css?v=6">
-<link rel="stylesheet" href="laut.css?v=1">
+<link rel="stylesheet" href="tema-wah.css?v=7">
+<link rel="stylesheet" href="laut.css?v=2">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -326,7 +326,7 @@ function tampilAwal(){
   window.tkKirim=function(){try{if(window.tkN!==null&&tf.contentWindow)tf.contentWindow.postMessage({tk:"q",n:window.tkN},location.origin);}catch(e){}};
   window.tkSync=function(){var lemah=d.classList.contains("reduce")||d.classList.contains("ringan");
     stg.classList.toggle("tk-on",!lemah);
-    if(!lemah&&!tf.getAttribute("src"))tf.setAttribute("src","tangki.html?emb=1&v=1");};
+    if(!lemah&&!tf.getAttribute("src"))tf.setAttribute("src","tangki.html?emb=1&v=2");};
   window.addEventListener("message",function(e){if(e.origin===location.origin&&e.data&&e.data.tk==="siap")window.tkKirim();});
   window.tkSync();
   var st=document.getElementById("stage"),rot=document.getElementById("rot"),ry=24,x0=null;
@@ -339,6 +339,5 @@ function tampilAwal(){
   tampilAwal();
 })();
 </script>
-<script src="bola.js?v=1" defer></script>
 </body>
 </html>

@@ -172,8 +172,4 @@ html[data-tema] body.wah .stage.tk-on{margin:0 -16px;height:300px;border-radius:
 @media(min-width:820px){html[data-tema] body.wah .stage.tk-on{margin:0;height:340px}}
 html[data-tema] body.wah .stage.tk-on .tkf{display:block}
 html[data-tema] body.wah .stage.tk-on .rot,html[data-tema] body.wah .stage.tk-on .petunjuk{display:none}
-/* logo bola berputar */
-html[data-tema] body.wah .logo.bola{background:none;border-radius:50%;box-shadow:0 0 26px rgba(80,200,255,.5);overflow:visible}
-html[data-tema] body.wah .logo.bola img{display:none}
-html[data-tema] body.wah .logo .bola-cv{display:block;width:54px;height:54px}
 @media print{body.wah .aur,body.wah .stage{display:none}}

@@ -118,7 +118,7 @@ td small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 <link rel="stylesheet" href="admin-hp.css">
 <script src="cari-pintar.js"></script><script src="cari-indeks.js?v=46"></script><script src="nama-berkas.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
-<link rel="stylesheet" href="halaman-wah.css?v=2"><link rel="stylesheet" href="admin-wah.css?v=2"><script src="wah-init.js?v=1"></script>
+<link rel="stylesheet" href="halaman-wah.css?v=2"><link rel="stylesheet" href="admin-wah.css?v=3"><script src="wah-init.js?v=1"></script>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -228,7 +228,7 @@ function drawRows(){
     if(d.ppbjBelum)acts+='<button class="rm" data-act="remind" data-jenis="ppbj" data-id="'+esc(d.id)+'">Kirim pengingat PPBJ</button>';
     if(d.selesai&&!d.ditolak&&!d.diserahkan)acts+='<button class="sv" data-act="serahkan" data-id="'+esc(d.id)+'">Serahkan barang</button>';
     var als=d.ditolak?"":('<small class="als" title="'+esc(d.alasan||"")+'">Alasan: <i>'+esc((d.alasan||"-").length>110?(d.alasan||"").slice(0,110)+"...":(d.alasan||"-"))+'</i> <a href="#" data-act="alasan" data-id="'+esc(d.id)+'">ubah</a>'+(d.proyekKet&&(d.alasan||"").indexOf(d.proyekKet)<0?' &middot; <a href="#" data-act="samakan" data-id="'+esc(d.id)+'">samakan dengan proyek</a>':'')+'</small>');
-    return '<tr><td data-l="No BPB"><b>'+esc(d.doc||d.id)+'</b><small>'+esc(d.kirim)+'</small><small>'+esc(d.barang)+'</small>'+als+'</td>'+
+    return '<tr class="'+(d.menunggu?(d.jam>=48?"lt-b":d.jam>=24?"lt-w":""):(d.selesai||d.ditolak?"lt-s":""))+'"><td data-l="No BPB"><b>'+esc(d.doc||d.id)+'</b><small>'+esc(d.kirim)+'</small><small>'+esc(d.barang)+'</small>'+als+'</td>'+
       '<td data-l="Pemohon">'+esc(d.by)+'<small>'+esc(d.dept)+'</small>'+(d.pic?'<small>PIC: <b>'+esc(d.pic)+'</b></small>':"")+'</td>'+
       '<td data-l="Status">'+statusBd(d)+'</td><td data-l="PPBJ">'+pp+'</td>'+
       '<td data-l="Pengingat terakhir"><small style="margin:0">'+(last.join("<br>")||"-")+'</small></td>'+

@@ -45,4 +45,11 @@ html[data-tema=terang] body.tema.wahp .kjs div.sm.nol{opacity:.75}
 html[data-tema] body.tema.wahp .card.kj{border-left:4px solid #58E6FF}
 html[data-tema] body.tema.wahp .card.kj-merah{border-left-color:#FF6B6B}
 html[data-tema] body.tema.wahp .card.kj-kuning{border-left-color:#FFC857}
+/* Pantauan BPB: penanda baris menurut lama menunggu */
+html[data-tema] body.tema.wahp tbody tr.lt-b td:first-child{box-shadow:inset 4px 0 0 #FF6B6B}
+html[data-tema] body.tema.wahp tbody tr.lt-w td:first-child{box-shadow:inset 4px 0 0 #FFC857}
+html[data-tema] body.tema.wahp tbody tr.lt-s td:not(:last-child){opacity:.85}
+html[data-tema] body.tema.wahp .act{flex-wrap:wrap}
+html[data-tema=terang] body.tema.wahp tbody tr.lt-b td{background:#FFF4F4}
+html[data-tema=gelap] body.tema.wahp tbody tr.lt-b td{background:rgba(255,107,107,.07)}
 }

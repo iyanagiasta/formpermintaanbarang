@@ -1,0 +1,169 @@
+/* tema-wah.css : lapisan tema 3D futuristik (Tahap 1). Hanya aktif jika <body class="wah">.
+   Aturan keterbacaan: semua teks berwarna eksplisit, kontras >= 4.5:1 di tema gelap dan terang. */
+html[data-tema] body.wah{
+  --solid:#0F1B38;--bg:#060C1C;--bg2:#0A1430;--card:rgba(16,28,58,.72);--card2:#0F1B38;--line:rgba(130,180,255,.24);
+  --ink:#EAF2FF;--txt:#EAF2FF;--mut:#AFC0DA;--acc:#4DE3FF;--aqua:#4DE3FF;--teal:#58E6FF;--gold:#FFC857;--hover:rgba(77,227,255,.12);
+  --warn:#FFC857;--bad:#FF9494;--ok:#7BE0A4;--sh:rgba(0,10,40,.55);--head:#0B2A5C;--head-sub:#C3D6F2;--btn-ink:#04101F;
+  background:var(--bg);color:var(--ink);font-family:Sora,Inter,"Segoe UI",Roboto,Arial,sans-serif;
+}
+html[data-tema="terang"] body.wah{
+  --solid:#FFFFFF;--bg:#EAF0F8;--bg2:#DDE6F3;--card:rgba(255,255,255,.9);--card2:#FFFFFF;--line:rgba(30,80,160,.22);
+  --ink:#0B1B33;--txt:#0B1B33;--mut:#43587A;--acc:#1F6FEB;--aqua:#1757C9;--teal:#0E6F8A;--gold:#8A5A00;--hover:rgba(31,111,235,.1);
+  --warn:#8A5200;--bad:#A82424;--ok:#14602F;--sh:rgba(20,50,110,.18);--btn-ink:#FFFFFF;
+}
+html[data-tema="gelap"]:has(body.wah){background:#060C1C}
+html[data-tema="terang"]:has(body.wah){background:#EAF0F8}
+html[data-tema] body.wah,html[data-tema] body.wah *{-webkit-tap-highlight-color:transparent}
+
+/* ---------- kepala (hero) ---------- */
+html[data-tema] body.wah .hero{position:relative;overflow:hidden;padding:0 0 70px;color:#EAF2FF;
+  background:linear-gradient(180deg,#071632 0%,#0B2A5C 62%,var(--bg) 100%)}
+html[data-tema] body.wah .hero::before,html[data-tema] body.wah .hero::after{display:none}
+html[data-tema] body.wah .aur{position:absolute;inset:0;overflow:hidden;pointer-events:none;-webkit-mask-image:linear-gradient(#000 55%,transparent 98%);mask-image:linear-gradient(#000 55%,transparent 98%)}
+html[data-tema] body.wah .aur .a1,html[data-tema] body.wah .aur .a2{position:absolute;border-radius:50%;animation:w-aurora 13s ease-in-out infinite}
+html[data-tema] body.wah .aur .a1{left:-90px;top:30px;width:340px;height:340px;background:radial-gradient(circle,rgba(40,200,255,.3),transparent 68%)}
+html[data-tema] body.wah .aur .a2{right:-110px;top:200px;width:380px;height:380px;background:radial-gradient(circle,rgba(130,100,255,.5),transparent 68%);animation-duration:17s;animation-direction:reverse}
+html[data-tema] body.wah .aur .pt{position:absolute;border-radius:50%;background:#9BE8FF;animation:w-drift 10s linear infinite}
+html[data-tema] body.wah .hero .wrap{padding-top:calc(env(safe-area-inset-top,0px) + 18px);padding-bottom:6px}
+html[data-tema] body.wah .brand{gap:14px}
+html[data-tema] body.wah .logo{width:54px;height:54px;border-radius:14px;background:#fff;border:0;box-shadow:0 0 26px rgba(80,200,255,.45)}
+html[data-tema] body.wah .logo img{padding:5px}
+html[data-tema] body.wah .brand h1{font:700 20px/1.2 Sora,Inter,sans-serif;letter-spacing:-.01em;text-transform:none;color:#fff}
+html[data-tema] body.wah .brand small,html[data-tema] body.wah .hero .brand small{display:block;font:500 12.5px Sora,Inter,sans-serif;letter-spacing:0;color:#C3D6F2;margin-top:2px}
+html[data-tema] body.wah .aksi{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+html[data-tema] body.wah .pill,html[data-tema] body.wah .hero .pill{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.32);background:rgba(255,255,255,.1);color:#fff;font:600 13px Sora,Inter,sans-serif;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:transform .12s,background .2s}
+html[data-tema] body.wah .pill:hover{background:rgba(255,255,255,.2)}
+html[data-tema] body.wah .pill:active{transform:scale(.95)}
+html[data-tema] body.wah .hg{display:grid;grid-template-columns:minmax(0,1fr);gap:0;align-items:center}
+html[data-tema] body.wah .salam{margin-top:24px;max-width:none}
+html[data-tema] body.wah .wkt{display:block;font:600 13px Sora,Inter,sans-serif;letter-spacing:0;text-transform:none;color:#D2F6FF;margin-bottom:6px}
+html[data-tema] body.wah .salam h2{margin:0 0 8px;font:700 clamp(26px,7vw,40px)/1.15 Sora,Inter,sans-serif;letter-spacing:-.01em;color:#fff;animation:w-titleIn 1.1s cubic-bezier(.2,.8,.2,1) both}
+html[data-tema] body.wah .salam h2 em{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:#fff;font-style:normal}
+html[data-tema] body.wah .salam p{margin:0;color:#C9DAF4;font-size:14px;max-width:520px}
+
+/* ---------- panggung 3D ---------- */
+html[data-tema] body.wah .stage{position:relative;height:250px;margin:6px -16px 0;perspective:760px;touch-action:pan-y;overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none}
+html[data-tema] body.wah .stage .rot{position:absolute;left:50%;top:48%;width:0;height:0;transform-style:preserve-3d;transform:rotateX(-16deg) rotateY(var(--ry,24deg));transition:transform .25s ease-out}
+html[data-tema] body.wah .stage .lantai{position:absolute;left:-125px;top:-125px;width:250px;height:250px;transform-style:preserve-3d;transform:translateY(84px) rotateX(90deg)}
+html[data-tema] body.wah .stage .lantai i{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(88,230,255,.8);animation:w-ring 3.6s ease-out infinite}
+html[data-tema] body.wah .stage .lantai i:nth-child(2){border-color:rgba(139,124,255,.8);animation-delay:1.2s}
+html[data-tema] body.wah .stage .lantai i:nth-child(3){animation-delay:2.4s}
+html[data-tema] body.wah .stage .lantai b{position:absolute;inset:30px;border-radius:50%;background:radial-gradient(circle,rgba(88,230,255,.45),rgba(88,230,255,.06) 70%,transparent 72%)}
+html[data-tema] body.wah .stage .orbit{position:absolute;left:-105px;top:-105px;width:210px;height:210px;transform-style:preserve-3d;transform:rotateX(90deg)}
+html[data-tema] body.wah .stage .orbit>div{position:absolute;inset:0;border-radius:50%;border:1px dashed rgba(180,200,255,.38);animation:w-spinz 9s linear infinite}
+html[data-tema] body.wah .stage .orbit span{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%}
+html[data-tema] body.wah .stage .melayang{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d;animation:w-floaty 4.2s ease-in-out infinite}
+html[data-tema] body.wah .stage .kubus{position:absolute;left:-48px;top:-48px;width:96px;height:96px;transform-style:preserve-3d;animation:w-spin 14s linear infinite}
+html[data-tema] body.wah .stage .kubus .f{position:absolute;inset:0;border:1.5px solid rgba(88,230,255,.9);background:linear-gradient(135deg,rgba(88,230,255,.22),rgba(139,124,255,.1));box-shadow:inset 0 0 26px rgba(88,230,255,.4),0 0 18px rgba(88,230,255,.25);display:flex;align-items:center;justify-content:center;color:#DDF8FF;font:700 20px Sora,sans-serif;letter-spacing:.04em}
+html[data-tema] body.wah .stage .dalam{position:absolute;left:25px;top:25px;width:46px;height:46px;transform-style:preserve-3d;animation:w-spinr 6s linear infinite}
+html[data-tema] body.wah .stage .dalam .f{position:absolute;inset:0;border:1.5px solid rgba(180,160,255,.95);background:rgba(139,124,255,.28);box-shadow:inset 0 0 18px rgba(180,160,255,.6)}
+html[data-tema] body.wah .stage .petunjuk{position:absolute;left:0;right:0;top:4px;text-align:center;color:#B4C7E6;font-size:12px}
+
+/* ---------- isi ---------- */
+html[data-tema] body.wah main{margin-top:-30px;padding-bottom:50px}
+html[data-tema] body.wah .sec{display:flex;align-items:center;gap:12px;margin:28px 0 14px}
+html[data-tema] body.wah .sec h3{margin:0;font:700 15px Sora,Inter,sans-serif;letter-spacing:0;text-transform:none;color:var(--ink)}
+html[data-tema] body.wah .sec::after{content:"";flex:1;height:1px;background:var(--line)}
+html[data-tema] body.wah .menu{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;perspective:900px}
+html[data-tema] body.wah .big{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:8px;min-height:0;padding:16px;text-align:left;cursor:pointer;
+  font-family:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 14px 34px var(--sh),inset 0 1px 0 rgba(255,255,255,.08);
+  transition:transform .18s ease,box-shadow .25s ease,border-color .25s;animation:w-rise3d .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s)}
+html[data-tema] body.wah .big::after{display:none}
+html[data-tema] body.wah .big:hover{transform:translateY(-3px);border-color:var(--acc);background:var(--card);box-shadow:0 18px 40px var(--sh),0 0 24px rgba(77,227,255,.18)}
+html[data-tema] body.wah .big:active{transform:scale(.975);border-color:var(--acc)}
+html[data-tema] body.wah .big:focus-visible,html[data-tema] body.wah .pill:focus-visible,html[data-tema] body.wah .tile:focus-visible,html[data-tema] body.wah .stat:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+html[data-tema] body.wah .big .hd{display:flex;align-items:center;gap:14px}
+html[data-tema] body.wah .big .hd b{flex:1;min-width:0;font:700 17px/1.25 Sora,Inter,sans-serif;letter-spacing:-.01em;color:var(--ink)}
+html[data-tema] body.wah .big .ico{position:relative;flex:0 0 56px;width:56px;height:56px;border-radius:17px;display:grid;place-items:center;transform-style:preserve-3d;
+  background:linear-gradient(145deg,rgba(77,227,255,.32),rgba(139,124,255,.22));border:1px solid rgba(160,210,255,.45);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 22px rgba(30,120,255,.28);color:#fff;animation:w-tilt 4.6s ease-in-out var(--d,0s) infinite alternate}
+html[data-tema] body.wah .big .ico::before{content:"";position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle,var(--glow,#4DE3FF),transparent 70%);transform:translateZ(-14px);opacity:.7}
+html[data-tema] body.wah .big .ico svg{position:relative;width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transform:translateZ(14px);filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
+html[data-tema="terang"] body.wah .big .ico{background:linear-gradient(145deg,#1F6FEB,#5B5BEF);border-color:rgba(255,255,255,.4);color:#fff}
+html[data-tema] body.wah .big small{display:block;margin:0;flex:1;font-size:13.5px;line-height:1.5;color:var(--mut)}
+html[data-tema] body.wah .big .tag,html[data-tema] body.wah .big .tag{align-self:stretch;margin:4px 0 0;padding:8px 0 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;
+  font:500 12px Sora,Inter,sans-serif;letter-spacing:0;text-transform:none;color:var(--mut);white-space:normal}
+html[data-tema] body.wah .big.adm{border-color:rgba(255,200,87,.5)}
+html[data-tema="terang"] body.wah .big.adm{border-color:rgba(138,90,0,.45)}
+html[data-tema] body.wah .big.adm .ico{background:linear-gradient(145deg,#FFC857,#E09A1B);color:#2b1a00;border-color:rgba(255,255,255,.4)}
+html[data-tema] body.wah .big[disabled]{opacity:.65;cursor:wait}
+/* kartu utama: Permintaan Barang */
+html[data-tema] body.wah .big.fitur{padding:20px;background:linear-gradient(135deg,#1246B0 0%,#3F42CC 60%,#5B34C8 100%);border-color:rgba(255,255,255,.38);color:#fff}
+html[data-tema] body.wah .big.fitur::before{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);animation:w-sheen 4.5s ease-in-out infinite;pointer-events:none}
+html[data-tema] body.wah .big.fitur .hd b{font-size:21px;color:#fff}
+html[data-tema] body.wah .big.fitur small{color:#fff}
+html[data-tema] body.wah .big.fitur .tag{color:#fff;border-top-color:rgba(255,255,255,.35)}
+html[data-tema] body.wah .big.fitur .ico{background:linear-gradient(145deg,rgba(255,255,255,.3),rgba(255,255,255,.08));border-color:rgba(255,255,255,.5);color:#fff}
+html[data-tema] body.wah .big.fitur .cta{display:flex;align-items:center;justify-content:space-between;margin-top:6px;background:rgba(6,16,60,.38);border:1px solid rgba(255,255,255,.45);border-radius:13px;padding:12px 14px;color:#fff;font-weight:700;font-size:15px}
+html[data-tema] body.wah .big.fitur:hover{border-color:#fff}
+
+/* pengumuman, statistik, grafik, kotak kode */
+html[data-tema] body.wah .pgm{display:grid;gap:10px;margin:14px 0 6px}html[data-tema] body.wah .pgm:empty{display:none}
+html[data-tema] body.wah .pg{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:16px;padding:14px 16px;box-shadow:none;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+html[data-tema] body.wah .pg.pen{border-left-color:var(--gold);box-shadow:none}
+html[data-tema] body.wah .pg b{font:700 15px Sora,Inter,sans-serif;color:var(--ink)}html[data-tema] body.wah .pg.pen b:before{color:var(--gold)}
+html[data-tema] body.wah .pg p{color:var(--ink)}html[data-tema] body.wah .pg a{color:var(--acc);font-weight:700}html[data-tema] body.wah .pg small{color:var(--mut)}
+html[data-tema] body.wah .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+html[data-tema] body.wah .stat,html[data-tema] body.wah .panel,html[data-tema] body.wah .ch,html[data-tema] body.wah .tile{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 26px var(--sh);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+html[data-tema] body.wah .stat{transition:transform .2s,border-color .2s}
+html[data-tema] body.wah .stat:hover,html[data-tema] body.wah .tile:hover{transform:translateY(-3px);border-color:var(--acc);box-shadow:0 14px 30px var(--sh)}
+html[data-tema] body.wah .stat b{font:700 28px/1.1 Sora,Inter,sans-serif;color:var(--ink)}
+html[data-tema] body.wah .stat span.l,html[data-tema] body.wah .ch h4 small,html[data-tema] body.wah .lgd,html[data-tema] body.wah .ch .bar em{color:var(--mut)}
+html[data-tema] body.wah .stat .ik{border-radius:12px;background:color-mix(in srgb,var(--c,var(--acc)) 20%,transparent);color:var(--c,var(--acc))}
+html[data-tema] body.wah .ch h4,html[data-tema] body.wah .ch .bar span:first-child{color:var(--ink)}
+html[data-tema] body.wah .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+html[data-tema] body.wah .tile b{color:var(--ink)}html[data-tema] body.wah .tile small{color:var(--mut)}
+html[data-tema] body.wah .tile .ico{border-radius:12px;background:var(--hover);color:var(--acc)}
+html[data-tema] body.wah .badge{color:var(--gold);background:transparent;border:1px solid var(--gold);border-radius:99px}
+html[data-tema] body.wah footer{color:var(--mut);text-align:center;font-size:12px;padding:10px 0 30px}
+html[data-tema] body.wah .ov{background:rgba(2,8,22,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+html[data-tema] body.wah .dlg{background:var(--solid);color:var(--ink);border:1px solid var(--line);border-top:3px solid var(--acc);border-radius:22px;box-shadow:0 24px 60px var(--sh)}
+html[data-tema] body.wah .dlg h3{font:700 19px Sora,Inter,sans-serif;color:var(--ink)}html[data-tema] body.wah .dlg p{color:var(--mut)}
+html[data-tema] body.wah .dlg button{min-height:46px;border-radius:12px;border:0;background:linear-gradient(180deg,#6BEBFF,#3AA8FF);background-image:linear-gradient(180deg,#6BEBFF,#3AA8FF);color:#04101F;font:700 14px Sora,Inter,sans-serif}
+html[data-tema="terang"] body.wah .dlg button{background:linear-gradient(180deg,#3A8BFF,#1757C9);background-image:linear-gradient(180deg,#3A8BFF,#1757C9);color:#fff}
+html[data-tema] body.wah .dlg button.sec{background:transparent;background-image:none;color:var(--ink);border:1px solid var(--line)}
+html[data-tema] body.wah input.t{min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+html[data-tema] body.wah input.t:focus{outline:3px solid var(--acc);outline-offset:1px}
+html[data-tema] body.wah .err{color:var(--bad)}html[data-tema] body.wah .msg{color:var(--mut)}
+/* daftar pilihan / dropdown: warna eksplisit agar selalu terbaca */
+html[data-tema] body.wah select,html[data-tema] body.wah option,html[data-tema] body.wah optgroup{background-color:var(--solid);color:var(--ink)}
+html[data-tema] body.wah select{color-scheme:dark}
+html[data-tema="terang"] body.wah select{color-scheme:light}
+html[data-tema] body.wah option:checked{background-color:var(--acc);color:var(--btn-ink)}
+html[data-tema] body.wah ::placeholder{color:var(--mut);opacity:1}
+
+/* ---------- layar lebar ---------- */
+@media (min-width:700px){
+  html[data-tema] body.wah .menu{grid-template-columns:repeat(2,minmax(0,1fr))}
+  html[data-tema] body.wah .big.fitur{grid-column:1/-1}
+  html[data-tema] body.wah .stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media (min-width:980px){
+  html[data-tema] body.wah .menu{grid-template-columns:repeat(3,minmax(0,1fr))}
+  html[data-tema] body.wah .hg{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:20px}
+  html[data-tema] body.wah .stage{margin:0;height:300px}
+  html[data-tema] body.wah .salam{margin-top:30px}
+}
+
+/* ---------- animasi ---------- */
+@keyframes w-spin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
+@keyframes w-spinr{from{transform:rotateY(360deg)}to{transform:rotateY(0)}}
+@keyframes w-spinz{from{transform:rotateZ(0)}to{transform:rotateZ(360deg)}}
+@keyframes w-floaty{0%,100%{transform:translateY(-6px)}50%{transform:translateY(8px)}}
+@keyframes w-ring{0%{transform:scale(.35);opacity:.9}100%{transform:scale(1.15);opacity:0}}
+@keyframes w-aurora{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-24px) scale(1.15)}}
+@keyframes w-drift{from{transform:translateY(0);opacity:0}20%{opacity:.8}to{transform:translateY(-180px);opacity:0}}
+@keyframes w-rise3d{from{opacity:0;transform:translateY(34px) rotateX(-20deg) scale(.95)}to{opacity:1;transform:none}}
+@keyframes w-tilt{from{transform:perspective(260px) rotateY(-16deg) rotateX(8deg)}to{transform:perspective(260px) rotateY(16deg) rotateX(-6deg)}}
+@keyframes w-sheen{from{transform:translateX(-120%)}to{transform:translateX(320%)}}
+@keyframes w-titleIn{from{opacity:0;letter-spacing:.1em;filter:blur(6px)}to{opacity:1;letter-spacing:-.01em;filter:none}}
+
+/* ---------- Kurangi gerak (tombol) & mode ringan (otomatis) ---------- */
+html.reduce body.wah .big.fitur::before{display:none}
+html.reduce body.wah *,html.reduce body.wah *::before,html.reduce body.wah *::after{animation:none!important;transition:none!important}
+html.ringan body.wah *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+html.ringan body.wah .aur .pt,html.ringan body.wah .stage .lantai i:nth-child(n+2){display:none}
+html.ringan body.wah .big{box-shadow:none}
+@media (prefers-reduced-motion:reduce){body.wah *,body.wah *::before,body.wah *::after{animation:none!important;transition:none!important}}
+@media print{body.wah .aur,body.wah .stage{display:none}}

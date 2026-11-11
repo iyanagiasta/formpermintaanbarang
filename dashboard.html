@@ -9,15 +9,21 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema.css">
-<script>try{document.documentElement.setAttribute("data-tema",localStorage.getItem("sctk_tema")==="gelap"?"gelap":"terang");}catch(e){}</script>
+<script>try{document.documentElement.setAttribute("data-tema",localStorage.getItem("sctk_tema")==="terang"?"terang":"gelap");}catch(e){document.documentElement.setAttribute("data-tema","gelap");}
+(function(){var d=document.documentElement,g="",n=navigator;try{g=localStorage.getItem("sctk_gerak")||"";}catch(e){}
+var lemah=(n.hardwareConcurrency&&n.hardwareConcurrency<=3)||(n.deviceMemory&&n.deviceMemory<=2)||(n.connection&&n.connection.saveData);
+var mati=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+if(g==="kurang"||(g!=="penuh"&&(lemah||mati)))d.classList.add("reduce");
+if(g!=="penuh"&&lemah)d.classList.add("ringan");})();</script>
 <link rel="stylesheet" href="gaya-baru.css">
+<link rel="stylesheet" href="tema-wah.css?v=1">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 </head>
-<body>
+<body class="wah">
 <header class="hero">
-  <div class="bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="aur" id="aur" aria-hidden="true"><i class="a1"></i><i class="a2"></i></div>
   <div class="wrap">
     <div class="bar">
       <div class="brand">
@@ -25,18 +31,45 @@
           <img src="logo.png" alt="Logo PT Sarana Catur Tirta Kelola" onerror="this.remove();document.getElementById('lg').style.display='block'">
           <svg id="lg" style="display:none" viewBox="0 0 24 24" fill="none" stroke="#1a6cab" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.2 6 10.5A6 6 0 0 1 6 13.5C6 9.2 12 3 12 3z"/><path d="M9.5 14.5a2.7 2.7 0 0 0 2.5 2"/></svg>
         </div>
-        <div><h1>Sistem Gudang</h1><small>PT SARANA CATUR TIRTA KELOLA</small></div>
+        <div><h1>Sistem Gudang</h1><small>PT Sarana Catur Tirta Kelola</small></div>
       </div>
-      <div class="aksi"><span class="pill" id="tgl"></span><button class="pill" type="button" id="tema" aria-label="Ganti tema terang atau gelap">&#9728;</button><span id="who"></span></div>
+      <div class="aksi"><span class="pill" id="tgl"></span><button class="pill" type="button" id="tema" aria-label="Ganti tema terang atau gelap">&#9728;</button><button class="pill" type="button" id="gerak" aria-pressed="false">Kurangi gerak</button><span id="who"></span></div>
     </div>
-    <div class="salam">
-      <div class="wkt" id="wkt"></div>
-      <h2>Selamat datang di <em>Sistem Gudang</em></h2>
-      <p id="kata">Satu tempat untuk permintaan, stok, dan opname. Rapi, cepat, dan tanpa kertas.</p>
+    <div class="hg">
+      <div class="salam">
+        <div class="wkt" id="wkt"></div>
+        <h2>Selamat datang di Sistem Gudang</h2>
+        <p id="kata">Satu tempat untuk permintaan, stok, dan opname. Rapi, cepat, dan tanpa kertas.</p>
+      </div>
+      <div class="stage" id="stage" aria-hidden="true">
+        <div class="rot" id="rot">
+          <div class="lantai"><i></i><i></i><i></i><b></b></div>
+          <div class="orbit"><div>
+            <span style="left:210px;top:105px;background:#58E6FF;box-shadow:0 0 14px #58E6FF"></span>
+            <span style="left:52.5px;top:196px;background:#B3A8FF;box-shadow:0 0 14px #B3A8FF"></span>
+            <span style="left:52.5px;top:14px;background:#FFC857;box-shadow:0 0 14px #FFC857"></span>
+          </div></div>
+          <div class="melayang"><div class="kubus">
+            <div class="f" style="transform:rotateY(0deg) translateZ(48px)">SC</div>
+            <div class="f" style="transform:rotateY(90deg) translateZ(48px)"></div>
+            <div class="f" style="transform:rotateY(180deg) translateZ(48px)"></div>
+            <div class="f" style="transform:rotateY(-90deg) translateZ(48px)"></div>
+            <div class="f" style="transform:rotateX(90deg) translateZ(48px)"></div>
+            <div class="f" style="transform:rotateX(-90deg) translateZ(48px)"></div>
+            <div class="dalam">
+              <div class="f" style="transform:rotateY(0deg) translateZ(23px)"></div>
+              <div class="f" style="transform:rotateY(90deg) translateZ(23px)"></div>
+              <div class="f" style="transform:rotateY(180deg) translateZ(23px)"></div>
+              <div class="f" style="transform:rotateY(-90deg) translateZ(23px)"></div>
+              <div class="f" style="transform:rotateX(90deg) translateZ(23px)"></div>
+              <div class="f" style="transform:rotateX(-90deg) translateZ(23px)"></div>
+            </div>
+          </div></div>
+        </div>
+        <div class="petunjuk">Geser untuk memutar</div>
+      </div>
     </div>
   </div>
-  <svg class="wave b" viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true"><path class="w1" d="M0 40 C 180 10 360 70 540 40 S 900 10 1080 40 S 1260 70 1440 40 V80 H0z"/><path class="w1" d="M1440 40 C 1620 10 1800 70 1980 40 S 2340 10 2520 40 S 2700 70 2880 40 V80 H1440z"/></svg>
-  <svg class="wave" viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true"><path class="w2" d="M0 50 C 240 80 480 20 720 50 S 1200 80 1440 50 V80 H0z"/><path class="w2" d="M1440 50 C 1680 80 1920 20 2160 50 S 2640 80 2880 50 V80 H1440z"/></svg>
 </header>
 <main class="wrap" id="app"></main>
 <footer>PT Sarana Catur Tirta Kelola &middot; Sistem Gudang</footer>
@@ -142,12 +175,15 @@ async function buka(aksi,btn){
 function keluar(){st("sctk_kode",null);st("sctk_pic",null);st("sctk_admin",null,true);tampilAwal();}
 /* ---- tampilan ---- */
 function ADM(){return !!st("sctk_admin",undefined,true);}
-function big(aksi,ik,judul,ket,tag,adm){
-  return '<button class="big'+(adm?" adm":"")+'" type="button" data-aksi="'+aksi+'"><span class="hd">'+ikon(ik)+'<b>'+esc(judul)+'</b></span><small>'+esc(ket)+'</small>'+(ADM()?'<span class="tag'+(adm?" a":"")+'">Akses: '+tag+'</span>':'')+'</button>';
+var BIG_N=0;
+function big(aksi,ik,judul,ket,tag,adm,fitur){
+  var d=((BIG_N++%8)*0.08+0.1).toFixed(2)+"s";
+  return '<button class="big'+(adm?" adm":"")+(fitur?" fitur":"")+'" type="button" data-aksi="'+aksi+'" style="--d:'+d+'"><span class="hd">'+ikon(ik)+'<b>'+esc(judul)+'</b></span><small>'+esc(ket)+'</small>'+(fitur?'<span class="cta">Buat permintaan <span aria-hidden="true">&gt;</span></span>':'')+(ADM()?'<span class="tag'+(adm?" a":"")+'">Akses: '+tag+'</span>':'')+'</button>';
 }
 function kartu(){
+  BIG_N=0;
   return '<div class="pgm" id="pgm" role="region" aria-label="Pengumuman"></div><div class="sec"><h3>Permintaan dan stok</h3></div><div class="menu">'+
-   big("minta","form","Permintaan Barang","Buat permintaan pengambilan barang harian. Persetujuan lewat email, tanpa kertas.","kode pegawai")+
+   big("minta","form","Permintaan Barang","Buat permintaan pengambilan barang harian. Persetujuan lewat email, tanpa kertas.","kode pegawai",false,true)+
    big("cari","cari","Cari Barang","Lokasi gudang dan rak, foto barang dan rak, stok Moka dan Accurate, serta proyek yang memakai barang itu.","kode pegawai")+
    big("kembali","kembali","Pengembalian Barang","Kembalikan barang sisa proyek ke gudang. Persetujuan sama dengan permintaan, stok bertambah setelah gudang menerima barang.","kode pegawai")+
    big("kimia","kimia","Opname Bahan Kimia","Catat stok akhir, penerimaan, dan foto tangki bahan kimia tiap bulan. Sistem menghitung pemakaian dan memeriksa kejanggalan.","operator kimia")+
@@ -271,6 +307,18 @@ function tampilAwal(){
   var tb=document.getElementById("tema");
   function ikTema(){tb.textContent=document.documentElement.getAttribute("data-tema")==="terang"?"Mode gelap":"Mode terang";}
   ikTema();tb.onclick=function(){var t=document.documentElement.getAttribute("data-tema")==="terang"?"gelap":"terang";document.documentElement.setAttribute("data-tema",t);try{localStorage.setItem("sctk_tema",t);}catch(x){}ikTema();};
+})();
+(function(){
+  var d=document.documentElement,gb=document.getElementById("gerak");
+  function ik(){var k=d.classList.contains("reduce");gb.textContent=k?"Gerak: mati":"Kurangi gerak";gb.setAttribute("aria-pressed",k?"true":"false");}
+  ik();gb.onclick=function(){var k=!d.classList.contains("reduce");d.classList.toggle("reduce",k);if(!k)d.classList.remove("ringan");try{localStorage.setItem("sctk_gerak",k?"kurang":"penuh");}catch(e){}ik();};
+  var au=document.getElementById("aur"),h="";
+  for(var i=0;i<12;i++){h+='<span class="pt" style="left:'+((i*53+9)%96)+'%;top:'+(160+((i*41)%260))+'px;width:'+(2+i%3)+'px;height:'+(2+i%3)+'px;animation-duration:'+(8+(i%5)*2)+'s;animation-delay:-'+((i*1.9)%11).toFixed(1)+'s"></span>';}
+  au.insertAdjacentHTML("beforeend",h);
+  var st=document.getElementById("stage"),rot=document.getElementById("rot"),ry=24,x0=null;
+  st.addEventListener("pointerdown",function(e){x0=e.clientX;});
+  st.addEventListener("pointermove",function(e){if(x0===null)return;ry+=(e.clientX-x0)*0.7;x0=e.clientX;rot.style.setProperty("--ry",ry+"deg");});
+  ["pointerup","pointercancel","pointerleave"].forEach(function(n){st.addEventListener(n,function(){x0=null;});});
 })();
 (function(){
   if(API_URL.indexOf("PASTE_")===0){app.innerHTML='<div class="msg err">API_URL belum diisi.</div>';return;}

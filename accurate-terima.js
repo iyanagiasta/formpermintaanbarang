@@ -4,7 +4,7 @@
    Tanda merah saja (tanpa email) bila belum disesuaikan lebih dari batas hari. Memakai fungsi global halaman admin: pane, api, toast, esc, fmtN, cocokQ, kirimAdmin, paSimpan, paNamaBerkas, paNamaGabungan, loadAccurate. */
 var PAT=(function(){
   "use strict";
-  var F={status:"Belum",q:"",dari:"",sampai:"",po:""},S={};
+  var F={status:"Belum",q:"",dari:"",sampai:"",po:""},S={},OPEN={};   /* OPEN: penerimaan yang rinciannya sedang dibuka (tombol panah) */
   function $(i){return document.getElementById(i);}
   function ada(){return !!(window.PA&&PA.rowsT);}
   function bar(){
@@ -21,12 +21,20 @@ var PAT=(function(){
       if(F.dari&&x.tgl<F.dari)return false;if(F.sampai&&x.tgl>F.sampai)return false;
       if(q&&!cocokQ(x.doc+" "+x.proyek+" "+x.ppbj+" "+x.noTrans+" "+x.sumber,q))return false;return true;});
   }
+  /* Rincian barang (nama + jumlah) langsung dari daftar: tanpa memanggil server, jadi seketika. */
+  function rinci(x){
+    var b=x.brg;if(!b)return "";
+    var h='<div class="tpn" data-tpd="'+esc(x.key)+'"'+(OPEN[x.key]?"":" hidden")+' style="margin-top:6px;padding:6px 8px;border-left:3px solid var(--line,#c9d3dd);background:var(--soft,#f5f8fb);text-align:left;white-space:normal">';
+    h+=b.length?b.map(function(i){return '<div style="display:flex;justify-content:space-between;gap:12px;padding:2px 0;border-bottom:1px dashed var(--line,#d5dde5)"><span>'+esc(i.n)+'</span><b style="white-space:nowrap">'+fmtN(i.q)+(i.s?" "+esc(i.s):"")+'</b></div>';}).join("")+(b.length>=40?'<div class="note">Menampilkan 40 barang pertama. Klik Lihat barang untuk semuanya.</div>':""):'<div class="note">Rincian barang tidak tersedia. Klik Lihat barang.</div>';
+    return h+'</div>';
+  }
+  function vendorTeks(x){return x.vend?'<small>Vendor: <b>'+esc(x.vend)+'</b></small>':'<small style="color:var(--warn-t,#8a5200);font-weight:700">Vendor belum diisi</small>';}
   function terpilih(){return PA.rowsT.filter(function(x){return S[x.key];});}
   function draw(){
     var R=PA.ringT||{belum:0,sudah:0,tertua:0,lewatBatas:0,batas:3},vis=tampil(),sel=terpilih(),nSel=vis.filter(function(x){return S[x.key];}).length;
     var body=vis.slice(0,500).map(function(x){
       var merah=x.status==="Belum"&&x.umur>R.batas;
-      return '<tr><td><input type="checkbox" data-tk="'+esc(x.key)+'"'+(S[x.key]?" checked":"")+'></td><td data-l="Tanggal">'+esc(x.tgl)+'</td><td data-l="Penerimaan"><b>'+esc(x.doc)+'</b><small>'+esc(x.sumber||"")+'</small>'+(x.poNo?'<small>PO '+esc(x.poNo)+': '+(x.poLengkap?'<b style="color:var(--ok,#14612b)">PO lengkap, siap diinput</b>':'PO belum lengkap')+'</small>':'')+'</td><td data-l="No PPBJ">'+(x.ppbj?'<b>'+esc(x.ppbj)+'</b>':'<span class="bd w">tanpa PPBJ</span>')+'</td><td data-l="Proyek">'+esc(x.proyek||"-")+'</td><td class="nm" data-l="Barang / Jumlah">'+x.n+' / '+fmtN(x.qty)+'<div><button class="gh" data-tlh="'+esc(x.key)+'" style="margin-top:4px">Lihat barang</button></div></td>'+
+      return '<tr><td><input type="checkbox" data-tk="'+esc(x.key)+'"'+(S[x.key]?" checked":"")+'></td><td data-l="Tanggal">'+esc(x.tgl)+'</td><td data-l="Penerimaan"><b>'+esc(x.doc)+'</b><small>'+esc(x.sumber||"")+'</small>'+vendorTeks(x)+(x.poNo?'<small>PO '+esc(x.poNo)+': '+(x.poLengkap?'<b style="color:var(--ok,#14612b)">PO lengkap, siap diinput</b>':'PO belum lengkap')+'</small>':'')+'</td><td data-l="No PPBJ">'+(x.ppbj?'<b>'+esc(x.ppbj)+'</b>':'<span class="bd w">tanpa PPBJ</span>')+'</td><td data-l="Proyek">'+esc(x.proyek||"-")+'</td><td class="nm" data-l="Barang / Jumlah">'+x.n+' / '+fmtN(x.qty)+'<div><button class="gh" data-tpn="'+esc(x.key)+'" aria-expanded="'+(OPEN[x.key]?"true":"false")+'" aria-label="Tampilkan nama dan jumlah barang" title="Tampilkan nama dan jumlah barang" style="margin-top:4px;min-width:36px">'+(OPEN[x.key]?"&#9652;":"&#9662;")+'</button> <button class="gh" data-tlh="'+esc(x.key)+'" style="margin-top:4px">Lihat barang</button></div>'+rinci(x)+'</td>'+
         '<td data-l="Status">'+(x.status==="Sudah"?'<span class="bd d">Sudah</span><small>'+esc(x.noTrans)+'</small><small>'+esc(x.tglIn)+(x.oleh?" - "+esc(x.oleh):"")+'</small>':'<span class="bd '+(merah?"b":"w")+'">Belum</span><small'+(merah?' style="color:var(--red,#a82424);font-weight:700"':"")+'>'+x.umur+' hari'+(merah?' &middot; lewat '+R.batas+' hari':"")+'</small>')+(x.cat?'<small>'+esc(x.cat)+'</small>':"")+'</td></tr>';
     }).join("");
     pane().innerHTML=bar()+
@@ -44,6 +52,11 @@ var PAT=(function(){
     document.querySelectorAll("[data-tk]").forEach(function(c){c.onchange=function(){var k=c.getAttribute("data-tk");if(c.checked)S[k]=1;else delete S[k];$("tasel").textContent=terpilih().length+" dipilih";};});
     $("tax").onclick=function(){excel(this);};$("tag").onclick=function(){pdf(this,false);};$("taz2").onclick=function(){pdf(this,true);};
     $("tat").onclick=function(){tandai(this,"sudah");};$("tab2").onclick=function(){tandai(this,"belum");};
+    document.querySelectorAll("[data-tpn]").forEach(function(b){b.onclick=function(){
+      var k=b.getAttribute("data-tpn"),d=null;document.querySelectorAll("[data-tpd]").forEach(function(e){if(e.getAttribute("data-tpd")===k)d=e;});
+      if(!d){toast("Rincian belum ada di daftar ini. Tekan Segarkan, lalu coba lagi.",true);return;}
+      var buka=d.hasAttribute("hidden");if(buka){d.removeAttribute("hidden");OPEN[k]=1;}else{d.setAttribute("hidden","");delete OPEN[k];}
+      b.setAttribute("aria-expanded",buka?"true":"false");b.innerHTML=buka?"&#9652;":"&#9662;";};});
     document.querySelectorAll("[data-tlh]").forEach(function(b){b.onclick=function(){lihat(b.getAttribute("data-tlh"),b);};});
     if(window.PAU2)PAU2.pasang();
   }

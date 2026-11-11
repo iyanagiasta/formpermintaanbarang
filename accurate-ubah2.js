@@ -49,7 +49,7 @@ var PAU2=(function(){
     h+='<div class="note">Status Accurate: <b>'+esc(r.status)+'</b>'+(r.noTrans?' ('+esc(r.noTrans)+')':"")+'</div>';
     if(r.status==="Sudah")h+='<div class="note" style="border-left:3px solid #b45309;padding-left:8px">Dokumen ini sudah ditandai diinput ke Accurate. Setelah disimpan statusnya kembali ke <b>Belum</b> dengan penanda “diubah setelah diinput”; sesuaikan ulang transaksinya di Accurate.</div>';
     h+='<div class="note"><b>Keterangan</b></div><div class="bar">';
-    if(j==="TERIMA")h+='<label class="fl">No PPBJ <input id="pu2p" list="pu2dl" value="'+esc(k.ppbj)+'" placeholder="kosongkan bila tanpa PPBJ"></label><label class="fl">Proyek (bila PPBJ tidak ada) <input id="pu2n" value="'+esc(k.proyek)+'"></label><label class="fl">No PO <input id="pu2po" value="'+esc(k.po)+'"></label><label class="fl">Tanggal <input type="date" id="pu2t" value="'+esc(k.tgl)+'"></label><label class="fl">Catatan <input id="pu2c" value="'+esc(k.cat)+'" maxlength="200"></label>';
+    if(j==="TERIMA")h+='<label class="fl">No PPBJ <input id="pu2p" list="pu2dl" value="'+esc(k.ppbj)+'" placeholder="kosongkan bila tanpa PPBJ"></label><label class="fl">Proyek (bila PPBJ tidak ada) <input id="pu2n" value="'+esc(k.proyek)+'"></label><label class="fl">No PO <input id="pu2po" value="'+esc(k.po)+'"></label><label class="fl">Tanggal <input type="date" id="pu2t" value="'+esc(k.tgl)+'"></label><label class="fl">Vendor / Supplier <input id="pu2v" list="pu2vd" value="'+esc(k.vendor||"")+'" maxlength="120" placeholder="isi bila belum tertulis"></label><datalist id="pu2vd">'+(r.vendorDaftar||[]).map(function(n){return '<option value="'+esc(n)+'">';}).join("")+'</datalist><label class="fl">Catatan <input id="pu2c" value="'+esc(k.cat)+'" maxlength="200"></label>';
     else h+='<label class="fl">'+(j==="KEMBALI"?"No PPBJ / nama proyek":"No PPBJ")+' <input id="pu2p" list="pu2dl" value="'+esc(k.ppbj)+'" style="min-width:260px"></label>';
     h+='</div>'+dlProyek()+'<div class="note" id="pu2inf"></div>';
     if(j==="TERIMA")h+=barangTerima();else if(j==="KEMBALI")h+=barangKembali();
@@ -75,7 +75,7 @@ var PAU2=(function(){
   function bind(o){
     var tt=function(){ST.pratinjau=false;var pv=$("pu2pv");if(pv)pv.innerHTML="";$("pu2ok").textContent="Periksa dampak";};
     $("pu2x").onclick=tutup;$("pu2b1").onclick=tutup;
-    ["pu2p","pu2n","pu2po","pu2t","pu2c","pu2a"].forEach(function(id){var e=$(id);if(e)e.oninput=function(){ if(id==="pu2p")info();if(id==="pu2a")ST.alasan=e.value;tt();};});
+    ["pu2p","pu2n","pu2po","pu2t","pu2c","pu2v","pu2a"].forEach(function(id){var e=$(id);if(e)e.oninput=function(){ if(id==="pu2p")info();if(id==="pu2a")ST.alasan=e.value;tt();};});
     o.querySelectorAll("input[data-f]").forEach(function(e){e.oninput=function(){var x=ST.items[Number(e.getAttribute("data-i"))],f=e.getAttribute("data-f");x[f]=e.value===""?"":Number(e.value);tt();};});
     o.querySelectorAll("[data-hapus]").forEach(function(b){b.onclick=function(){var i=Number(b.getAttribute("data-hapus")),x=ST.items[i];if(x.baru)ST.items.splice(i,1);else x.hapus=!x.hapus;keep();gambar();};});
     o.querySelectorAll("[data-ganti]").forEach(function(b){b.onclick=function(){ST.ganti=Number(b.getAttribute("data-ganti"));toast("Cari barang pengganti di kotak cari, lalu klik hasilnya.");var q=$("pu2q");if(q)q.focus();};});
@@ -86,7 +86,7 @@ var PAU2=(function(){
     $("pu2ok").onclick=lanjut;
   }
   function keep(){ST.alasan=($("pu2a")||{value:ST.alasan}).value;bacaKet();}
-  function bacaKet(){var g=function(i){var e=$(i);return e?e.value:undefined;};var k=ST.ket;var v=g("pu2p");if(v!==undefined)k.ppbj=v;v=g("pu2n");if(v!==undefined)k.proyek=v;v=g("pu2po");if(v!==undefined)k.po=v;v=g("pu2t");if(v!==undefined)k.tgl=v;v=g("pu2c");if(v!==undefined)k.cat=v;}
+  function bacaKet(){var g=function(i){var e=$(i);return e?e.value:undefined;};var k=ST.ket;var v=g("pu2p");if(v!==undefined)k.ppbj=v;v=g("pu2n");if(v!==undefined)k.proyek=v;v=g("pu2po");if(v!==undefined)k.po=v;v=g("pu2t");if(v!==undefined)k.tgl=v;v=g("pu2v");if(v!==undefined)k.vendor=v;v=g("pu2c");if(v!==undefined)k.cat=v;}
   async function cari(v){
     var h=$("pu2h");if(!h)return;if(!String(v).trim()){h.innerHTML="";return;}
     var r;
@@ -104,7 +104,7 @@ var PAU2=(function(){
   function muatKirim(dry){
     keep();var j=ST.r.jenis,p={action:"adminUbahSimpan",key:ST.key,alasan:ST.alasan.trim(),dry:!!dry},k=ST.ket,a=ST.r.ket;
     var ket={};if(String(k.ppbj||"")!==String(a.ppbj||""))ket.ppbj=k.ppbj;
-    if(j==="TERIMA"){if(k.proyek!==a.proyek)ket.proyek=k.proyek;if(k.po!==a.po)ket.po=k.po;if(k.tgl!==a.tgl)ket.tgl=k.tgl;if(k.cat!==a.cat)ket.cat=k.cat;
+    if(j==="TERIMA"){if(k.proyek!==a.proyek)ket.proyek=k.proyek;if(k.po!==a.po)ket.po=k.po;if(k.tgl!==a.tgl)ket.tgl=k.tgl;if(k.cat!==a.cat)ket.cat=k.cat;if(String(k.vendor||"")!==String(a.vendor||""))ket.vendor=k.vendor;
       var its=ST.items.filter(function(x){return !x.hapus;}),ubah=ST.items.some(function(x){return x.hapus||x.baru||x.kode!==x.asal.kode||x.nama!==x.asal.nama||Number(x.qty)!==Number(x.asal.qty)||String(x.harga==null?"":x.harga)!==String(x.asal.harga==null?"":x.asal.harga);});
       if(ubah){if(!its.length)return {err:"Minimal satu barang harus tetap ada. Untuk membatalkan seluruh penerimaan, pakai Batalkan di halaman Penerimaan."};
         if(its.some(function(x){return !(Number(x.qty)>0);}))return {err:"Jumlah semua barang harus lebih dari 0 (hapus barisnya bila tidak jadi)."};

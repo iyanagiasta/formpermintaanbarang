@@ -24,7 +24,7 @@ html[data-tema] body.wah .aur .a1,html[data-tema] body.wah .aur .a2{position:abs
 html[data-tema] body.wah .aur .a1{left:-90px;top:30px;width:340px;height:340px;background:radial-gradient(circle,rgba(40,200,255,.3),transparent 68%)}
 html[data-tema] body.wah .aur .a2{right:-110px;top:200px;width:380px;height:380px;background:radial-gradient(circle,rgba(130,100,255,.5),transparent 68%);animation-duration:17s;animation-direction:reverse}
 html[data-tema] body.wah .aur .pt{position:absolute;border-radius:50%;background:#9BE8FF;animation:w-drift 10s linear infinite}
-html[data-tema] body.wah .hero .wrap{padding-top:calc(env(safe-area-inset-top,0px) + 18px);padding-bottom:6px}
+html[data-tema] body.wah .hero .wrap{position:relative;z-index:1;padding-top:calc(env(safe-area-inset-top,0px) + 18px);padding-bottom:6px}
 html[data-tema] body.wah .brand{gap:14px}
 html[data-tema] body.wah .logo{width:54px;height:54px;border-radius:14px;background:#fff;border:0;box-shadow:0 0 26px rgba(80,200,255,.45)}
 html[data-tema] body.wah .logo img{padding:5px}
@@ -167,8 +167,13 @@ html.ringan body.wah .aur .pt,html.ringan body.wah .stage .lantai i:nth-child(n+
 html.ringan body.wah .big{box-shadow:none}
 @media (prefers-reduced-motion:reduce){body.wah *,body.wah *::before,body.wah *::after{animation:none!important;transition:none!important}}
 /* tangki air (iframe) menggantikan kubus CSS di perangkat yang kuat */
-html[data-tema] body.wah .stage .tkf{display:none;border-radius:22px;clip-path:inset(0 round 22px);position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;color-scheme:dark}
-html[data-tema] body.wah .stage.tk-on{margin:6px 0 0;border-radius:22px;cursor:pointer;touch-action:manipulation}
+html[data-tema] body.wah .stage .tkf{display:none;position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;color-scheme:dark}
+html[data-tema] body.wah .stage.tk-on{margin:0 -16px;height:300px;border-radius:0;overflow:visible;cursor:pointer;touch-action:manipulation}
+@media(min-width:820px){html[data-tema] body.wah .stage.tk-on{margin:0;height:340px}}
 html[data-tema] body.wah .stage.tk-on .tkf{display:block}
 html[data-tema] body.wah .stage.tk-on .rot,html[data-tema] body.wah .stage.tk-on .petunjuk{display:none}
+/* logo bola berputar */
+html[data-tema] body.wah .logo.bola{background:none;border-radius:50%;box-shadow:0 0 26px rgba(80,200,255,.5);overflow:visible}
+html[data-tema] body.wah .logo.bola img{display:none}
+html[data-tema] body.wah .logo .bola-cv{display:block;width:54px;height:54px}
 @media print{body.wah .aur,body.wah .stage{display:none}}

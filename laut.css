@@ -1,0 +1,28 @@
+/* Pemandangan bawah laut selebar layar di belakang halaman depan (hanya tema gelap) */
+.laut{display:none}
+html[data-tema=gelap] .laut{display:block;position:absolute;left:0;right:0;top:0;bottom:0;z-index:0;pointer-events:none;overflow:hidden;
+ --ray:rgba(120,170,255,.2);--caus:.2;--bsea:linear-gradient(180deg,#1A2A66 0%,#0B1840 50%,#060C1C 100%);
+ background:linear-gradient(rgba(6,12,28,.42),rgba(6,12,28,.42)),var(--bsea);
+ -webkit-mask-image:linear-gradient(180deg,#000 55%,transparent);mask-image:linear-gradient(180deg,#000 55%,transparent)}
+.laut[data-t=pagi]{--ray:rgba(255,246,200,.42);--caus:.5;--bsea:linear-gradient(180deg,#2FA8D8 0%,#0E5E8C 45%,#08254C 100%)}
+.laut[data-t=siang]{--ray:rgba(255,255,255,.4);--caus:.55;--bsea:linear-gradient(180deg,#3CC3F0 0%,#1479C2 45%,#0A2F66 100%)}
+.laut[data-t=sore]{--ray:rgba(255,190,120,.42);--caus:.4;--bsea:linear-gradient(180deg,#F5A25B 0%,#B24B7A 32%,#2A2A66 66%,#0A1A3E 100%)}
+.laut .lr,.laut .lc,.laut .lb{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.laut .lr{opacity:.8}
+.laut .ray{position:absolute;top:-20%;width:90px;height:135%;background:linear-gradient(180deg,var(--ray),transparent 78%);transform-origin:top center;transform:rotate(14deg);animation:l-sway 9s ease-in-out infinite;filter:blur(5px)}
+.laut .ray.more,.laut .lb .more{display:none}
+@keyframes l-sway{0%,100%{transform:rotate(11deg);opacity:.55}50%{transform:rotate(19deg);opacity:1}}
+.laut .lc{mix-blend-mode:screen;opacity:calc(var(--caus)*.4);filter:blur(2px);-webkit-mask-image:linear-gradient(180deg,#000,transparent 78%);mask-image:linear-gradient(180deg,#000,transparent 78%)}
+.laut .lc.dasar{top:auto;bottom:0;height:46%;-webkit-mask-image:linear-gradient(0deg,#000,transparent 85%);mask-image:linear-gradient(0deg,#000,transparent 85%)}
+.laut .lc i{position:absolute;inset:-60px;background:radial-gradient(ellipse 20px 12px at 22px 16px,rgba(255,255,255,.55),transparent 70%) 0 0/72px 46px,radial-gradient(ellipse 13px 20px at 52px 30px,rgba(255,255,255,.42),transparent 70%) 20px 14px/92px 62px;animation:l-c1 11s ease-in-out infinite}
+.laut .lc i+i{background:radial-gradient(ellipse 18px 13px at 30px 22px,rgba(210,245,255,.5),transparent 70%) 0 0/84px 54px,radial-gradient(ellipse 12px 18px at 60px 20px,rgba(255,255,255,.36),transparent 70%) 30px 22px/106px 70px;animation:l-c2 14s ease-in-out infinite}
+@keyframes l-c1{0%,100%{transform:translate(0,0)}50%{transform:translate(34px,22px)}}
+@keyframes l-c2{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,18px)}}
+.laut .lb span{position:absolute;bottom:-14px;border-radius:50%;border:1px solid rgba(230,250,255,.7);background:rgba(255,255,255,.14);animation:l-rb linear infinite}
+@keyframes l-rb{from{transform:translateY(0) translateX(0);opacity:0}10%{opacity:.8}to{transform:translateY(-420px) translateX(14px);opacity:0}}
+@media(min-width:820px){.laut .ray.more,.laut .lb .more{display:block}.laut .ray{width:110px}}
+html.reduce .laut *{animation:none!important}
+html.reduce .laut .lb{display:none}
+html.ringan .laut .lc,html.ringan .laut .lb,html.ringan .laut .ray.more{display:none}
+html[data-tema] body.wah .salam h2,html[data-tema] body.wah .salam p,html[data-tema] body.wah .wkt{text-shadow:0 1px 10px rgba(4,10,30,.55)}
+@media print{.laut{display:none!important}}

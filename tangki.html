@@ -119,18 +119,45 @@ h1{margin:0;font:700 22px/1.2 var(--f);letter-spacing:-.01em}
 
 .emb{background:transparent!important;background-image:none!important;padding:0!important;min-height:0;overflow:hidden}
 .emb .wrap{max-width:none;gap:0}.emb header,.emb .card{display:none!important}
-.emb .stage{height:100vh;height:100dvh;border-radius:0;border:0}
+.emb .stage{height:100vh;height:100dvh;border-radius:0;border:0;background:none;-webkit-mask-image:linear-gradient(180deg,transparent,#000 8%,#000 95%,transparent);mask-image:linear-gradient(180deg,transparent,#000 8%,#000 95%,transparent)}
+
+.band{--ray:rgba(120,170,255,.2);--caus:.2}
+.band[data-t=pagi]{--ray:rgba(255,246,200,.42);--caus:.5}
+.band[data-t=siang]{--ray:rgba(255,255,255,.4);--caus:.55}
+.band[data-t=sore]{--ray:rgba(255,190,120,.42);--caus:.4}
+.band .rays{opacity:.8}.band .caus{opacity:calc(var(--caus)*.4);filter:blur(2px)}
+.band .ray.more,.band .bgb .more{display:none}
+.band .caus.dasar{top:auto;bottom:0;height:46%;-webkit-mask-image:linear-gradient(0deg,#000,transparent 85%);mask-image:linear-gradient(0deg,#000,transparent 85%)}
+.band .ray{width:90px}
+.demo h1,.demo .sub{text-shadow:0 1px 10px rgba(4,10,30,.55)}
+@media(min-width:820px){.band .ray.more,.band .bgb .more{display:block}.band .ray{width:110px}}
+.emb .stage .rays,.emb .stage .caus,.emb .stage .bgb{display:none}
+.band{position:absolute;left:0;right:0;top:0;height:470px;z-index:0;pointer-events:none;transition:opacity .6s;
+ --bsea:linear-gradient(180deg,#1A2A66 0%,#0B1840 50%,#060C1C 100%);
+ background:linear-gradient(rgba(6,12,28,.42),rgba(6,12,28,.42)),var(--bsea);
+ -webkit-mask-image:linear-gradient(180deg,#000 55%,transparent);mask-image:linear-gradient(180deg,#000 55%,transparent)}
+.band[data-t=pagi]{--bsea:linear-gradient(180deg,#2FA8D8 0%,#0E5E8C 45%,#08254C 100%)}
+.band[data-t=siang]{--bsea:linear-gradient(180deg,#3CC3F0 0%,#1479C2 45%,#0A2F66 100%)}
+.band[data-t=sore]{--bsea:linear-gradient(180deg,#F5A25B 0%,#B24B7A 32%,#2A2A66 66%,#0A1A3E 100%)}
+.band[data-t=malam]{--bsea:linear-gradient(180deg,#1A2A66 0%,#0B1840 50%,#060C1C 100%)}
+.demo .wrap{position:relative;z-index:1}
+.demo .card{display:block!important}
+.emb .holo{z-index:3}.emb .hint{bottom:6%;color:#DCE8FA;text-shadow:0 1px 6px rgba(0,0,0,.6)}.emb .aur{display:none}.emb .rays,.emb .caus,.emb .bgb{-webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+.demo{min-height:100vh;background-attachment:fixed!important;background-color:#060C1C!important;background-image:radial-gradient(520px 340px at 8% 0%,rgba(40,200,255,.2),transparent 70%),radial-gradient(560px 380px at 100% 25%,rgba(130,100,255,.2),transparent 70%)!important;padding-block:12px 28px!important;overflow:auto}
+.demo .wrap{max-width:1100px;display:grid;grid-template-columns:minmax(0,1fr);gap:0;align-items:center}
+.demo header{display:block!important}.demo .stage{height:320px;margin:0 -16px}
+.demo h1{font-size:30px}
+@media(min-width:820px){.demo .wrap{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:20px}.demo .stage{margin:0;height:340px}.demo h1{font-size:38px}}
 .noq .gauge{display:none}
 </style></head><body id="bd"><script>if(/[?&]emb=1/.test(location.search)){document.body.className="emb noq";}</script>
 
 <div class="wrap" id="root">
   <header>
-    <h1>Tangki Air Gudang</h1>
-    <p class="sub">Contoh untuk halaman depan. Tangki kaca berisi air yang tingginya mengikuti antrean persetujuan. Geser untuk menggoyang air, ketuk untuk membuka kartu nama.</p>
+    <h1>Selamat datang di Sistem Gudang</h1>
+    <p class="sub">Satu tempat untuk permintaan, stok, dan opname. Rapi, cepat, dan tanpa kertas. Ketuk tangki untuk membuka kartu nama.</p>
   </header>
 
   <div class="stage" id="stage" data-t="malam" role="button" tabindex="0" aria-expanded="false" aria-label="Tangki Sistem Gudang. Ketuk untuk membuka kartu Iyan Agiasta, Staff Gudang">
-    <div class="rays" aria-hidden="true"><i class="ray" style="left:4%;animation-delay:-0s;animation-duration:9s"></i><i class="ray" style="left:24%;animation-delay:-3s;animation-duration:11s"></i><i class="ray" style="left:46%;animation-delay:-6s;animation-duration:8s"></i><i class="ray" style="left:66%;animation-delay:-2s;animation-duration:12s"></i><i class="ray" style="left:84%;animation-delay:-5s;animation-duration:10s"></i></div><div class="caus" aria-hidden="true"><i></i><i></i></div><div class="bgb" aria-hidden="true"><span style="left:6%;width:5px;height:5px;animation-duration:13s;animation-delay:-2s"></span><span style="left:16%;width:8px;height:8px;animation-duration:16s;animation-delay:-9s"></span><span style="left:27%;width:4px;height:4px;animation-duration:11s;animation-delay:-5s"></span><span style="left:38%;width:6px;height:6px;animation-duration:15s;animation-delay:-1s"></span><span style="left:49%;width:9px;height:9px;animation-duration:18s;animation-delay:-12s"></span><span style="left:58%;width:5px;height:5px;animation-duration:12s;animation-delay:-7s"></span><span style="left:68%;width:7px;height:7px;animation-duration:14s;animation-delay:-3s"></span><span style="left:77%;width:4px;height:4px;animation-duration:10s;animation-delay:-8s"></span><span style="left:86%;width:8px;height:8px;animation-duration:17s;animation-delay:-4s"></span><span style="left:94%;width:5px;height:5px;animation-duration:13s;animation-delay:-10s"></span><span style="left:12%;width:6px;height:6px;animation-duration:19s;animation-delay:-14s"></span><span style="left:72%;width:5px;height:5px;animation-duration:15s;animation-delay:-11s"></span></div>
     <div class="aur a"></div><div class="aur b"></div>
     <div class="rot" aria-hidden="true"><div class="floor"><i></i><i></i><i></i><b></b></div>
       <div class="orbit"><div><span style="left:224px;top:112px;background:#58E6FF;box-shadow:0 0 14px #58E6FF"></span><span style="left:56px;top:209px;background:#B3A8FF;box-shadow:0 0 14px #B3A8FF"></span><span style="left:56px;top:15px;background:#FFC857;box-shadow:0 0 14px #FFC857"></span></div></div>

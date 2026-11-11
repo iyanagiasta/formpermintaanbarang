@@ -16,13 +16,16 @@ var mati=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").match
 if(g==="kurang"||(g!=="penuh"&&(lemah||mati)))d.classList.add("reduce");
 if(g!=="penuh"&&lemah)d.classList.add("ringan");})();</script>
 <link rel="stylesheet" href="gaya-baru.css">
-<link rel="stylesheet" href="tema-wah.css?v=4">
+<link rel="stylesheet" href="tema-wah.css?v=6">
+<link rel="stylesheet" href="laut.css?v=1">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 </head>
 <body class="wah">
 <header class="hero">
+  <div class="laut" id="laut" aria-hidden="true"><div class="lr" aria-hidden="true"><i class="ray" style="left:4%;animation-delay:-0s;animation-duration:9s"></i><i class="ray" style="left:24%;animation-delay:-3s;animation-duration:11s"></i><i class="ray" style="left:46%;animation-delay:-6s;animation-duration:8s"></i><i class="ray" style="left:66%;animation-delay:-2s;animation-duration:12s"></i><i class="ray" style="left:84%;animation-delay:-5s;animation-duration:10s"></i><i class="ray more" style="left:13%;animation-delay:-4s;animation-duration:13s"></i><i class="ray more" style="left:35%;animation-delay:-1s;animation-duration:9s"></i><i class="ray more" style="left:56%;animation-delay:-7s;animation-duration:14s"></i><i class="ray more" style="left:75%;animation-delay:-3s;animation-duration:11s"></i></div><div class="lc" aria-hidden="true"><i></i><i></i></div><div class="lc dasar" aria-hidden="true"><i></i><i></i></div><div class="lb" aria-hidden="true"><span style="left:6%;width:5px;height:5px;animation-duration:13s;animation-delay:-2s"></span><span style="left:16%;width:8px;height:8px;animation-duration:16s;animation-delay:-9s"></span><span style="left:27%;width:4px;height:4px;animation-duration:11s;animation-delay:-5s"></span><span style="left:38%;width:6px;height:6px;animation-duration:15s;animation-delay:-1s"></span><span style="left:49%;width:9px;height:9px;animation-duration:18s;animation-delay:-12s"></span><span style="left:58%;width:5px;height:5px;animation-duration:12s;animation-delay:-7s"></span><span style="left:68%;width:7px;height:7px;animation-duration:14s;animation-delay:-3s"></span><span style="left:77%;width:4px;height:4px;animation-duration:10s;animation-delay:-8s"></span><span style="left:86%;width:8px;height:8px;animation-duration:17s;animation-delay:-4s"></span><span style="left:94%;width:5px;height:5px;animation-duration:13s;animation-delay:-10s"></span><span style="left:12%;width:6px;height:6px;animation-duration:19s;animation-delay:-14s"></span><span style="left:72%;width:5px;height:5px;animation-duration:15s;animation-delay:-11s"></span><span class="more" style="left:11%;width:7px;height:7px;animation-duration:14s;animation-delay:-3s"></span><span class="more" style="left:22%;width:5px;height:5px;animation-duration:12s;animation-delay:-8s"></span><span class="more" style="left:33%;width:10px;height:10px;animation-duration:19s;animation-delay:-6s"></span><span class="more" style="left:44%;width:4px;height:4px;animation-duration:10s;animation-delay:-2s"></span><span class="more" style="left:58%;width:7px;height:7px;animation-duration:15s;animation-delay:-11s"></span><span class="more" style="left:71%;width:5px;height:5px;animation-duration:12s;animation-delay:-4s"></span><span class="more" style="left:80%;width:9px;height:9px;animation-duration:17s;animation-delay:-9s"></span><span class="more" style="left:93%;width:6px;height:6px;animation-duration:13s;animation-delay:-5s"></span></div>
+    </div>
   <div class="aur" id="aur" aria-hidden="true"><i class="a1"></i><i class="a2"></i></div>
   <div class="wrap">
     <div class="bar">
@@ -317,6 +320,7 @@ function tampilAwal(){
   var au=document.getElementById("aur"),h="";
   for(var i=0;i<12;i++){h+='<span class="pt" style="left:'+((i*53+9)%96)+'%;top:'+(160+((i*41)%260))+'px;width:'+(2+i%3)+'px;height:'+(2+i%3)+'px;animation-duration:'+(8+(i%5)*2)+'s;animation-delay:-'+((i*1.9)%11).toFixed(1)+'s"></span>';}
   au.insertAdjacentHTML("beforeend",h);
+  (function(){var h=new Date().getHours(),t=h>=5&&h<10?"pagi":h>=10&&h<15?"siang":h>=15&&h<18?"sore":"malam";document.getElementById("laut").setAttribute("data-t",t);})();
   var tf=document.getElementById("tkf"),stg=document.getElementById("stage");
   window.tkN=null;
   window.tkKirim=function(){try{if(window.tkN!==null&&tf.contentWindow)tf.contentWindow.postMessage({tk:"q",n:window.tkN},location.origin);}catch(e){}};
@@ -335,5 +339,6 @@ function tampilAwal(){
   tampilAwal();
 })();
 </script>
+<script src="bola.js?v=1" defer></script>
 </body>
 </html>

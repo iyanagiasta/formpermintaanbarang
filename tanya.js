@@ -98,9 +98,9 @@ function lokTeks(rak){return rak?(rak.gudang?esc(rak.gudang)+", ":"")+"Rak "+esc
 function kartu(b,d,rak,sementara){
   var st=status(b,d.bebas),h='<p class="tq-nm">'+esc(b.nama)+'</p><p class="tq-sm">'+esc(b.kode)+' · '+esc(b.sat||"")+'</p>';
   if(rak!==undefined)h+='<div class="tq-row"><span>Lokasi</span><b>'+(rak?lokTeks(rak):'<span class="tq-sm">belum tercatat</span>')+'</b></div>';
-  var q=d.q||b.q,per=[];SUMB.forEach(function(s,i){if(q[i])per.push(esc(s)+" "+fq(q[i]))});
+  var q=d.q||b.q;
   h+='<div class="tq-row"><span>Stok di gudang</span><b>'+fq(d.total)+' '+esc(b.sat||"")+'</b></div>';
-  if(per.length>1)h+='<div class="tq-row tq-sm"><span>Per sumber</span><span>'+per.join(" · ")+'</span></div>';
+  SUMB.forEach(function(sn,i){if(q[i])h+='<div class="tq-row tq-sm"><span>&nbsp;&nbsp;Stok '+esc(sn)+'</span><span>'+fq(q[i])+' '+esc(b.sat||"")+'</span></div>'});
   if(sementara){}
   else if(d.alok.length)d.alok.forEach(function(a){h+='<div class="tq-row"><span>Jatah proyek: '+esc(a.ppbj)+(a.ket?" - "+esc(a.ket):"")+(a.status==="Ditunda Sebentar"?" (ditunda)":"")+'</span><b>'+fq(a.qty)+' '+esc(b.sat||"")+'</b></div>'});
   else h+='<div class="tq-row"><span>Jatah proyek</span><b>Tidak ada</b></div>';

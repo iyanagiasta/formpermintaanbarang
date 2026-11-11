@@ -26,8 +26,8 @@ html[data-tema] body.wah .aur .a2{right:-110px;top:200px;width:380px;height:380p
 html[data-tema] body.wah .aur .pt{position:absolute;border-radius:50%;background:#9BE8FF;animation:w-drift 10s linear infinite}
 html[data-tema] body.wah .hero .wrap{position:relative;z-index:1;padding-top:calc(env(safe-area-inset-top,0px) + 18px);padding-bottom:6px}
 html[data-tema] body.wah .brand{gap:14px}
-html[data-tema] body.wah .logo{width:54px;height:54px;border-radius:14px;background:#fff;border:0;box-shadow:0 0 26px rgba(80,200,255,.45)}
-html[data-tema] body.wah .logo img{padding:5px}
+html[data-tema] body.wah .logo{width:58px;height:58px;border-radius:0;background:none;border:0;box-shadow:none;filter:drop-shadow(0 0 10px rgba(110,220,255,.55))}
+html[data-tema] body.wah .logo img{padding:0;width:100%;height:100%;object-fit:contain}
 html[data-tema] body.wah .brand h1{font:700 20px/1.2 Sora,Inter,sans-serif;letter-spacing:-.01em;text-transform:none;color:#fff}
 html[data-tema] body.wah .brand small,html[data-tema] body.wah .hero .brand small{display:block;font:500 12.5px Sora,Inter,sans-serif;letter-spacing:0;color:#C3D6F2;margin-top:2px}
 html[data-tema] body.wah .aksi{display:flex;flex-wrap:wrap;gap:8px;align-items:center}

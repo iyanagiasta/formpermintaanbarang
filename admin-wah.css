@@ -1,0 +1,29 @@
+/* admin-wah.css: gaya gelap futuristik untuk Admin Gudang (hanya layar; cetak tidak berubah). Dimuat setelah halaman-wah.css. */
+@media screen{
+/* menu samping */
+html[data-tema] body.tema.wahp .side{border-radius:16px;padding-bottom:10px}
+html[data-tema=gelap] body.tema.wahp .side{background:rgba(16,28,58,.74);border:1px solid rgba(130,180,255,.28);box-shadow:0 10px 34px rgba(0,0,0,.35);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+html[data-tema=terang] body.tema.wahp .side{background:#fff;border:1px solid #C9D8EA;box-shadow:0 8px 26px rgba(20,60,120,.1)}
+html.ringan body.tema.wahp .side{-webkit-backdrop-filter:none;backdrop-filter:none}
+html[data-tema=gelap] body.tema.wahp .mgt{color:#8FD8FF}
+html[data-tema=terang] body.tema.wahp .mgt{color:#1A5FA8}
+html[data-tema] body.tema.wahp #tabs button{border-radius:0 10px 10px 0;transition:background .15s}
+html[data-tema=gelap] body.tema.wahp #tabs button{color:#E6EEF8}
+html[data-tema=gelap] body.tema.wahp #tabs button:hover{background:rgba(88,230,255,.1)}
+html[data-tema=gelap] body.tema.wahp #tabs button.on{background:linear-gradient(90deg,rgba(88,230,255,.22),rgba(88,230,255,.04));border-left-color:#58E6FF;color:#fff}
+html[data-tema=terang] body.tema.wahp #tabs button.on{background:linear-gradient(90deg,#DCEBFB,#F2F7FD);border-left-color:#1757C9;color:#0B2A5C}
+html[data-tema] body.tema.wahp .mnbtn{background:linear-gradient(135deg,#2A66DD,#1757C9);border-radius:12px;color:#fff}
+html[data-tema] body.tema.wahp .smmin{border-radius:10px}
+/* ringkasan angka */
+html[data-tema] body.tema.wahp .sum div{border-radius:14px}
+html[data-tema=gelap] body.tema.wahp .sum div{background:rgba(88,230,255,.07);border:1px solid rgba(130,180,255,.3)}
+html[data-tema=gelap] body.tema.wahp .sum b{color:#fff;text-shadow:0 0 14px rgba(88,230,255,.45)}
+html[data-tema=gelap] body.tema.wahp .sum span{color:#B9CBE6}
+/* tabel */
+html[data-tema=gelap] body.tema.wahp table tr:hover td{background:rgba(88,230,255,.06)}
+html[data-tema] body.tema.wahp .tw{border-radius:12px}
+/* menu terbuka kembali */
+html[data-tema] body.tema.wahp #smbuka{border-radius:12px;background:linear-gradient(135deg,#2A66DD,#1757C9);color:#fff;border:1px solid rgba(160,200,255,.45);box-shadow:0 6px 18px rgba(23,87,201,.4)}
+/* kolom pencarian cepat */
+html[data-tema=gelap] body.tema.wahp .mcari input{background:#0B1530;border-radius:10px}
+}

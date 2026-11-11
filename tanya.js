@@ -106,6 +106,8 @@ function kartu(b,d,rak,sementara){
   else h+='<div class="tq-row"><span>Jatah proyek</span><b>Tidak ada</b></div>';
   if(!sementara&&d.tercadang>0)h+='<div class="tq-row"><span>Sedang diminta (belum diserahkan)</span><b>'+fq(d.tercadang)+' '+esc(b.sat||"")+'</b></div>';
   h+='<div class="tq-bebas"><span>Stok bebas</span><b class="tq-'+st[1]+'">'+fq(Math.max(0,d.bebas))+' '+esc(b.sat||"")+'</b><span class="tq-tag tq-'+st[1]+'">'+st[0]+'</span></div>';
+  var oto=OTO.join(" + ");
+  h+='<p class="tq-sm" style="margin-top:4px">Stok bebas = '+esc(oto)+' dikurangi jatah proyek dan yang sedang diminta'+(SUMB.indexOf("Bekas")>=0&&OTO.indexOf("Bekas")<0&&q[SUMB.indexOf("Bekas")]?' (stok Bekas tidak dihitung)':'')+'.</p>';
   return h;
 }
 async function tampil(b,qty){

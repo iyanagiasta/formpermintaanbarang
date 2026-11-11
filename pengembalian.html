@@ -96,7 +96,7 @@ table th:nth-child(6),table td:nth-child(6),colgroup col:nth-child(6){display:no
 <link rel="stylesheet" href="tema-halaman.css">
 <link rel="stylesheet" href="lembar.css">
 <script src="cari-pintar.js"></script><script src="nama-berkas.js"></script><script src="tema.js"></script>
-<link rel="stylesheet" href="gaya-baru.css"><link rel="stylesheet" href="form-baru.css"><link rel="stylesheet" href="form-hp.css">
+<link rel="stylesheet" href="gaya-baru.css"><link rel="stylesheet" href="form-baru.css"><link rel="stylesheet" href="form-hp.css"><link rel="stylesheet" href="form-wah.css?v=1"><script src="wah-init.js?v=1"></script><link rel="stylesheet" href="form-wah.css?v=1">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -631,6 +631,7 @@ async function kirim(){
     var r=await api({action:"submitKembali",kode:KODEPEG,by:g("by"),dept:g("dept"),tgl:g("tgl"),ppbj:g("ppbj"),email:g("email"),alasan:g("alasan"),pic:picOk,cat:g("cat"),items:items});
     toast(r.msg||"Selesai.",!!r.ok);
     if(r.ok&&r.nomor){document.getElementById("doc").value=r.nomor;window.__sentNo=r.nomor;}
+    if(r.ok&&r.nomor&&window.WAH_sukses)WAH_sukses(r.nomor,"Pengembalian terkirim","Buat pengembalian lain");
   }catch(e){toast("Gagal terhubung ke server. Periksa internet lalu coba lagi.",false);}
   finally{btn.disabled=false;btn.textContent="Kirim Pengembalian";}
 }

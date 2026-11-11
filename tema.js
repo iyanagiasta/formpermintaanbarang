@@ -1,7 +1,7 @@
 /* Tema bersama Sistem Gudang: tema gelap/terang, kepala halaman bermerek, tombol ganti tema. */
 (function(){
   var d=document,h=d.documentElement,K="sctk_tema";
-  function baca(){try{return localStorage.getItem(K)==="gelap"?"gelap":"terang";}catch(e){return "terang";}}
+  function baca(){var o=h.hasAttribute("data-wah")?"gelap":"terang";try{var v=localStorage.getItem(K);return v==="gelap"||v==="terang"?v:o;}catch(e){return o;}}
   function pasang(t){h.setAttribute("data-tema",t);var b=d.getElementById("tema");if(b){b.textContent=t==="terang"?"Mode gelap":"Mode terang";b.title=t==="terang"?"Ganti ke tema gelap":"Ganti ke tema terang";}}
   pasang(baca());
   function ganti(){var t=h.getAttribute("data-tema")==="terang"?"gelap":"terang";try{localStorage.setItem(K,t);}catch(e){}pasang(t);}

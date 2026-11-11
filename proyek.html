@@ -169,10 +169,11 @@ async function muat(){
   }catch(e){toast("Gagal terhubung ke server.",true);}
 }
 var SEQ=0;
+var _MM={};function MEMO(q,r){var k=String(q).toLowerCase();if(r){_MM[k]={t:Date.now(),r:r};return r;}var c=_MM[k];return c&&Date.now()-c.t<12e4?c.r:null;}   /* ketikan yang sama tidak memanggil server lagi (2 menit) */
 async function cariBarang(q){
   var box=document.getElementById("sr"),my=++SEQ;if(!box)return;box.innerHTML='<div class="note">Mencari...</div>';
   try{
-    var r=await api({action:"cariPic",q:q});if(my!==SEQ)return;
+    var r=MEMO(q);if(!r){r=await api({action:"cariPic",q:q});if(r&&r.ok)MEMO(q,r);}if(my!==SEQ)return;
     if(!r.ok){box.innerHTML='<div class="note err">'+esc(r.msg||"Gagal.")+'</div>';return;}
     if(!r.data.length){box.innerHTML='<div class="note">Tidak ada barang yang cocok.</div>';return;}
     box.innerHTML=r.data.map(function(x,j){return '<button type="button" class="hs" data-a="'+j+'"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+'</small></button>';}).join("")+(r.total>r.data.length?'<div class="note">'+r.total+' barang cocok. Persempit pencarian.</div>':'');

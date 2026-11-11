@@ -129,12 +129,15 @@ function gambar(){
 }
 function miripHtml(r){return r.mirip&&r.mirip.length?'<div class="mirip"><b>Sudah ada barang yang mirip.</b> Pastikan bukan barang yang sama:<br>'+r.mirip.map(function(x){return esc(x.nama)+' <small>('+esc(x.kode)+')</small>';}).join("<br>")+'</div>':"";}
 function kodeHtml(r){return r.kodeUsulan?'<div class="kode">'+esc(r.kodeUsulan)+'</div><div class="note" style="text-align:center">Usulan kode. Kode final ditetapkan Gudang.</div>':"";}
-var TM={};
+var TM={},MBM={};   /* hasil cek nama+jenis yang sama dipakai ulang 5 menit */
 function cek(i){
   clearTimeout(TM[i]);TM[i]=setTimeout(async function(){
     var r=ROWS[i];if(!r)return;var nama=r.nama.trim();
     if(nama.length<3){r.mirip=[];r.kodeUsulan="";var a=document.getElementById("mi"+i),b=document.getElementById("kc"+i);if(a)a.innerHTML="";if(b)b.innerHTML="";return;}
-    try{var h=await api({action:"mbCek",nama:nama,jenis:r.jenis});if(!h.ok||!ROWS[i]||ROWS[i]!==r)return;
+    try{
+      var mk=nama.toLowerCase()+"|"+r.jenis,h=MBM[mk];
+      if(!h||Date.now()-h.t>3e5){h=await api({action:"mbCek",nama:nama,jenis:r.jenis});if(h&&h.ok)MBM[mk]=Object.assign({t:Date.now()},h);}
+      if(!h||!h.ok||!ROWS[i]||ROWS[i]!==r)return;
       r.mirip=h.mirip||[];r.kodeUsulan=h.kodeUsulan||"";var a2=document.getElementById("mi"+i),b2=document.getElementById("kc"+i);if(a2)a2.innerHTML=miripHtml(r);if(b2)b2.innerHTML=kodeHtml(r);
     }catch(e){}
   },450);

@@ -3,7 +3,7 @@
 (function(){
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
 var app=document.getElementById("app"),KODE="",BAR=[],BYK={},SUMB=["Bekas","Moka","Accurate"],OTO=["Moka","Accurate"];
-var SINO_SRV={},USER_NAMA="",DET={},INFO={},PAKET=null,PROY=null,PTOK=[],terakhir=null,chat=null;
+var BOT_OK=null,BOT_P=null,PROY_P=null,SINO_SRV={},USER_NAMA="",DET={},INFO={},PAKET=null,PROY=null,PTOK=[],terakhir=null,chat=null;
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function fq(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",")}
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -81,9 +81,11 @@ async function detail(b){
 }
 async function infoPo(b){
   if(INFO[b.key])return INFO[b.key];
-  var o={po:[],setara:[],rak:null};
-  try{var r=await bot("info",{kodes:[b.kode]});if(r.ok){o.po=(r.po&&r.po[b.key])||[];o.setara=(r.setara&&r.setara[b.key])||[];o.rak=(r.rak&&r.rak[b.key])||null}}catch(e){}
-  INFO[b.key]=o;return o;
+  var o={po:[],setara:[],rak:null,alok:[],tercadang:0,tahu:false};
+  if(BOT_OK===false)return o;
+  try{var r=await bot("info",{kodes:[b.kode]});
+    if(r&&r.ok){o={po:(r.po&&r.po[b.key])||[],setara:(r.setara&&r.setara[b.key])||[],rak:(r.rak&&r.rak[b.key])||null,alok:(r.alok&&r.alok[b.key])||[],tercadang:(r.tercadang&&r.tercadang[b.key])||0,tahu:true};INFO[b.key]=o}}catch(e){}
+  return o;
 }
 function poHtml(o){
   if(o.po.length)return '<div class="tq-po"><b>Sudah dipesan, belum datang:</b><br>'+o.po.map(function(p){return esc(p.po||"PO")+(p.supplier?" ("+esc(p.supplier)+")":"")+(p.tanggal?", tgl "+esc(p.tanggal):"")+": belum datang <b>"+fq(p.sisa)+"</b> dari "+fq(p.dipesan)}).join("<br>")+'</div>';
@@ -91,27 +93,34 @@ function poHtml(o){
 }
 var askLok=false;
 function lokTeks(rak){return rak?(rak.gudang?esc(rak.gudang)+", ":"")+"Rak "+esc(rak.rak):""}
-function kartu(b,d,rak){
+function kartu(b,d,rak,sementara){
   var st=status(b,d.bebas),h='<p class="tq-nm">'+esc(b.nama)+'</p><p class="tq-sm">'+esc(b.kode)+' · '+esc(b.sat||"")+'</p>';
-  h+='<div class="tq-row"><span>Lokasi</span><b>'+(rak?lokTeks(rak):'<span class="tq-sm">belum tercatat</span>')+'</b></div>';
+  if(!sementara&&rak!==undefined)h+='<div class="tq-row"><span>Lokasi</span><b>'+(rak?lokTeks(rak):'<span class="tq-sm">belum tercatat</span>')+'</b></div>';
   var q=d.q||b.q,per=[];SUMB.forEach(function(s,i){if(q[i])per.push(esc(s)+" "+fq(q[i]))});
   h+='<div class="tq-row"><span>Stok di gudang</span><b>'+fq(d.total)+' '+esc(b.sat||"")+'</b></div>';
   if(per.length>1)h+='<div class="tq-row tq-sm"><span>Per sumber</span><span>'+per.join(" · ")+'</span></div>';
-  if(d.alok.length)d.alok.forEach(function(a){h+='<div class="tq-row"><span>Jatah proyek: '+esc(a.ppbj)+(a.ket?" - "+esc(a.ket):"")+(a.status==="Ditunda Sebentar"?" (ditunda)":"")+'</span><b>'+fq(a.qty)+' '+esc(b.sat||"")+'</b></div>'});
+  if(sementara){}
+  else if(d.alok.length)d.alok.forEach(function(a){h+='<div class="tq-row"><span>Jatah proyek: '+esc(a.ppbj)+(a.ket?" - "+esc(a.ket):"")+(a.status==="Ditunda Sebentar"?" (ditunda)":"")+'</span><b>'+fq(a.qty)+' '+esc(b.sat||"")+'</b></div>'});
   else h+='<div class="tq-row"><span>Jatah proyek</span><b>Tidak ada</b></div>';
-  if(d.tercadang>0)h+='<div class="tq-row"><span>Sedang diminta (belum diserahkan)</span><b>'+fq(d.tercadang)+' '+esc(b.sat||"")+'</b></div>';
+  if(!sementara&&d.tercadang>0)h+='<div class="tq-row"><span>Sedang diminta (belum diserahkan)</span><b>'+fq(d.tercadang)+' '+esc(b.sat||"")+'</b></div>';
   h+='<div class="tq-bebas"><span>Stok bebas</span><b class="tq-'+st[1]+'">'+fq(Math.max(0,d.bebas))+' '+esc(b.sat||"")+'</b><span class="tq-tag tq-'+st[1]+'">'+st[0]+'</span></div>';
   return h;
 }
 async function tampil(b,qty){
   terakhir=b;
-  var d=await detail(b),st=status(b,d.bebas),bebas=Math.max(0,d.bebas),info=await infoPo(b),h="";
-  if(askLok)h+=info.rak?'<p class="tq-nm">Lokasi: '+lokTeks(info.rak)+'</p>':'<p class="tq-nm">Lokasi rak belum tercatat</p><p class="tq-sm">Minta gudang mencatatnya lewat opname atau menu label.</p>';
-  h+=kartu(b,d,info.rak);
-  if(info&&(st[1]!=="ok"||(qty&&qty>bebas)))h+=poHtml(info);
+  var lokalD={alok:[],tercadang:0,bebas:b.bebas,total:b.total,q:b.q};
+  var el=add("tq-b",kartu(b,lokalD,undefined,true)+'<p class="tq-sm" style="margin-top:6px">Memeriksa jatah proyek dan lokasi rak...</p>');
+  try{await BOT_P}catch(e){}
+  var info=await infoPo(b),d;
+  if(info.tahu)d={alok:info.alok,tercadang:info.tercadang,bebas:b.bebas,total:b.total,q:b.q};
+  else{d=await detail(b);info={po:[],setara:[],rak:undefined,tahu:false}}
+  var st=status(b,d.bebas),bebas=Math.max(0,d.bebas),h="";
+  if(askLok&&info.tahu)h+=info.rak?'<p class="tq-nm">Lokasi: '+lokTeks(info.rak)+'</p>':'<p class="tq-nm">Lokasi rak belum tercatat</p><p class="tq-sm">Minta gudang mencatatnya lewat opname atau menu label.</p>';
+  h+=kartu(b,d,info.tahu?info.rak:undefined);
+  if(info.tahu&&(st[1]!=="ok"||(qty&&qty>bebas)))h+=poHtml(info);
   if(qty){var k=qty-bebas;h+=k<=0?'<div class="tq-verd tq-ok"><span>Butuh '+fq(qty)+' '+esc(b.sat||"")+'</span><b>Cukup</b><span class="tq-sm">sisa '+fq(bebas-qty)+'</span></div>':'<div class="tq-verd tq-bad"><span>Butuh '+fq(qty)+' '+esc(b.sat||"")+'</span><b>Kurang '+fq(k)+'</b></div>'}
-  var el=add("tq-b",h);
-  if(info&&(st[1]==="bad"||(qty&&qty>bebas))){
+  el.innerHTML=h;chat.scrollTop=chat.scrollHeight;
+  if(info.tahu&&(st[1]==="bad"||(qty&&qty>bebas))){
     var l=info.setara.map(function(x){var o=BYK[String(x.kode).trim().toUpperCase()];return{label:x.nama+(o?" (bebas "+fq(o.bebas)+")":""),b:o,cat:x.catatan}}).filter(function(x){return x.b});
     if(l.length){el.insertAdjacentHTML("beforeend",'<p class="tq-sm" style="margin-top:6px">Yang bisa jadi pengganti:</p>');el.appendChild(chips(l,function(x){add("tq-u",esc(x.b.nama));tampil(x.b).then(function(){if(x.cat)chat.lastChild.insertAdjacentHTML("beforeend",'<p class="tq-sm" style="margin-top:6px">Catatan: '+esc(x.cat)+'</p>')})}))}
     else if(st[1]==="bad")el.insertAdjacentHTML("beforeend",'<p class="tq-sm" style="margin-top:6px">Belum ada barang pengganti yang terdaftar.</p>');
@@ -120,13 +129,14 @@ async function tampil(b,qty){
     var n=Math.min(qty,bebas);
     el.appendChild(chips([{label:"Buka form Permintaan Barang"}],function(){add("tq-b","<p>Di form, pilih <b>"+esc(b.nama)+"</b> dan isi jumlah <b>"+fq(n)+" "+esc(b.sat||"")+"</b>.</p>");location.href="index.html?dari=utama"}));
   }
+  chat.scrollTop=chat.scrollHeight;
   return el;
 }
 async function pilih(b,qty){add("tq-u",esc(b.nama));await tampil(b,qty)}
 
 /* ===== PAKET, PROYEK, BPB ===== */
-async function muatPaket(){if(PAKET)return PAKET;try{var r=await bot("paket");PAKET=r.ok?r.data:[]}catch(e){PAKET=[]}PAKET.forEach(function(p){p.tok=norm(p.nama)});return PAKET}
-async function muatProyek(){if(PROY)return PROY;try{var r=await bot("proyek");PROY=r.ok?r.data:[]}catch(e){PROY=[]}PROY.forEach(function(p){p.tok=norm(p.ppbj+" "+(p.ket||""))});return PROY}
+async function muatPaket(){try{await BOT_P}catch(e){}return PAKET||[]}
+async function muatProyek(){try{await BOT_P}catch(e){}try{await PROY_P}catch(e){}return PROY||[]}
 function jawabPaket(pk,n){
   var h='<p class="tq-nm">'+esc(pk.nama)+' x '+n+'</p><p class="tq-sm">Bahan yang dibutuhkan / stok bebas:</p>',kurang=[];
   pk.items.forEach(function(r){
@@ -192,8 +202,10 @@ async function jawabSatu(teks,prev){
       l.forEach(function(b){h+='<div class="tq-row"><span>'+esc(b.nama)+'</span><b class="tq-bad">stok '+fq(b.total)+'</b></div>'});
       add("tq-b",l.length?h:"<p>Tidak ada barang yang stok bebasnya habis.</p>");return}}
   var hasil=cari(qt),pk=null,pj=null;
-  var P=await muatPaket();P.forEach(function(p){var s=skorTeks(qt,p.tok);if(s.cov>=.6&&(!pk||s.skor>pk.skor))pk={p:p,skor:s.skor}});
-  var PR=await muatProyek();PR.forEach(function(p){var s=skorTeks(qt,p.tok);if(s.cov>=.6&&(!pj||s.skor>pj.skor))pj={p:p,skor:s.skor}});
+  var P=PAKET||[],PR=PROY||[];
+  if(!hasil.length||hasil[0].skor<.75){P=await muatPaket();PR=await muatProyek()}
+  P.forEach(function(p){var s=skorTeks(qt,p.tok);if(s.cov>=.6&&(!pk||s.skor>pk.skor))pk={p:p,skor:s.skor}});
+  PR.forEach(function(p){var s=skorTeks(qt,p.tok);if(s.cov>=.6&&(!pj||s.skor>pj.skor))pj={p:p,skor:s.skor}});
   var top0=hasil[0]?hasil[0].skor:0;
   if(pk&&pk.skor>top0&&pk.skor>=(pj?pj.skor:0)){return jawabPaket(pk.p,ia>=0?+raw[ia]:1)}
   if(pj&&pj.skor>top0){return jawabProyek(pj.p)}
@@ -292,6 +304,11 @@ async function mulai(dariLogin){
     });
     USER_NAMA=ls("sctk_bot_nama")||"";
     tampilChat();
+    BOT_P=bot("paket").then(function(r){
+      BOT_OK=!!(r&&r.ok===true);
+      if(BOT_OK){PAKET=r.data||[];PAKET.forEach(function(p){p.tok=norm(p.nama)});
+        PROY_P=bot("proyek").then(function(x){PROY=(x&&x.ok)?x.data:[];PROY.forEach(function(p){p.tok=norm(p.ppbj+" "+(p.ket||""))})}).catch(function(){PROY=[]})}
+    }).catch(function(){BOT_OK=false});
   }catch(e){KODE="";if(dariLogin)loginView("Gagal terhubung ke server. Periksa internet lalu coba lagi.");else loginView("")}
 }
 function tampilChat(){

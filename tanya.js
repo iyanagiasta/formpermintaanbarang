@@ -7,7 +7,9 @@ var BOT_OK=null,BOT_P=null,PROY_P=null,SINO_SRV={},USER_NAMA="",DET={},INFO={},P
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function fq(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",")}
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
-async function api(b){b.kode=b.kode===undefined?KODE:b.kode;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json()}
+var UJI=/[?&]uji=1/.test(location.search),LOGMS=[];
+function catatMs(nama,ms){if(!UJI)return;LOGMS.push(nama+" "+Math.round(ms)+" ms");var e=document.getElementById("uji");if(!e){e=document.createElement("pre");e.id="uji";e.style.cssText="margin:10px 14px;padding:10px;font:12px/1.5 monospace;white-space:pre-wrap;border:1px dashed #888;border-radius:8px;color:inherit";document.body.appendChild(e)}e.textContent="UJI KECEPATAN (waktu tunggu server)\n"+LOGMS.join("\n")}
+async function api(b){b.kode=b.kode===undefined?KODE:b.kode;var t0=performance.now(),nm=b.action+(b.jenis?":"+b.jenis:"");var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});var j=await r.json();catatMs(nm,performance.now()-t0);return j}
 function bot(jenis,x){x=x||{};x.action="bot";x.jenis=jenis;return api(x)}
 
 /* ===== PEMAHAM TEKS ===== */

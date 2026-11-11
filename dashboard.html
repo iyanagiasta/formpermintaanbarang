@@ -16,7 +16,7 @@ var mati=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").match
 if(g==="kurang"||(g!=="penuh"&&(lemah||mati)))d.classList.add("reduce");
 if(g!=="penuh"&&lemah)d.classList.add("ringan");})();</script>
 <link rel="stylesheet" href="gaya-baru.css">
-<link rel="stylesheet" href="tema-wah.css?v=8">
+<link rel="stylesheet" href="tema-wah.css?v=9">
 <link rel="stylesheet" href="laut.css?v=2">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
@@ -76,6 +76,7 @@ if(g!=="penuh"&&lemah)d.classList.add("ringan");})();</script>
   </div>
 </header>
 <main class="wrap" id="app"></main>
+<div class="gm-bar"><button type="button" id="gm-buka" class="gm-btn">Main sebentar</button></div>
 <footer>PT Sarana Catur Tirta Kelola &middot; Sistem Gudang</footer>
 <div class="ov" id="ov" role="dialog" aria-modal="true" aria-labelledby="dj"><div class="dlg"><h3 id="dj"></h3><p id="dk"></p><input class="t" id="di" type="password" autocomplete="off"><p class="err" id="de" role="alert"></p><div class="row"><button class="sec" id="db" type="button">Batal</button><button id="dg" type="button">Masuk</button></div></div></div>
 <script>
@@ -339,5 +340,6 @@ function tampilAwal(){
   tampilAwal();
 })();
 </script>
+<script src="game.js?v=1"></script>
 </body>
 </html>

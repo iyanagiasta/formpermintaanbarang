@@ -1,0 +1,53 @@
+/* tanya.css: chatbot Tanya Gudang. Warna eksplisit untuk tema gelap dan terang (kontras minimal 4,5:1). */
+.tq{display:flex;flex-direction:column;gap:10px}
+.tq-chat{border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:10px;height:min(64vh,580px);overflow-y:auto;border:1px solid var(--line)}
+.tq-m{max-width:94%;padding:10px 12px;border-radius:14px;overflow-wrap:anywhere;line-height:1.5}
+.tq-m p{margin:0 0 6px}.tq-m p:last-child{margin:0}
+.tq-u{align-self:flex-end;border-bottom-right-radius:4px}
+.tq-b{align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--line)}
+.tq-nm{font-weight:700;font-size:15px}
+.tq-sm{font-size:12px}
+.tq-row{display:flex;justify-content:space-between;gap:10px;font-size:14px;border-top:1px solid var(--line);padding:4px 0}
+.tq-row b{white-space:nowrap}
+.tq-bebas,.tq-verd,.tq-po{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;padding:8px 10px;border-radius:10px;border:1px solid var(--line)}
+.tq-bebas b{font-size:20px}
+.tq-verd{border-width:2px}
+.tq-po{display:block;font-size:14px}
+.tq-tag{font-size:12px;font-weight:700;padding:2px 9px;border-radius:99px;border:1px solid currentColor}
+.tq-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tq-chip{border-radius:99px;padding:8px 13px;font:inherit;font-size:14px;cursor:pointer;min-height:38px;border:1px solid var(--line);text-align:left}
+.tq-step{display:flex;gap:4px;margin:6px 0 2px}.tq-step i{flex:1;height:6px;border-radius:4px}
+.tq-form{display:flex;gap:8px}
+.tq-form input{flex:1;min-width:0}
+.tq-mic{flex:none;width:48px;padding:0;display:grid;place-items:center;border-radius:12px}
+.tq-send{border-radius:12px;padding:0 18px}
+.tq-adm summary{cursor:pointer;font-weight:700}
+.tq-adm .tq-it{display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line);padding:8px 0}
+.tq-adm .tq-it input{flex:1;min-width:110px;padding:8px;font-size:14px}
+.tq-end{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px}
+/* gelap */
+html[data-tema=gelap] .tq-chat{background:rgba(12,22,48,.6)}
+html[data-tema=gelap] .tq-u{background:#1F4FB8;color:#fff}
+html[data-tema=gelap] .tq-b{background:#13224A;color:#EAF2FF}
+html[data-tema=gelap] .tq-sm,html[data-tema=gelap] .tq-row,html[data-tema=gelap] .tq-end{color:#B7C8E4}
+html[data-tema=gelap] .tq-row b{color:#EAF2FF}
+html[data-tema=gelap] .tq-bebas,html[data-tema=gelap] .tq-po,html[data-tema=gelap] .tq-verd{background:#0B1530}
+html[data-tema=gelap] .tq-chip{background:#0B1530;color:#EAF2FF;border-color:#58E6FF}
+html[data-tema=gelap] .tq-ok{color:#5BE3A1}html[data-tema=gelap] .tq-warn{color:#FFC857}html[data-tema=gelap] .tq-bad{color:#FF9D9D}
+html[data-tema=gelap] .tq-step i{background:#233A6E}html[data-tema=gelap] .tq-step i.d{background:#58E6FF}html[data-tema=gelap] .tq-step i.c{background:#FFC857}
+html[data-tema=gelap] .tq-mic{background:#0B1530;color:#EAF2FF;border:1px solid rgba(130,180,255,.4)}
+html[data-tema=gelap] .tq-mic.on{background:#7A1F2B}
+/* terang */
+html[data-tema=terang] .tq-chat{background:#F3F7FD}
+html[data-tema=terang] .tq-u{background:#1757C9;color:#fff}
+html[data-tema=terang] .tq-b{background:#fff;color:#0B1B33}
+html[data-tema=terang] .tq-sm,html[data-tema=terang] .tq-row,html[data-tema=terang] .tq-end{color:#43587A}
+html[data-tema=terang] .tq-row b{color:#0B1B33}
+html[data-tema=terang] .tq-bebas,html[data-tema=terang] .tq-po,html[data-tema=terang] .tq-verd{background:#F3F7FD}
+html[data-tema=terang] .tq-chip{background:#fff;color:#0B1B33;border-color:#1757C9}
+html[data-tema=terang] .tq-ok{color:#0B6B3A}html[data-tema=terang] .tq-warn{color:#8A5A00}html[data-tema=terang] .tq-bad{color:#B3261E}
+html[data-tema=terang] .tq-step i{background:#C9D8EA}html[data-tema=terang] .tq-step i.d{background:#1757C9}html[data-tema=terang] .tq-step i.c{background:#B8860B}
+html[data-tema=terang] .tq-mic{background:#fff;color:#0B1B33;border:1px solid #9DB4D3}
+html[data-tema=terang] .tq-mic.on{background:#F8D7DA}
+.tq-chip:focus-visible,.tq-mic:focus-visible,.tq-send:focus-visible,.tq-adm summary:focus-visible{outline:3px solid #FFC857;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}

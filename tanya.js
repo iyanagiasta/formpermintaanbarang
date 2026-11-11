@@ -11,7 +11,7 @@ async function api(b){b.kode=b.kode===undefined?KODE:b.kode;var r=await fetch(AP
 function bot(jenis,x){x=x||{};x.action="bot";x.jenis=jenis;return api(x)}
 
 /* ===== PEMAHAM TEKS ===== */
-var STOP=("stok stock bebasnya berapa ada apa sisa yang di untuk buat tolong cek cari minta info informasi barang nya ya dong kah itu ini masih punya dipakai dipake dipakainya proyek bebas jumlah tersedia gudang mau tahu tau lihat tampilkan boleh bisa saya kami kita pak bu mas mbak kalau kalo berapakah apakah lagi ke dari dengan pada atau adakah sedia tersisa tinggal sih deh aja saja gak ga nggak enggak tidak belum sudah butuh perlu pakai pake memakai jatah alokasi dialokasikan kebutuhan ambil pesan keluarkan bawa cukup pcs batang unit roll kaleng buah biji btg bh rumah set paket bahan").split(" ");
+var STOP=("stok stock bebasnya dimana mana lokasi letak rak ditaruh disimpan simpan taruh berapa ada apa sisa yang di untuk buat tolong cek cari minta info informasi barang nya ya dong kah itu ini masih punya dipakai dipake dipakainya proyek bebas jumlah tersedia gudang mau tahu tau lihat tampilkan boleh bisa saya kami kita pak bu mas mbak kalau kalo berapakah apakah lagi ke dari dengan pada atau adakah sedia tersisa tinggal sih deh aja saja gak ga nggak enggak tidak belum sudah butuh perlu pakai pake memakai jatah alokasi dialokasikan kebutuhan ambil pesan keluarkan bawa cukup pcs batang unit roll kaleng buah biji btg bh rumah set paket bahan").split(" ");
 var SINO={knee:["elbow"],siku:["elbow"],kni:["elbow"],sok:["socket"],sock:["socket"],kran:["keran"],meteran:["meter"],wm:["water","meter"],gv:["gate","valve"],paralon:["pipa"],pralon:["pipa"],lakban:["seal","tape"],sealtape:["seal","tape"]};
 var USER={};try{USER=JSON.parse(ls("tg_sino")||"{}")}catch(e){}
 function norm(s){
@@ -81,16 +81,19 @@ async function detail(b){
 }
 async function infoPo(b){
   if(INFO[b.key])return INFO[b.key];
-  var o={po:[],setara:[]};
-  try{var r=await bot("info",{kodes:[b.kode]});if(r.ok){o.po=(r.po&&r.po[b.key])||[];o.setara=(r.setara&&r.setara[b.key])||[]}}catch(e){}
+  var o={po:[],setara:[],rak:null};
+  try{var r=await bot("info",{kodes:[b.kode]});if(r.ok){o.po=(r.po&&r.po[b.key])||[];o.setara=(r.setara&&r.setara[b.key])||[];o.rak=(r.rak&&r.rak[b.key])||null}}catch(e){}
   INFO[b.key]=o;return o;
 }
 function poHtml(o){
   if(o.po.length)return '<div class="tq-po"><b>Sudah dipesan, belum datang:</b><br>'+o.po.map(function(p){return esc(p.po||"PO")+(p.supplier?" ("+esc(p.supplier)+")":"")+(p.tanggal?", tgl "+esc(p.tanggal):"")+": belum datang <b>"+fq(p.sisa)+"</b> dari "+fq(p.dipesan)}).join("<br>")+'</div>';
   return '<div class="tq-po"><b>Belum ada pesanan</b> yang menunggu datang untuk barang ini. Sampaikan ke Pengadaan bila dibutuhkan.</div>';
 }
-function kartu(b,d){
+var askLok=false;
+function lokTeks(rak){return rak?(rak.gudang?esc(rak.gudang)+", ":"")+"Rak "+esc(rak.rak):""}
+function kartu(b,d,rak){
   var st=status(b,d.bebas),h='<p class="tq-nm">'+esc(b.nama)+'</p><p class="tq-sm">'+esc(b.kode)+' · '+esc(b.sat||"")+'</p>';
+  h+='<div class="tq-row"><span>Lokasi</span><b>'+(rak?lokTeks(rak):'<span class="tq-sm">belum tercatat</span>')+'</b></div>';
   var q=d.q||b.q,per=[];SUMB.forEach(function(s,i){if(q[i])per.push(esc(s)+" "+fq(q[i]))});
   h+='<div class="tq-row"><span>Stok di gudang</span><b>'+fq(d.total)+' '+esc(b.sat||"")+'</b></div>';
   if(per.length>1)h+='<div class="tq-row tq-sm"><span>Per sumber</span><span>'+per.join(" · ")+'</span></div>';
@@ -102,8 +105,9 @@ function kartu(b,d){
 }
 async function tampil(b,qty){
   terakhir=b;
-  var d=await detail(b),st=status(b,d.bebas),bebas=Math.max(0,d.bebas),h=kartu(b,d),info=null;
-  if(st[1]==="bad"||(qty&&qty>bebas)||st[1]==="warn")info=await infoPo(b);
+  var d=await detail(b),st=status(b,d.bebas),bebas=Math.max(0,d.bebas),info=await infoPo(b),h="";
+  if(askLok)h+=info.rak?'<p class="tq-nm">Lokasi: '+lokTeks(info.rak)+'</p>':'<p class="tq-nm">Lokasi rak belum tercatat</p><p class="tq-sm">Minta gudang mencatatnya lewat opname atau menu label.</p>';
+  h+=kartu(b,d,info.rak);
   if(info&&(st[1]!=="ok"||(qty&&qty>bebas)))h+=poHtml(info);
   if(qty){var k=qty-bebas;h+=k<=0?'<div class="tq-verd tq-ok"><span>Butuh '+fq(qty)+' '+esc(b.sat||"")+'</span><b>Cukup</b><span class="tq-sm">sisa '+fq(bebas-qty)+'</span></div>':'<div class="tq-verd tq-bad"><span>Butuh '+fq(qty)+' '+esc(b.sat||"")+'</span><b>Kurang '+fq(k)+'</b></div>'}
   var el=add("tq-b",h);
@@ -169,6 +173,7 @@ var KATA_QTY=/\b(butuh|perlu|minta|ambil|mau|cukup|pesan|kebutuhan|pakai|pake|ke
 function catatGagal(t){bot("catat",{teks:t}).catch(function(){})}
 async function jawabSatu(teks,prev){
   var raw=norm(teks),low=teks.toLowerCase().trim();
+  askLok=/\b(dimana|di mana|lokasi|letak|rak|ditaruh|disimpan|simpan)\b/.test(low);
   if(S.tunggu&&!/bpb/.test(low)){USER_NAMA=raw.filter(function(t){return t!=="saya"&&t!=="nama"&&t!=="aku"}).join(" ");S.tunggu=false;ls("sctk_bot_nama",USER_NAMA);add("tq-b","<p>Baik, <b>"+esc(USER_NAMA)+"</b>.</p>");return jawabBpb()}
   var mn=low.match(/^(?:nama\s+)?(?:saya|aku)\s+([a-z ]{3,40})$/);
   if(mn&&!/(butuh|perlu|mau|minta|ambil)/.test(low)){USER_NAMA=mn[1].trim();ls("sctk_bot_nama",USER_NAMA);add("tq-b","<p>Baik, <b>"+esc(USER_NAMA)+"</b>. Tanya \"bpb saya sampai mana?\" kapan saja.</p>");return}
@@ -178,7 +183,7 @@ async function jawabSatu(teks,prev){
   var qt=bersih(rc);
   if(!qt.length||/^(halo|hai|hi|hello|p|test|tes|bantuan|help|menu)$/.test(low)){
     var d=add("tq-b","<p>Halo! Saya bisa menjawab:</p><p>• Stok barang dan stok bebasnya, serta proyek yang memakainya<br>• \"Butuh 30 elbow 3 inch\": cukup atau kurang<br>• Bahan satu paket pekerjaan<br>• Kabar pesanan (PO) barang yang kurang dan penggantinya<br>• Status BPB Anda</p>");
-    d.appendChild(chips([{label:"stok pipa 3 inch"},{label:"butuh 30 elbow 3 inch"},{label:"barang yang stok bebasnya habis"},{label:"bpb saya sampai mana"}],function(x){tanya(x.label)}));return}
+    d.appendChild(chips([{label:"stok pipa 3 inch"},{label:"elbow 3 inch di mana"},{label:"butuh 30 elbow 3 inch"},{label:"barang yang stok bebasnya habis"},{label:"bpb saya sampai mana"}],function(x){tanya(x.label)}));return}
   var kataDaftar=/\b(habis|kosong|menipis|tipis|sedikit)\b/.test(low);
   if(kataDaftar){qt=qt.filter(function(t){return !/^(habis|kosong|menipis|tipis|sedikit)$/.test(t)});
     if(!qt.length){

@@ -16,7 +16,7 @@ var mati=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").match
 if(g==="kurang"||(g!=="penuh"&&(lemah||mati)))d.classList.add("reduce");
 if(g!=="penuh"&&lemah)d.classList.add("ringan");})();</script>
 <link rel="stylesheet" href="gaya-baru.css">
-<link rel="stylesheet" href="tema-wah.css?v=1">
+<link rel="stylesheet" href="tema-wah.css?v=4">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -42,6 +42,7 @@ if(g!=="penuh"&&lemah)d.classList.add("ringan");})();</script>
         <p id="kata">Satu tempat untuk permintaan, stok, dan opname. Rapi, cepat, dan tanpa kertas.</p>
       </div>
       <div class="stage" id="stage" aria-hidden="true">
+        <iframe class="tkf" id="tkf" title="Tangki air Sistem Gudang" tabindex="-1" allow="accelerometer; gyroscope"></iframe>
         <div class="rot" id="rot">
           <div class="lantai"><i></i><i></i><i></i><b></b></div>
           <div class="orbit"><div>
@@ -265,6 +266,7 @@ async function ringkasAdmin(pin){
   try{
     var r=await api({action:"menu",pin:pin});if(!r.ok)return;
     var s=r.ringkas||{};
+    if(typeof s.menunggu==="number"){window.tkN=s.menunggu;if(window.tkKirim)window.tkKirim();}
     var h="",hs='<div class="sec"><h3>Ringkasan admin</h3></div><div class="stats">'+
      stat(s.menunggu,"Menunggu persetujuan",s.menunggu>0?"w":"ok","admin.html#pantau","jam")+
      stat(s.siapSerah,"Siap diserahkan",s.siapSerah>0?"w":"ok","admin.html#serah","kotak")+
@@ -311,10 +313,18 @@ function tampilAwal(){
 (function(){
   var d=document.documentElement,gb=document.getElementById("gerak");
   function ik(){var k=d.classList.contains("reduce");gb.textContent=k?"Gerak: mati":"Kurangi gerak";gb.setAttribute("aria-pressed",k?"true":"false");}
-  ik();gb.onclick=function(){var k=!d.classList.contains("reduce");d.classList.toggle("reduce",k);if(!k)d.classList.remove("ringan");try{localStorage.setItem("sctk_gerak",k?"kurang":"penuh");}catch(e){}ik();};
+  ik();gb.onclick=function(){var k=!d.classList.contains("reduce");d.classList.toggle("reduce",k);if(!k)d.classList.remove("ringan");if(window.tkSync)window.tkSync();try{localStorage.setItem("sctk_gerak",k?"kurang":"penuh");}catch(e){}ik();};
   var au=document.getElementById("aur"),h="";
   for(var i=0;i<12;i++){h+='<span class="pt" style="left:'+((i*53+9)%96)+'%;top:'+(160+((i*41)%260))+'px;width:'+(2+i%3)+'px;height:'+(2+i%3)+'px;animation-duration:'+(8+(i%5)*2)+'s;animation-delay:-'+((i*1.9)%11).toFixed(1)+'s"></span>';}
   au.insertAdjacentHTML("beforeend",h);
+  var tf=document.getElementById("tkf"),stg=document.getElementById("stage");
+  window.tkN=null;
+  window.tkKirim=function(){try{if(window.tkN!==null&&tf.contentWindow)tf.contentWindow.postMessage({tk:"q",n:window.tkN},location.origin);}catch(e){}};
+  window.tkSync=function(){var lemah=d.classList.contains("reduce")||d.classList.contains("ringan");
+    stg.classList.toggle("tk-on",!lemah);
+    if(!lemah&&!tf.getAttribute("src"))tf.setAttribute("src","tangki.html?emb=1&v=1");};
+  window.addEventListener("message",function(e){if(e.origin===location.origin&&e.data&&e.data.tk==="siap")window.tkKirim();});
+  window.tkSync();
   var st=document.getElementById("stage"),rot=document.getElementById("rot"),ry=24,x0=null;
   st.addEventListener("pointerdown",function(e){x0=e.clientX;});
   st.addEventListener("pointermove",function(e){if(x0===null)return;ry+=(e.clientX-x0)*0.7;x0=e.clientX;rot.style.setProperty("--ry",ry+"deg");});

@@ -26,4 +26,23 @@ html[data-tema] body.tema.wahp .tw{border-radius:12px}
 html[data-tema] body.tema.wahp #smbuka{border-radius:12px;background:linear-gradient(135deg,#2A66DD,#1757C9);color:#fff;border:1px solid rgba(160,200,255,.45);box-shadow:0 6px 18px rgba(23,87,201,.4)}
 /* kolom pencarian cepat */
 html[data-tema=gelap] body.tema.wahp .mcari input{background:#0B1530;border-radius:10px}
+/* Daftar Kerja: warna menurut tingkat mendesak */
+html[data-tema] body.tema.wahp .bar button:not(.gh):not(.chip):not(.rm){background:linear-gradient(135deg,#2A66DD,#1757C9);color:#fff;border:1px solid rgba(160,200,255,.45);border-radius:12px;box-shadow:0 6px 18px rgba(23,87,201,.4)}
+html[data-tema] body.tema.wahp .bar{border-radius:12px}
+html[data-tema] body.tema.wahp .kjs div.sm{position:relative;overflow:hidden}
+html[data-tema] body.tema.wahp .kjs div.sm::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#58E6FF}
+html[data-tema] body.tema.wahp .kjs div.sm.merah::after{background:#FF6B6B}
+html[data-tema] body.tema.wahp .kjs div.sm.kuning::after{background:#FFC857}
+html[data-tema] body.tema.wahp .kjs div.sm.nol::after{background:#5B7A99}
+html[data-tema=gelap] body.tema.wahp .kjs div.sm.merah{background:rgba(255,107,107,.1);border-color:rgba(255,130,130,.45)}
+html[data-tema=gelap] body.tema.wahp .kjs div.sm.merah b{color:#FFB4B4;text-shadow:0 0 14px rgba(255,107,107,.5)}
+html[data-tema=gelap] body.tema.wahp .kjs div.sm.kuning b{color:#FFE08A}
+html[data-tema=gelap] body.tema.wahp .kjs div.sm.nol{opacity:.7}
+html[data-tema=terang] body.tema.wahp .kjs div.sm.merah{background:#FFF1F1;border-color:#F0B4B4}
+html[data-tema=terang] body.tema.wahp .kjs div.sm.merah b{color:#9B1C1C}
+html[data-tema=terang] body.tema.wahp .kjs div.sm.kuning b{color:#7A5200}
+html[data-tema=terang] body.tema.wahp .kjs div.sm.nol{opacity:.75}
+html[data-tema] body.tema.wahp .card.kj{border-left:4px solid #58E6FF}
+html[data-tema] body.tema.wahp .card.kj-merah{border-left-color:#FF6B6B}
+html[data-tema] body.tema.wahp .card.kj-kuning{border-left-color:#FFC857}
 }

@@ -13,10 +13,10 @@ async function loadKerja(){
 }
 function drawKerja(){
   var r=KJ,tag={merah:"r",kuning:"y",biru:"",ok:"g"},h='<div class="bar noprint"><button id="kj_r">Muat ulang</button><button id="kj_x" class="gh">Unduh daftar kerja (Excel)</button><span class="note">Diperbarui '+esc(r.waktu)+' &middot; '+r.total+' hal, '+r.nMerah+' mendesak</span></div><div id="pw_k"></div><div id="pw_o"></div>';
-  h+='<div class="sum">'+r.items.map(function(i){return '<div><b>'+i.n+'</b><span>'+esc(i.judul)+'</span></div>';}).join("")+'</div>';
+  h+='<div class="sum kjs">'+r.items.map(function(i){return '<div class="sm '+(i.n?(i.tingkat||"biru"):"nol")+'"><b>'+i.n+'</b><span>'+esc(i.judul)+'</span></div>';}).join("")+'</div>';
   r.items.forEach(function(i){
     if(!i.n)return;
-    h+='<div class="card"><p style="margin:0 0 6px"><span class="tag '+(tag[i.tingkat]||"")+'">'+(i.tingkat==="merah"?"Mendesak":i.tingkat==="kuning"?"Perlu tindakan":"Info")+'</span> <b>'+esc(i.judul)+'</b> ('+i.n+')</p>'+kt(i.kolom,i.kolom.map(function(){return "t";}),i.rows)+(i.n>i.rows.length?'<div class="note">Menampilkan '+i.rows.length+' dari '+i.n+'.</div>':'')+'</div>';
+    h+='<div class="card kj kj-'+(i.tingkat||"biru")+'"><p style="margin:0 0 6px"><span class="tag '+(tag[i.tingkat]||"")+'">'+(i.tingkat==="merah"?"Mendesak":i.tingkat==="kuning"?"Perlu tindakan":"Info")+'</span> <b>'+esc(i.judul)+'</b> ('+i.n+')</p>'+kt(i.kolom,i.kolom.map(function(){return "t";}),i.rows)+(i.n>i.rows.length?'<div class="note">Menampilkan '+i.rows.length+' dari '+i.n+'.</div>':'')+'</div>';
   });
   if(!r.total)h+='<div class="card msg">Tidak ada pekerjaan tertunda. Semua beres.</div>';
   pane().innerHTML=kwrap(h);

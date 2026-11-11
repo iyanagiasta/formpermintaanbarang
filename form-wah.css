@@ -1,0 +1,95 @@
+/* form-wah.css : tampilan 3D futuristik untuk form Permintaan Barang (layar saja).
+   Tidak menyentuh lembar kertas (#sheet isi), PDF (body.cap), cetak (body.cetak). Kontras teks >= 4.5:1 di dua tema. */
+@media screen{
+html[data-tema] body.tema:not(.cap):not(.cetak){--wsolid:#0F1B38;--wacc:#4DE3FF;--wacc2:#8B7CFF;--wink:#EAF2FF;--wmut:#AFC0DA;--wline:rgba(130,180,255,.26);--wglass:rgba(16,28,58,.72);--wbtn-ink:#04101F;
+  background:#060C1C;background-image:radial-gradient(520px 340px at 8% 0%,rgba(40,200,255,.22),transparent 70%),radial-gradient(560px 380px at 100% 20%,rgba(130,100,255,.22),transparent 70%),linear-gradient(180deg,#071632,#060C1C 60%);background-attachment:fixed;color:var(--wink)}
+html[data-tema="terang"] body.tema:not(.cap):not(.cetak){--wsolid:#FFFFFF;--wacc:#1757C9;--wacc2:#5B34C8;--wink:#0B1B33;--wmut:#43587A;--wline:rgba(30,80,160,.24);--wglass:rgba(255,255,255,.88);--wbtn-ink:#FFFFFF;
+  background:#EAF0F8;background-image:radial-gradient(520px 340px at 8% 0%,rgba(40,140,255,.16),transparent 70%),radial-gradient(560px 380px at 100% 20%,rgba(130,100,255,.14),transparent 70%);color:var(--wink)}
+/* bilah atas */
+html[data-tema] body.tema:not(.cap):not(.cetak) .bar{position:sticky;top:0;z-index:40;background:var(--wglass);border-bottom:1px solid var(--wline);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--wink)}
+html[data-tema] body.tema:not(.cap):not(.cetak) .bar .info{color:var(--wmut)}
+html[data-tema] body.tema:not(.cap):not(.cetak) .btn,html[data-tema] body.tema:not(.cap):not(.cetak) .bar .btn{min-height:42px;border-radius:12px;border:1px solid var(--wline);background:rgba(255,255,255,.06);color:var(--wink);font-weight:600;transition:transform .12s,background .2s,border-color .2s}
+html[data-tema="terang"] body.tema:not(.cap):not(.cetak) .btn,html[data-tema="terang"] body.tema:not(.cap):not(.cetak) .bar .btn{background:rgba(255,255,255,.7)}
+html[data-tema] body.tema:not(.cap):not(.cetak) .btn:hover{background:var(--hover,rgba(77,227,255,.14));border-color:var(--wacc)}
+html[data-tema] body.tema:not(.cap):not(.cetak) .btn:active{transform:scale(.96)}
+html[data-tema] body.tema:not(.cap):not(.cetak) .btn.primary,html[data-tema] body.tema:not(.cap):not(.cetak) #sendBtn{border:0;background:linear-gradient(180deg,#6BEBFF,#3AA8FF);color:#04101F;font-weight:700;box-shadow:0 8px 22px rgba(58,168,255,.4)}
+html[data-tema="terang"] body.tema:not(.cap):not(.cetak) .btn.primary,html[data-tema="terang"] body.tema:not(.cap):not(.cetak) #sendBtn{background:linear-gradient(180deg,#2A66DD,#1757C9);color:#fff;box-shadow:0 8px 22px rgba(23,87,201,.35)}
+html[data-tema] body.tema:not(.cap):not(.cetak) .btn:focus-visible,html[data-tema] body.tema:not(.cap):not(.cetak) button:focus-visible,html[data-tema] body.tema:not(.cap):not(.cetak) a:focus-visible,html[data-tema] body.tema:not(.cap):not(.cetak) input:focus-visible,html[data-tema] body.tema:not(.cap):not(.cetak) textarea:focus-visible,html[data-tema] body.tema:not(.cap):not(.cetak) select:focus-visible{outline:3px solid var(--wacc);outline-offset:2px}
+html[data-tema] body.tema:not(.cap):not(.cetak) #pegbar{background:var(--wglass);border-bottom:1px solid var(--wline);color:var(--wmut)}
+html[data-tema] body.tema:not(.cap):not(.cetak) #pegbar input{background:var(--wsolid);color:var(--wink);border:1px solid var(--wline);border-radius:10px}
+/* penanda langkah */
+html[data-tema] body.tema:not(.cap):not(.cetak) .langkah div{background:var(--wglass);border:1px solid var(--wline);border-left:1px solid var(--wline);border-radius:14px;color:var(--wink);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:wf-rise .7s cubic-bezier(.2,.8,.2,1) both}
+html[data-tema] body.tema:not(.cap):not(.cetak) .langkah div:nth-child(2){animation-delay:.08s}html[data-tema] body.tema:not(.cap):not(.cetak) .langkah div:nth-child(3){animation-delay:.16s}html[data-tema] body.tema:not(.cap):not(.cetak) .langkah div:nth-child(4){animation-delay:.24s}
+html[data-tema] body.tema:not(.cap):not(.cetak) .langkah div:before{background:linear-gradient(145deg,#6BEBFF,#8B7CFF);color:#04101F;box-shadow:0 0 14px rgba(77,227,255,.55)}
+html[data-tema="terang"] body.tema:not(.cap):not(.cetak) .langkah div:before{background:linear-gradient(145deg,#3A8BFF,#5B34C8);color:#fff;box-shadow:0 4px 10px rgba(23,87,201,.35)}
+html[data-tema] body.tema:not(.cap):not(.cetak) .langkah small{color:var(--wmut)}
+/* lembar form (kertas tetap terang agar sama dengan PDF) */
+html[data-tema] body.tema:not(.cap):not(.cetak) #sheet{border-radius:22px;border:1px solid var(--wline);box-shadow:0 24px 70px rgba(0,10,40,.5),0 0 50px rgba(77,227,255,.12);animation:wf-rise .8s cubic-bezier(.2,.8,.2,1) both}
+html[data-tema="terang"] body.tema:not(.cap):not(.cetak) #sheet{box-shadow:0 20px 50px rgba(20,50,110,.2)}
+html[data-tema] body.tema:not(.cap):not(.cetak) .tools .btn{border-radius:12px}
+/* daftar pilihan / saran: warna eksplisit */
+html[data-tema] body.tema:not(.cap):not(.cetak) .dd,html[data-tema] body.tema:not(.cap):not(.cetak) #hpred,html[data-tema] body.tema:not(.cap):not(.cetak) .sl,html[data-tema] body.tema:not(.cap):not(.cetak) .pred,html[data-tema] body.tema:not(.cap):not(.cetak) .cr .res{background:var(--wsolid)!important;color:var(--wink)!important;border:1px solid var(--wacc)!important;border-radius:14px!important;box-shadow:0 18px 44px rgba(0,10,40,.5)!important;overflow-x:hidden}
+html[data-tema] body.tema:not(.cap):not(.cetak) .dd .it,html[data-tema] body.tema:not(.cap):not(.cetak) .sl button,html[data-tema] body.tema:not(.cap):not(.cetak) .cr button.pk,html[data-tema] body.tema:not(.cap):not(.cetak) #hpred>*,html[data-tema] body.tema:not(.cap):not(.cetak) .pred>*{background:transparent!important;color:var(--wink)!important;border-color:var(--wline)!important}
+html[data-tema] body.tema:not(.cap):not(.cetak) .dd .it small,html[data-tema] body.tema:not(.cap):not(.cetak) .sl small,html[data-tema] body.tema:not(.cap):not(.cetak) .cr small,html[data-tema] body.tema:not(.cap):not(.cetak) #hpred small,html[data-tema] body.tema:not(.cap):not(.cetak) .pred small{color:var(--wmut)!important;opacity:1!important}
+html[data-tema] body.tema:not(.cap):not(.cetak) .dd .it:hover,html[data-tema] body.tema:not(.cap):not(.cetak) .dd .it.on,html[data-tema] body.tema:not(.cap):not(.cetak) .sl button:hover,html[data-tema] body.tema:not(.cap):not(.cetak) .sl button.on,html[data-tema] body.tema:not(.cap):not(.cetak) .cr button.pk:hover,html[data-tema] body.tema:not(.cap):not(.cetak) #hpred>*:hover,html[data-tema] body.tema:not(.cap):not(.cetak) .pred>*:hover{background:var(--wacc)!important;color:var(--wbtn-ink)!important}
+html[data-tema] body.tema:not(.cap):not(.cetak) .dd .it:hover small,html[data-tema] body.tema:not(.cap):not(.cetak) .dd .it.on small,html[data-tema] body.tema:not(.cap):not(.cetak) .sl button:hover small,html[data-tema] body.tema:not(.cap):not(.cetak) #hpred>*:hover small,html[data-tema] body.tema:not(.cap):not(.cetak) .pred>*:hover small{color:var(--wbtn-ink)!important}
+html[data-tema] body.tema:not(.cap):not(.cetak) .dd .sep{background:var(--wglass);color:var(--wmut)}
+html[data-tema] body.tema:not(.cap):not(.cetak) select,html[data-tema] body.tema:not(.cap):not(.cetak) option,html[data-tema] body.tema:not(.cap):not(.cetak) optgroup{background-color:var(--wsolid);color:var(--wink)}
+html[data-tema] body.tema:not(.cap):not(.cetak) option:checked{background-color:var(--wacc);color:var(--wbtn-ink)}
+html[data-tema="terang"] body.tema:not(.cap):not(.cetak) select{color-scheme:light}html[data-tema] body.tema:not(.cap):not(.cetak) select{color-scheme:dark}html[data-tema="terang"] body.tema:not(.cap):not(.cetak) select{color-scheme:light}
+html[data-tema] body.tema:not(.cap):not(.cetak) .toast{border-radius:14px;backdrop-filter:blur(8px)}
+/* gerbang kode */
+html[data-tema] body.tema:not(.cap):not(.cetak) #gate{background:linear-gradient(180deg,#071632,#0B2A5C 55%,#060C1C)}
+html[data-tema] body.tema:not(.cap):not(.cetak) #gate .gc{background:var(--wglass);color:var(--wink);border:1px solid var(--wline);border-radius:24px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 24px 70px rgba(0,10,40,.6),0 0 40px rgba(77,227,255,.15);animation:wf-pop .7s cubic-bezier(.2,.8,.2,1) both}
+html[data-tema="terang"] body.tema:not(.cap):not(.cetak) #gate .gc{background:#fff}
+html[data-tema] body.tema:not(.cap):not(.cetak) #gate h2{color:var(--wink)}html[data-tema] body.tema:not(.cap):not(.cetak) #gate p,html[data-tema] body.tema:not(.cap):not(.cetak) #gate a{color:var(--wmut)}html[data-tema] body.tema:not(.cap):not(.cetak) #gate .gm{color:#FF9494}html[data-tema="terang"] body.tema:not(.cap):not(.cetak) #gate .gm{color:#A82424}
+html[data-tema] body.tema:not(.cap):not(.cetak) #gate input{min-height:48px;background:var(--wsolid);color:var(--wink);border:1px solid var(--wline);border-radius:12px}
+html[data-tema] body.tema:not(.cap):not(.cetak) #gate button{min-height:48px;border-radius:12px;background:linear-gradient(180deg,#6BEBFF,#3AA8FF);color:#04101F;font-weight:700}
+html[data-tema="terang"] body.tema:not(.cap):not(.cetak) #gate button{background:linear-gradient(180deg,#2A66DD,#1757C9);color:#fff}
+}
+/* ---- html[data-tema] body.tema.hp:not(.cap):not(.cetak) ---- */
+@media screen{
+html[data-tema] body.tema.hp:not(.cap):not(.cetak) #sheet{box-shadow:0 18px 50px rgba(0,10,40,.45)}
+html[data-tema] body.tema.hp:not(.cap):not(.cetak) #rows tr{border-radius:16px;box-shadow:0 8px 22px rgba(10,30,70,.14);transition:transform .15s,box-shadow .2s}
+html[data-tema] body.tema.hp:not(.cap):not(.cetak) #rows tr:focus-within{box-shadow:0 0 0 2px var(--wacc),0 12px 28px rgba(10,30,70,.22)}
+html[data-tema] body.tema.hp:not(.cap):not(.cetak) #rows .stp{background:linear-gradient(180deg,#2A66DD,#1757C9);border:0;color:#fff;box-shadow:0 6px 14px rgba(23,87,201,.35)}
+html[data-tema] body.tema.hp:not(.cap):not(.cetak) #rows .stp:active{transform:scale(.92)}
+html[data-tema] body.tema.hp:not(.cap):not(.cetak) #hpbar{background:var(--wglass);border-top:1px solid var(--wline);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 -12px 40px rgba(0,10,40,.35)}
+html[data-tema] body.tema.hp:not(.cap):not(.cetak) #hpbar .hn,html[data-tema] body.tema.hp:not(.cap):not(.cetak) #hpbar .hn b{color:var(--wink)}
+html[data-tema] body.tema.hp:not(.cap):not(.cetak) #hpbar button{border-radius:14px;border:1px solid var(--wline);background:rgba(255,255,255,.08);color:var(--wink)}
+html[data-tema] body.tema.hp:not(.cap):not(.cetak) #hpbar button.pr{border:0;background:linear-gradient(180deg,#6BEBFF,#3AA8FF);color:#04101F;box-shadow:0 8px 22px rgba(58,168,255,.45);position:relative;overflow:hidden}
+html[data-tema="terang"] body.tema.hp:not(.cap):not(.cetak) #hpbar button.pr{background:linear-gradient(180deg,#2A66DD,#1757C9);color:#fff}
+html[data-tema] body.tema.hp:not(.cap):not(.cetak) #hpbar button.pr::after{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.4),transparent);animation:wf-sheen 4.5s ease-in-out infinite;pointer-events:none}
+}
+/* ---- layar sukses ---- */
+#sukses{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,#071632 0%,#0B2A5C 55%,#060C1C 100%);color:#EAF2FF;overflow:auto}
+#sukses .sk{display:flex;flex-direction:column;align-items:center;text-align:center;max-width:380px;width:100%;font-family:Sora,Inter,"Segoe UI",Roboto,Arial,sans-serif}
+#sukses .skc{position:relative;width:132px;height:132px;animation:wf-pop .8s cubic-bezier(.2,.8,.2,1) both;filter:drop-shadow(0 0 22px rgba(88,230,255,.6))}
+#sukses svg{position:relative}
+#sukses .c0{fill:rgba(88,230,255,.1);stroke:rgba(130,180,255,.25);stroke-width:4}
+#sukses .c1{fill:none;stroke:#58E6FF;stroke-width:5;stroke-linecap:round;stroke-dasharray:302;stroke-dashoffset:302;animation:wf-ring 1s ease-out .15s forwards}
+#sukses .c2{fill:none;stroke:#fff;stroke-width:7;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60;animation:wf-draw .6s ease-out .9s forwards}
+#sukses .sp i{position:absolute;left:62px;top:62px;width:6px;height:6px;border-radius:50%;animation:wf-burst 1.3s ease-out .5s both}
+#sukses h2{margin:22px 0 6px;font-size:28px;line-height:1.2;color:#fff;letter-spacing:-.01em;animation:wf-rise .8s cubic-bezier(.2,.8,.2,1) .7s both}
+#sukses p{margin:0;color:#D0DEF5;animation:wf-rise .8s cubic-bezier(.2,.8,.2,1) .8s both}
+#sukses .no{margin-top:14px;font-weight:700;font-size:15px;color:#DDF8FF;background:rgba(88,230,255,.14);border:1px solid rgba(88,230,255,.4);border-radius:99px;padding:6px 16px;animation:wf-rise .8s cubic-bezier(.2,.8,.2,1) .9s both}
+#sukses .ak{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:26px}
+#sukses .b1,#sukses .b2,#sukses .b3{display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:14px;font:700 15.5px Sora,Inter,sans-serif;text-decoration:none;cursor:pointer;transition:transform .12s}
+#sukses .b1{border:0;color:#04101F;background:linear-gradient(180deg,#6BEBFF,#3AA8FF);box-shadow:0 10px 26px rgba(58,168,255,.4)}
+#sukses .b2{color:#EAF2FF;border:1px solid rgba(130,180,255,.45);background:rgba(255,255,255,.07)}
+#sukses .b3{color:#D0DEF5;border:0;background:transparent;text-decoration:underline}
+#sukses .b1:active,#sukses .b2:active{transform:scale(.97)}
+#sukses button:focus-visible,#sukses a:focus-visible{outline:3px solid #7FD6FF;outline-offset:2px}
+@media print{#sukses{display:none!important}}
+@keyframes wf-rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes wf-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
+@keyframes wf-sheen{from{transform:translateX(-120%)}to{transform:translateX(320%)}}
+@keyframes wf-ring{to{stroke-dashoffset:0}}
+@keyframes wf-draw{to{stroke-dashoffset:0}}
+@keyframes wf-burst{from{transform:translate(0,0) scale(1);opacity:1}to{transform:translate(var(--dx),var(--dy)) scale(.3);opacity:0}}
+/* Kurangi gerak / mode ringan */
+html.reduce body *,html.reduce body *::before,html.reduce body *::after{animation-duration:.001s!important;animation-delay:0s!important;transition:none!important}
+html.reduce #sukses .c1,html.reduce #sukses .c2{stroke-dashoffset:0}
+html.ringan body *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+@media (prefers-reduced-motion:reduce){body *,body *::before,body *::after{animation-duration:.001s!important;animation-delay:0s!important;transition:none!important}}
+@media screen{html[data-tema] body.tema:not(.cap):not(.cetak) #pegbar a{color:var(--wacc);font-weight:700}}

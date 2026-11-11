@@ -121,7 +121,7 @@ html[data-tema] body.wah .ov{background:rgba(2,8,22,.72);backdrop-filter:blur(6p
 html[data-tema] body.wah .dlg{background:var(--solid);color:var(--ink);border:1px solid var(--line);border-top:3px solid var(--acc);border-radius:22px;box-shadow:0 24px 60px var(--sh)}
 html[data-tema] body.wah .dlg h3{font:700 19px Sora,Inter,sans-serif;color:var(--ink)}html[data-tema] body.wah .dlg p{color:var(--mut)}
 html[data-tema] body.wah .dlg button{min-height:46px;border-radius:12px;border:0;background:linear-gradient(180deg,#6BEBFF,#3AA8FF);background-image:linear-gradient(180deg,#6BEBFF,#3AA8FF);color:#04101F;font:700 14px Sora,Inter,sans-serif}
-html[data-tema="terang"] body.wah .dlg button{background:linear-gradient(180deg,#3A8BFF,#1757C9);background-image:linear-gradient(180deg,#3A8BFF,#1757C9);color:#fff}
+html[data-tema="terang"] body.wah .dlg button{background:linear-gradient(180deg,#2A66DD,#1757C9);background-image:linear-gradient(180deg,#2A66DD,#1757C9);color:#fff}
 html[data-tema] body.wah .dlg button.sec{background:transparent;background-image:none;color:var(--ink);border:1px solid var(--line)}
 html[data-tema] body.wah input.t{min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 html[data-tema] body.wah input.t:focus{outline:3px solid var(--acc);outline-offset:1px}

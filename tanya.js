@@ -3,7 +3,7 @@
 (function(){
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
 var app=document.getElementById("app"),KODE="",BAR=[],BYK={},SUMB=["Bekas","Moka","Accurate"],OTO=["Moka","Accurate"];
-var BOT_OK=null,BOT_P=null,PROY_P=null,SINO_SRV={},USER_NAMA="",DET={},INFO={},PAKET=null,PROY=null,PTOK=[],terakhir=null,chat=null;
+var RAKOK=false,BOT_OK=null,BOT_P=null,PROY_P=null,SINO_SRV={},USER_NAMA="",DET={},INFO={},PAKET=null,PROY=null,PTOK=[],terakhir=null,chat=null;
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function fq(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",")}
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -97,7 +97,7 @@ var askLok=false;
 function lokTeks(rak){return rak?(rak.gudang?esc(rak.gudang)+", ":"")+"Rak "+esc(rak.rak):""}
 function kartu(b,d,rak,sementara){
   var st=status(b,d.bebas),h='<p class="tq-nm">'+esc(b.nama)+'</p><p class="tq-sm">'+esc(b.kode)+' · '+esc(b.sat||"")+'</p>';
-  if(!sementara&&rak!==undefined)h+='<div class="tq-row"><span>Lokasi</span><b>'+(rak?lokTeks(rak):'<span class="tq-sm">belum tercatat</span>')+'</b></div>';
+  if(rak!==undefined)h+='<div class="tq-row"><span>Lokasi</span><b>'+(rak?lokTeks(rak):'<span class="tq-sm">belum tercatat</span>')+'</b></div>';
   var q=d.q||b.q,per=[];SUMB.forEach(function(s,i){if(q[i])per.push(esc(s)+" "+fq(q[i]))});
   h+='<div class="tq-row"><span>Stok di gudang</span><b>'+fq(d.total)+' '+esc(b.sat||"")+'</b></div>';
   if(per.length>1)h+='<div class="tq-row tq-sm"><span>Per sumber</span><span>'+per.join(" · ")+'</span></div>';
@@ -111,14 +111,15 @@ function kartu(b,d,rak,sementara){
 async function tampil(b,qty){
   terakhir=b;
   var lokalD={alok:[],tercadang:0,bebas:b.bebas,total:b.total,q:b.q};
-  var el=add("tq-b",kartu(b,lokalD,undefined,true)+'<p class="tq-sm" style="margin-top:6px">Memeriksa jatah proyek dan lokasi rak...</p>');
+  var el=add("tq-b",kartu(b,lokalD,RAKOK?b.rak:undefined,true)+'<p class="tq-sm" style="margin-top:6px">Memeriksa jatah proyek dan lokasi rak...</p>');
   try{await BOT_P}catch(e){}
   var info=await infoPo(b),d;
   if(info.tahu)d={alok:info.alok,tercadang:info.tercadang,bebas:b.bebas,total:b.total,q:b.q};
   else{d=await detail(b);info={po:[],setara:[],rak:undefined,tahu:false}}
   var st=status(b,d.bebas),bebas=Math.max(0,d.bebas),h="";
-  if(askLok&&info.tahu)h+=info.rak?'<p class="tq-nm">Lokasi: '+lokTeks(info.rak)+'</p>':'<p class="tq-nm">Lokasi rak belum tercatat</p><p class="tq-sm">Minta gudang mencatatnya lewat opname atau menu label.</p>';
-  h+=kartu(b,d,info.tahu?info.rak:undefined);
+  var rakF=RAKOK?b.rak:(info.tahu?info.rak:undefined);
+  if(askLok&&rakF!==undefined)h+=rakF?'<p class="tq-nm">Lokasi: '+lokTeks(rakF)+'</p>':'<p class="tq-nm">Lokasi rak belum tercatat</p><p class="tq-sm">Minta gudang mencatatnya lewat opname atau menu label.</p>';
+  h+=kartu(b,d,rakF);
   if(info.tahu&&(st[1]!=="ok"||(qty&&qty>bebas)))h+=poHtml(info);
   if(qty){var k=qty-bebas;h+=k<=0?'<div class="tq-verd tq-ok"><span>Butuh '+fq(qty)+' '+esc(b.sat||"")+'</span><b>Cukup</b><span class="tq-sm">sisa '+fq(bebas-qty)+'</span></div>':'<div class="tq-verd tq-bad"><span>Butuh '+fq(qty)+' '+esc(b.sat||"")+'</span><b>Kurang '+fq(k)+'</b></div>'}
   el.innerHTML=h;chat.scrollTop=chat.scrollHeight;
@@ -290,8 +291,8 @@ async function masuk(){
 async function mulai(dariLogin){
   app.innerHTML='<div class="card note" style="text-align:center">Memuat data barang dan stok...</div>';
   try{
-    var rs=await Promise.all([api({action:"barang"}),api({action:"stok"}),api({action:"sinonim"})]);
-    var rb=rs[0],rk=rs[1],rn=rs[2];
+    var rs=await Promise.all([api({action:"barang"}),api({action:"stok"}),api({action:"sinonim"}),bot("rak").catch(function(){return null})]);
+    var rb=rs[0],rk=rs[1],rn=rs[2],rr=rs[3];RAKOK=!!(rr&&rr.ok===true&&rr.rak);var RM=RAKOK?rr.rak:{};
     if(!rk.ok){KODE="";ls("sctk_kode",null);loginView(rk.msg||"Kode tidak dikenali.");return}
     if(!rb.ok||!rb.items){app.innerHTML='<div class="card err">Gagal memuat daftar barang.</div>';return}
     ls("sctk_kode",KODE);
@@ -301,7 +302,7 @@ async function mulai(dariLogin){
     rb.items.forEach(function(it){
       if(it.jenis==="Jasa")return;
       var key=String(it.kode).trim().toUpperCase(),e=sm[key]||[0,0,0,0],tok=norm(it.nama),q=[e[0]||0,e[1]||0,e[2]||0];
-      var b={kode:String(it.kode).trim(),key:key,nama:it.nama,sat:it.satuan,tok:tok,dasar:tok.filter(function(t){return !adaAngka(t)}),q:q,total:q[0]+q[1]+q[2],bebas:e[3]||0};
+      var b={kode:String(it.kode).trim(),key:key,nama:it.nama,sat:it.satuan,tok:tok,dasar:tok.filter(function(t){return !adaAngka(t)}),q:q,total:q[0]+q[1]+q[2],bebas:e[3]||0,rak:RM[key]?{rak:RM[key][0],gudang:RM[key][1]}:null};
       BAR.push(b);BYK[key]=b;
     });
     USER_NAMA=ls("sctk_bot_nama")||"";

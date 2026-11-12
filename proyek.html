@@ -39,6 +39,12 @@ tr.lebih td{background:var(--redbg);color:var(--redt)}
 .rw{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:9px;margin-top:4px}.rr{display:flex;gap:8px;align-items:center;padding:7px 9px;border-top:1px solid var(--line)}.rr:first-child{border-top:0}.rr>span{flex:1;min-width:0}.rr small{display:block;color:var(--mut);font-size:12px}.rr input{width:90px;padding:6px}
 .rr.bad{background:var(--redbg)}
 h2{font-size:15px;margin:18px 0 6px}
+.stbox{position:relative;overflow:hidden}
+.stempel{position:absolute;top:10px;right:14px;z-index:2;transform:rotate(-10deg);border:5px double var(--redt,#8a1c28);color:var(--redt,#8a1c28);border-radius:10px;padding:2px 18px 4px;text-align:center;font-weight:800;line-height:1;background:transparent;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.stempel b{display:block;font-size:44px;letter-spacing:5px}.stempel span{display:block;font-size:13px;letter-spacing:2px;margin-top:2px}
+.stwm{position:absolute;left:0;right:0;top:50%;z-index:1;text-align:center;transform:translateY(-50%) rotate(-14deg);font-size:min(20vw,150px);font-weight:900;letter-spacing:.06em;color:var(--redt,#8a1c28);opacity:.13;pointer-events:none;user-select:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.stinfo{border:2px solid var(--redt,#8a1c28);color:var(--redt,#8a1c28);background:var(--redbg,#fde8ea);border-radius:10px;padding:10px 12px;margin:0 0 12px;font-weight:700}
+@media (max-width:560px){.stempel{position:static;transform:rotate(-4deg);display:inline-block;margin:0 0 8px}.stempel b{font-size:34px}}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#17588f;color:#fff;padding:11px 16px;border-radius:10px;max-width:92vw;display:none;z-index:9;font-weight:600}#toast.bad{background:var(--red)}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -98,7 +104,7 @@ async function cek(){
 }
 function tampilCek(){
   var r=CEK,box=document.getElementById("hasil");if(!box)return;
-  if(r.kosong){box.innerHTML='<div class="card msg">Belum ada kebutuhan tersimpan, barang keluar, maupun permintaan untuk PPBJ <b>'+esc(r.ppbj)+'</b>.'+(INFO.boleh?' Isi kebutuhannya di tab Isi Kebutuhan Proyek.':'')+'</div>';return;}
+  if(r.kosong){var bt0=/^(batal|dibatalkan)$/i.test(String(r.statusProyek||"").trim());box.innerHTML=(bt0?'<div class="stinfo" role="alert">Proyek ini sudah DIBATALKAN.</div>':'')+'<div class="card msg">Belum ada kebutuhan tersimpan, barang keluar, maupun permintaan untuk PPBJ <b>'+esc(r.ppbj)+'</b>.'+(INFO.boleh?' Isi kebutuhannya di tab Isi Kebutuhan Proyek.':'')+'</div>';return;}
   var T=r.total;
   var kartu='<div class="sum">'+(r.adaRab?'<div><b>'+rp(T.nilaiRab)+'</b><span>Nilai RAB (harga saat ini)</span></div>':'')+'<div><b>'+rp(T.nilaiBersih)+'</b><span>Nilai barang keluar bersih (setelah pengembalian)</span></div><div><b>'+rp(T.nilaiKeluar)+'</b><span>Keluar</span></div><div><b>'+rp(T.nilaiKembali)+'</b><span>Dikembalikan</span></div>'+
    (r.adaRab?'<div><b>'+(T.melebihi+T.diluar)+'</b><span>Barang melebihi / di luar RAB</span></div>':'')+(T.nOrder?'<div><b style="color:var(--ambt,#7a5b00)">'+T.nOrder+'</b><span>Barang berstatus ORDER (menurut PDF PPBJ)</span></div>':'')+'</div>';
@@ -112,17 +118,20 @@ function tampilCek(){
    r.proses.map(function(x){return '<tr><td>'+esc(x.doc)+'</td><td>'+esc(x.tgl)+'</td><td>'+esc(x.pemohon)+'</td><td>'+esc(x.nama)+'</td><td class="nm">'+fmtN(x.qty)+'</td><td><span class="tag'+(x.status==="Siap diserahkan"?" g":"")+'">'+esc(x.status)+'</span></td></tr>';}).join("")+'</tbody></table></div>':'';
   var docs=r.docs.length?'<h2>Riwayat dokumen</h2><div class="tw"><table><thead><tr><th>Jenis</th><th>Nomor</th><th>Tanggal</th><th>Pemohon</th><th>Barang</th></tr></thead><tbody>'+
    r.docs.map(function(d){return '<tr><td>'+esc(d.jenis)+'</td><td>'+esc(d.doc)+'</td><td>'+esc(d.tgl)+'</td><td>'+esc(d.pemohon)+'</td><td>'+d.items.map(function(i){return esc(i.nama)+' <b>'+fmtN(i.qty)+'</b>';}).join(", ")+'</td></tr>';}).join("")+'</tbody></table></div>':'';
-  box.innerHTML='<div class="card"><b>PPBJ '+esc(r.ppbj)+'</b>'+(r.nama?' - '+esc(r.nama):'')+(r.dept?' <span class="note">('+esc(r.dept)+')</span>':'')+
+  var batal=/^(batal|dibatalkan)$/i.test(String(r.statusProyek||"").trim()),stP=String(r.statusProyek||"").trim(),lainSt=stP&&!batal&&!/^aktif$/i.test(stP);
+  var stempel=batal?'<div class="stempel" role="img" aria-label="Proyek ini dibatalkan"><b>BATAL</b><span>PROYEK DIBATALKAN</span></div>':'';
+  var infoBatal=batal?'<div class="stinfo" role="alert">Proyek ini sudah DIBATALKAN. Jangan membuat permintaan baru untuk No PPBJ ini. Data di bawah hanya sebagai catatan.</div>':'';
+  box.innerHTML=infoBatal+'<div class="stbox">'+(batal?'<div class="stwm" aria-hidden="true">BATAL</div>':'')+'<div class="card">'+stempel+'<b>PPBJ '+esc(r.ppbj)+'</b>'+(r.nama?' - '+esc(r.nama):'')+(r.dept?' <span class="note">('+esc(r.dept)+')</span>':'')+(lainSt?' <span class="tag">Status proyek: '+esc(stP)+'</span>':'')+
    (r.adaRab?'':'<div class="note" style="margin-top:6px">Kebutuhan (RAB) proyek ini belum disimpan, jadi perbandingan RAB tidak tampil.</div>')+
    (T.tanpaHarga?'<div class="note err" style="margin-top:6px">'+T.tanpaHarga+' barang belum punya harga; nilainya belum lengkap.</div>':'')+'</div>'+kartu+
-   '<div class="fr"><button class="sv" id="xl">Unduh Excel</button>'+(T.nOrder?'<button class="gh" id="fall">Semua barang</button><button class="gh" id="ford">Hanya ORDER ('+T.nOrder+')</button>':'')+(r.jenis==="SL"?'<span class="tag g">Proyek SL</span>':'')+'</div><div class="tw"><table><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>'+proses+docs;
+   '<div class="fr"><button class="sv" id="xl">Unduh Excel</button>'+(T.nOrder?'<button class="gh" id="fall">Semua barang</button><button class="gh" id="ford">Hanya ORDER ('+T.nOrder+')</button>':'')+(r.jenis==="SL"?'<span class="tag g">Proyek SL</span>':'')+'</div><div class="tw"><table><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>'+proses+docs+'</div>';
   document.getElementById("xl").onclick=unduhCek;
   var fa=document.getElementById("fall"),fo=document.getElementById("ford");if(fa)fa.onclick=function(){CEKF="";tampilCek();};if(fo)fo.onclick=function(){CEKF="order";tampilCek();};
 }
 function unduhCek(){
   if(typeof XLSX==="undefined"){toast("Pembuat Excel belum termuat. Periksa internet lalu muat ulang halaman.",true);return;}
   var r=CEK,wb=XLSX.utils.book_new();
-  var a1=[["PPBJ",r.ppbj],["Nama Proyek",r.nama],["Departemen",r.dept],["Nilai RAB",r.total.nilaiRab],["Nilai keluar",r.total.nilaiKeluar],["Nilai dikembalikan",r.total.nilaiKembali],["Nilai bersih",r.total.nilaiBersih],[],
+  var a1=[["PPBJ",r.ppbj],["Nama Proyek",r.nama],["Departemen",r.dept],["Status proyek",/^(batal|dibatalkan)$/i.test(String(r.statusProyek||""))?"BATAL (DIBATALKAN)":(r.statusProyek||"")],["Nilai RAB",r.total.nilaiRab],["Nilai keluar",r.total.nilaiKeluar],["Nilai dikembalikan",r.total.nilaiKembali],["Nilai bersih",r.total.nilaiBersih],[],
    ["Kode","Nama Barang","Satuan","RAB","Keluar","Kembali","Bersih","Siap diserahkan","Dalam persetujuan","Sisa RAB","Harga","Nilai bersih","Catatan","Rencana (menurut PDF)"]];
   r.rows.forEach(function(x){a1.push([x.kode,x.nama,x.satuan,x.rab,x.keluar,x.kembali,x.bersih,x.siap,x.proses,x.sisa,x.harga,x.nilaiBersih,x.flag,x.order?"ORDER":""]);});
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a1),"Barang");

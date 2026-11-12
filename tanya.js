@@ -341,7 +341,7 @@ async function mulai(dariLogin){
 function tampilChat(){
   app.innerHTML='<div class="tq"><div class="tq-chat" id="chat" aria-live="polite"></div>'+
    '<form class="tq-form" id="f" autocomplete="off"><input class="t" id="q" placeholder="Contoh: stok pipa pvc 3 inch" aria-label="Pertanyaan"><button type="button" class="tq-mic" id="mic" aria-label="Bicara"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button><button class="tq-send" type="submit">Kirim</button></form>'+
-   '<div class="tq-end"><span class="note">Jawaban diambil dari data stok, bukan karangan AI.</span><button type="button" class="gh" id="lo">Keluar</button></div>'+adminPanel()+'</div>';
+   '<div class="tq-end"><span class="note">Angka diambil dari data stok. AI hanya membantu memahami pertanyaan.</span><button type="button" class="gh" id="lo">Keluar</button></div>'+adminPanel()+'</div>';
   chat=document.getElementById("chat");
   document.getElementById("f").onsubmit=function(e){e.preventDefault();var i=document.getElementById("q"),v=i.value;i.value="";tanya(v);i.focus()};
   document.getElementById("lo").onclick=function(){KODE="";ls("sctk_kode",null);loginView("")};

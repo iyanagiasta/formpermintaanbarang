@@ -52,3 +52,16 @@ html[data-tema=terang] .tq-mic.on{background:#F8D7DA}
 .tq-chip:focus-visible,.tq-mic:focus-visible,.tq-send:focus-visible,.tq-adm summary:focus-visible{outline:3px solid #FFC857;outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 .tq-hr{border:0;border-top:1px solid var(--line);margin:8px 0}
+/* Layar komputer: halaman lebih lebar, kotak chat memakai tinggi layar, huruf sedikit lebih besar */
+@media (min-width:900px){
+  #app.wrap{max-width:1080px}
+  .tq-chat{height:max(360px,calc(100vh - 290px));padding:16px}
+  .tq-m{max-width:80%;font-size:15px}
+  .tq-nm{font-size:17px}
+  .tq-row{font-size:15px}
+  .tq-chip{font-size:15px}
+}
+@media (min-width:1500px){
+  #app.wrap{max-width:1280px}
+  .tq-m{font-size:16px}
+}

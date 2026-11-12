@@ -3,7 +3,7 @@
 (function(){
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
 var app=document.getElementById("app"),KODE="",BAR=[],BYK={},SUMB=["Bekas","Moka","Accurate"],OTO=["Moka","Accurate"];
-var RAKOK=false,NETOK=false,TANPA=[],BOT_OK=null,BOT_P=null,PROY_P=null,SINO_SRV={},USER_NAMA="",DET={},INFO={},PAKET=null,PROY=null,PTOK=[],terakhir=null,chat=null;
+var AI_OFF=false,RAKOK=false,NETOK=false,TANPA=[],BOT_OK=null,BOT_P=null,PROY_P=null,SINO_SRV={},USER_NAMA="",DET={},INFO={},PAKET=null,PROY=null,PTOK=[],terakhir=null,chat=null;
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function fq(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",")}
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -236,6 +236,21 @@ async function jawabSatu(teks,prev){
           if(L.length){var d3=add("tq-b","<p>Saya menemukan barang yang mirip. Maksud Anda yang mana?</p>");d3.appendChild(chips(L,function(x){pilih(x.b,qty)}));return}
         }
       }catch(e){}
+    }
+    if(BOT_OK!==false&&!AI_OFF){
+      var w=add("tq-b",'<p class="tq-sm">Mencoba memahami dengan bantuan AI...</p>'),a=null;
+      try{a=await bot("ai",{teks:teks})}catch(e){a=null}
+      if(w.parentNode)w.parentNode.removeChild(w);
+      if(a&&a.ok&&a.tersedia===false&&a.alasan==="tanpa_kunci")AI_OFF=true;
+      var LA=((a&&a.tersedia&&a.kode)||[]).map(function(k){return BYK[String(k).trim().toUpperCase()]}).filter(Boolean);
+      if(LA.length){
+        catatGagal(teks);
+        if(a.maksud==="lokasi")askLok=true;
+        var qA=qty||a.jumlah||undefined,cat='<p class="tq-sm" style="margin-top:6px">Pertanyaan dipahami dengan bantuan AI. Angka tetap dari data gudang. Salah? Tulis nama barangnya saja.</p>';
+        if(LA.length===1){var eA=await tampil(LA[0],qA);if(eA)eA.insertAdjacentHTML("beforeend",cat);return}
+        var dA=add("tq-b","<p>Saya kira maksud Anda salah satu ini. Yang mana?</p>"+cat);
+        dA.appendChild(chips(LA.map(function(b){return{label:b.nama,b:b}}),function(x){pilih(x.b,qA)}));return;
+      }
     }
     catatGagal(teks);
     add("tq-b","<p>Saya belum menemukan barang itu. Pertanyaan Anda sudah dicatat supaya admin bisa mengajarkannya. Coba tulis nama barangnya saja, misalnya <i>pipa pvc 3 inch</i>.</p>");

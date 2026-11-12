@@ -93,7 +93,7 @@ function poHtml(o){
   if(o.po.length)return '<div class="tq-po"><b>Sudah dipesan, belum datang:</b><br>'+o.po.map(function(p){return esc(p.po||"PO")+(p.supplier?" ("+esc(p.supplier)+")":"")+(p.tanggal?", tgl "+esc(p.tanggal):"")+": belum datang <b>"+fq(p.sisa)+"</b> dari "+fq(p.dipesan)}).join("<br>")+'</div>';
   return '<div class="tq-po"><b>Belum ada pesanan</b> yang menunggu datang untuk barang ini. Sampaikan ke Pengadaan bila dibutuhkan.</div>';
 }
-var askLok=false;
+var askLok=false,askProy=false;
 function lokTeks(rak){return rak?(rak.gudang?esc(rak.gudang)+", ":"")+"Rak "+esc(rak.rak):""}
 function kartu(b,d,rak,sementara){
   var st=status(b,d.bebas),h='<p class="tq-nm">'+esc(b.nama)+'</p><p class="tq-sm">'+esc(b.kode)+' · '+esc(b.sat||"")+'</p>';
@@ -128,6 +128,12 @@ async function tampil(b,qty){
   var st=status(b,d.bebas),bebas=Math.max(0,d.bebas),h="";
   var rakF=RAKOK?b.rak:(info.tahu?info.rak:undefined);
   if(askLok&&rakF!==undefined)h+=rakF?'<p class="tq-nm">Lokasi: '+lokTeks(rakF)+'</p>':'<p class="tq-nm">Lokasi rak belum tercatat</p><p class="tq-sm">Minta gudang mencatatnya lewat opname atau menu label.</p>';
+  if(askProy&&info.tahu){
+    var pr={};(d.alok||[]).forEach(function(a){pr[a.ppbj]=pr[a.ppbj]||{ppbj:a.ppbj,ket:a.ket};pr[a.ppbj].alok=a.qty});
+    (d.butuh||[]).forEach(function(x){pr[x.ppbj]=pr[x.ppbj]||{ppbj:x.ppbj,ket:x.ket};pr[x.ppbj].rab=x.rab;pr[x.ppbj].sisa=x.sisa});
+    var pl=Object.keys(pr).map(function(k){return pr[k]});
+    h+='<p class="tq-nm">Untuk proyek apa saja</p>'+(pl.length?pl.map(function(x){return '<div class="tq-row"><span>'+esc(x.ppbj)+(x.ket?" - "+esc(x.ket):"")+'</span><b>'+(x.rab>0?'butuh '+fq(x.rab)+(x.sisa>0?', sisa '+fq(x.sisa):', terpenuhi'):'')+(x.alok?(x.rab>0?"; ":"")+'jatah '+fq(x.alok):'')+' '+esc(b.sat||"")+'</b></div>'}).join(""):'<p class="tq-sm">Belum ada proyek aktif yang membutuhkan atau menjatah barang ini.</p>')+'<hr class="tq-hr">';
+  }
   h+=kartu(b,d,rakF);
   if(info.tahu&&(st[1]!=="ok"||(qty&&qty>bebas)))h+=poHtml(info);
   if(qty){var k=qty-bebas;h+=k<=0?'<div class="tq-verd tq-ok"><span>Butuh '+fq(qty)+' '+esc(b.sat||"")+'</span><b>Cukup</b><span class="tq-sm">sisa '+fq(bebas-qty)+'</span></div>':'<div class="tq-verd tq-bad"><span>Butuh '+fq(qty)+' '+esc(b.sat||"")+'</span><b>Kurang '+fq(k)+'</b></div>'}
@@ -170,7 +176,21 @@ function jawabPaket(pk,n){
   }
 }
 function jawabProyek(p){
-  var h='<p class="tq-nm">'+esc(p.ppbj)+(p.ket?" - "+esc(p.ket):"")+'</p><p class="tq-sm">Barang yang dijatah untuk proyek ini:</p>';
+  var h='<p class="tq-nm">'+esc(p.ppbj)+(p.ket?" - "+esc(p.ket):"")+(p.status==="Ditunda Sebentar"?" (ditunda)":"")+'</p>';
+  if(p.adaRab!==undefined){
+    var ringkas=p.adaRab?(p.nKurang?'<b class="tq-bad">'+p.nKurang+' barang stoknya kurang</b>':"")+(p.nRebutan?(p.nKurang?", ":"")+'<b class="tq-warn">'+p.nRebutan+' barang rebutan dengan proyek lain</b>':"")||'<b class="tq-ok">Semua kebutuhan tercukupi stok</b>':"";
+    h+='<p class="tq-sm">Material proyek (dari rincian material PPBJ):</p>'+(ringkas?'<p class="tq-sm">'+ringkas+'</p>':"");
+    if(!p.adaRab)h+='<p class="tq-sm">Proyek ini belum punya rincian material PPBJ. Yang tampil hanya barang yang dijatah (alokasi).</p>';
+    p.items.forEach(function(i){
+      var sat=" "+esc(i.satuan||""),kls={Kurang:"bad",Rebutan:"warn",Cukup:"ok",Terpenuhi:"ok"}[i.status]||"";
+      var kanan=i.rab>0?(i.status==="Terpenuhi"?"terpenuhi":"sisa "+fq(i.sisa)+sat):"jatah "+fq(i.alok)+sat;
+      var tag=i.status==="Kurang"?"Kurang "+fq(i.kurang)+sat:i.status==="Rebutan"?"Rebutan":i.status==="Cukup"?"Stok cukup":"";
+      h+='<div class="tq-row"><span>'+esc(i.nama)+(i.rab>0?'<br><span class="tq-sm">butuh '+fq(i.rab)+' − diserahkan '+fq(i.serah)+' − dialokasi '+fq(i.alok)+(i.minta?' − sedang diminta '+fq(i.minta):'')+'</span>':'')+'</span><b>'+kanan+(tag?'<br><span class="tq-tag tq-'+kls+'">'+tag+'</span>':"")+'</b></div>';
+    });
+    add("tq-b",h+'<p class="tq-sm" style="margin-top:6px">Stok dihitung dari Moka + Accurate. Ketik nama barangnya untuk melihat rinciannya.</p>');
+    return;
+  }
+  h+='<p class="tq-sm">Barang yang dijatah untuk proyek ini:</p>';
   p.items.forEach(function(i){h+='<div class="tq-row"><span>'+esc(i.nama)+'</span><b>'+fq(i.qty)+' '+esc(i.satuan||"")+'</b></div>'});
   add("tq-b",h+'<p class="tq-sm" style="margin-top:6px">Ketik nama barangnya untuk melihat stok bebas.</p>');
 }
@@ -196,6 +216,7 @@ function catatGagal(t){bot("catat",{teks:t}).catch(function(){})}
 async function jawabSatu(teks,prev){
   var raw=norm(teks),low=teks.toLowerCase().trim();
   askLok=/\b(dimana|di mana|lokasi|letak|rak|ditaruh|disimpan|simpan)\b/.test(low);
+  askProy=/\b(proyek|ppbj)\b/.test(low);
   if(S.tunggu&&!/bpb/.test(low)){USER_NAMA=raw.filter(function(t){return t!=="saya"&&t!=="nama"&&t!=="aku"}).join(" ");S.tunggu=false;ls("sctk_bot_nama",USER_NAMA);add("tq-b","<p>Baik, <b>"+esc(USER_NAMA)+"</b>.</p>");return jawabBpb()}
   var mn=low.match(/^(?:nama\s+)?(?:saya|aku)\s+([a-z ]{3,40})$/);
   if(mn&&!/(butuh|perlu|mau|minta|ambil)/.test(low)){USER_NAMA=mn[1].trim();ls("sctk_bot_nama",USER_NAMA);add("tq-b","<p>Baik, <b>"+esc(USER_NAMA)+"</b>. Tanya \"bpb saya sampai mana?\" kapan saja.</p>");return}

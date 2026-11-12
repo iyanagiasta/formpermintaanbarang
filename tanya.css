@@ -51,3 +51,4 @@ html[data-tema=terang] .tq-mic{background:#fff;color:#0B1B33;border:1px solid #9
 html[data-tema=terang] .tq-mic.on{background:#F8D7DA}
 .tq-chip:focus-visible,.tq-mic:focus-visible,.tq-send:focus-visible,.tq-adm summary:focus-visible{outline:3px solid #FFC857;outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+.tq-hr{border:0;border-top:1px solid var(--line);margin:8px 0}

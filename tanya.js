@@ -112,20 +112,20 @@ function kartu(b,d,rak,sementara){
   if(sementara){}
   else if(d.alok.length)d.alok.forEach(function(a){h+='<div class="tq-row"><span>Dikunci (alokasi): '+esc(a.ppbj)+(a.ket?" - "+esc(a.ket):"")+(a.status==="Ditunda Sebentar"?" (ditunda)":"")+'</span><b>'+fq(a.qty)+' '+esc(b.sat||"")+'</b></div>'});
   else h+='<div class="tq-row"><span>Dikunci (alokasi)</span><b>Tidak ada</b></div>';
-  if(!sementara&&d.tercadang>0)h+='<div class="tq-row"><span>Sedang diminta (belum diserahkan)</span><b>'+fq(d.tercadang)+' '+esc(b.sat||"")+'</b></div>';
+  if(!sementara&&d.tercadang>0)h+='<div class="tq-row"><span>Sudah diminta (belum diserahkan)</span><b>'+fq(d.tercadang)+' '+esc(b.sat||"")+'</b></div>';
   if(!sementara&&d.po&&d.po.length){var tp=0;d.po.forEach(function(x){tp+=x.sisa});
     h+='<div class="tq-row"><span>Sedang dipesan<br><span class="tq-sm">'+d.po.slice(0,3).map(function(x){return esc(x.po||"PO")+(x.supplier?" ("+esc(x.supplier)+")":"")+(x.ppbj?" · untuk "+esc(x.ppbj):"")+(x.estimasi?" · perkiraan datang "+esc(x.estimasi):"")}).join("<br>")+(d.po.length>3?"<br>dan "+(d.po.length-3)+" PO lain":"")+'</span></span><b>'+fq(tp)+' '+esc(b.sat||"")+'</b></div>'}
   if(!sementara&&d.masuk)h+='<div class="tq-row"><span>Terakhir masuk<br><span class="tq-sm">'+esc(d.masuk.tanggal)+(d.masuk.ref?" · "+esc(d.masuk.ref):"")+'</span></span><b>'+fq(d.masuk.qty)+' '+esc(b.sat||"")+'</b></div>';
   var bt=(d.butuh||[]).filter(function(x){return x.sisa>0});
   if(!sementara&&d.butuh){
-    bt.forEach(function(x){h+='<div class="tq-row"><span>Butuh proyek: '+esc(x.ppbj)+(x.ket?" - "+esc(x.ket):"")+(x.status==="Ditunda Sebentar"?" (ditunda)":"")+'<br><span class="tq-sm">kebutuhan '+fq(x.rab)+' − diserahkan '+fq(x.serah)+' − dialokasi '+fq(x.alok)+(x.minta?' − sedang diminta '+fq(x.minta):'')+'</span></span><b>sisa '+fq(x.sisa)+' '+esc(b.sat||"")+'</b></div>'});
+    bt.forEach(function(x){h+='<div class="tq-row"><span>Butuh proyek: '+esc(x.ppbj)+(x.ket?" - "+esc(x.ket):"")+(x.status==="Ditunda Sebentar"?" (ditunda)":"")+'<br><span class="tq-sm">kebutuhan '+fq(x.rab)+' − diserahkan '+fq(x.serah)+' − dialokasi '+fq(x.alok)+(x.minta?' − sudah diminta '+fq(x.minta):'')+'</span></span><b>sisa '+fq(x.sisa)+' '+esc(b.sat||"")+'</b></div>'});
     if(!bt.length&&(d.butuh||[]).length)h+='<div class="tq-row"><span>Kebutuhan proyek</span><b>Sudah terpenuhi</b></div>';
   }
   var nt=b.neto!==undefined?b.neto:d.bebas,ib=SUMB.indexOf("Bekas"),qb=ib>=0?(q[ib]||0):0;
   h+='<div class="tq-bebas"><span>Stok bebas</span><b class="tq-'+st[1]+'">'+(nt<0?'Kurang '+fq(-nt):fq(Math.max(0,d.bebas)))+' '+esc(b.sat||"")+'</b><span class="tq-tag tq-'+st[1]+'">'+st[0]+'</span></div>';
   if(nt<=0&&qb>0&&OTO.indexOf("Bekas")<0)h+='<p class="tq-sm" style="margin-top:4px"><b>Ada stok Bekas '+fq(qb)+' '+esc(b.sat||"")+'.</b> Bekas tidak dihitung sebagai stok bebas dan dipilih manual oleh gudang saat penyerahan.</p>';
   var oto=OTO.join(" + ");
-  h+='<p class="tq-sm" style="margin-top:4px">Stok bebas = '+esc(oto)+' dikurangi alokasi, yang sedang diminta, dan sisa kebutuhan proyek aktif (dari rincian material PPBJ)'+(SUMB.indexOf("Bekas")>=0&&OTO.indexOf("Bekas")<0&&q[SUMB.indexOf("Bekas")]?' (stok Bekas tidak dihitung)':'')+'.</p>';
+  h+='<p class="tq-sm" style="margin-top:4px">Stok bebas = '+esc(oto)+' dikurangi alokasi, yang sudah diminta, dan sisa kebutuhan proyek aktif (dari rincian material PPBJ)'+(SUMB.indexOf("Bekas")>=0&&OTO.indexOf("Bekas")<0&&q[SUMB.indexOf("Bekas")]?' (stok Bekas tidak dihitung)':'')+'.</p>';
   if(!sementara&&TANPA.length)h+='<p class="tq-sm" style="margin-top:4px">Belum ada rincian material PPBJ untuk: '+TANPA.slice(0,5).map(function(x){return esc(x.ppbj)+(x.ket?" - "+esc(x.ket):"")}).join("; ")+(TANPA.length>5?" dan "+(TANPA.length-5)+" lainnya":"")+'. Kebutuhan proyek itu belum terhitung.</p>';
   return h;
 }
@@ -203,7 +203,7 @@ function jawabProyek(p,label){
   if(p.adaRab!==undefined){
     var ringkas=p.adaRab?(p.nKurang?'<b class="tq-bad">'+p.nKurang+' barang stoknya kurang</b>':"")+(p.nRebutan?(p.nKurang?", ":"")+'<b class="tq-warn">'+p.nRebutan+' barang rebutan dengan proyek lain</b>':"")||'<b class="tq-ok">Semua kebutuhan tercukupi stok</b>':"";
     h+='<p class="tq-sm">Material proyek (rincian material PPBJ). Keluar'+(label?" "+esc(label):" (semua waktu)")+':</p>'+(ringkas?'<p class="tq-sm">'+ringkas+'</p>':"");
-    if(!p.adaRab)h+='<p class="tq-sm">Proyek ini belum punya rincian material PPBJ. Yang tampil hanya barang yang sudah keluar, dijatah, atau sedang diminta.</p>';
+    if(!p.adaRab)h+='<p class="tq-sm">Proyek ini belum punya rincian material PPBJ. Yang tampil hanya barang yang sudah keluar, dijatah, atau sudah diminta.</p>';
     var ib=SUMB.indexOf("Bekas");
     p.items.forEach(function(i){
       var sat=" "+esc(i.satuan||""),kls={Kurang:"bad",Rebutan:"warn",Cukup:"ok",Terpenuhi:"ok"}[i.status]||"";
@@ -212,7 +212,7 @@ function jawabProyek(p,label){
       var bk=BYK[String(i.kode).trim().toUpperCase()],adaBk=i.status==="Kurang"&&bk&&ib>=0&&bk.q[ib]>0?'<br><span class="tq-sm">ada bekas '+fq(bk.q[ib])+sat+' (tidak dihitung)</span>':"";
       var sub=[];if(i.rab>0)sub.push("butuh "+fq(i.rab));
       sub.push("keluar "+fq(i.keluar)+(i.keluarBekas?" (termasuk "+fq(i.keluarBekas)+" dari stok Bekas)":"")+(i.tgl?", terakhir "+esc(i.tgl):""));
-      if(i.diminta)sub.push("sedang diminta "+fq(i.diminta));
+      if(i.diminta)sub.push("sudah diminta "+fq(i.diminta));
       if(i.alok)sub.push("dialokasi "+fq(i.alok));
       h+='<div class="tq-row"><span>'+esc(i.nama)+'<br><span class="tq-sm">'+sub.join(" · ")+'</span></span><b>'+kanan+(tag?'<br><span class="tq-tag tq-'+kls+'">'+tag+'</span>':"")+adaBk+'</b></div>';
     });
@@ -327,7 +327,7 @@ async function jawabSatu(teks,prev){
   if(kataDaftar){qt=qt.filter(function(t){return !/^(habis|kosong|menipis|tipis|sedikit)$/.test(t)});
     if(!qt.length){
       var l=BAR.filter(function(b){return b.total>0&&b.bebas<=0}).sort(function(a,b){return b.total-a.total}).slice(0,20);
-      var h="<p><b>Stok ada, tetapi stok bebasnya habis</b> (semua teralokasi proyek atau sedang diminta). Menampilkan "+l.length+" teratas:</p>";
+      var h="<p><b>Stok ada, tetapi stok bebasnya habis</b> (semua teralokasi proyek atau sudah diminta). Menampilkan "+l.length+" teratas:</p>";
       l.forEach(function(b){h+='<div class="tq-row"><span>'+esc(b.nama)+'</span><b class="tq-bad">stok '+fq(b.total)+'</b></div>'});
       add("tq-b",l.length?h:"<p>Tidak ada barang yang stok bebasnya habis.</p>");return}}
   var hasil=cari(qt),pk=null,pj=null;

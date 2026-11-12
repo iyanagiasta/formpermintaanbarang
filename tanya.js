@@ -13,11 +13,12 @@ async function api(b){b.kode=b.kode===undefined?KODE:b.kode;var t0=performance.n
 function bot(jenis,x){x=x||{};x.action="bot";x.jenis=jenis;return api(x)}
 
 /* ===== PEMAHAM TEKS ===== */
-var STOP=("stok stock bebasnya dimana mana lokasi letak rak ditaruh disimpan simpan taruh berapa ada apa sisa yang di untuk buat tolong cek cari minta info informasi barang nya ya dong kah itu ini masih punya dipakai dipake dipakainya proyek bebas jumlah tersedia gudang mau tahu tau lihat tampilkan boleh bisa saya kami kita pak bu mas mbak kalau kalo berapakah apakah lagi ke dari dengan pada atau adakah sedia tersisa tinggal sih deh aja saja gak ga nggak enggak tidak belum sudah butuh perlu pakai pake memakai jatah alokasi dialokasikan kebutuhan ambil pesan keluarkan bawa cukup pcs batang unit roll kaleng buah biji btg bh rumah set paket bahan").split(" ");
+var STOP=("material materialnya bahan-bahan kebutuhannya stok stock bebasnya dimana mana lokasi letak rak ditaruh disimpan simpan taruh berapa ada apa sisa yang di untuk buat tolong cek cari minta info informasi barang nya ya dong kah itu ini masih punya dipakai dipake dipakainya proyek bebas jumlah tersedia gudang mau tahu tau lihat tampilkan boleh bisa saya kami kita pak bu mas mbak kalau kalo berapakah apakah lagi ke dari dengan pada atau adakah sedia tersisa tinggal sih deh aja saja gak ga nggak enggak tidak belum sudah butuh perlu pakai pake memakai jatah alokasi dialokasikan kebutuhan ambil pesan keluarkan bawa cukup pcs batang unit roll kaleng buah biji btg bh rumah set paket bahan").split(" ");
 var SINO={knee:["elbow"],siku:["elbow"],kni:["elbow"],sok:["socket"],sock:["socket"],kran:["keran"],meteran:["meter"],wm:["water","meter"],gv:["gate","valve"],paralon:["pipa"],pralon:["pipa"],lakban:["seal","tape"],sealtape:["seal","tape"]};
 var USER={};try{USER=JSON.parse(ls("tg_sino")||"{}")}catch(e){}
 function norm(s){
   s=" "+String(s).toLowerCase()+" ";
+  s=s.replace(/\b(projek|proyeknya|projeknya)\b/g,"proyek");
   s=s.replace(/(\d+(?:[.,]\d+)?(?:\/\d+)?)\s*(?:"|”|“|''|inch|inchi|inci|in)(?![a-z])/g,"$1in");
   s=s.replace(/(\d+(?:[.,]\d+)?)\s*(mm|gr|cm)(?![a-z])/g,"$1$2");
   s=s.replace(/[?!,;:()]/g," ").replace(/\s+/g," ").trim();
@@ -216,7 +217,7 @@ function catatGagal(t){bot("catat",{teks:t}).catch(function(){})}
 async function jawabSatu(teks,prev){
   var raw=norm(teks),low=teks.toLowerCase().trim();
   askLok=/\b(dimana|di mana|lokasi|letak|rak|ditaruh|disimpan|simpan)\b/.test(low);
-  askProy=/\b(proyek|ppbj)\b/.test(low);
+  askProy=/\b(proyek|projek|ppbj)\b/.test(low);
   if(S.tunggu&&!/bpb/.test(low)){USER_NAMA=raw.filter(function(t){return t!=="saya"&&t!=="nama"&&t!=="aku"}).join(" ");S.tunggu=false;ls("sctk_bot_nama",USER_NAMA);add("tq-b","<p>Baik, <b>"+esc(USER_NAMA)+"</b>.</p>");return jawabBpb()}
   var mn=low.match(/^(?:nama\s+)?(?:saya|aku)\s+([a-z ]{3,40})$/);
   if(mn&&!/(butuh|perlu|mau|minta|ambil)/.test(low)){USER_NAMA=mn[1].trim();ls("sctk_bot_nama",USER_NAMA);add("tq-b","<p>Baik, <b>"+esc(USER_NAMA)+"</b>. Tanya \"bpb saya sampai mana?\" kapan saja.</p>");return}
@@ -224,6 +225,11 @@ async function jawabSatu(teks,prev){
   var qty=0,rc=raw,ia=-1;raw.forEach(function(t,i){if(/^\d+$/.test(t)&&ia<0)ia=i});
   if(ia>=0&&(KATA_QTY.test(low)||/\d+\s*(pcs|batang|unit|roll|kaleng|buah|biji|btg|bh|meter)\b/.test(low))){qty=+raw[ia];rc=raw.filter(function(t,i){return i!==ia})}
   var qt=bersih(rc);
+  if(!qt.length&&askProy){
+    var PRX=await muatProyek();
+    if(PRX.length){var dpx=add("tq-b","<p>Proyek mana yang ingin dicek?</p>");
+      dpx.appendChild(chips(PRX.slice(0,10).map(function(x){return{label:x.ppbj+(x.ket?" - "+x.ket:""),p:x}}),function(x){add("tq-u",esc(x.label));jawabProyek(x.p)}));return}
+  }
   if(!qt.length||/^(halo|hai|hi|hello|p|test|tes|bantuan|help|menu)$/.test(low)){
     var d=add("tq-b","<p>Halo! Saya bisa menjawab:</p><p>• Stok barang dan stok bebasnya, serta proyek yang memakainya<br>• \"Butuh 30 elbow 3 inch\": cukup atau kurang<br>• Bahan satu paket pekerjaan<br>• Kabar pesanan (PO) barang yang kurang dan penggantinya<br>• Status BPB Anda</p>");
     d.appendChild(chips([{label:"stok pipa 3 inch"},{label:"elbow 3 inch di mana"},{label:"butuh 30 elbow 3 inch"},{label:"barang yang stok bebasnya habis"},{label:"bpb saya sampai mana"}],function(x){tanya(x.label)}));return}
@@ -241,7 +247,10 @@ async function jawabSatu(teks,prev){
   PR.forEach(function(p){var s=skorTeks(qt,p.tok);if(s.cov>=.6&&(!pj||s.skor>pj.skor))pj={p:p,skor:s.skor}});
   var top0=hasil[0]?hasil[0].skor:0;
   if(pk&&pk.skor>top0&&pk.skor>=(pj?pj.skor:0)){return jawabPaket(pk.p,ia>=0?+raw[ia]:1)}
-  if(pj&&pj.skor>top0){return jawabProyek(pj.p)}
+  if(pj&&(pj.skor>top0||(askProy&&pj.skor>=top0-.1))){return jawabProyek(pj.p)}
+  if(askProy&&!pj&&!hasil.length&&PR.length&&!/\b(apa saja|apa aja|mana saja)\b/.test(low)){
+    var dp=add("tq-b","<p>Proyek mana yang Anda maksud?</p>");
+    dp.appendChild(chips(PR.slice(0,10).map(function(x){return{label:x.ppbj+(x.ket?" - "+x.ket:""),p:x}}),function(x){add("tq-u",esc(x.label));jawabProyek(x.p)}));return}
   if(!hasil.length&&prev&&qt.every(adaAngka)){
     var ct=prev.dasar.join(" ")+" "+rc.filter(adaAngka).join(" ");
     if(cari(bersih(norm(ct))).length)return jawabSatu(ct+(qty?" butuh "+qty:""));

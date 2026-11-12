@@ -242,12 +242,18 @@
   function hitung() { var e = $('ftot'); if (e) e.textContent = '· ' + FR.rows.filter(function (x) { return x.uraian.trim(); }).length + ' baris · total rencana ' + rp(jumlahForm()); }
   var CT = {};
   /* Daftar barang dan sinonim dimuat sekali (cache browser dipakai bersama form pegawai), lalu pencarian dilakukan di browser tanpa menunggu server. */
-  var BL = {l: null, p: null};
+  var BL = {l: null, p: null, j: []};
+  /** Jasa dan biaya (harga terbaru dari impor PO Accurate) yang cocok dengan ketikan; kode dikosongkan karena jasa tidak punya stok. */
+  function jasaCocok(q) {
+    var w = String(q).toLowerCase().split(/\s+/).filter(Boolean); if (!w.length || !BL.j.length) return [];
+    return BL.j.filter(function (x) { var t = (x.nama + ' ' + x.kode).toLowerCase(); return w.every(function (z) { return t.indexOf(z) >= 0; }); }).slice(0, 3).map(function (x) { return {kode: x.kode, nama: x.nama, satuan: '', bebas: null, harga: x.harga, jasa: true}; });
+  }
   function muatBarang() {
     if (!BL.l) { try { var c = JSON.parse(localStorage.getItem('sctk_barang_v3') || 'null'); if (c && c.items && c.items.length) BL.l = c.items; } catch (e) { /* abaikan */ } }
     if (!BL.p) {
       BL.p = Promise.all([
         CX.api({action: 'barang'}).then(function (r) { if (r && r.ok && r.items && r.items.length) { BL.l = r.items; try { localStorage.setItem('sctk_barang_v3', JSON.stringify({t: Date.now(), items: r.items})); } catch (e) { /* abaikan */ } } }).catch(function () { /* pakai jalur server */ }),
+        CX.api({action: 'boqJasa'}).then(function (r) { if (r && r.ok) BL.j = r.data || []; }).catch(function () { /* tanpa daftar jasa */ }),
         CX.api({action: 'sinonim'}).then(function (r) { if (r && r.ok && window.CARI && CARI.sinonim) CARI.sinonim(r.barang || {}); }).catch(function () { /* tanpa sinonim */ })
       ]);
     }
@@ -284,9 +290,10 @@
       if (lokalSiap()) data = hasilLokal(q);
       else { var r; try { r = await CX.api({action: 'boqBarang', q: q}); } catch (e) { return; } if (!r || !r.ok) return; data = r.data; }
       box = document.querySelector('[data-sr="' + i + '"]'); if (!box) return;
-      box.innerHTML = data.slice(0, 6).map(function (h, k) { return '<button type="button" class="hs" data-k="' + k + '">' + esc(h.nama) + ' <small>' + esc(h.kode) + ' · ' + esc(h.satuan) + (h.bebas != null ? ' · bebas ' + fmtQ(h.bebas) : '') + (h.harga ? ' · ' + rp(h.harga) : '') + '</small></button>'; }).join('') + (data.length ? '<button type="button" class="hs" data-k="x"><small>Pakai teks ini apa adanya (jasa / belum terdaftar)</small></button>' : '');
+      data = data.slice(0, 5).concat(jasaCocok(q));
+      box.innerHTML = data.slice(0, 8).map(function (h, k) { return '<button type="button" class="hs" data-k="' + k + '">' + esc(h.nama) + ' <small>' + (h.jasa ? 'Jasa' : esc(h.kode) + ' · ' + esc(h.satuan)) + (h.bebas != null ? ' · bebas ' + fmtQ(h.bebas) : '') + (h.harga ? ' · ' + rp(h.harga) : '') + '</small></button>'; }).join('') + (data.length ? '<button type="button" class="hs" data-k="x"><small>Pakai teks ini apa adanya (jasa / belum terdaftar)</small></button>' : '');
       taruhSaran(box);
-      Array.prototype.forEach.call(box.querySelectorAll('button'), function (bt) { bt.onclick = function () { var k = bt.getAttribute('data-k'); if (k === 'x') { box.innerHTML = ''; return; } var h = data[Number(k)], row = FR.rows[i]; row.kode = h.kode; row.uraian = h.nama; row._nama = h.nama; row.satuan = h.satuan; if (!numIn(row.harga) && h.harga) row.harga = String(h.harga); gambarBaris(); if (h.lokal) lengkapiBarang(i, h.kode); }; });
+      Array.prototype.forEach.call(box.querySelectorAll('button'), function (bt) { bt.onclick = function () { var k = bt.getAttribute('data-k'); if (k === 'x') { box.innerHTML = ''; return; } var h = data[Number(k)], row = FR.rows[i]; if (h.jasa) { row.kode = ''; row.uraian = h.nama; row._nama = ''; if (!numIn(row.harga) && h.harga) row.harga = String(h.harga); gambarBaris(); return; } row.kode = h.kode; row.uraian = h.nama; row._nama = h.nama; row.satuan = h.satuan; if (!numIn(row.harga) && h.harga) row.harga = String(h.harga); gambarBaris(); if (h.lokal) lengkapiBarang(i, h.kode); }; });
     }, lokalSiap() ? 60 : 280);
   }
   async function simpan() {

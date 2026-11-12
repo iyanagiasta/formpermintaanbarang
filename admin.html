@@ -26,6 +26,7 @@
 <script src="kecepatan.js?v=41"></script>
 <script src="proyek-order.js?v=47"></script>
 <script src="harga-acc.js"></script>
+<script src="harga-po.js"></script>
 <script src="order-monitor.js"></script>
 <script src="analisa-barang.js"></script>
 <script src="kimia.js"></script>
@@ -532,6 +533,7 @@ function drawStok(total,q,hs){
   })();
   document.getElementById("uf").onchange=function(){var f=this.files[0];if(!f)return;bacaFile(f,function(a){var o=ambil(a,"stok");if(o.err){toast(o.err,true);return;}U=o.rows;document.getElementById("uinfo").textContent=U.length+" baris terbaca"+(o.adaJudul?"":" (tanpa judul kolom: urutan A=Kode, B=Nama, C=Satuan, D=Qty)")+".";document.getElementById("ugo").disabled=!U.length;});};
   try{pane().insertAdjacentHTML("beforeend",'<div id="hxbox"></div>');HX.mount(document.getElementById("hxbox"),api,toast,loadStok);}catch(e){}
+  try{pane().insertAdjacentHTML("beforeend",'<div id="hpbox"></div>');HP.mount(document.getElementById("hpbox"),api,toast,loadStok);}catch(e){}
   document.getElementById("hf").onchange=function(){var f=this.files[0];if(!f)return;bacaFile(f,function(a){var o=ambil(a,"harga");if(o.err){toast(o.err,true);return;}H=o.rows;document.getElementById("hinfo").textContent=H.length+" baris terbaca.";document.getElementById("hgo").disabled=!H.length;});};
   document.getElementById("ugo").onclick=async function(){
     var sm=document.getElementById("us").value,nol=document.getElementById("unol").checked,tb=document.getElementById("utb").checked;

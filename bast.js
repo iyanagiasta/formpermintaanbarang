@@ -353,6 +353,79 @@
     });
   };
 
+  /* ================= 3b. lampiran (Tambahan 100) ================= */
+  /** Cetakan satu IA "Penyesuaian Persediaan" -> {no} atau {err}. */
+  BA.bacaCetakan = function (pages) {
+    var t = (pages || []).map(function (pg) { return (pg.items || []).map(function (i) { return i.s; }).join(' '); }).join(' ');
+    if (/Penyesuaian Stok Barang/i.test(t)) return {err: 'ini laporan banyak IA, bukan cetakan satu IA'};
+    if (!/Penyesuaian Persediaan/i.test(t)) return {err: 'bukan cetakan Penyesuaian Persediaan Accurate'};
+    var m = /Nomor\s*:?\s*(IA\.[A-Za-z0-9.]+?)(?=\s|$)/.exec(t);
+    if (m) return {no: m[1].replace(/\.$/, '')};
+    var all = (t.match(/\bIA\.\d{2,4}\.\d{2}\.\d{4,5}\b/g) || []).filter(function (v, i, a) { return a.indexOf(v) === i; });
+    return all.length === 1 ? {no: all[0]} : {err: 'nomor IA tidak terbaca'};
+  };
+  function keB64(u8) { var s = '', n = 0x8000; for (var i = 0; i < u8.length; i += n) s += String.fromCharCode.apply(null, u8.subarray(i, i + n)); return btoa(s); }
+  function dariB64(b) { return b64ke(b); }
+  BA.keB64 = keB64;
+  /** Gabungkan PDF/gambar menjadi satu PDF. parts: [{bytes, mime, nama}] */
+  BA.gabung = function (L, parts) {
+    return L.PDFDocument.create().then(function (out) {
+      var p = Promise.resolve(), lewat = [];
+      parts.forEach(function (x) {
+        p = p.then(function () {
+          var m = String(x.mime || ''), nm = String(x.nama || '');
+          if (/pdf/i.test(m) || /\.pdf$/i.test(nm)) return L.PDFDocument.load(x.bytes, {ignoreEncryption: true}).then(function (src) { return out.copyPages(src, src.getPageIndices()).then(function (pg) { pg.forEach(function (q) { out.addPage(q); }); }); });
+          var jpg = /jpe?g/i.test(m) || /\.jpe?g$/i.test(nm), png = /png/i.test(m) || /\.png$/i.test(nm);
+          if (!jpg && !png) { lewat.push(nm); return; }
+          return (jpg ? out.embedJpg(x.bytes) : out.embedPng(x.bytes)).then(function (img) {
+            var W = 595.28, H = 841.89, lands = img.width > img.height; if (lands) { var t0 = W; W = H; H = t0; }
+            var k = Math.min((W - 40) / img.width, (H - 40) / img.height, 1), w = img.width * k, h = img.height * k, pg = out.addPage([W, H]);
+            pg.drawImage(img, {x: (W - w) / 2, y: (H - h) / 2, width: w, height: h});
+          });
+        }).catch(function (e) { lewat.push(x.nama + ' (' + (e && e.message ? e.message : e) + ')'); });
+      });
+      return p.then(function () { return out.save(); }).then(function (u) { return {bytes: u, lewat: lewat}; });
+    });
+  };
+  /** PDF lengkap satu BAST: BAST + rincian, cetakan IA (urut baris), BPB (+BPB manual), file lain. */
+  BA.pdfLengkap = function (b, ia, info) {
+    var L = root.PDFLib, parts = [], lamp = info.lamp || [], urutIa = {}, catatan = [];
+    (b.data.baris || []).forEach(function (x, i) { if (x.jenis === 'IA') urutIa[x.no] = i; });
+    return BA.pdf([b], ia, L, root.BAST_LOGO).then(function (u) {
+      parts.push({bytes: u, mime: 'application/pdf', nama: 'BAST'});
+      var iaL = lamp.filter(function (x) { return x.jenis === 'IA'; }).sort(function (a, c) { return (urutIa[a.noIa] || 0) - (urutIa[c.noIa] || 0); });
+      var belum = (b.data.baris || []).filter(function (x) { return x.jenis === 'IA' && !iaL.some(function (y) { return y.noIa === x.no; }); });
+      if (belum.length) catatan.push(belum.length + ' cetakan IA belum diunggah');
+      return ambilBerkas(iaL);
+    }).then(function (arr) {
+      arr.forEach(function (x) { parts.push(x); });
+      var lepas = {}; ((b.data.bpb || {}).lepas || []).forEach(function (k) { lepas[k] = 1; });
+      var ids = (info.bpb || []).filter(function (x) { return !x.batal && !lepas[x.id] && (info.modeAktif === 'ia' ? x.ia.length : x.ppbjCocok); }).map(function (x) { return x.id; });
+      return bpbBytes(ids, catatan);
+    }).then(function (u) {
+      if (u) parts.push({bytes: u, mime: 'application/pdf', nama: 'BPB'});
+      return ambilBerkas(lamp.filter(function (x) { return x.jenis === 'BPB manual'; }));
+    }).then(function (arr) {
+      arr.forEach(function (x) { parts.push(x); });
+      return ambilBerkas(lamp.filter(function (x) { return x.jenis === 'Lain'; }));
+    }).then(function (arr) {
+      arr.forEach(function (x) { parts.push(x); });
+      return BA.gabung(L, parts);
+    }).then(function (h) { if (h.lewat.length) catatan.push('dilewati: ' + h.lewat.join(', ')); return {bytes: h.bytes, catatan: catatan}; });
+  };
+  function ambilBerkas(list) {
+    var out = [], p = Promise.resolve();
+    list.forEach(function (x) { p = p.then(function () { return api({action: 'adminBastLampAmbil', lid: x.id}).then(function (r) { if (r.ok) out.push({bytes: dariB64(r.b64), mime: r.mime, nama: r.nama}); else toast(r.msg || 'Lampiran gagal diambil.', true); }); }); });
+    return p.then(function () { return out; });
+  }
+  function bpbBytes(ids, catatan) {
+    if (!ids.length) return Promise.resolve(null);
+    if (!root.BuktiPdf) { catatan.push('pembuat BPB belum termuat'); return Promise.resolve(null); }
+    var docs = [], sig = {}, p = Promise.resolve();
+    for (var i = 0; i < ids.length; i += 25) (function (sl) { p = p.then(function () { return api({action: 'adminArsipBukti', ids: sl}).then(function (r) { if (!r.ok) return; (r.docs || []).forEach(function (d) { docs.push(d); }); Object.keys(r.sig || {}).forEach(function (k) { sig[k] = r.sig[k]; }); (r.lewat || []).forEach(function (x) { catatan.push(x); }); }); }); })(ids.slice(i, i + 25));
+    return p.then(function () { return docs.length ? root.BuktiPdf.buatGabungan(docs, sig) : null; });
+  }
+
   /* ================= 4. tampilan (admin.html) ================= */
   var S = {rows: [], st: {}, q: '', f: '', pil: {}, ed: null, ia: {}, kotor: false}, el, api, toast;
   function unduh(bytes, nama, mime) {
@@ -404,15 +477,19 @@
       '<div class="note">Unggah laporan Accurate <b>Penyesuaian Stok Barang</b> (PDF, banyak IA). IA baru disimpan, IA lama diperbarui ke nilai terbaru (BAST yang memuatnya ikut berubah dan diberi tanda). Lalu buat draf BAST otomatis dan periksa satu per satu.</div>' +
       '<div class="bst-sum"><div><b>' + S.rows.length + '</b><span>BAST</span></div><div><b>' + (st.nIa || 0) + '</b><span>IA tersimpan</span></div><div><b>' + (st.belum || 0) + '</b><span>IA keluar belum ber-BAST</span></div><div><b>' + S.rows.filter(function (x) { return x.ubah; }).length + '</b><span>BAST nilai IA berubah</span></div></div>' +
       '<div class="fr" style="gap:6px;flex-wrap:wrap"><input type="file" id="bstF" accept=".pdf,application/pdf" hidden><button class="sv" id="bstUp">Unggah laporan IA (PDF)</button>' +
+      '<input type="file" id="bstFC" accept=".pdf,application/pdf" multiple hidden><button id="bstUpC">Unggah cetakan IA (banyak PDF)</button>' +
       (st.belum ? '<button class="sv" id="bstDraf">Buat draf BAST otomatis (' + st.belum + ' IA)</button>' : '') +
       (st.awal ? '<button id="bstAwal">Masukkan data awal BAST 031-' + (30 + (st.nAwal || 0)) + '</button>' : '') +
       '<button id="bstBaru">BAST baru (manual)</button></div><div class="note" id="bstInfo"></div></div>';
     h += '<div class="card"><div class="fr" style="gap:6px;flex-wrap:wrap"><input id="bstQ" placeholder="Saring nomor, PPBJ, pekerjaan, proyek" value="' + esc(S.q) + '" style="min-width:220px;flex:1">' +
       '<select id="bstFl"><option value="">Semua</option><option value="cek"' + (S.f === 'cek' ? ' selected' : '') + '>Perlu dicek</option><option value="ubah"' + (S.f === 'ubah' ? ' selected' : '') + '>Nilai IA berubah</option></select>' +
-      '<button id="bstXl">Unduh Excel terpilih</button><button id="bstPd">Unduh PDF terpilih</button></div>' +
+      '<button id="bstXl">Unduh Excel terpilih</button><button id="bstPd">Unduh PDF terpilih</button><button id="bstPdL">Unduh PDF lengkap + lampiran</button></div>' +
       '<div class="bst-wrap"><table class="bst-tb"><thead><tr><th><input type="checkbox" id="bstAll" aria-label="Pilih semua"></th><th>No BAST</th><th>Tanggal</th><th>Pekerjaan / Proyek</th><th>PPBJ</th><th class="nm">Total</th><th>Catatan</th><th></th></tr></thead><tbody id="bstTb"></tbody></table></div></div>';
     el.innerHTML = h; isiTabel();
     el.querySelector('#bstUp').onclick = function () { el.querySelector('#bstF').click(); };
+    el.querySelector('#bstUpC').onclick = function () { el.querySelector('#bstFC').click(); };
+    el.querySelector('#bstFC').onchange = function () { var fs = [].slice.call(this.files); this.value = ''; if (fs.length) unggahCetakan(fs, el.querySelector('#bstInfo'), function () { muatDaftarTetap(el.querySelector('#bstInfo').innerHTML); }); };
+    el.querySelector('#bstPdL').onclick = function () { var ids = Object.keys(S.pil); if (!ids.length) { toast('Centang BAST yang mau diunduh.', true); return; } var b = this; b.disabled = true; unduhLengkap(ids, b).then(function () { b.disabled = false; }); };
     el.querySelector('#bstF').onchange = function () { var f = this.files[0]; this.value = ''; if (f) unggah(f); };
     var dr = el.querySelector('#bstDraf'); if (dr) dr.onclick = function () { if (!confirm('Buat draf BAST otomatis untuk ' + st.belum + ' IA keluar yang belum punya BAST?')) return; dr.disabled = true; api({action: 'adminBastDraf'}).then(function (r) { toast(r.msg || (r.ok ? 'Selesai.' : 'Gagal.'), !r.ok); muatDaftar(); }); };
     var aw = el.querySelector('#bstAwal'); if (aw) aw.onclick = function () { if (!confirm('Masukkan ' + st.nAwal + ' BAST data awal (031-' + (30 + st.nAwal) + ')? IA-nya harus sudah diunggah.')) return; aw.disabled = true; api({action: 'adminBastDataAwal'}).then(function (r) { toast(r.msg || (r.ok ? 'Selesai.' : 'Gagal.'), !r.ok); muatDaftar(); }); };
@@ -433,7 +510,7 @@
   function isiTabel() {
     var tb = el.querySelector('#bstTb'); if (!tb) return; var L = terlihat();
     tb.innerHTML = L.length ? L.map(function (x) {
-      return '<tr' + (x.ubah ? ' class="bst-ub"' : '') + '><td><input type="checkbox" data-p="' + esc(x.id) + '"' + (S.pil[x.id] ? ' checked' : '') + ' aria-label="Pilih ' + esc(x.nomor) + '"></td><td data-l="No BAST"><b>' + esc(x.nomor) + '</b></td><td data-l="Tanggal">' + esc(dmy(x.tgl)) + '</td><td data-l="Pekerjaan">' + esc(x.nama) + (x.proyek && x.proyek !== x.nama ? '<br><small>' + esc(x.proyek) + '</small>' : '') + '</td><td data-l="PPBJ"><small>' + esc(x.ppbj || '-') + '</small></td><td class="nm" data-l="Total">' + esc(rpTeks(x.total)) + '<br><small>' + x.nBaris + ' baris</small></td><td data-l="Catatan">' + (x.cek ? x.cek.split('; ').map(function (c) { return '<span class="bst-tag">' + esc(c) + '</span>'; }).join('') : '') + '</td><td><button data-b="' + esc(x.id) + '">Buka</button></td></tr>';
+      return '<tr' + (x.ubah ? ' class="bst-ub"' : '') + '><td><input type="checkbox" data-p="' + esc(x.id) + '"' + (S.pil[x.id] ? ' checked' : '') + ' aria-label="Pilih ' + esc(x.nomor) + '"></td><td data-l="No BAST"><b>' + esc(x.nomor) + '</b></td><td data-l="Tanggal">' + esc(dmy(x.tgl)) + '</td><td data-l="Pekerjaan">' + esc(x.nama) + (x.proyek && x.proyek !== x.nama ? '<br><small>' + esc(x.proyek) + '</small>' : '') + '</td><td data-l="PPBJ"><small>' + esc(x.ppbj || '-') + '</small></td><td class="nm" data-l="Total">' + esc(rpTeks(x.total)) + '<br><small>' + x.nBaris + ' baris</small></td><td data-l="Catatan">' + (x.cek ? x.cek.split('; ').map(function (c) { return '<span class="bst-tag">' + esc(c) + '</span>'; }).join('') : '') + (x.nLamp ? '<br><small>' + x.nLamp + ' lampiran</small>' : '') + '</td><td><button data-b="' + esc(x.id) + '">Buka</button></td></tr>';
     }).join('') : '<tr><td colspan="8">Belum ada BAST' + (S.q || S.f ? ' yang cocok.' : '. Unggah laporan IA lalu buat draf.') + '</td></tr>';
     tb.onclick = function (e) {
       var b = e.target.closest('[data-b]'); if (b) { buka(b.getAttribute('data-b')); return; }
@@ -455,6 +532,52 @@
     }).catch(function (e) { info.textContent = ''; toast('PDF gagal dibaca: ' + (e && e.message ? e.message : e), true); });
   }
   function muatDaftarTetap(pesan) { api({action: 'adminBastList'}).then(function (r) { if (r.ok) { S.rows = r.rows || []; S.st = r; gambarDaftar(); if (pesan) el.querySelector('#bstInfo').innerHTML = pesan; } }); }
+  /** Unggah banyak cetakan IA: baca nomor IA tiap file, kirim satu per satu, laporkan hasil. */
+  function unggahCetakan(files, info, selesai) {
+    var K = root.KBI, cocok = [], tidak = [], bukan = [], gagal = [], p = K.muatPdfjs();
+    files.forEach(function (f, i) {
+      p = p.then(function (L) {
+        info.textContent = 'Membaca cetakan IA ' + (i + 1) + '/' + files.length + ': ' + f.name;
+        return K.bacaBuf(f).then(function (buf) {
+          var u8 = new Uint8Array(buf).slice();
+          return K.pdfKeHalaman(L, buf).then(function (pages) {
+            var o = BA.bacaCetakan(pages); if (o.err) { bukan.push(f.name + ' (' + o.err + ')'); return L; }
+            return api({action: 'adminBastLampIa', files: [{no: o.no, nama: f.name, b64: keB64(u8)}]}).then(function (r) {
+              if (!r.ok) { gagal.push(f.name + ': ' + (r.msg || 'gagal')); return L; }
+              (r.cocok || []).forEach(function (x) { cocok.push(x.no + ' -> BAST ' + x.nomor); }); (r.tidak || []).forEach(function (x) { tidak.push(x); }); (r.gagal || []).forEach(function (x) { gagal.push(x); });
+              return L;
+            });
+          });
+        }).catch(function (e) { gagal.push(f.name + ': ' + (e && e.message ? e.message : e)); return L; });
+      });
+    });
+    return p.then(function () {
+      var h = '<b>Cetakan IA:</b> ' + cocok.length + ' terlampir ke BAST' + (tidak.length ? '; <b>' + tidak.length + ' IA belum ada di BAST mana pun</b>: ' + esc(tidak.join(', ')) : '') + (bukan.length ? '; <b>' + bukan.length + ' file dilewati</b>: ' + esc(bukan.join('; ')) : '') + (gagal.length ? '; <b>gagal</b>: ' + esc(gagal.join('; ')) : '') + '.';
+      info.innerHTML = h; toast(cocok.length + ' cetakan IA terlampir' + (tidak.length + bukan.length + gagal.length ? ', ' + (tidak.length + bukan.length + gagal.length) + ' tidak.' : '.'), !!(tidak.length || bukan.length || gagal.length) && !cocok.length);
+      if (selesai) selesai();
+    });
+  }
+  function unduhLengkap(ids, btn) {
+    var L0 = btn ? btn.textContent : '', semua = [], catatan = [], p;
+    p = muatPdfLib().then(function () { return api({action: 'adminBastRinci', ids: ids}); }).then(function (r) {
+      if (!r.ok) throw new Error(r.msg || 'Gagal.');
+      var list = r.bast.sort(function (a, b) { return a.noUrut - b.noUrut; }); if (S.ed && list.length === 1 && list[0].id === S.ed.id) list = [S.ed];
+      var q = Promise.resolve();
+      list.forEach(function (b, i) {
+        q = q.then(function () { if (btn) btn.textContent = 'Menyusun ' + (i + 1) + '/' + list.length + '...'; return api({action: 'adminBastLampList', id: b.id}); }).then(function (info) {
+          if (!info.ok) throw new Error(info.msg || 'Gagal.');
+          return BA.pdfLengkap(b, r.ia, info).then(function (h) { semua.push({bytes: h.bytes, mime: 'application/pdf', nama: b.nomor}); h.catatan.forEach(function (c) { catatan.push(b.nomor + ': ' + c); }); });
+        });
+      });
+      return q.then(function () { return list; });
+    }).then(function (list) {
+      return (semua.length === 1 ? Promise.resolve({bytes: semua[0].bytes}) : BA.gabung(root.PDFLib, semua)).then(function (h) {
+        unduh(h.bytes, list.length === 1 ? namaFile(list[0], 'pdf').replace(/\.pdf$/, ' (lengkap).pdf') : 'BAST ' + list[0].nomor.slice(0, 3) + '-' + list[list.length - 1].nomor.slice(0, 3) + ' lengkap (' + list.length + ' BAST).pdf', 'application/pdf');
+        toast('PDF lengkap ' + list.length + ' BAST diunduh.' + (catatan.length ? ' Catatan: ' + catatan.slice(0, 3).join('; ') + (catatan.length > 3 ? ' ...' : '') : ''), false);
+      });
+    }).catch(function (e) { toast('PDF lengkap gagal: ' + (e && e.message ? e.message : e), true); });
+    return p.then(function () { if (btn) btn.textContent = L0; });
+  }
   function buka(id) {
     el.innerHTML = '<div class="card">Memuat BAST...</div>';
     api({action: 'adminBastRinci', id: id}).then(function (r) { if (!r.ok) { toast(r.msg || 'Gagal.', true); muatDaftar(); return; } bukaEditor(r.bast[0], r.ia); });
@@ -462,7 +585,7 @@
   function bukaEditor(b, ia) {
     S.ed = JSON.parse(JSON.stringify(b)); S.ia = ia || {}; S.kotor = false; var d = S.ed.data; d.baris = d.baris || []; d.ttd = d.ttd || {};
     var dl = '<datalist id="bstLok">' + LOKASI.map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist><datalist id="bstAkun">' + AKUN.map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>';
-    var h = '<div class="card">' + dl + '<div class="fr" style="gap:6px;flex-wrap:wrap;justify-content:space-between"><button id="bstKembali">&larr; Daftar BAST</button><span><button class="sv" id="bstSimpan">Simpan</button> <button id="bstEx">Unduh Excel</button> <button id="bstPdf">Unduh PDF</button></span></div>' +
+    var h = '<div class="card">' + dl + '<div class="fr" style="gap:6px;flex-wrap:wrap;justify-content:space-between"><button id="bstKembali">&larr; Daftar BAST</button><span><button class="sv" id="bstSimpan">Simpan</button> <button id="bstEx">Unduh Excel</button> <button id="bstPdf">Unduh PDF</button> <button id="bstPdfL">PDF lengkap</button></span></div>' +
       '<h3 style="margin:8px 0">' + (S.ed.id ? 'BAST ' + esc(S.ed.nomor) : 'BAST baru') + '</h3>' +
       '<div class="bst-ed"><label>No urut<input type="number" min="1" id="beNo" value="' + esc(S.ed.noUrut) + '"></label><label>Tanggal BAST<input type="date" id="beTgl" value="' + esc(S.ed.tgl) + '"></label>' +
       '<label>Nomor BAST<input id="beNomor" value="' + esc(S.ed.nomor) + '"></label><label>Kategori<select id="beKat"><option>Asset Konsesi</option><option>Perbaikan</option></select></label>' +
@@ -474,6 +597,7 @@
       '<div id="beCariIA" hidden><input id="beQ" placeholder="Ketik nomor IA, PPBJ, atau keterangan" style="width:100%;margin-top:6px"><div class="bst-ia" id="beHasil"></div></div>' +
       '<div class="bst-wrap"><table class="bst-tb"><thead><tr><th>No</th><th>Dokumen</th><th>PPBJ / SPK</th><th>Akun</th><th>Lokasi</th><th>Kode kategori</th><th class="nm">Jumlah harga</th><th></th></tr></thead><tbody id="beTb"></tbody>' +
       '<tfoot><tr><td colspan="6" style="text-align:right"><b>TOTAL</b></td><td class="nm"><b id="beTot"></b></td><td></td></tr></tfoot></table></div></div>' +
+      (S.ed.id ? '<div class="card" id="beLamp"><b>Lampiran</b><div class="note">Memuat lampiran...</div></div>' : '<div class="card note">Simpan BAST dulu untuk menambah lampiran.</div>') +
       (S.ed.id ? '<div class="card"><details id="beJejak"><summary>Riwayat perubahan</summary><div class="note">Memuat...</div></details><div class="bar"><button id="beHapus" style="color:var(--red,#c0392b)">Hapus BAST ini</button></div></div>' : '');
     el.innerHTML = h;
     el.querySelector('#beKat').value = S.ed.kat === 'Asset Konsesi' ? 'Asset Konsesi' : 'Perbaikan';
@@ -496,8 +620,63 @@
     el.querySelector('#beSemua').onclick = function () { var x0 = d.baris[0]; if (!x0) return; d.baris.forEach(function (x) { x.akun = x0.akun; x.lokasi = x0.lokasi; x.kode = x0.kode; x.knama = x0.knama; }); ubah(); gambarBaris(); toast('Akun, lokasi, dan kode semua baris disamakan dengan baris 1.'); };
     el.querySelector('#beIA').onclick = function () { var c = el.querySelector('#beCariIA'); c.hidden = !c.hidden; if (!c.hidden) { el.querySelector('#beQ').focus(); cariIA(''); } };
     var tmr; el.querySelector('#beQ').oninput = function () { var v = this.value; clearTimeout(tmr); tmr = setTimeout(function () { cariIA(v); }, 250); };
+    el.querySelector('#bstPdfL').onclick = function () { if (!S.ed.id) { toast('Simpan dulu BAST ini.', true); return; } var b2 = this; b2.disabled = true; (S.kotor ? simpan() : Promise.resolve(true)).then(function (ok) { if (ok) return unduhLengkap([S.ed.id], b2); }).then(function () { b2.disabled = false; }); };
+    if (S.ed.id) muatLampiran();
     var hp = el.querySelector('#beHapus'); if (hp) hp.onclick = function () { if (!confirm('Hapus BAST ' + S.ed.nomor + '? IA-nya akan kembali bisa dibuatkan BAST.')) return; api({action: 'adminBastHapus', id: S.ed.id}).then(function (r) { toast(r.msg || (r.ok ? 'Dihapus.' : 'Gagal.'), !r.ok); if (r.ok) { S.ed = null; muatDaftar(); } }); };
     var jj = el.querySelector('#beJejak'); if (jj) jj.ontoggle = function () { if (!jj.open || jj.dataset.ok) return; api({action: 'adminBastJejakBaca', id: S.ed.id}).then(function (r) { jj.dataset.ok = 1; jj.querySelector('.note').innerHTML = r.ok && r.rows.length ? r.rows.map(function (x) { return '<div><b>' + esc(x.waktu) + '</b> ' + esc(x.oleh) + ': ' + esc(x.teks) + '</div>'; }).join('') : 'Belum ada catatan.'; }); };
+  }
+  function muatLampiran() {
+    var box = el.querySelector('#beLamp'); if (!box) return;
+    api({action: 'adminBastLampList', id: S.ed.id}).then(function (r) {
+      if (!r.ok) { box.innerHTML = '<b>Lampiran</b><div class="note">' + esc(r.msg || 'Gagal memuat.') + '</div>'; return; }
+      S.lamp = r; gambarLampiran();
+    });
+  }
+  function gambarLampiran() {
+    var box = el.querySelector('#beLamp'), r = S.lamp, d = S.ed.data, bp = d.bpb || {mode: r.mode || 'auto', lepas: r.lepas || []}; d.bpb = bp;
+    var aktif = bp.mode === 'auto' ? (r.semuaIa ? 'ia' : 'ppbj') : bp.mode, lepas = {}; (bp.lepas || []).forEach(function (k) { lepas[k] = 1; });
+    var iaRows = d.baris.filter(function (x) { return x.jenis === 'IA'; }), byIa = {}; r.lamp.forEach(function (x) { if (x.jenis === 'IA') byIa[x.noIa] = x; });
+    function fileBaris(x) { return '<div>' + esc(x.nama) + ' <small>(' + Math.max(1, Math.round(x.ukuran / 1024)) + ' KB, ' + esc(x.waktu) + ')</small> <button data-lh="' + esc(x.id) + '">Hapus</button></div>'; }
+    var bpbL = r.bpb.filter(function (x) { return aktif === 'ia' ? x.ia.length : x.ppbjCocok; });
+    var h = '<b>Lampiran</b> <span class="note">Urutan di PDF lengkap: BAST, rincian harga, cetakan IA, BPB, BPB manual, file lain.</span>' +
+      '<h4 style="margin:8px 0 4px">1. Cetakan IA Accurate (' + iaRows.filter(function (x) { return byIa[x.no]; }).length + '/' + iaRows.length + ')</h4>' +
+      (iaRows.length ? iaRows.map(function (x) { var f = byIa[x.no]; return '<div style="padding:2px 0"><b>' + esc(x.no) + '</b> ' + (f ? '&#10003; ' + esc(f.nama) + ' <button data-lh="' + esc(f.id) + '">Hapus</button>' : '<span class="bst-tag">belum</span> <button data-lia="' + esc(x.no) + '">Unggah</button>') + '</div>'; }).join('') : '<div class="note">Tidak ada baris IA.</div>') +
+      '<input type="file" id="beFIa" accept=".pdf,application/pdf" hidden><div class="note">Bisa juga unggah banyak cetakan sekaligus dari daftar BAST.</div>' +
+      '<h4 style="margin:10px 0 4px">2. BPB dari sistem</h4><div class="fr" style="gap:6px;flex-wrap:wrap"><select id="beBpbM"><option value="auto">Otomatis (' + (r.semuaIa ? 'lewat nomor IA' : 'semua BPB per PPBJ') + ')</option><option value="ia">Lewat nomor IA</option><option value="ppbj">Semua BPB per PPBJ</option></select>' +
+      (r.semuaIa ? '' : '<small>Belum semua IA punya pasangan BPB di tab Accurate.</small>') + '</div>' +
+      (bpbL.length ? '<div class="bst-ia">' + bpbL.map(function (x) { return '<label style="display:block"><input type="checkbox" data-bp="' + esc(x.id) + '"' + (lepas[x.id] || x.batal ? '' : ' checked') + (x.batal ? ' disabled' : '') + '> <b>' + esc(x.doc) + '</b> ' + esc(dmy(x.tgl)) + ' &middot; ' + esc(x.ppbj || '-') + ' &middot; ' + esc(x.status) + (x.ia.length ? ' &middot; ' + esc(x.ia.join(', ')) : '') + '</label>'; }).join('') + '</div>' : '<div class="note">Tidak ada BPB di sistem untuk ' + (aktif === 'ia' ? 'nomor IA' : 'PPBJ') + ' BAST ini. Untuk permintaan manual, unggah sebagai BPB manual.</div>') +
+      '<h4 style="margin:10px 0 4px">3. BPB manual (permintaan kertas)</h4>' + r.lamp.filter(function (x) { return x.jenis === 'BPB manual'; }).map(fileBaris).join('') +
+      '<input type="file" id="beFBm" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" multiple hidden><button id="beBm">+ BPB manual (PDF/foto)</button>' +
+      '<h4 style="margin:10px 0 4px">4. File lain (RI, foto, dokumen pendukung)</h4>' + r.lamp.filter(function (x) { return x.jenis === 'Lain'; }).map(fileBaris).join('') +
+      '<input type="file" id="beFLn" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" multiple hidden><button id="beLn">+ File lain (PDF/foto)</button>' +
+      '<div class="note" id="beLampInfo"></div>';
+    box.innerHTML = h;
+    box.querySelector('#beBpbM').value = bp.mode || 'auto';
+    box.querySelector('#beBpbM').onchange = function () { bp.mode = this.value; S.kotor = true; gambarLampiran(); };
+    box.onchange = function (e) { var c = e.target.closest('[data-bp]'); if (!c) return; var k = c.getAttribute('data-bp'), i = bp.lepas.indexOf(k); if (c.checked && i >= 0) bp.lepas.splice(i, 1); if (!c.checked && i < 0) bp.lepas.push(k); S.kotor = true; };
+    var noIa = '';
+    box.onclick = function (e) {
+      var hz = e.target.closest('[data-lh]'); if (hz) { if (!confirm('Hapus lampiran ini?')) return; hz.disabled = true; api({action: 'adminBastLampHapus', lid: hz.getAttribute('data-lh')}).then(function (r2) { toast(r2.msg || '', !r2.ok); muatLampiran(); }); return; }
+      var ui = e.target.closest('[data-lia]'); if (ui) { noIa = ui.getAttribute('data-lia'); box.querySelector('#beFIa').click(); }
+    };
+    box.querySelector('#beFIa').onchange = function () {
+      var f = this.files[0]; this.value = ''; if (!f) return; var info = box.querySelector('#beLampInfo'), K = root.KBI; info.textContent = 'Membaca ' + f.name + '...';
+      K.muatPdfjs().then(function (L) { return K.bacaBuf(f).then(function (buf) { var u8 = new Uint8Array(buf).slice(); return K.pdfKeHalaman(L, buf).then(function (pages) {
+        var o = BA.bacaCetakan(pages);
+        if (o.err) { info.textContent = ''; toast(f.name + ': ' + o.err + '.', true); return; }
+        if (o.no !== noIa && !confirm('File ini berisi ' + o.no + ', bukan ' + noIa + '. Tetap lampirkan sebagai cetakan ' + noIa + '?')) { info.textContent = ''; return; }
+        return api({action: 'adminBastLampUnggah', id: S.ed.id, jenis: 'IA', noIa: noIa, nama: f.name, b64: keB64(u8), mime: 'application/pdf'}).then(function (r2) { info.textContent = ''; toast(r2.msg || '', !r2.ok); muatLampiran(); });
+      }); }); }).catch(function (e2) { info.textContent = ''; toast('Gagal: ' + (e2 && e2.message ? e2.message : e2), true); });
+    };
+    function unggahBebas(inp, jenis) {
+      var fs = [].slice.call(inp.files); inp.value = ''; if (!fs.length) return; var info = box.querySelector('#beLampInfo'), p = Promise.resolve(), n = 0;
+      fs.forEach(function (f, i) { p = p.then(function () { info.textContent = 'Mengunggah ' + (i + 1) + '/' + fs.length + ': ' + f.name; return root.KBI.bacaBuf(f).then(function (buf) { return api({action: 'adminBastLampUnggah', id: S.ed.id, jenis: jenis, nama: f.name, b64: keB64(new Uint8Array(buf)), mime: f.type || ''}); }).then(function (r2) { if (r2.ok) n++; else toast(f.name + ': ' + (r2.msg || 'gagal'), true); }); }); });
+      p.then(function () { info.textContent = ''; toast(n + ' file ' + jenis + ' tersimpan.'); muatLampiran(); });
+    }
+    box.querySelector('#beBm').onclick = function () { box.querySelector('#beFBm').click(); };
+    box.querySelector('#beLn').onclick = function () { box.querySelector('#beFLn').click(); };
+    box.querySelector('#beFBm').onchange = function () { unggahBebas(this, 'BPB manual'); };
+    box.querySelector('#beFLn').onchange = function () { unggahBebas(this, 'Lain'); };
   }
   function gambarBaris() {
     var d = S.ed.data, tb = el.querySelector('#beTb'), opsiKode = '<option value=""></option>' + KATEGORI.map(function (k) { return '<option value="' + k[0] + '">' + k[0] + ' ' + esc(k[1]) + '</option>'; }).join('');

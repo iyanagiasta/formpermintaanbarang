@@ -86,35 +86,55 @@ async function pwPesan(req,btn){
 }
 
 /* ===== TELUSUR ===== */
-var TL={mode:"barang",q:"",hasil:null,det:null,ppbj:"",cek:null};
+var TL={mode:"barang",q:"",hasil:null,lebih:0,det:null,ppbj:"",cek:null,bpb:"",bpbHasil:null,saring:false,buka:"",seq:0};
 function loadTelusur(){drawTelusur();}
+function tlTunda(f,ms){var t=null;return function(){var a=arguments;clearTimeout(t);t=setTimeout(function(){f.apply(null,a);},ms);};}
 function drawTelusur(){
-  var h='<div class="tabs noprint"><button data-tm="barang" class="'+(TL.mode==="barang"?"on":"")+'">Riwayat satu barang</button><button data-tm="ppbj" class="'+(TL.mode==="ppbj"?"on":"")+'">Per No PPBJ</button></div>';
-  if(TL.mode==="barang"){
-    h+='<div class="bar noprint"><input id="tl_q" placeholder="Ketik kode atau nama barang" value="'+esc(TL.q)+'"><button id="tl_c">Cari</button></div><div id="tl_h"></div>';
+  var md=TL.mode;
+  var h='<div class="tabs noprint"><button data-tm="barang" class="'+(md==="barang"?"on":"")+'">Riwayat satu barang</button><button data-tm="ppbj" class="'+(md==="ppbj"?"on":"")+'">Per No PPBJ</button><button data-tm="bpb" class="'+(md==="bpb"?"on":"")+'">Per nomor BPB</button></div>';
+  if(md==="barang"){
+    h+='<div class="bar noprint"><input id="tl_q" placeholder="Ketik kode atau nama barang (hasil muncul otomatis)" value="'+esc(TL.q)+'" autocomplete="off"><button id="tl_c">Cari</button></div><div id="tl_h"></div>';
+  }else if(md==="ppbj"){
+    h+='<div class="bar noprint"><input id="tl_p" placeholder="Ketik No PPBJ atau nama proyek (pilih dari daftar)" value="'+esc(TL.ppbj)+'" autocomplete="off"><button id="tl_pc">Telusuri</button></div><div id="tl_h"></div>';
   }else{
-    h+='<div class="bar noprint"><input id="tl_p" placeholder="Ketik No PPBJ (pilih dari daftar proyek)" value="'+esc(TL.ppbj)+'" autocomplete="off"><button id="tl_pc">Telusuri</button></div><div id="tl_h"></div>';
+    h+='<div class="bar noprint"><input id="tl_b" placeholder="Ketik nomor BPB (sebagian nomor boleh, minimal 3 karakter)" value="'+esc(TL.bpb)+'" autocomplete="off"><button id="tl_bc">Cari</button></div><div id="tl_h"></div>';
   }
   pane().innerHTML=kwrap(h);
   pane().querySelectorAll("[data-tm]").forEach(function(b){b.onclick=function(){TL.mode=b.getAttribute("data-tm");drawTelusur();};});
-  if(TL.mode==="barang"){
-    var q=document.getElementById("tl_q");q.onkeydown=function(e){if(e.key==="Enter")cariBarangTL();};document.getElementById("tl_c").onclick=cariBarangTL;
+  if(md==="barang"){
+    var q=document.getElementById("tl_q");
+    var tunda=tlTunda(function(){cariBarangTL(false);},(window.IDX&&IDX.ada&&IDX.ada())?120:300);
+    q.oninput=function(){TL.det=null;tunda();};
+    q.onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();cariBarangTL(true);}};
+    document.getElementById("tl_c").onclick=function(){cariBarangTL(true);};
     if(TL.det)drawTLBarang();else if(TL.hasil)drawTLHasil();
-  }else{
+  }else if(md==="ppbj"){
     var p=document.getElementById("tl_p");p.onkeydown=function(e){if(e.key==="Enter")cariPpbjTL();};document.getElementById("tl_pc").onclick=cariPpbjTL;
     ensureProyek().then(function(){pasangProyek(p,function(){return PROC||[];},function(){cariPpbjTL();});});
     if(TL.cek)drawTLPpbj();
+  }else{
+    var b=document.getElementById("tl_b");var td=tlTunda(cariBpbTL,300);
+    b.oninput=function(){td();};b.onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();cariBpbTL();}};document.getElementById("tl_bc").onclick=cariBpbTL;
+    if(TL.bpbHasil)drawTLBpb();
   }
 }
-async function cariBarangTL(){
-  var q=document.getElementById("tl_q").value.trim();TL.q=q;TL.det=null;if(!q)return;
-  var r=(window.IDX&&await IDX.siap()&&IDX.ada())?IDX.telusurCari(q):await api({action:"adminTelusurCari",q:q});if(!r.ok){toast(r.msg||"Gagal",true);return;}
-  TL.hasil=r.rows;if(r.rows.length===1&&!r.rows[0].mirip){await bukaBarangTL(r.rows[0].kode);return;}drawTLHasil();
+async function cariBarangTL(enter){
+  var el=document.getElementById("tl_q");if(!el)return;
+  var q=el.value.trim();TL.q=q;TL.det=null;var h=document.getElementById("tl_h");
+  if(q.length<2&&!enter){TL.hasil=null;if(h)h.innerHTML=q?'<div class="card msg">Ketik minimal 2 huruf.</div>':"";return;}
+  if(!q){TL.hasil=null;if(h)h.innerHTML="";return;}
+  var my=++TL.seq;
+  var r;try{r=(window.IDX&&await IDX.siap()&&IDX.ada())?IDX.telusurCari(q):await api({action:"adminTelusurCari",q:q});}catch(e){return;}
+  if(my!==TL.seq||TL.mode!=="barang")return;
+  if(!r.ok){toast(r.msg||"Gagal",true);return;}
+  TL.lebih=Math.max(0,r.rows.length-10);TL.hasil=r.rows.slice(0,10);
+  if(enter&&TL.hasil.length){await bukaBarangTL(TL.hasil[0].kode);return;}
+  drawTLHasil();
 }
 function drawTLHasil(){
   var h=document.getElementById("tl_h");if(!h)return;
-  h.innerHTML=TL.hasil.length?'<div class="card">'+(TL.hasil.every(function(x){return x.mirip;})?'<div class="note" style="margin:0 0 6px">Tidak ada yang persis. Mungkin maksud Anda:</div>':'')+TL.hasil.map(function(x,i){return '<div style="padding:8px 0;border-top:'+(i?'1px solid var(--line)':'0')+';cursor:pointer" data-kb="'+esc(x.kode)+'"><b>'+esc(x.nama)+'</b>'+(x.mirip?' <span class="note">(mirip ketikan Anda)</span>':'')+' <span class="note">'+esc(x.kode)+' &middot; stok '+LPR.nf(x.stok)+' '+esc(x.satuan)+'</span></div>';}).join("")+'</div>':'<div class="card msg">Tidak ada barang yang cocok.</div>';
-  h.querySelectorAll("[data-kb]").forEach(function(d){d.onclick=function(){bukaBarangTL(d.getAttribute("data-kb"));};});
+  h.innerHTML=TL.hasil.length?'<div class="card">'+(TL.hasil.every(function(x){return x.mirip;})?'<div class="note" style="margin:0 0 6px">Tidak ada yang persis. Mungkin maksud Anda:</div>':'')+TL.hasil.map(function(x,i){return '<div style="padding:8px 0;border-top:'+(i?'1px solid var(--line)':'0')+';cursor:pointer" tabindex="0" role="button" data-kb="'+esc(x.kode)+'"><b>'+esc(x.nama)+'</b>'+(x.mirip?' <span class="note">(mirip ketikan Anda)</span>':'')+' <span class="note">'+esc(x.kode)+' &middot; stok '+LPR.nf(x.stok)+' '+esc(x.satuan)+'</span></div>';}).join("")+(TL.lebih>0?'<div class="note" style="margin-top:6px">dan '+TL.lebih+' barang lain. Ketik lebih lengkap untuk mempersempit.</div>':'')+'</div>':'<div class="card msg">Tidak ada barang yang cocok.</div>';
+  h.querySelectorAll("[data-kb]").forEach(function(d){var f=function(){bukaBarangTL(d.getAttribute("data-kb"));};d.onclick=f;d.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
 }
 async function bukaBarangTL(kode){
   var r=await api({action:"adminTelusurBarang",kode:kode});if(!r.ok){toast(r.msg||"Gagal",true);return;}
@@ -146,28 +166,98 @@ function drawTLBarang(){
 }
 async function cariPpbjTL(){
   var p=document.getElementById("tl_p").value.trim();TL.ppbj=p;if(!p)return;
-  var r=await api({action:"adminTelusurPpbj",ppbj:p});if(!r.ok){toast(r.msg||"Gagal",true);return;}
-  TL.cek=r;drawTLPpbj();
+  var r=await api({action:"adminTelusurPpbj",ppbj:p});
+  if(!r.ok){
+    if(r.sudahDiganti){TL.cek=null;var h=document.getElementById("tl_h");if(h){h.innerHTML='<div class="card msg">Nomor <b>'+esc(p)+'</b> sudah diganti menjadi <b>'+esc(r.sudahDiganti)+'</b>. <button id="tl_nb" class="gh">Buka nomor baru</button></div>';document.getElementById("tl_nb").onclick=function(){TL.ppbj=r.sudahDiganti;document.getElementById("tl_p").value=r.sudahDiganti;cariPpbjTL();};}return;}
+    toast(r.msg||"Gagal",true);return;
+  }
+  TL.cek=r;TL.buka="";drawTLPpbj();
+}
+function tlPersen(w){
+  if(!(w.rab>0))return '<span class="note">-</span>';
+  var pc=Math.round(w.bersih/w.rab*100),lebih=pc>100;
+  return '<span class="tlpb'+(lebih?' lb':'')+'" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,pc))+'%"></i></span> '+pc+'%';
+}
+function tlStokSel(w,stok){
+  if(!(w.sisa>0))return '<span class="note">-</span>';
+  var s=stok&&stok[String(w.kode).trim().toUpperCase()];if(!s)return '<span class="note">?</span>';
+  var f=s.fisik;
+  return LPR.nf(f)+' '+(f>=w.sisa?'<span class="tag g">cukup</span>':'<span class="tag y">kurang '+LPR.nf(Math.round((w.sisa-f)*1000)/1000)+'</span>');
+}
+function tlBaris(r){
+  var c=r.cek,rows=c.rows||[],stok=r.stok||{};
+  var bermasalah=rows.filter(function(w){return w.flag;}).length;
+  var pakai=TL.saring?rows.filter(function(w){return w.flag;}):rows;
+  var h='<div class="bar noprint" style="margin:0 0 6px"><button id="tl_sr" class="gh" aria-pressed="'+(TL.saring?"true":"false")+'">'+(TL.saring?"Tampilkan semua barang":"Hanya yang bermasalah ("+bermasalah+")")+'</button></div>';
+  if(!pakai.length)return h+'<div class="kosong">'+(rows.length?"Tidak ada barang yang bermasalah.":"Belum ada data material.")+'</div>';
+  h+='<div class="tw"><table class="tlm"><thead><tr>'+["Kode","Barang","Sat","RAB","Keluar","Kembali","Bersih","Terpakai","Siap","Proses","Sisa","Stok gudang","Nilai bersih","Catatan"].map(function(x,i){return '<th'+(i>=3&&i<=12?' class="n"':'')+(x==="Stok gudang"?' title="Stok fisik di gudang saat ini, hanya untuk barang yang jatahnya belum habis diambil"':'')+'>'+x+'</th>';}).join("")+'</tr></thead><tbody>';
+  pakai.forEach(function(w){
+    var kl=w.flag==="Di luar RAB"?"tlr-luar":(w.flag==="Melebihi RAB"?"tlr-lebih":"");
+    var op=TL.buka===w.kode;
+    h+='<tr class="tlrow '+kl+'" tabindex="0" role="button" aria-expanded="'+(op?"true":"false")+'" data-kr="'+esc(w.kode)+'" title="Klik untuk melihat riwayat barang ini di proyek"><td>'+esc(w.kode)+'</td><td>'+esc(w.nama)+'</td><td>'+esc(w.satuan)+'</td><td class="n">'+LPR.nf(w.rab)+'</td><td class="n">'+LPR.nf(w.keluar)+'</td><td class="n">'+LPR.nf(w.kembali)+'</td><td class="n">'+LPR.nf(w.bersih)+'</td><td class="n">'+tlPersen(w)+'</td><td class="n">'+LPR.nf(w.siap)+'</td><td class="n">'+LPR.nf(w.proses)+'</td><td class="n">'+LPR.nf(w.sisa)+'</td><td class="n">'+tlStokSel(w,stok)+'</td><td class="n">'+LPR.rp(w.nilaiBersih)+'</td><td>'+(w.flag?'<span class="tag '+(w.flag==="Di luar RAB"?"r":"y")+'">'+esc(w.flag)+'</span>':'')+'</td></tr>';
+    if(op)h+='<tr class="tl-det"><td colspan="14">'+tlRiwayatBaris(r,w)+'</td></tr>';
+  });
+  return h+'</tbody></table></div>';
+}
+function tlRiwayatBaris(r,w){
+  var c=r.cek,k=String(w.kode).trim().toUpperCase(),nm=String(w.nama).trim().toUpperCase(),ds=[];
+  (c.docs||[]).forEach(function(d){(d.items||[]).forEach(function(i){var cocok=i.kode?String(i.kode).trim().toUpperCase()===k:String(i.nama).trim().toUpperCase()===nm;if(cocok)ds.push([d.jenis,d.doc,d.tgl,d.pemohon,d.oleh,d.jenis==="Pengembalian"?-i.qty:i.qty]);});});
+  var ps=(c.proses||[]).filter(function(p){return String(p.nama).trim().toUpperCase()===nm;}).map(function(p){return [p.doc,p.tgl,p.status,p.pemohon,p.qty];});
+  return '<div class="tlbox"><b>Riwayat '+esc(w.nama)+' di proyek ini</b>'+kt(["Jenis","Dokumen","Tanggal","Pemohon","Diserahkan oleh","Jumlah"],["t","t","t","t","t","n"],ds,"Belum pernah diserahkan atau dikembalikan.")+(ps.length?'<div style="margin-top:6px"><b>Masih berjalan</b></div>'+kt(["Dokumen","Tanggal","Status","Pemohon","Jumlah"],["t","t","t","t","n"],ps):"")+'<div style="margin-top:6px"><button class="gh noprint" data-rb="'+esc(w.kode)+'">Buka riwayat lengkap barang ini</button></div></div>';
+}
+function tlGaya(){
+  if(document.getElementById("tlCss"))return;var s=document.createElement("style");s.id="tlCss";
+  s.textContent=".lp .tlm tr.tlrow{cursor:pointer}.lp .tlm tr.tlrow:focus-visible{outline:2px solid var(--navy,#17588f);outline-offset:-2px}.lp .tlm tr.tlr-luar td{background:rgba(214,48,49,.15)}.lp .tlm tr.tlr-lebih td{background:rgba(240,173,0,.22)}.lp .tlm tr.tl-det td{background:transparent;padding:8px 6px}.lp .tlbox{border-left:3px solid var(--navy,#17588f);padding:2px 0 2px 10px}.lp .tlpb{display:inline-block;width:46px;height:6px;border-radius:3px;background:rgba(120,140,160,.35);vertical-align:middle;margin-right:4px;overflow:hidden}.lp .tlpb i{display:block;height:100%;background:var(--navy,#17588f)}.lp .tlpb.lb i{background:#c0392b}.lp .tlnomor{margin:6px 0 0;font-size:13px}@media print{.lp .tlpb{border:1px solid #888}}";
+  document.head.appendChild(s);
 }
 function drawTLPpbj(){
+  tlGaya();
   var r=TL.cek,c=r.cek,t=c.total||{},h=document.getElementById("tl_h");if(!h)return;
-  var x='<div class="card"><p style="margin:0"><b>'+esc(c.ppbj)+'</b> &middot; '+esc(c.nama||"(belum terdaftar)")+' <span class="note">'+esc(c.dept||"")+' &middot; status '+esc(r.status||"-")+'</span></p>'+
+  var lama=(r.nomorLama||[]).map(function(n){return 'Sebelumnya bernomor <b>'+esc(n.lama)+'</b> (diganti '+esc(n.waktu)+(n.alasan?', alasan: '+esc(n.alasan):'')+')';}).join("<br>");
+  var x='<div class="card"><p style="margin:0"><b>'+esc(c.ppbj)+'</b> &middot; '+esc(c.nama||"(belum terdaftar)")+' <span class="note">'+esc(c.dept||"")+' &middot; status '+esc(r.status||"-")+'</span></p>'+(lama?'<p class="tlnomor note">'+lama+'</p>':'')+
    '<div class="kpi"><div><b>'+LPR.rp(t.nilaiRab)+'</b><span>Nilai RAB</span></div><div><b>'+LPR.rp(t.nilaiBersih)+'</b><span>Nilai keluar (bersih)</span></div><div><b>'+(t.melebihi||0)+'</b><span>Barang melebihi RAB</span></div><div><b>'+(t.diluar||0)+'</b><span>Barang di luar RAB</span></div></div>'+
-   '<button id="tl_px" class="gh noprint">Unduh (Excel)</button></div>';
-  x+='<div class="card"><h3 style="margin-top:0">Material: RAB vs keluar</h3>'+kt(["Kode","Barang","Sat","RAB","Keluar","Kembali","Bersih","Siap","Proses","Sisa","Nilai bersih","Catatan"],["t","t","t","n","n","n","n","n","n","n","r","t"],(c.rows||[]).map(function(w){return [w.kode,w.nama,w.satuan,w.rab,w.keluar,w.kembali,w.bersih,w.siap,w.proses,w.sisa,w.nilaiBersih,w.flag];}),"Belum ada data material.")+'</div>';
+   '<div class="bar noprint"><button id="tl_px" class="gh">Unduh (Excel)</button><button id="tl_pp" class="gh">Cetak / PDF</button></div></div>';
+  x+='<div class="card"><h3 style="margin-top:0">Material: RAB vs keluar</h3><div id="tl_mat">'+tlBaris(r)+'</div></div>';
   x+='<div class="card"><h3 style="margin-top:0">Kekurangan stok untuk proyek ini</h3>'+kt(["Kode","Barang","Sisa kebutuhan","Stok bebas","Status","Kurang"],["t","t","n","n","t","n"],r.kurang,"Tidak ada kekurangan.")+'</div>';
   x+='<div class="card"><h3 style="margin-top:0">Alokasi stok</h3>'+kt(["Kode","Qty","Status proyek"],["t","n","t"],r.alokasi,"Tidak ada alokasi.")+'</div>';
   x+='<div class="card"><h3 style="margin-top:0">Dokumen serah &amp; pengembalian</h3>'+kt(["Jenis","Dokumen","Tanggal","Pemohon","Oleh","Isi"],["t","t","t","t","t","t"],(c.docs||[]).map(function(d){return [d.jenis,d.doc,d.tgl,d.pemohon,d.oleh,(d.items||[]).map(function(i){return i.nama+" ×"+i.qty;}).join("; ")];}),"Belum ada dokumen.")+'</div>';
   x+='<div class="card"><h3 style="margin-top:0">Permintaan masih berjalan</h3>'+kt(["Dokumen","Tanggal","Status","Pemohon","Barang","Qty"],["t","t","t","t","t","n"],(c.proses||[]).map(function(p){return [p.doc,p.tgl,p.status,p.pemohon,p.nama,p.qty];}),"Tidak ada.")+'</div>';
   x+='<div class="card"><h3 style="margin-top:0">Mutasi terkait ('+r.mutasi.length+')</h3>'+kt(["Waktu","Kode","Barang","Jenis","Sumber","Qty","Referensi","Oleh"],["t","t","t","t","t","n","t","t"],r.mutasi.slice(0,50),"Tidak ada mutasi yang menyebut PPBJ ini.")+'</div>';
   h.innerHTML=x;
+  pasangMatTL();
+  document.getElementById("tl_pp").onclick=function(){window.print();};
   document.getElementById("tl_px").onclick=function(){
+    var st=r.stok||{};
     unduhBanyak("ppbj_"+String(c.ppbj).replace(/[^\w-]+/g,"_")+"_"+tglIso(new Date())+".xlsx",[
-     {n:"Ringkas",rows:[["No PPBJ",c.ppbj],["Proyek",c.nama],["Departemen",c.dept],["Status",r.status],["Nilai RAB",t.nilaiRab],["Nilai keluar bersih",t.nilaiBersih],["Barang melebihi RAB",t.melebihi||0],["Barang di luar RAB",t.diluar||0]],w:[24,40]},
-     {n:"Material",rows:[["Kode","Barang","Satuan","RAB","Keluar","Kembali","Bersih","Siap","Proses","Sisa","Nilai bersih","Catatan"]].concat((c.rows||[]).map(function(w){return [w.kode,w.nama,w.satuan,w.rab,w.keluar,w.kembali,w.bersih,w.siap,w.proses,w.sisa,w.nilaiBersih,w.flag];})),w:[14,34,8,9,9,9,9,8,8,9,14,14]},
+     {n:"Ringkas",rows:[["No PPBJ",c.ppbj],["Proyek",c.nama],["Departemen",c.dept],["Status",r.status],["Nilai RAB",t.nilaiRab],["Nilai keluar bersih",t.nilaiBersih],["Barang melebihi RAB",t.melebihi||0],["Barang di luar RAB",t.diluar||0]].concat((r.nomorLama||[]).map(function(n){return ["Nomor sebelumnya",n.lama+" (diganti "+n.waktu+")"];})),w:[24,40]},
+     {n:"Material",rows:[["Kode","Barang","Satuan","RAB","Keluar","Kembali","Bersih","Terpakai %","Siap","Proses","Sisa","Stok gudang","Nilai bersih","Catatan"]].concat((c.rows||[]).map(function(w){var s=st[String(w.kode).trim().toUpperCase()];return [w.kode,w.nama,w.satuan,w.rab,w.keluar,w.kembali,w.bersih,w.rab>0?Math.round(w.bersih/w.rab*100):"",w.siap,w.proses,w.sisa,s?s.fisik:"",w.nilaiBersih,w.flag];})),w:[14,34,8,9,9,9,9,10,8,8,9,11,14,14]},
      {n:"Kekurangan",rows:[["Kode","Barang","Sisa kebutuhan","Stok bebas","Status","Kurang"]].concat(r.kurang),w:[14,34,14,11,12,10]},
      {n:"Mutasi",rows:[["Waktu","Kode","Barang","Jenis","Sumber","Qty","Referensi","Oleh"]].concat(r.mutasi),w:[16,14,34,14,10,9,18,12]}]);
   };
+}
+function pasangMatTL(){
+  var m=document.getElementById("tl_mat");if(!m)return;
+  var sr=document.getElementById("tl_sr");if(sr)sr.onclick=function(){TL.saring=!TL.saring;TL.buka="";m.innerHTML=tlBaris(TL.cek);pasangMatTL();};
+  m.querySelectorAll("tr[data-kr]").forEach(function(tr){var f=function(){var k=tr.getAttribute("data-kr");TL.buka=TL.buka===k?"":k;var y=window.scrollY;m.innerHTML=tlBaris(TL.cek);pasangMatTL();window.scrollTo(0,y);var n=m.querySelector('tr[data-kr="'+k.replace(/"/g,'\\"')+'"]');if(n)n.focus({preventScroll:true});};tr.onclick=f;tr.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
+  m.querySelectorAll("[data-rb]").forEach(function(b){b.onclick=function(){var k=b.getAttribute("data-rb");TL.mode="barang";TL.q=k;TL.hasil=null;TL.det=null;drawTelusur();bukaBarangTL(k);};});
+}
+async function cariBpbTL(){
+  var el=document.getElementById("tl_b");if(!el)return;var q=el.value.trim();TL.bpb=q;var h=document.getElementById("tl_h");
+  if(q.length<3){TL.bpbHasil=null;if(h)h.innerHTML=q?'<div class="card msg">Ketik minimal 3 karakter nomor BPB.</div>':"";return;}
+  var my=++TL.seq;var r;try{r=await api({action:"adminTelusurBpb",q:q});}catch(e){return;}
+  if(my!==TL.seq||TL.mode!=="bpb")return;if(!r.ok){toast(r.msg||"Gagal",true);return;}
+  TL.bpbHasil=r;drawTLBpb();
+}
+function drawTLBpb(){
+  tlGaya();var r=TL.bpbHasil,h=document.getElementById("tl_h");if(!h||!r)return;
+  if(!r.rows.length){h.innerHTML='<div class="card msg">Tidak ada BPB dengan nomor itu.</div>';return;}
+  h.innerHTML=r.rows.map(function(g,i){
+    var tg=g.status==="Diserahkan"?"g":(g.status==="Ditolak"?"r":"y");
+    return '<div class="card"><p style="margin:0"><b>'+esc(g.doc)+'</b> <span class="tag '+tg+'">'+esc(g.status)+'</span> <span class="note">'+esc(g.tgl)+' &middot; '+esc(g.pemohon)+(g.dept?' &middot; '+esc(g.dept):'')+'</span></p>'+
+     '<p style="margin:4px 0 6px">'+(g.ppbj?'No PPBJ <b>'+esc(g.ppbj)+'</b>'+(g.proyek?' &middot; '+esc(g.proyek):''):'<span class="note">Belum ada No PPBJ</span>')+(g.ppbj?' <button class="gh noprint" data-bp="'+esc(g.ppbj)+'">Buka proyek</button>':'')+'</p>'+
+     kt(["Kode","Barang","Jumlah","Status"],["t","t","n","t"],g.items.map(function(x){return [x.kode,x.nama,x.qty,x.st];}))+'</div>';
+  }).join("")+(r.lebih?'<div class="note">Hanya 15 teratas. Ketik nomor lebih lengkap untuk mempersempit.</div>':'');
+  h.querySelectorAll("[data-bp]").forEach(function(b){b.onclick=function(){TL.mode="ppbj";TL.ppbj=b.getAttribute("data-bp");TL.cek=null;drawTelusur();cariPpbjTL();};});
 }
 
 /* ===== KEDALUWARSA ===== */

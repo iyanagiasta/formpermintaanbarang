@@ -237,8 +237,10 @@ async function jawabSatu(teks,prev){
         }
       }catch(e){}
     }
+    var aiCoba=false,a=null;
     if(BOT_OK!==false&&!AI_OFF){
-      var w=add("tq-b",'<p class="tq-sm">Mencoba memahami dengan bantuan AI...</p>'),a=null;
+      aiCoba=true;
+      var w=add("tq-b",'<p class="tq-sm">Mencoba memahami dengan bantuan AI...</p>');
       try{a=await bot("ai",{teks:teks})}catch(e){a=null}
       if(w.parentNode)w.parentNode.removeChild(w);
       if(a&&a.ok&&a.tersedia===false&&a.alasan==="tanpa_kunci")AI_OFF=true;
@@ -253,7 +255,10 @@ async function jawabSatu(teks,prev){
       }
     }
     catatGagal(teks);
-    add("tq-b","<p>Saya belum menemukan barang itu. Pertanyaan Anda sudah dicatat supaya admin bisa mengajarkannya. Coba tulis nama barangnya saja, misalnya <i>pipa pvc 3 inch</i>.</p>");
+    var ketAi=BOT_OK===false?"Bantuan AI belum aktif (Bot.gs belum terpasang di server).":
+      !aiCoba?(AI_OFF?"Bantuan AI belum aktif (kunci belum diisi).":""):a&&a.tersedia===false?({tanpa_kunci:"Bantuan AI belum aktif (kunci belum diisi).",batas:"Bantuan AI hari ini sudah habis jatahnya.",gagal:"Bantuan AI sedang tidak bisa dihubungi, coba lagi sebentar.",pendek:"",sibuk:"Bantuan AI sedang sibuk."}[a.alasan]||"Bantuan AI tidak tersedia."):
+      a&&a.tersedia?"AI juga belum yakin barang yang dimaksud.":"Bantuan AI tidak menjawab.";
+    add("tq-b","<p>Saya belum menemukan barang itu. Pertanyaan Anda sudah dicatat supaya admin bisa mengajarkannya. Coba tulis nama barangnya saja, misalnya <i>pipa pvc 3 inch</i>.</p>"+(ketAi?'<p class="tq-sm" style="margin-top:6px">'+esc(ketAi)+'</p>':""));
     return}
   var top=hasil[0],ke2=hasil[1];
   if((top.skor>=.75&&(!ke2||ke2.skor<=top.skor-.12))||(!ke2&&top.cov>=.6)){

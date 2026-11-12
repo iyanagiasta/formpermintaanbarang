@@ -122,7 +122,7 @@
   function F(o) { return Object.assign({name: 'Arial', sz: 10}, o || {}); }
   function bd(l, r, t, b) { return {l: !!l, r: !!r, t: !!t, b: !!b}; }
   /** list = data BAST dari adminBastRinci; ia = peta IA. Hasil: Buku XT. */
-  BA.excel = function (list, ia, logo) {
+  BA.excel = function (list, ia, logo, komp) {
     var wb = root.XT.buku(), lg = logo ? b64ke(logo) : null;
     var D = wb.sheet('Daftar BAST', {}), B = wb.sheet('Bantu', {sembunyi: true});
     LOKASI.forEach(function (x, i) { B.set(i + 1, 1, x); }); AKUN.forEach(function (x, i) { B.set(i + 1, 2, x); });
@@ -246,6 +246,7 @@
       D.set(rr, 2, nm, {font: F({color: '0563C1', u: true}), border: bd(1, 1, 1, 1)}); D.tautan(rr, 2, "'" + nm + "'!A1");
     });
     var j = 4 + list.length; D.set(j, 7, 'TOTAL', {font: F({b: true})}); D.set(j, 8, {f: 'SUM(H4:H' + (j - 1) + ')'}, {font: F({b: true}), fmt: '#,##0'});
+    if (komp && Object.keys(komp).length) excelKomparasi(wb, list, komp);
     return wb;
   };
 
@@ -353,6 +354,137 @@
     });
   };
 
+  /* ================= 1b. baca laporan PPBJ Accurate "Item Requisition Detail" (Tambahan 101) ================= */
+  function kolomIr(i) {
+    var x = i.x, r = i.x + (i.w || 0), t = String(i.s).trim(), n = NUM.test(t);
+    if (x < 130) return 'kode';
+    if (x < 280 && !(n && r > 270)) return 'nama';
+    if (n && r <= 322) return 'qty';
+    if (x >= 330 && x < 470) return 'no';
+    if (x >= 470 && x < 550) return 'tgl';
+    if (n && r <= 620) return 'harga';
+    if (n && r <= 730) return 'total';
+    if (x >= 735 && x < 860) return 'po';
+    if (n && r <= 925) return 'oqty';
+    if (x >= 930) return 'proyek';
+    return 'lain';
+  }
+  /** -> {ppbj:[{no, items:[{kode,nama,qty,tgl,harga,total,po,oqty,proyek}], total}], grand, warn} atau {err} */
+  BA.bacaPpbj = function (pages) {
+    if (!pages || !pages.length) return {err: 'PDF kosong.'};
+    var all = [], off = 0, judul = false;
+    pages.forEach(function (pg) { (pg.items || []).forEach(function (i) { var s = String(i.s == null ? '' : i.s).trim(); if (!s) return; if (/^Item Requisition Detail$/i.test(s)) judul = true; all.push({s: s, x: i.x, y: i.y + off, w: i.w || 0}); }); off += pg.h || 0; });
+    if (!judul) return {err: 'Format PDF tidak dikenali. Unggah laporan Accurate "Item Requisition Detail".'};
+    all.sort(function (a, b) { return a.y - b.y || a.x - b.x; });
+    var lines = [], cur = null;
+    all.forEach(function (i) { if (!cur || i.y - cur.y > 1.5) { cur = {y: i.y, it: []}; lines.push(cur); } cur.it.push(i); });
+    var out = [], g = null, it = null, mulai = false, grand = null, warn = [];
+    lines.forEach(function (ln) {
+      var d = {}; ln.it.sort(function (a, b) { return a.x - b.x; }).forEach(function (i) { var k = kolomIr(i); d[k] = (d[k] ? d[k] + ' ' : '') + i.s; });
+      var ks = Object.keys(d);
+      if (d.kode === 'Code#') { mulai = true; return; }
+      if (!mulai) return;
+      if (/ACCURATE|Tercetak|Halaman \d/.test(ks.map(function (k) { return d[k]; }).join(' '))) return;
+      if (ks.length === 1 && ks[0] === 'kode' && /\//.test(d.kode) && !it) { g = {no: d.kode, items: [], sub: null}; out.push(g); return; }
+      if (it && ks.length === 1 && ks[0] === 'harga') { it.hs += d.harga; it.harga = angka(it.hs); return; }
+      if (d.no && d.tgl && d.qty != null) {
+        if (!g) return;
+        it = {kode: d.kode || '', nama: d.nama || '', qty: angka(d.qty), no: d.no, tgl: d.tgl, hs: d.harga || '', harga: d.harga != null ? angka(d.harga) : null, total: d.total != null ? angka(d.total) : null, po: d.po || '', oqty: d.oqty != null ? angka(d.oqty) : null, proyek: d.proyek || ''};
+        g.items.push(it); return;
+      }
+      if (!d.kode && !d.nama && d.qty != null && d.total != null && !d.no) { if (g && g.sub) grand = angka(d.total); else if (g) g.sub = angka(d.total); it = null; return; }
+      if (it) { it.kode += d.kode || ''; if (d.nama) it.nama += ' ' + d.nama; if (d.proyek) it.proyek += ' ' + d.proyek; if (d.po) it.po += ' ' + d.po; return; }
+      if (g && ks.length === 1 && ks[0] === 'kode') { g.no += d.kode; return; }
+    });
+    var res = [], salah = 0;
+    out.forEach(function (x) {
+      var items = [];
+      x.items.forEach(function (i) {
+        var mt = RE_TGL2.exec(String(i.tgl).trim());
+        if (i.qty == null || i.total == null || !mt) { salah++; return; }
+        items.push({kode: i.kode.trim(), nama: i.nama.replace(/\s+/g, ' ').trim(), qty: i.qty, tgl: mt[3] + '-' + ('0' + (BULAN3[mt[2]] || 0)).slice(-2) + '-' + ('0' + mt[1]).slice(-2), harga: i.harga == null ? 0 : i.harga, total: i.total, po: i.po.replace(/\s+/g, '').trim(), oqty: i.oqty, proyek: i.proyek.replace(/\s+/g, ' ').trim()});
+      });
+      var tot = items.reduce(function (a, i) { return a + i.total; }, 0);
+      if (x.sub != null && Math.abs(tot - x.sub) > 1 && warn.length < 8) warn.push(x.no + ': jumlah baris beda dengan subtotal.');
+      if (items.length) res.push({no: x.no.replace(/\s+/g, ''), items: items, total: Math.round(tot * 100) / 100});
+    });
+    if (!res.length) return {err: 'Tidak ada PPBJ yang terbaca.'};
+    if (salah) warn.push(salah + ' baris tidak terbaca, dilewati.');
+    var jum = res.reduce(function (a, x) { return a + x.total; }, 0);
+    if (grand != null && Math.abs(jum - grand) > 2) warn.push('Total semua PPBJ (' + rpTeks(jum) + ') beda dengan total laporan (' + rpTeks(grand) + ').');
+    return {ppbj: res, grand: grand, warn: warn};
+  };
+  var RE_TGL2 = /^(\d{1,2}) ([A-Za-z]{3}) (\d{4})$/;
+
+  /* ================= 3c. komparasi PPBJ vs BAST (Tambahan 101) ================= */
+  function pctTeks(p) { return p == null ? '-' : String(p).replace('.', ',') + '%'; }
+  BA.pctTeks = pctTeks;
+  /** Halaman lampiran komparasi (pdf-lib) -> Uint8Array */
+  BA.pdfKomparasi = function (b, k, L) {
+    var doc, f, fb, page, y, W = 595.28, H = 841.89, M = 32, CW = W - 2 * M;
+    function baru() { page = doc.addPage([W, H]); y = H - M; }
+    function t(x0, s0, xx, yy, font, sz, h, w) { s0 = aman(s0); var tw0 = font.widthOfTextAtSize(s0, sz); while (w && tw0 > w - 3 && s0.length > 3) { s0 = s0.slice(0, -2) + '.'; tw0 = font.widthOfTextAtSize(s0, sz); } page.drawText(s0, {x: h === 'r' ? xx + w - tw0 - 2 : h === 'c' ? xx + (w - tw0) / 2 : xx + 2, y: yy, size: sz, font: font}); }
+    function tabel(cols, rows, opt) {
+      var tot = cols.reduce(function (a, c) { return a + c[1]; }, 0), X = [M]; cols.forEach(function (c, i) { X.push(X[i] + c[1] / tot * CW); });
+      function kep() { page.drawRectangle({x: M, y: y - 13, width: CW, height: 13, color: L.rgb(0.85, 0.88, 0.95), borderWidth: 0.5, borderColor: L.rgb(0, 0, 0)}); cols.forEach(function (c, i) { t(0, c[0], X[i], y - 9.5, fb, 7, 'c', X[i + 1] - X[i]); }); y -= 13; }
+      kep();
+      rows.forEach(function (r0) {
+        if (y - 12 < M) { baru(); kep(); }
+        var bold = r0.tebal, warna = r0.warna;
+        if (warna) page.drawRectangle({x: M, y: y - 12, width: CW, height: 12, color: warna});
+        page.drawRectangle({x: M, y: y - 12, width: CW, height: 12, borderWidth: 0.5, borderColor: L.rgb(0, 0, 0)});
+        cols.forEach(function (c, i) { if (i) page.drawLine({start: {x: X[i], y: y}, end: {x: X[i], y: y - 12}, thickness: 0.5, color: L.rgb(0, 0, 0)}); t(0, r0.v[i] == null ? '' : r0.v[i], X[i], y - 8.8, bold ? fb : f, 7, c[2], X[i + 1] - X[i]); });
+        y -= 12;
+      });
+    }
+    function warnaPct(p) { return p == null ? null : p > 100 ? L.rgb(0.98, 0.83, 0.83) : p >= 90 ? L.rgb(1, 0.95, 0.8) : null; }
+    return L.PDFDocument.create().then(function (d) { doc = d; return Promise.all([doc.embedFont(L.StandardFonts.Helvetica), doc.embedFont(L.StandardFonts.HelveticaBold)]); }).then(function (a) {
+      f = a[0]; fb = a[1]; baru();
+      t(0, 'LAMPIRAN - KOMPARASI PPBJ (HARGA ESTIMASI) DAN REALISASI', M, y - 10, fb, 11, 'c', CW); y -= 24;
+      t(0, 'Berita Acara Serah Terima Pekerjaan ' + b.nomor, M, y, f, 8.5, 'c', CW); y -= 11;
+      t(0, b.nama, M, y, fb, 8.5, 'c', CW); y -= 18;
+      t(0, 'Ringkasan per PPBJ (barang dibandingkan dengan IA; jasa/biaya dibandingkan dengan RI)', M, y, fb, 8.5); y -= 6;
+      var rows = k.ring.map(function (x) { return {v: [x.ppbj + (x.ada ? '' : ' (tidak ada di data PPBJ)'), rpTeks(x.estBarang), rpTeks(x.ia), pctTeks(x.pct), rpTeks(x.iaLain), pctTeks(x.pctTotal), rpTeks(x.estJasa), rpTeks(x.ri)], warna: warnaPct(x.pct)}; });
+      var T = k.total; rows.push({tebal: true, v: ['TOTAL', rpTeks(T.estBarang), rpTeks(T.ia), pctTeks(T.pct), '', '', rpTeks(T.estJasa), rpTeks(T.ri)], warna: warnaPct(T.pct)});
+      tabel([['PPBJ', 22, ''], ['Estimasi barang', 14, 'r'], ['Realisasi IA (BAST ini)', 15, 'r'], ['%', 7, 'r'], ['IA di BAST lain', 13, 'r'], ['% PPBJ total', 8, 'r'], ['Estimasi jasa', 12, 'r'], ['RI', 11, 'r']], rows);
+      y -= 8;
+      [['Keseluruhan (barang + jasa)', 'Estimasi Rp ' + rpTeks(T.estTotal) + '  |  Realisasi (IA + RI) Rp ' + rpTeks(T.realTotal) + '  |  ' + pctTeks(T.pctAll)],
+       ['Barang di luar PPBJ', 'Rp ' + rpTeks(T.luar) + ' (kode barang di IA tidak ada di PPBJ)'], ['Tanpa PPBJ', 'Rp ' + rpTeks(T.tanpaPpbj)]].forEach(function (x) { t(0, x[0] + ':', M, y, fb, 7.5); t(0, x[1], M + 120, y, f, 7.5); y -= 10; });
+      t(0, 'Warna: kuning 90-100%, merah di atas 100% dari estimasi barang.', M, y, f, 7); y -= 16;
+      if (y < M + 60) baru();
+      t(0, 'Rincian per barang', M, y, fb, 8.5); y -= 6;
+      tabel([['Kode', 15, ''], ['Nama barang', 27, ''], ['Status', 9, ''], ['Qty est.', 7, 'r'], ['Nilai estimasi', 12, 'r'], ['Qty IA', 7, 'r'], ['Nilai IA', 12, 'r'], ['Selisih', 11, 'r'], ['Keterangan', 14, '']],
+        k.rinci.map(function (x) { var sel = x.nilaiIa - x.nilaiEst; return {v: [x.kode, x.nama, x.status, rpTeks(x.qtyEst), rpTeks(x.nilaiEst), rpTeks(x.qtyIa), rpTeks(x.nilaiIa), rpTeks(sel), x.ket], warna: x.ket === 'di luar PPBJ' ? L.rgb(0.98, 0.83, 0.83) : (x.nilaiEst && x.nilaiIa > x.nilaiEst * 1.0001 ? L.rgb(1, 0.95, 0.8) : null)}; }));
+      return doc.save();
+    });
+  };
+  /** Sheet "Komparasi" di Excel. */
+  function excelKomparasi(wb, list, K) {
+    var s = wb.sheet('Komparasi', {}), hd = {font: F({b: true}), fill: 'D9E1F2', border: bd(1, 1, 1, 1), al: {h: 'center', wrap: true}}, sel = {font: F(), border: bd(1, 1, 1, 1)}, r = 1;
+    [26, 34, 16, 16, 9, 16, 9, 16, 16, 30].forEach(function (w, i) { s.kolom(i + 1, w); });
+    s.set(r, 1, 'Komparasi PPBJ (harga estimasi Accurate) dan realisasi BAST', {font: F({sz: 12, b: true})}); r += 2;
+    ['No BAST', 'Pekerjaan', 'PPBJ', 'Estimasi barang', '%', 'Realisasi IA', '% PPBJ total', 'Estimasi jasa', 'RI', 'Catatan'].forEach(function (h, i) { s.set(r, i + 1, h, hd); }); s.baris(r, 28); s.bekukan(r + 1, 1); r++;
+    var M1 = Object.assign({}, sel, {fmt: '#,##0'}), MP = Object.assign({}, sel, {fmt: '0.0"%"'});
+    list.forEach(function (b) {
+      var k = K[b.id]; if (!k) return;
+      k.ring.forEach(function (x) {
+        s.set(r, 1, b.nomor, sel); s.set(r, 2, b.nama, sel); s.set(r, 3, x.ppbj, sel); s.set(r, 4, x.estBarang, M1);
+        s.set(r, 5, x.pct == null ? '' : x.pct, Object.assign({}, MP, x.pct > 100 ? {fill: 'F8CBAD'} : x.pct >= 90 ? {fill: 'FFF2CC'} : {}));
+        s.set(r, 6, x.ia, M1); s.set(r, 7, x.pctTotal == null ? '' : x.pctTotal, MP); s.set(r, 8, x.estJasa, M1); s.set(r, 9, x.ri, M1); s.set(r, 10, x.ada ? (x.iaLain ? 'IA di BAST lain: ' + rpTeks(x.iaLain) : '') : 'tidak ada di data PPBJ', sel); r++;
+      });
+    });
+    r += 2; s.set(r, 1, 'Rincian per barang', {font: F({sz: 11, b: true})}); r++;
+    ['No BAST', 'Kode', 'Nama barang', 'Status', 'Qty estimasi', 'Nilai estimasi', 'Qty IA', 'Nilai IA', 'Selisih', 'Keterangan'].forEach(function (h, i) { s.set(r, i + 1, h, hd); }); r++;
+    list.forEach(function (b) {
+      var k = K[b.id]; if (!k) return;
+      k.rinci.forEach(function (x) {
+        var g = x.ket === 'di luar PPBJ' ? {fill: 'F8CBAD'} : {};
+        s.set(r, 1, b.nomor, sel); s.set(r, 2, x.kode, sel); s.set(r, 3, x.nama, sel); s.set(r, 4, x.status, sel); s.set(r, 5, x.qtyEst, Object.assign({}, sel, {fmt: '#,##0.###'}));
+        s.set(r, 6, x.nilaiEst, M1); s.set(r, 7, x.qtyIa, Object.assign({}, sel, {fmt: '#,##0.###'})); s.set(r, 8, x.nilaiIa, M1); s.set(r, 9, {f: 'H' + r + '-F' + r}, M1); s.set(r, 10, x.ket, Object.assign({}, sel, g)); r++;
+      });
+    });
+  }
+
   /* ================= 3b. lampiran (Tambahan 100) ================= */
   /** Cetakan satu IA "Penyesuaian Persediaan" -> {no} atau {err}. */
   BA.bacaCetakan = function (pages) {
@@ -393,6 +525,8 @@
     (b.data.baris || []).forEach(function (x, i) { if (x.jenis === 'IA') urutIa[x.no] = i; });
     return BA.pdf([b], ia, L, root.BAST_LOGO).then(function (u) {
       parts.push({bytes: u, mime: 'application/pdf', nama: 'BAST'});
+      return info.komp && b.data.kompPdf !== false ? BA.pdfKomparasi(b, info.komp, L).then(function (u2) { parts.push({bytes: u2, mime: 'application/pdf', nama: 'Komparasi'}); }) : null;
+    }).then(function () {
       var iaL = lamp.filter(function (x) { return x.jenis === 'IA'; }).sort(function (a, c) { return (urutIa[a.noIa] || 0) - (urutIa[c.noIa] || 0); });
       var belum = (b.data.baris || []).filter(function (x) { return x.jenis === 'IA' && !iaL.some(function (y) { return y.noIa === x.no; }); });
       if (belum.length) catatan.push(belum.length + ' cetakan IA belum diunggah');
@@ -440,7 +574,7 @@
       if (!r.ok) { toast(r.msg || 'Gagal.', true); return; }
       var list = r.bast.sort(function (a, b) { return a.noUrut - b.noUrut; });
       if (satu && S.ed && list.length === 1 && list[0].id === S.ed.id) list = [S.ed];
-      return muatJSZip().then(function (Z) { return BA.excel(list, r.ia, root.BAST_LOGO).simpan(Z); }).then(function (u) {
+      return api({action: 'adminBastKomparasi', ids: ids}).catch(function () { return {}; }).then(function (kr) { return muatJSZip().then(function (Z) { return BA.excel(list, r.ia, root.BAST_LOGO, kr && kr.ok && kr.adaData ? kr.k : null).simpan(Z); }); }).then(function (u) {
         unduh(u, list.length === 1 ? namaFile(list[0], 'xlsx') : 'BAST ' + list[0].nomor.slice(0, 3) + '-' + list[list.length - 1].nomor.slice(0, 3) + ' (' + list.length + ' BAST).xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         toast('Excel ' + list.length + ' BAST diunduh.');
       });
@@ -478,16 +612,19 @@
       '<div class="bst-sum"><div><b>' + S.rows.length + '</b><span>BAST</span></div><div><b>' + (st.nIa || 0) + '</b><span>IA tersimpan</span></div><div><b>' + (st.belum || 0) + '</b><span>IA keluar belum ber-BAST</span></div><div><b>' + S.rows.filter(function (x) { return x.ubah; }).length + '</b><span>BAST nilai IA berubah</span></div></div>' +
       '<div class="fr" style="gap:6px;flex-wrap:wrap"><input type="file" id="bstF" accept=".pdf,application/pdf" hidden><button class="sv" id="bstUp">Unggah laporan IA (PDF)</button>' +
       '<input type="file" id="bstFC" accept=".pdf,application/pdf" multiple hidden><button id="bstUpC">Unggah cetakan IA (banyak PDF)</button>' +
+      '<input type="file" id="bstFP" accept=".pdf,application/pdf" hidden><button id="bstUpP">Unggah laporan PPBJ (Item Requisition)</button>' +
       (st.belum ? '<button class="sv" id="bstDraf">Buat draf BAST otomatis (' + st.belum + ' IA)</button>' : '') +
       (st.awal ? '<button id="bstAwal">Masukkan data awal BAST 031-' + (30 + (st.nAwal || 0)) + '</button>' : '') +
       '<button id="bstBaru">BAST baru (manual)</button></div><div class="note" id="bstInfo"></div></div>';
     h += '<div class="card"><div class="fr" style="gap:6px;flex-wrap:wrap"><input id="bstQ" placeholder="Saring nomor, PPBJ, pekerjaan, proyek" value="' + esc(S.q) + '" style="min-width:220px;flex:1">' +
       '<select id="bstFl"><option value="">Semua</option><option value="cek"' + (S.f === 'cek' ? ' selected' : '') + '>Perlu dicek</option><option value="ubah"' + (S.f === 'ubah' ? ' selected' : '') + '>Nilai IA berubah</option></select>' +
       '<button id="bstXl">Unduh Excel terpilih</button><button id="bstPd">Unduh PDF terpilih</button><button id="bstPdL">Unduh PDF lengkap + lampiran</button></div>' +
-      '<div class="bst-wrap"><table class="bst-tb"><thead><tr><th><input type="checkbox" id="bstAll" aria-label="Pilih semua"></th><th>No BAST</th><th>Tanggal</th><th>Pekerjaan / Proyek</th><th>PPBJ</th><th class="nm">Total</th><th>Catatan</th><th></th></tr></thead><tbody id="bstTb"></tbody></table></div></div>';
+      '<div class="bst-wrap"><table class="bst-tb"><thead><tr><th><input type="checkbox" id="bstAll" aria-label="Pilih semua"></th><th>No BAST</th><th>Tanggal</th><th>Pekerjaan / Proyek</th><th>PPBJ</th><th class="nm">Total</th><th class="nm" title="Realisasi IA dibanding estimasi barang PPBJ">% barang</th><th>Catatan</th><th></th></tr></thead><tbody id="bstTb"></tbody></table></div></div>';
     el.innerHTML = h; isiTabel();
     el.querySelector('#bstUp').onclick = function () { el.querySelector('#bstF').click(); };
     el.querySelector('#bstUpC').onclick = function () { el.querySelector('#bstFC').click(); };
+    el.querySelector('#bstUpP').onclick = function () { el.querySelector('#bstFP').click(); };
+    el.querySelector('#bstFP').onchange = function () { var f = this.files[0]; this.value = ''; if (f) unggahPpbj(f); };
     el.querySelector('#bstFC').onchange = function () { var fs = [].slice.call(this.files); this.value = ''; if (fs.length) unggahCetakan(fs, el.querySelector('#bstInfo'), function () { muatDaftarTetap(el.querySelector('#bstInfo').innerHTML); }); };
     el.querySelector('#bstPdL').onclick = function () { var ids = Object.keys(S.pil); if (!ids.length) { toast('Centang BAST yang mau diunduh.', true); return; } var b = this; b.disabled = true; unduhLengkap(ids, b).then(function () { b.disabled = false; }); };
     el.querySelector('#bstF').onchange = function () { var f = this.files[0]; this.value = ''; if (f) unggah(f); };
@@ -510,8 +647,8 @@
   function isiTabel() {
     var tb = el.querySelector('#bstTb'); if (!tb) return; var L = terlihat();
     tb.innerHTML = L.length ? L.map(function (x) {
-      return '<tr' + (x.ubah ? ' class="bst-ub"' : '') + '><td><input type="checkbox" data-p="' + esc(x.id) + '"' + (S.pil[x.id] ? ' checked' : '') + ' aria-label="Pilih ' + esc(x.nomor) + '"></td><td data-l="No BAST"><b>' + esc(x.nomor) + '</b></td><td data-l="Tanggal">' + esc(dmy(x.tgl)) + '</td><td data-l="Pekerjaan">' + esc(x.nama) + (x.proyek && x.proyek !== x.nama ? '<br><small>' + esc(x.proyek) + '</small>' : '') + '</td><td data-l="PPBJ"><small>' + esc(x.ppbj || '-') + '</small></td><td class="nm" data-l="Total">' + esc(rpTeks(x.total)) + '<br><small>' + x.nBaris + ' baris</small></td><td data-l="Catatan">' + (x.cek ? x.cek.split('; ').map(function (c) { return '<span class="bst-tag">' + esc(c) + '</span>'; }).join('') : '') + (x.nLamp ? '<br><small>' + x.nLamp + ' lampiran</small>' : '') + '</td><td><button data-b="' + esc(x.id) + '">Buka</button></td></tr>';
-    }).join('') : '<tr><td colspan="8">Belum ada BAST' + (S.q || S.f ? ' yang cocok.' : '. Unggah laporan IA lalu buat draf.') + '</td></tr>';
+      return '<tr' + (x.ubah ? ' class="bst-ub"' : '') + '><td><input type="checkbox" data-p="' + esc(x.id) + '"' + (S.pil[x.id] ? ' checked' : '') + ' aria-label="Pilih ' + esc(x.nomor) + '"></td><td data-l="No BAST"><b>' + esc(x.nomor) + '</b></td><td data-l="Tanggal">' + esc(dmy(x.tgl)) + '</td><td data-l="Pekerjaan">' + esc(x.nama) + (x.proyek && x.proyek !== x.nama ? '<br><small>' + esc(x.proyek) + '</small>' : '') + '</td><td data-l="PPBJ"><small>' + esc(x.ppbj || '-') + '</small></td><td class="nm" data-l="Total">' + esc(rpTeks(x.total)) + '<br><small>' + x.nBaris + ' baris</small></td><td class="nm" data-l="% barang"' + (x.pct > 100 ? ' style="color:var(--red,#c0392b);font-weight:700"' : x.pct >= 90 ? ' style="color:#b7791f;font-weight:700"' : '') + '>' + pctTeks(x.pct) + '</td><td data-l="Catatan">' + (x.cek ? x.cek.split('; ').map(function (c) { return '<span class="bst-tag">' + esc(c) + '</span>'; }).join('') : '') + (x.nLamp ? '<br><small>' + x.nLamp + ' lampiran</small>' : '') + '</td><td><button data-b="' + esc(x.id) + '">Buka</button></td></tr>';
+    }).join('') : '<tr><td colspan="9">Belum ada BAST' + (S.q || S.f ? ' yang cocok.' : '. Unggah laporan IA lalu buat draf.') + '</td></tr>';
     tb.onclick = function (e) {
       var b = e.target.closest('[data-b]'); if (b) { buka(b.getAttribute('data-b')); return; }
       var c = e.target.closest('[data-p]'); if (c) { var id = c.getAttribute('data-p'); if (c.checked) S.pil[id] = 1; else delete S.pil[id]; }
@@ -532,6 +669,15 @@
     }).catch(function (e) { info.textContent = ''; toast('PDF gagal dibaca: ' + (e && e.message ? e.message : e), true); });
   }
   function muatDaftarTetap(pesan) { api({action: 'adminBastList'}).then(function (r) { if (r.ok) { S.rows = r.rows || []; S.st = r; gambarDaftar(); if (pesan) el.querySelector('#bstInfo').innerHTML = pesan; } }); }
+  function unggahPpbj(file) {
+    var info = el.querySelector('#bstInfo'), K = root.KBI; info.textContent = 'Membaca laporan PPBJ...';
+    K.muatPdfjs().then(function (L) { return K.bacaBuf(file).then(function (buf) { return K.pdfKeHalaman(L, buf); }); }).then(function (pages) {
+      var o = BA.bacaPpbj(pages); if (o.err) { info.textContent = ''; toast(o.err, true); return; }
+      var n = o.ppbj.reduce(function (a, x) { return a + x.items.length; }, 0);
+      info.textContent = o.ppbj.length + ' PPBJ (' + n + ' baris) terbaca. Menyimpan...' + (o.warn.length ? ' Catatan: ' + o.warn.join(' ') : '');
+      return api({action: 'adminPpbjAccImpor', ppbj: o.ppbj}).then(function (r) { toast(r.msg || (r.ok ? 'Tersimpan.' : 'Gagal.'), !r.ok); muatDaftarTetap(esc(r.msg || '')); });
+    }).catch(function (e) { info.textContent = ''; toast('PDF gagal dibaca: ' + (e && e.message ? e.message : e), true); });
+  }
   /** Unggah banyak cetakan IA: baca nomor IA tiap file, kirim satu per satu, laporkan hasil. */
   function unggahCetakan(files, info, selesai) {
     var K = root.KBI, cocok = [], tidak = [], bukan = [], gagal = [], p = K.muatPdfjs();
@@ -557,15 +703,17 @@
       if (selesai) selesai();
     });
   }
+  var KOMP = {};
   function unduhLengkap(ids, btn) {
     var L0 = btn ? btn.textContent : '', semua = [], catatan = [], p;
     p = muatPdfLib().then(function () { return api({action: 'adminBastRinci', ids: ids}); }).then(function (r) {
       if (!r.ok) throw new Error(r.msg || 'Gagal.');
       var list = r.bast.sort(function (a, b) { return a.noUrut - b.noUrut; }); if (S.ed && list.length === 1 && list[0].id === S.ed.id) list = [S.ed];
-      var q = Promise.resolve();
+      var q = api({action: 'adminBastKomparasi', ids: ids}).catch(function () { return {}; }).then(function (kr) { KOMP = kr && kr.ok && kr.adaData ? kr.k : {}; });
       list.forEach(function (b, i) {
         q = q.then(function () { if (btn) btn.textContent = 'Menyusun ' + (i + 1) + '/' + list.length + '...'; return api({action: 'adminBastLampList', id: b.id}); }).then(function (info) {
           if (!info.ok) throw new Error(info.msg || 'Gagal.');
+          info.komp = KOMP[b.id] || null;
           return BA.pdfLengkap(b, r.ia, info).then(function (h) { semua.push({bytes: h.bytes, mime: 'application/pdf', nama: b.nomor}); h.catatan.forEach(function (c) { catatan.push(b.nomor + ': ' + c); }); });
         });
       });
@@ -597,6 +745,7 @@
       '<div id="beCariIA" hidden><input id="beQ" placeholder="Ketik nomor IA, PPBJ, atau keterangan" style="width:100%;margin-top:6px"><div class="bst-ia" id="beHasil"></div></div>' +
       '<div class="bst-wrap"><table class="bst-tb"><thead><tr><th>No</th><th>Dokumen</th><th>PPBJ / SPK</th><th>Akun</th><th>Lokasi</th><th>Kode kategori</th><th class="nm">Jumlah harga</th><th></th></tr></thead><tbody id="beTb"></tbody>' +
       '<tfoot><tr><td colspan="6" style="text-align:right"><b>TOTAL</b></td><td class="nm"><b id="beTot"></b></td><td></td></tr></tfoot></table></div></div>' +
+      (S.ed.id ? '<div class="card" id="beKomp"><b>Komparasi PPBJ vs BAST</b><div class="note">Memuat...</div></div>' : '') +
       (S.ed.id ? '<div class="card" id="beLamp"><b>Lampiran</b><div class="note">Memuat lampiran...</div></div>' : '<div class="card note">Simpan BAST dulu untuk menambah lampiran.</div>') +
       (S.ed.id ? '<div class="card"><details id="beJejak"><summary>Riwayat perubahan</summary><div class="note">Memuat...</div></details><div class="bar"><button id="beHapus" style="color:var(--red,#c0392b)">Hapus BAST ini</button></div></div>' : '');
     el.innerHTML = h;
@@ -621,9 +770,27 @@
     el.querySelector('#beIA').onclick = function () { var c = el.querySelector('#beCariIA'); c.hidden = !c.hidden; if (!c.hidden) { el.querySelector('#beQ').focus(); cariIA(''); } };
     var tmr; el.querySelector('#beQ').oninput = function () { var v = this.value; clearTimeout(tmr); tmr = setTimeout(function () { cariIA(v); }, 250); };
     el.querySelector('#bstPdfL').onclick = function () { if (!S.ed.id) { toast('Simpan dulu BAST ini.', true); return; } var b2 = this; b2.disabled = true; (S.kotor ? simpan() : Promise.resolve(true)).then(function (ok) { if (ok) return unduhLengkap([S.ed.id], b2); }).then(function () { b2.disabled = false; }); };
-    if (S.ed.id) muatLampiran();
+    if (S.ed.id) { muatLampiran(); muatKomparasi(); }
     var hp = el.querySelector('#beHapus'); if (hp) hp.onclick = function () { if (!confirm('Hapus BAST ' + S.ed.nomor + '? IA-nya akan kembali bisa dibuatkan BAST.')) return; api({action: 'adminBastHapus', id: S.ed.id}).then(function (r) { toast(r.msg || (r.ok ? 'Dihapus.' : 'Gagal.'), !r.ok); if (r.ok) { S.ed = null; muatDaftar(); } }); };
     var jj = el.querySelector('#beJejak'); if (jj) jj.ontoggle = function () { if (!jj.open || jj.dataset.ok) return; api({action: 'adminBastJejakBaca', id: S.ed.id}).then(function (r) { jj.dataset.ok = 1; jj.querySelector('.note').innerHTML = r.ok && r.rows.length ? r.rows.map(function (x) { return '<div><b>' + esc(x.waktu) + '</b> ' + esc(x.oleh) + ': ' + esc(x.teks) + '</div>'; }).join('') : 'Belum ada catatan.'; }); };
+  }
+  function muatKomparasi() {
+    var box = el.querySelector('#beKomp'); if (!box) return;
+    api({action: 'adminBastKomparasi', id: S.ed.id}).then(function (r) {
+      if (!r || !r.ok) { box.innerHTML = '<b>Komparasi PPBJ vs BAST</b><div class="note">' + esc((r && r.msg) || 'Belum tersedia.') + '</div>'; return; }
+      if (!r.adaData) { box.innerHTML = '<b>Komparasi PPBJ vs BAST</b><div class="note">Belum ada data PPBJ. Unggah laporan Accurate <b>Item Requisition Detail</b> di daftar BAST.</div>'; return; }
+      var k = r.k[S.ed.id], T = k.total, d = S.ed.data;
+      function wr(p) { return p > 100 ? ' style="color:var(--red,#c0392b);font-weight:700"' : p >= 90 ? ' style="color:#b7791f;font-weight:700"' : ''; }
+      box.innerHTML = '<div class="fr" style="justify-content:space-between;flex-wrap:wrap;gap:6px"><b>Komparasi PPBJ vs BAST</b><label><input type="checkbox" id="beKompPdf"' + (d.kompPdf === false ? '' : ' checked') + '> Sertakan komparasi di PDF lengkap</label></div>' +
+        '<div class="note">Barang dibandingkan dengan IA, jasa/biaya dengan baris RI. Harga PPBJ = harga estimasi Accurate.</div>' +
+        '<div class="bst-wrap"><table class="bst-tb"><thead><tr><th>PPBJ</th><th class="nm">Estimasi barang</th><th class="nm">Realisasi IA</th><th class="nm">%</th><th class="nm">IA di BAST lain</th><th class="nm">% PPBJ total</th><th class="nm">Estimasi jasa</th><th class="nm">RI</th></tr></thead><tbody>' +
+        k.ring.map(function (x) { return '<tr><td data-l="PPBJ">' + esc(x.ppbj) + (x.ada ? (x.acc.length > 1 || x.acc[0] !== x.ppbj ? '<br><small>' + esc(x.acc.join(', ')) + '</small>' : '') : '<br><span class="bst-tag">tidak ada di data PPBJ</span>') + '</td><td class="nm" data-l="Estimasi barang">' + rpTeks(x.estBarang) + '</td><td class="nm" data-l="Realisasi IA">' + rpTeks(x.ia) + '</td><td class="nm" data-l="%"' + wr(x.pct) + '>' + pctTeks(x.pct) + '</td><td class="nm" data-l="IA di BAST lain">' + rpTeks(x.iaLain) + '</td><td class="nm" data-l="% PPBJ total"' + wr(x.pctTotal) + '>' + pctTeks(x.pctTotal) + '</td><td class="nm" data-l="Estimasi jasa">' + rpTeks(x.estJasa) + '</td><td class="nm" data-l="RI">' + rpTeks(x.ri) + '</td></tr>'; }).join('') +
+        '<tr><td><b>TOTAL</b></td><td class="nm"><b>' + rpTeks(T.estBarang) + '</b></td><td class="nm"><b>' + rpTeks(T.ia) + '</b></td><td class="nm"' + wr(T.pct) + '><b>' + pctTeks(T.pct) + '</b></td><td></td><td></td><td class="nm"><b>' + rpTeks(T.estJasa) + '</b></td><td class="nm"><b>' + rpTeks(T.ri) + '</b></td></tr></tbody></table></div>' +
+        '<div class="note">Keseluruhan: estimasi Rp ' + rpTeks(T.estTotal) + ', realisasi (IA + RI) Rp ' + rpTeks(T.realTotal) + ' (' + pctTeks(T.pctAll) + '). Barang di luar PPBJ Rp ' + rpTeks(T.luar) + '. Tanpa PPBJ Rp ' + rpTeks(T.tanpaPpbj) + '.</div>' +
+        '<details><summary>Rincian per barang (' + k.rinci.length + ')</summary><div class="bst-wrap"><table class="bst-tb"><thead><tr><th>Kode</th><th>Nama</th><th>Status</th><th class="nm">Qty est.</th><th class="nm">Nilai est.</th><th class="nm">Qty IA</th><th class="nm">Nilai IA</th><th>Keterangan</th></tr></thead><tbody>' +
+        k.rinci.map(function (x) { return '<tr' + (x.ket === 'di luar PPBJ' ? ' class="bst-ub"' : '') + '><td data-l="Kode"><small>' + esc(x.kode) + '</small></td><td data-l="Nama">' + esc(x.nama) + '</td><td data-l="Status"><small>' + esc(x.status) + '</small></td><td class="nm" data-l="Qty est.">' + rpTeks(x.qtyEst) + '</td><td class="nm" data-l="Nilai est.">' + rpTeks(x.nilaiEst) + '</td><td class="nm" data-l="Qty IA">' + rpTeks(x.qtyIa) + '</td><td class="nm" data-l="Nilai IA">' + rpTeks(x.nilaiIa) + '</td><td data-l="Keterangan"><small>' + esc(x.ket) + '</small></td></tr>'; }).join('') + '</tbody></table></div></details>';
+      box.querySelector('#beKompPdf').onchange = function () { if (this.checked) delete d.kompPdf; else d.kompPdf = false; S.kotor = true; };
+    }).catch(function () { box.innerHTML = '<b>Komparasi PPBJ vs BAST</b><div class="note">Belum tersedia (perbarui Code.gs).</div>'; });
   }
   function muatLampiran() {
     var box = el.querySelector('#beLamp'); if (!box) return;

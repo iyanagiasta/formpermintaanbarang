@@ -19,7 +19,7 @@
 <script src="serah-edit.js"></script>
 <script src="accurate-ubah.js?v=45"></script>
 <script src="bpb-detail.js?v=79"></script>
-<script src="notif-bell.js?v=81"></script>
+<script src="notif-bell.js?v=102"></script>
 <script src="accurate-ubah2.js?v=46"></script>
 <script src="accurate-terima.js?v=52"></script>
 <script src="arsip-bukti.js?v=44"></script>
@@ -121,7 +121,7 @@ td small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
 <link rel="stylesheet" href="admin-hp.css">
-<script src="cari-pintar.js"></script><script src="cari-indeks.js?v=46"></script><script src="nama-berkas.js"></script><script src="tema.js"></script>
+<script src="cari-pintar.js"></script><script src="cari-indeks.js?v=102"></script><script src="nama-berkas.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 <link rel="stylesheet" href="halaman-wah.css?v=2"><link rel="stylesheet" href="admin-wah.css?v=3"><script src="wah-init.js?v=1"></script>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -138,10 +138,15 @@ var KRG=null,KRGF="semua",PDEPT=[],TAB="pantau",STOK=[],SUMB=["Bekas","Moka","Ac
 var app=document.getElementById("app");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},4500);}
+/* Tambahan 102: aksi BACA yang gagal karena jaringan dicoba ulang sekali otomatis (aksi tulis tidak pernah diulang supaya tidak tersimpan dua kali). */
+var API_BACA=/(List|Cari|Baca|Laporan|Rinci|Daftar|Ringkas|Analisa|Pintar|Cek|Unduh|Telusur|Indeks|Arsip|Periksa|Kpi|Kurang|Tren|Kerapian|Kerja|Mati|Komparasi|Pada|Panduan)$/i,API_BACA_SET={notifDaftar:1,adminSistem:1,cariPic:1,adminArsipBukti:1,adminPaBukti:1,adminBastLampAmbil:1,adminBastKomparasi:1,boqJasa:1,pengumuman:1,info:1};
 async function api(b){
   b.pin=PIN;
-  var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});
-  var j=await r.json();
+  var baca=!!(b.action&&(API_BACA.test(b.action)||API_BACA_SET[b.action])),j;
+  for(var coba=0;;coba++){
+    try{var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});j=await r.json();break;}
+    catch(e){if(!baca||coba>=1)throw e;await new Promise(function(ok){setTimeout(ok,1200);});}
+  }
   try{if(window.IDX)IDX.sesudahApi(b.action,j);}catch(e){}
   try{serahTandai(b.action,j);}catch(e){}
   return j;
@@ -172,7 +177,7 @@ async function login(){
 async function load(first){
   try{
     var r=await api({action:"adminList",semua:SEMUA});
-    if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin");sessionStorage.removeItem("sctk_idx_v1")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
+    if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin");sessionStorage.removeItem("sctk_idx_v1");localStorage.removeItem("sctk_idx_v1");localStorage.removeItem("sctk_ntf_c")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
     DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
     var h=(location.hash||"").replace("#","");
     if(first&&h&&h!=="pantau"&&tabAda(h)){goTab(h);return;}
@@ -213,7 +218,7 @@ function draw(now){
   document.getElementById("q").oninput=drawRows;
   document.getElementById("rf").onclick=function(){load(false);};
   document.getElementById("rkgo").onclick=loadRekap;
-  document.getElementById("lo").onclick=function(){PIN="";try{sessionStorage.removeItem("sctk_admin");sessionStorage.removeItem("sctk_idx_v1")}catch(e){}try{if(window.IDX)IDX.hapus();}catch(e){}loginView("");};
+  document.getElementById("lo").onclick=function(){PIN="";try{sessionStorage.removeItem("sctk_admin");sessionStorage.removeItem("sctk_idx_v1");localStorage.removeItem("sctk_idx_v1");localStorage.removeItem("sctk_ntf_c")}catch(e){}try{if(window.IDX)IDX.hapus();}catch(e){}loginView("");};
   pane().querySelectorAll("[data-chip]").forEach(function(b){b.onclick=function(){
     var k=b.getAttribute("data-chip");
     if(k==="semua"){SEMUA=true;MODE="belum";}else{SEMUA=false;MODE=k;}

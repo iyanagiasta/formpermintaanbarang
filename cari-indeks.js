@@ -17,9 +17,11 @@ var IDX=(function(){
       return {kode:a[0],nama:a[1],satuan:a[2],q:q,total:q[0]+q[1]+q[2],harga:a[6]==null?null:Number(a[6]),jasa:a[7]||0,rak:a[8]||"",idbc:a[9]||"",nRab:a[10]||0};});
     ok=true;
   }
-  function simpan(rows){try{sessionStorage.setItem(KEY,JSON.stringify({v:ver,w:wkt,s:sumber,t:Date.now(),rows:rows}));}catch(e){}}
+  /* Tambahan 102: indeks disimpan di localStorage (bertahan antar tab dan saat halaman dibuka ulang); server cukup ditanya versinya. Cadangan: sessionStorage. */
+  function wadah(){try{var t="__idx_uji";localStorage.setItem(t,"1");localStorage.removeItem(t);return localStorage;}catch(e){try{return sessionStorage;}catch(e2){return null;}}}
+  function simpan(rows){var w=wadah();if(!w)return;var isi=JSON.stringify({v:ver,w:wkt,s:sumber,t:Date.now(),rows:rows});try{w.setItem(KEY,isi);}catch(e){try{sessionStorage.setItem(KEY,isi);}catch(e2){}}}
   function pulih(){
-    try{var o=JSON.parse(sessionStorage.getItem(KEY)||"null");if(o&&o.rows&&o.rows.length){ver=o.v||"";wkt=o.w||"";if(o.s)sumber=o.s;tUp=o.t||0;bangun(o.rows);return true;}}catch(e){}
+    try{var w=wadah(),o=JSON.parse((w&&w.getItem(KEY))||sessionStorage.getItem(KEY)||"null");if(o&&o.rows&&o.rows.length){ver=o.v||"";wkt=o.w||"";if(o.s)sumber=o.s;tUp=o.t||0;bangun(o.rows);return true;}}catch(e){}
     return false;
   }
   function kabar(){dengar.forEach(function(f){try{f();}catch(e){}});}
@@ -123,7 +125,7 @@ var IDX=(function(){
     return a.map(function(k){return by[k];}).filter(Boolean).slice(0,n||8).map(function(b){return Object.assign({},b,{mirip:false,terakhir:true});});
   }
   /** Hapus semua data indeks dari memori dan penyimpanan (saat keluar). */
-  function hapus(){L=[];ok=false;ver="";wkt="";tUp=0;kotorF=false;try{sessionStorage.removeItem(KEY);}catch(e){}}
+  function hapus(){L=[];ok=false;ver="";wkt="";tUp=0;kotorF=false;try{sessionStorage.removeItem(KEY);}catch(e){}try{localStorage.removeItem(KEY);}catch(e){}}
   function bagi(f){dengar.push(f);}
   return {mulai:mulai,siap:siap,segar:segar,segarkan:segarkan,tandaiKotor:tandaiKotor,sesudahApi:sesudahApi,cari:cari,stokList:stokList,analisaCari:analisaCari,telusurCari:telusurCari,catat:catat,hapus:hapus,terakhir:terakhir,bagi:bagi,
     ada:function(){return ok;},umur:function(){return ok?Date.now()-tUp:Infinity;},jumlah:function(){return L.length;},waktu:function(){return tUp;},waktuServer:function(){return wkt;},semua:function(){return L;},kotor:function(){return kotorF;}};

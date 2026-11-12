@@ -157,9 +157,9 @@ async function tampil(b,qty){
     if(l.length){el.insertAdjacentHTML("beforeend",'<p class="tq-sm" style="margin-top:6px">Yang bisa jadi pengganti:</p>');el.appendChild(chips(l,function(x){add("tq-u",esc(x.b.nama));tampil(x.b).then(function(){if(x.cat)chat.lastChild.insertAdjacentHTML("beforeend",'<p class="tq-sm" style="margin-top:6px">Catatan: '+esc(x.cat)+'</p>')})}))}
     else if(st[1]==="bad")el.insertAdjacentHTML("beforeend",'<p class="tq-sm" style="margin-top:6px">Belum ada barang pengganti yang terdaftar.</p>');
   }
-  if(qty&&bebas>0){
-    var n=Math.min(qty,bebas);
-    el.appendChild(chips([{label:"Buka form Permintaan Barang"}],function(){add("tq-b","<p>Di form, pilih <b>"+esc(b.nama)+"</b> dan isi jumlah <b>"+fq(n)+" "+esc(b.sat||"")+"</b>.</p>");location.href="index.html?dari=utama"}));
+  if(bebas>0&&b.kode){
+    var n=qty?Math.min(qty,bebas):0;
+    el.appendChild(chips([{label:"Buat permintaan barang ini"}],function(){add("tq-b","<p>Membuka form Permintaan Barang dengan <b>"+esc(b.nama)+"</b>"+(n?" sebanyak <b>"+fq(n)+" "+esc(b.sat||"")+"</b>":"")+". Periksa lagi sebelum dikirim.</p>");setTimeout(function(){location.href="index.html?dari=bot&isi="+encodeURIComponent(String(b.kode).trim()+":"+(n||""))},500)}));
   }
   chat.scrollTop=chat.scrollHeight;
   return el;

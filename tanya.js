@@ -112,7 +112,7 @@ function kartu(b,d,rak,sementara){
   if(sementara){}
   else if(d.alok.length)d.alok.forEach(function(a){h+='<div class="tq-row"><span>Dikunci (alokasi): '+esc(a.ppbj)+(a.ket?" - "+esc(a.ket):"")+(a.status==="Ditunda Sebentar"?" (ditunda)":"")+'</span><b>'+fq(a.qty)+' '+esc(b.sat||"")+'</b></div>'});
   else h+='<div class="tq-row"><span>Dikunci (alokasi)</span><b>Tidak ada</b></div>';
-  if(!sementara&&d.tercadang>0)h+='<div class="tq-row"><span>Sudah diminta (belum diserahkan)</span><b>'+fq(d.tercadang)+' '+esc(b.sat||"")+'</b></div>';
+  if(!sementara&&d.tercadang>0)h+='<div class="tq-row"><span>Sudah diminta</span><b>'+fq(d.tercadang)+' '+esc(b.sat||"")+'</b></div>';
   if(!sementara&&d.po&&d.po.length){var tp=0;d.po.forEach(function(x){tp+=x.sisa});
     h+='<div class="tq-row"><span>Sedang dipesan<br><span class="tq-sm">'+d.po.slice(0,3).map(function(x){return esc(x.po||"PO")+(x.supplier?" ("+esc(x.supplier)+")":"")+(x.ppbj?" · untuk "+esc(x.ppbj):"")+(x.estimasi?" · perkiraan datang "+esc(x.estimasi):"")}).join("<br>")+(d.po.length>3?"<br>dan "+(d.po.length-3)+" PO lain":"")+'</span></span><b>'+fq(tp)+' '+esc(b.sat||"")+'</b></div>'}
   if(!sementara&&d.masuk)h+='<div class="tq-row"><span>Terakhir masuk<br><span class="tq-sm">'+esc(d.masuk.tanggal)+(d.masuk.ref?" · "+esc(d.masuk.ref):"")+'</span></span><b>'+fq(d.masuk.qty)+' '+esc(b.sat||"")+'</b></div>';

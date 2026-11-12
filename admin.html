@@ -27,6 +27,9 @@
 <script src="proyek-order.js?v=47"></script>
 <script src="harga-acc.js"></script>
 <script src="harga-po.js"></script>
+<script src="xlsx-tulis.js"></script>
+<script src="bast-logo.js"></script>
+<script src="bast.js"></script>
 <script src="order-monitor.js"></script>
 <script src="analisa-barang.js"></script>
 <script src="kimia.js"></script>
@@ -338,7 +341,7 @@ function pane(){return document.getElementById("pane")||app;}
 var MENU=[["Harian",[["kerja","Daftar Kerja"],["pantau","Pantauan BPB"],["serah","Serah Barang"],["terima","Terima Barang"],["mutasi","Mutasi"]]],
  ["Stok",[["stok","Stok & Harga"],["opname","Selisih Opname"],["kimia","Opname Kimia"],["kpi","KPI Gudang"],["baopname","BA Opname"],["kedaluwarsa","Kedaluwarsa"],["buffer","Buffer Paket"],["barangmati","Barang Mati"],["accurate","Accurate"],["komparasi","Komparasi"]]],
  ["Proyek & Pembelian",[["proyek","Proyek"],["pengajuan","Pengajuan"],["pembelian","Pengadaan \u2197"],["realisasi","Realisasi \u2197"]]],
- ["Laporan",[["laporan","Laporan"],["lapatasan","Laporan Atasan"],["telusur","Telusur"],["analisa","Analisa Barang"],["arsip","Arsip Bukti"]]],
+ ["Laporan",[["laporan","Laporan"],["lapatasan","Laporan Atasan"],["telusur","Telusur"],["analisa","Analisa Barang"],["arsip","Arsip Bukti"],["bast","BAST"]]],
  ["Data & Sistem",[["masterbarang","Master Barang"],["label","Label \u2197"],["pengumuman","Pengumuman"],["sistem","Sistem"],["kecepatan","Kecepatan"],["panduan","Panduan"]]]];
 function namaTab(t){var n=t;MENU.forEach(function(g){g[1].forEach(function(x){if(x[0]===t)n=x[1];});});return n;}
 function tabAda(h){var ok=false;MENU.forEach(function(g){g[1].forEach(function(x){if(x[0]===h&&h!=="pembelian"&&h!=="realisasi"&&h!=="label")ok=true;});});return ok;}
@@ -374,7 +377,7 @@ function goTab(t){
   try{if(window.IDX&&PIN)IDX.mulai(api);}catch(e){}
   if(t==="pantau"){load(false);return;}
   tabsUI();
-  if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="baopname")loadBA();else if(t==="buffer")loadBF();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="kimia")KM.mount(pane());else if(t==="kpi")KPI.mount(pane());else if(t==="panduan")PDN.mount(pane());else if(t==="laporan")loadLaporan();else if(t==="kerja")loadKerja();else if(t==="lapatasan")loadLapAtasan();else if(t==="telusur")loadTelusur();else if(t==="analisa")AB.mount(pane(),api,toast);else if(t==="arsip")ARB.mount(pane(),api,toast);else if(t==="kecepatan")KPF.mount(pane(),api,toast);else if(t==="kedaluwarsa")loadKdl();else if(t==="accurate"){PAF.status="Belum";if(window.PAT)PAT.mulai();loadAccurate(true);}else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
+  if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="baopname")loadBA();else if(t==="buffer")loadBF();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="kimia")KM.mount(pane());else if(t==="kpi")KPI.mount(pane());else if(t==="panduan")PDN.mount(pane());else if(t==="laporan")loadLaporan();else if(t==="kerja")loadKerja();else if(t==="lapatasan")loadLapAtasan();else if(t==="telusur")loadTelusur();else if(t==="analisa")AB.mount(pane(),api,toast);else if(t==="arsip")ARB.mount(pane(),api,toast);else if(t==="bast")BASTM.mount(pane(),api,toast);else if(t==="kecepatan")KPF.mount(pane(),api,toast);else if(t==="kedaluwarsa")loadKdl();else if(t==="accurate"){PAF.status="Belum";if(window.PAT)PAT.mulai();loadAccurate(true);}else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
   try{history.replaceState(null,"","#"+t);}catch(e){}
 }
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}

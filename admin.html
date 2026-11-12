@@ -14,6 +14,7 @@
 <script src="admin-mutasi.js"></script>
 <script src="admin-laporan2.js"></script>
 <script src="admin-proyek2.js?v=41"></script>
+<script src="ppbj-ganti.js?v=1"></script>
 <script src="kb-impor.js"></script>
 <script src="serah-edit.js"></script>
 <script src="accurate-ubah.js?v=45"></script>
@@ -1551,7 +1552,7 @@ function drawProyek(){
   var nA=PRO.filter(function(p){return p.status==="Aktif"||p.status==="Ditunda Sebentar";}).length;
   pane().innerHTML=
    '<div class="sum"><div><b>'+nA+' / 15</b><span>Proyek mengikat stok (Aktif + Ditunda Sebentar)</span></div></div>'+
-   '<div class="card"><b>Tambah / ubah proyek</b><div class="note">Mengisi No PPBJ yang sudah ada akan mengubah proyek itu. Aktif dan Ditunda Sebentar mengikat stok; Ditunda Lama, Selesai, Batal melepasnya.</div>'+
+   '<div class="card"><b>Tambah / ubah proyek</b><div class="note">Mengisi No PPBJ yang sudah ada akan mengubah proyek itu. Aktif dan Ditunda Sebentar mengikat stok; Ditunda Lama, Selesai, Batal melepasnya. Untuk mengganti nomor PPBJ saja, pakai tombol <b>Ubah no PPBJ</b> di baris proyek. <a href="#" id="pgnh">Riwayat ubah nomor</a></div>'+
    '<div class="fr"><input type="text" id="pp" placeholder="No PPBJ" maxlength="60"><input type="text" id="pk" placeholder="Keterangan proyek" maxlength="300" style="flex:1;min-width:200px"><select id="pd"><option value="">Departemen: pilih</option>'+PDEPT.map(function(d){return '<option>'+esc(d)+'</option>';}).join("")+'</select>'+
    '<select id="ps">'+PST.map(function(s){return '<option>'+esc(s)+'</option>';}).join("")+'</select><select id="ppr" title="Prioritas: menentukan proyek mana yang dilayani lebih dulu bila stok tidak cukup untuk semua"><option>Tinggi</option><option selected>Biasa</option><option>Rendah</option></select><button class="sv" id="pgo">Simpan</button></div></div>'+
    '<div class="card"><b>Impor kebutuhan proyek (RAB)</b><div class="note">Dari file Excel atau PDF PPBJ. Tabel pratinjau tampil dulu: cocokkan barang, periksa total, baru simpan. Proyek yang belum terdaftar didaftarkan otomatis; departemen tidak diambil dari file.</div><div class="fr"><button class="gh" id="kbix">Impor Excel</button><button class="gh" id="kbip">Impor PDF PPBJ</button><a href="#" id="kbit">Unduh template Excel</a><a href="#" id="kbie">Ekspor RAB tersimpan (No PPBJ di kolom atas)</a></div></div>'+
@@ -1559,7 +1560,7 @@ function drawProyek(){
    PRO.map(function(p,i){return '<tr data-pxr="'+esc(p.ppbj)+'"><td data-l="No PPBJ"><b>'+esc(p.ppbj)+'</b><small>'+esc(p.dibuat||"")+'</small></td><td data-l="Keterangan">'+esc(p.ket)+'</td><td data-l="Departemen">'+esc(p.dept)+'</td>'+
      '<td data-l="Status"><span class="bd '+stCls(p.status)+'">'+esc(p.status)+'</span></td>'+
      '<td data-l="Prioritas" data-pxp="'+esc(p.ppbj)+'"><small class="note">...</small></td><td data-l="Jenis" data-pxj="'+esc(p.ppbj)+'"><small class="note">...</small></td><td data-l="Kesiapan &amp; peringatan" data-pxk="'+esc(p.ppbj)+'"><small class="note">memuat...</small></td><td data-l="Kebutuhan material" data-kbp="'+esc(p.ppbj)+'"><small class="note">memuat...</small></td>'+
-     '<td data-l="Ubah status"><div class="fr" style="margin:0"><select data-ps="'+i+'">'+PST.map(function(s){return '<option'+(s===p.status?" selected":"")+'>'+esc(s)+'</option>';}).join("")+'</select><button class="gh" data-pu="'+i+'">Simpan</button></div></td></tr>';}).join("")+'</tbody></table>':'<div class="card msg">Belum ada proyek.</div>');
+     '<td data-l="Ubah status"><div class="fr" style="margin:0"><select data-ps="'+i+'">'+PST.map(function(s){return '<option'+(s===p.status?" selected":"")+'>'+esc(s)+'</option>';}).join("")+'</select><button class="gh" data-pu="'+i+'">Simpan</button></div><button class="gh" data-pn="'+i+'" style="margin-top:6px" title="Ubah nomor PPBJ saja, materialnya tidak berubah">Ubah no PPBJ</button></td></tr>';}).join("")+'</tbody></table>':'<div class="card msg">Belum ada proyek.</div>');
   document.getElementById("pgo").onclick=function(){
     var no=document.getElementById("pp").value.trim();if(!no){toast("Isi No PPBJ dulu.",true);return;}
     var ex=PRO.filter(function(p){return p.ppbj.toLowerCase()===no.toLowerCase();})[0];
@@ -1576,6 +1577,8 @@ function drawProyek(){
   document.getElementById("kbit").onclick=function(e){e.preventDefault();if(window.KBI)KBI.templat();};
   document.getElementById("kbie").onclick=function(e){e.preventDefault();if(window.KBI)KBI.ekspor(api,document.getElementById("pp").value);};
   muatKurang();if(window.PX)PX.muat();
+  pane().querySelectorAll("[data-pn]").forEach(function(b){b.onclick=function(){var p=PRO[Number(b.getAttribute("data-pn"))];if(!p)return;if(!window.PGN){toast("Fitur ubah nomor belum termuat. Muat ulang halaman.",true);return;}PGN.buka(p,api,toast,loadProyek);};});
+  var pgnh=document.getElementById("pgnh");if(pgnh)pgnh.onclick=function(e){e.preventDefault();if(!window.PGN){toast("Fitur ubah nomor belum termuat. Muat ulang halaman.",true);return;}PGN.riwayat(api,toast,loadProyek);};
   pane().querySelectorAll("[data-pu]").forEach(function(b){b.onclick=function(){
     var i=Number(b.getAttribute("data-pu")),p=PRO[i],st=pane().querySelector('[data-ps="'+i+'"]').value;
     if(st===p.status){toast("Status belum diubah.",true);return;}

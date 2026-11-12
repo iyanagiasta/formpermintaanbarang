@@ -69,7 +69,7 @@ function add(cls,html){var d=document.createElement("div");d.className="tq-m "+c
 function status(b,bebas){var tot=b.total;if(b.neto<0)return ["Kurang","bad"];return bebas<=0?["Habis","bad"]:bebas<=Math.max(3,Math.round(tot*.1))?["Menipis","warn"]:["Aman","ok"]}
 function chips(list,fn){
   var w=document.createElement("div");w.className="tq-chips";
-  list.forEach(function(x){var c=document.createElement("button");c.type="button";c.className="tq-chip";c.textContent=x.label;c.onclick=function(){fn(x)};w.appendChild(c)});
+  list.forEach(function(x){var c=document.createElement("button");c.type="button";c.className="tq-chip";c.textContent=x.label;c.onclick=function(ev){fn(x,ev)};w.appendChild(c)});
   return w;
 }
 async function detail(b){
@@ -282,6 +282,62 @@ async function jawabBpb(){
   add("tq-b",h+'<p class="tq-sm" style="margin-top:6px">Ketik "nama saya ..." untuk mengganti nama.</p>');
 }
 
+/* ===== BUKTI PENGAMBILAN BARANG (PDF) ===== */
+function tglBukti(iso){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||"");return m?m[3]+"/"+m[2]+"/"+m[1]:""}
+function namaBukti(a,b){return window.NB&&NB.buat?NB.buat("pdf","Bukti Pengambilan",a,b):String(a+(b?" "+b:"")).replace(/[\\\/:*?"<>|\s]+/g,"-")+".pdf"}
+function keluarkanPdf(bytes,nama,cetak){
+  var u=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));
+  if(cetak){var w=null;try{w=window.open(u,"_blank")}catch(e){}if(w){setTimeout(function(){URL.revokeObjectURL(u)},120000);return true}}
+  var a=document.createElement("a");a.href=u;a.download=nama;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(u);a.remove()},4000);return false;
+}
+/** ids = urut dari yang terlama. Satu id = satu PDF, banyak id = satu PDF gabungan. */
+async function buatBuktiPdf(ids,cetak,nama,tombol){
+  if(!window.PDFLib||!window.BuktiPdf){add("tq-b","<p>Pembuat PDF belum termuat. Periksa internet, lalu muat ulang halaman.</p>");return}
+  var tek=tombol?tombol.textContent:"";if(tombol){tombol.disabled=true;tombol.textContent="Menyiapkan PDF..."}
+  try{
+    var r=await bot("buktiPdf",{ids:ids});
+    if(!r.ok){add("tq-b","<p>"+esc(r.msg||"Gagal mengambil data bukti.")+"</p>");return}
+    var docs=r.docs||[];
+    if(!docs.length){add("tq-b","<p>Tidak ada bukti yang bisa dicetak. "+esc((r.lewat||[])[0]||"")+"</p>");return}
+    var bytes=docs.length===1?await BuktiPdf.buatSatu(docs[0],r.sig||{}):await BuktiPdf.buatGabungan(docs,r.sig||{},function(i,n){if(tombol)tombol.textContent="Membuat PDF "+i+"/"+n+"..."});
+    var terbuka=keluarkanPdf(bytes,nama,cetak);
+    add("tq-b","<p>"+(cetak?(terbuka?"Bukti dibuka di tab baru. Cetak dari tab itu.":"Pop-up diblokir, jadi PDF diunduh. Buka file itu lalu cetak."):"PDF diunduh")+" ("+docs.length+" BPB).</p>"+((r.lewat||[]).length?'<p class="tq-sm">Dilewati: '+esc(r.lewat.slice(0,3).join("; "))+'</p>':""));
+  }catch(e){add("tq-b","<p>Gagal membuat PDF: "+esc(e&&e.message||e)+"</p>")}
+  finally{if(tombol){tombol.disabled=false;tombol.textContent=tek}}
+}
+async function jawabBukti(teks,per){
+  var semua=/\bbpb[\s\/-]*(?:sctk[\s\/-]*)?\d{2,}/i.test(teks)||/\bsemua (periode|waktu)\b/i.test(teks),r;
+  try{r=await bot("bukti",{q:teks,dari:per?per.dari:undefined,semua:semua||undefined})}catch(e){add("tq-b","<p>Gagal terhubung ke server.</p>");return}
+  if(!r.ok){add("tq-b","<p>"+esc(r.msg||"Gagal.")+"</p>");return}
+  var d=r.data,L=d.docs||[],kata=d.kata?esc(d.kata):"",per0=d.dari?(per?esc(per.label):"30 hari terakhir")+", sejak "+tglBukti(d.dari):"semua periode";
+  if(!L.length){
+    var e=add("tq-b","<p><b>Tidak ada bukti</b>"+(kata?" untuk <b>"+kata+"</b>":"")+" ("+per0+").</p><p class=\"tq-sm\">Tulis nomor BPB, nama proyek, No PPBJ, atau nama PIC. Tambahkan \"bulan ini\" atau \"90 hari\" untuk mengatur periode.</p>");
+    if(d.dari)e.appendChild(chips([{label:"Cari di semua periode"}],function(){add("tq-u","cari di semua periode");bot("bukti",{q:teks,semua:true}).then(function(x){if(x.ok&&x.data.docs.length)tampilBukti(x.data,null);else add("tq-b","<p>Tetap tidak ada bukti yang cocok.</p>")})}));
+    return;
+  }
+  tampilBukti(d,per);
+}
+function tampilBukti(d,per){
+  var L=d.docs,kata=d.kata?esc(d.kata):"",per0=d.dari?(per?esc(per.label):"30 hari terakhir")+", sejak "+tglBukti(d.dari):"semua periode";
+  var h='<p class="tq-nm">Bukti pengambilan barang</p><p class="tq-sm">'+(kata?"Pencarian: "+kata+" · ":"")+per0+" · "+d.total+" dokumen"+(d.total>L.length?" (tampil "+L.length+" terbaru, persempit pencarian)":"")+"</p>";
+  var el=add("tq-b",h),siap=[];
+  L.forEach(function(x){
+    var ok=x.status==="Diserahkan",row=document.createElement("div");row.className="tq-row";row.style.display="block";
+    var pp=[x.ppbj?esc(x.ppbj):"",x.proyek?esc(x.proyek)+(x.diduga?" (diduga dari alasan permintaan)":""):""].filter(Boolean).join(" - ");
+    row.innerHTML='<b>'+esc(x.nomor)+'</b> <span class="tq-sm">'+esc(x.serah||x.tgl)+'</span><br>'+(pp?'<span class="tq-sm">'+pp+'</span><br>':"")+(x.pic?'<span class="tq-sm">PIC: '+esc(x.pic)+'</span><br>':"")+
+      '<span>'+x.items.map(esc).join(", ")+(x.nItem>x.items.length?" dan "+(x.nItem-x.items.length)+" barang lain":"")+'</span><br><span class="'+(x.status==="Ditolak"?"tq-bad":"tq-sm")+'">'+(ok?"Sudah diserahkan "+esc(x.serah):x.status==="Ditolak"?"Ditolak, tidak ada bukti pengambilan":"Menunggu persetujuan, PDF tersedia setelah barang diserahkan")+"</span>";
+    if(ok){siap.push(x);var ch=chips([{label:"Unduh PDF",c:false},{label:"Cetak",c:true}],function(a,ev){buatBuktiPdf([x.id],a.c,namaBukti(x.nomor,x.proyek),ev&&ev.target)});row.appendChild(ch)}
+    el.appendChild(row);
+  });
+  if(siap.length>=2){
+    var pakai=siap.slice(0,25).reverse(),ids=pakai.map(function(x){return x.id}),pr={};siap.forEach(function(x){if(x.proyek)pr[x.proyek]=1});
+    var pn=Object.keys(pr),nm=namaBukti(pn.length===1?pn[0]:(d.kata||"Beberapa BPB"),pakai.length+" BPB");
+    el.appendChild(chips([{label:"Unduh semua ("+pakai.length+" BPB) dalam 1 PDF",c:false},{label:"Cetak semua ("+pakai.length+" BPB)",c:true}],function(a,ev){buatBuktiPdf(ids,a.c,nm,ev&&ev.target)}));
+    if(siap.length>25)el.insertAdjacentHTML("beforeend",'<p class="tq-sm" style="margin-top:6px">Satu PDF maksimal 25 BPB (yang terbaru). Persempit dengan periode, misalnya "bulan ini".</p>');
+  }
+  chat.scrollTop=chat.scrollHeight;
+}
+
 /* ===== PENGURAI PERTANYAAN ===== */
 var S={tunggu:false};
 var KATA_QTY=/\b(butuh|perlu|minta|ambil|mau|cukup|pesan|kebutuhan|pakai|pake|keluarkan|bawa)\b/;
@@ -298,6 +354,7 @@ async function jawabSatu(teks,prev){
   if(S.tunggu&&!/bpb/.test(low)){USER_NAMA=raw.filter(function(t){return t!=="saya"&&t!=="nama"&&t!=="aku"}).join(" ");S.tunggu=false;ls("sctk_bot_nama",USER_NAMA);add("tq-b","<p>Baik, <b>"+esc(USER_NAMA)+"</b>.</p>");return jawabBpb()}
   var mn=low.match(/^(?:nama\s+)?(?:saya|aku)\s+([a-z ]{3,40})$/);
   if(mn&&!/(butuh|perlu|mau|minta|ambil)/.test(low)){USER_NAMA=mn[1].trim();ls("sctk_bot_nama",USER_NAMA);add("tq-b","<p>Baik, <b>"+esc(USER_NAMA)+"</b>. Tanya \"bpb saya sampai mana?\" kapan saja.</p>");return}
+  if(/\bbukti\b/.test(low)||(/\b(cetak|unduh|download|pdf)\b/.test(low)&&/\b(bpb|pengambilan)\b/.test(low)))return jawabBukti(teks,per);
   if(/\b(bpb|permintaan|pengajuan)\b/.test(low)&&/(saya|aku|ku\b|status|sampai mana|kemarin)/.test(low))return jawabBpb();
   var qty=0,rc=raw,ia=-1;raw.forEach(function(t,i){if(/^\d+$/.test(t)&&ia<0)ia=i});
   if(ia>=0&&(KATA_QTY.test(low)||/\d+\s*(pcs|batang|unit|roll|kaleng|buah|biji|btg|bh|meter)\b/.test(low))){qty=+raw[ia];rc=raw.filter(function(t,i){return i!==ia})}
@@ -321,8 +378,8 @@ async function jawabSatu(teks,prev){
       dpx.appendChild(chips(PRX.slice(0,10).map(function(x){return{label:x.ppbj+(x.ket?" - "+x.ket:""),p:x}}),function(x){add("tq-u",esc(x.label));jawabProyek(x.p)}));return}
   }
   if(!qt.length||/^(halo|hai|hi|hello|p|test|tes|bantuan|help|menu)$/.test(low)){
-    var d=add("tq-b","<p>Halo! Saya bisa menjawab:</p><p>• Stok barang dan stok bebasnya, serta proyek yang memakainya<br>• \"Butuh 30 elbow 3 inch\": cukup atau kurang<br>• Bahan satu paket pekerjaan<br>• Kabar pesanan (PO) barang yang kurang dan penggantinya<br>• Status BPB Anda</p>");
-    d.appendChild(chips([{label:"stok pipa 3 inch"},{label:"elbow 3 inch di mana"},{label:"butuh 30 elbow 3 inch"},{label:"barang yang stok bebasnya habis"},{label:"bpb saya sampai mana"}],function(x){tanya(x.label)}));return}
+    var d=add("tq-b","<p>Halo! Saya bisa menjawab:</p><p>• Stok barang dan stok bebasnya, serta proyek yang memakainya<br>• \"Butuh 30 elbow 3 inch\": cukup atau kurang<br>• Bahan satu paket pekerjaan<br>• Kabar pesanan (PO) barang yang kurang dan penggantinya<br>• Status BPB Anda<br>• Bukti pengambilan barang: cetak atau unduh PDF (cari dengan nomor BPB, proyek, atau PIC)</p>");
+    d.appendChild(chips([{label:"stok pipa 3 inch"},{label:"elbow 3 inch di mana"},{label:"butuh 30 elbow 3 inch"},{label:"barang yang stok bebasnya habis"},{label:"bpb saya sampai mana"},{label:"bukti pengambilan bulan ini"}],function(x){tanya(x.label)}));return}
   var kataDaftar=/\b(habis|kosong|menipis|tipis|sedikit)\b/.test(low);
   if(kataDaftar){qt=qt.filter(function(t){return !/^(habis|kosong|menipis|tipis|sedikit)$/.test(t)});
     if(!qt.length){

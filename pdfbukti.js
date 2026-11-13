@@ -19,16 +19,18 @@
      Ukuran: A5 landscape bila isi pendek; A4 portrait bila panjang (diperkecil bila lebih dari 297 mm), sama seperti tombol Simpan PDF di form.
      d = payload dokumen dari server (adminPaBukti), sig = {kunci: dataURL}, fonts = {F, FB, FT} */
   async function gambarDokumen(doc, d, sig, fonts) {
-    var L = W.PDFLib, rgb = L.rgb, F = fonts.F, FB = fonts.FB, kembali = d.jenis === "Pengembalian";
+    var L = W.PDFLib, rgb = L.rgb, F = fonts.F, FB = fonts.FB, kembali = d.jenis === "Pengembalian", ganti = d.jenis === "Pengganti";
     var MM = 72 / 25.4, SW = 210, X0 = 8, CW = SW - 2 * X0;
     var NAVY = hex("#17588f"), BLUE = hex("#1f6fae"), RULE = hex("#7f97a6"), SOFT = hex("#d5dee4"), INK = hex("#0d1f2d"), LAB = hex("#3f5868"), MUT = hex("#5b6b75"), TT = hex("#62788a"), ST = hex("#4a5f6e");
     var page = null, K = 1, PH = 0, draw = false;
     // ---- data
     var ppbj = d.ppbj || "-", pic = (d.pic && d.pic.nama) || "";
-    var meta = kembali
+    var meta = ganti
+      ? [["Nama Pemohon (PIC)", d.by], ["Nama Departemen", d.dept], ["Nomor IA Accurate", d.noIa], ["Tanggal IA", tglId(d.tgl)], ["Nomor Dokumen", d.doc], ["Nomor PPBJ", ppbj]]
+      : kembali
       ? [["Nama Pengembali", d.by], ["Nama Departemen", d.dept], ["PIC (Penanggung Jawab)", pic], ["Tanggal", tglId(d.tgl)], ["Nomor Dokumen", d.doc], ["Sisa dari Proyek (No PPBJ / nama proyek)", ppbj]]
       : [["Nama Pemohon", d.by], ["Nama Departemen", d.dept], ["PIC (User Peminta)", pic], ["Tanggal", tglId(d.tgl)], ["Nomor Dokumen", d.doc], ["Nomor PPBJ", ppbj]];
-    var judul = kembali ? "BUKTI PENGEMBALIAN BARANG SISA PROYEK" : "BUKTI PENGAMBILAN BARANG";
+    var judul = ganti ? "BPB PENGGANTI (REKONSTRUKSI DARI IA ACCURATE)" : kembali ? "BUKTI PENGEMBALIAN BARANG SISA PROYEK" : "BUKTI PENGAMBILAN BARANG";
     var cols = kembali ? [9, 26, 0, 16, 15, 17] : [9, 30, 0, 20, 17];
     var hd = kembali ? ["No", "Kode Barang", "Nama Barang", "Satuan", "Jumlah", "Diterima"] : ["No", "Kode Barang", "Nama Barang", "Satuan", "Jumlah"];
     cols[2] = CW - cols.reduce(function (a, b) { return a + b; }, 0);
@@ -118,7 +120,7 @@
         ls.forEach(function (z, j) { T(z, X0 + .6, y + .8 + 1.95 + j * 3.9 + .36 * 8.5 / MM, 8.5, F, INK); });
         G(X0, y + h - .15, X0 + CW, y + h - .15, .3, RULE); y += h;
       }
-      kotakTeks(kembali ? "Keterangan (sisa proyek apa, kondisi barang)" : "Alasan Permintaan", [d.alasan || ""]);
+      kotakTeks(ganti ? "Keterangan" : kembali ? "Keterangan (sisa proyek apa, kondisi barang)" : "Alasan Permintaan", [d.alasan || ""]);
       if (catLines.length) kotakTeks("Catatan", catLines);
       // tanda tangan
       var sh = 4.9 + 11 + 8.5 + .5, selesai = y;
@@ -131,7 +133,7 @@
         R(x, sy, bw, 4.9 + 11 + 8.5 + .5, null, RULE, .25);
         R(x, sy, bw, 4.9, BLUE, RULE, .25);
         T(r[0].toUpperCase(), x, mid(sy, 4.9, 6.6), 6.6, FB, rgb(1, 1, 1), { sp: .45, al: "c", w: bw });
-        var cap = ada ? ((tolak ? "Ditolak via email " : (a.otomatis ? "Disetujui " : "Disetujui via email ")) + a.waktu) : (i === 0 && d.kirim ? "Diajukan via form " + d.kirim : "");
+        var cap = ada ? ((tolak ? (ganti ? "Ditolak digital " : "Ditolak via email ") : (ganti ? "Disetujui digital " : a.otomatis ? "Disetujui " : "Disetujui via email ")) + a.waktu) : (i === 0 && d.kirim && !ganti ? "Diajukan via form " + d.kirim : "");
         var im = imgs[r[1]];
         if (draw && im) { var sc = Math.min((bw * .88) / (im.width / MM * 1), 8 / (im.height / MM * 1)); sc = Math.min(bw * .88 * MM / im.width, 8 * MM / im.height);
           page.drawImage(im, { x: (x + (bw - im.width * sc / MM) / 2) * MM * K, y: Y(sy + 4.9 + .6 + im.height * sc / MM), width: im.width * sc * K, height: im.height * sc * K }); }
@@ -151,6 +153,7 @@
     page = doc.addPage([pw * MM, ph * MM]); PH = ph * MM; draw = true;
     layout(); tanda(sy);
     var by = sy + m1.signH + 1.2;
+    if (ganti) T("Dokumen pengganti (dibuat ulang " + (d.dibuat || "") + "). Tanggal tanda tangan = tanggal persetujuan digital, bukan tanggal IA.", X0, by + 2, 6.5, F, hex("#17588f"));
     if (kembali && d.terima && d.terima.nama) T("Barang diterima gudang oleh " + d.terima.nama + (d.terima.waktu ? " pada " + d.terima.waktu : "") + ".", X0, by + 2, 7, F, hex("#17588f"));
     if (d.status === "Ditolak") {
       var cx = SW / 2, cy = ph / 2 - 10;

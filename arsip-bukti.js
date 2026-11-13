@@ -6,7 +6,7 @@ var ARB=(function(){
   function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
   function iso(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
   function tglId(s){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s||"");return m?m[3]+"/"+m[2]+"/"+m[1]:(s||"");}
-  function grup(st){return /^(Siap Diserahkan|Siap Diterima|Selesai Diterima|Diterima)$/.test(st)?"Disetujui":/^(Ditolak|Dibatalkan)$/.test(st)?"Ditolak":"Menunggu";}
+  function grup(st){return /^(Siap Diserahkan|Siap Diterima|Selesai Diterima|Diterima)$|^Selesai \(pengganti/.test(st)?"Disetujui":/^(Ditolak|Dibatalkan)$/.test(st)?"Ditolak":"Menunggu";}
   function final(st){return grup(st)!=="Menunggu";}
   function teksCari(x){return [x.doc,x.ppbj,x.proyek,x.dept,x.by,x.jenis,x.po||"",tglId(x.tgl)].join(" ");}
   function pnr(x){return x.jenis==="Penerimaan";}
@@ -55,7 +55,7 @@ var ARB=(function(){
     }).join("");
     el.innerHTML='<div class="card"><b>Arsip Bukti</b><div class="note">Semua Form Permintaan, Pengembalian, dan Penerimaan barang (surat jalan). Cari dengan nomor BPB, nama proyek, atau No PPBJ (salah ketik tetap ketemu), lalu unduh satu per satu atau gabungan (maksimal '+MAKS+' dokumen sekali unduh).</div>'+
       '<div class="bar"><input id="arq" autocomplete="off" placeholder="Cari nomor BPB, nama proyek, atau PPBJ..." value="'+esc(f.q)+'" style="flex:1;min-width:220px"><button class="gh" id="arr">Segarkan</button></div>'+
-      '<div class="bar"><select id="arj">'+opt("","Semua jenis",f.jenis)+opt("Permintaan","Permintaan",f.jenis)+opt("Pengembalian","Pengembalian",f.jenis)+opt("Penerimaan","Penerimaan (surat jalan)",f.jenis)+'</select>'+
+      '<div class="bar"><select id="arj">'+opt("","Semua jenis",f.jenis)+opt("Permintaan","Permintaan",f.jenis)+opt("Pengembalian","Pengembalian",f.jenis)+opt("Penerimaan","Penerimaan (surat jalan)",f.jenis)+opt("BPB Pengganti","BPB Pengganti (IA lama)",f.jenis)+'</select>'+
       '<select id="ars">'+opt("","Semua status",f.status)+opt("Disetujui","Disetujui",f.status)+opt("Menunggu","Menunggu persetujuan",f.status)+opt("Ditolak","Ditolak",f.status)+'</select>'+
       '<select id="arp" style="max-width:240px"><option value="">Semua proyek</option>'+proyekOpsi(opt)+'</select>'+
       '<select id="ard"><option value="">Semua departemen</option>'+Object.keys(dept).sort().map(function(d){return opt(d,d,f.dept);}).join("")+'</select>'+

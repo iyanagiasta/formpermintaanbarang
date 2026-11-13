@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<meta charset="utf-8">
+<script src="ukur.js?v=59"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Tanda Tangan BPB Pengganti - SCTK</title>
+<style>
+:root{--navy:#17588f;--gold:var(--accent,#1a6cab);--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#4a5b68}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:15px}
+.top{background:#1b6ca8;color:#fff;text-align:center;padding:18px 12px;border-bottom:4px solid var(--gold)}
+.top h1{margin:0;font:700 18px Inter,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:1.5px}
+.top div{margin-top:4px;font-size:12px;letter-spacing:2px;color:#e8f3fb;font-weight:600}
+.wrap{max-width:680px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.row{display:flex;gap:8px;padding:4px 0;border-bottom:1px dashed var(--line)}
+.row:last-of-type{border-bottom:0}
+.row b{flex:0 0 96px;color:var(--mut)}
+.row span{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.mut{color:var(--mut);font-size:13px}
+.tag{display:inline-block;background:#e8f1f6;color:#17588f;border-radius:20px;padding:2px 10px;font-size:12.5px;font-weight:600;margin-right:4px}
+.tag.w{background:#fff3cd;color:#6b4300}
+@media (prefers-color-scheme:dark){.tag{background:#23333c;color:#e6eef2}.tag.w{background:#3a3010;color:#f2dc9b}}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+th{background:var(--navy);color:#fff;padding:6px;text-align:left;font-weight:600}
+td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
+details{margin-top:8px}summary{cursor:pointer;color:var(--navy);font-weight:600}
+@media (prefers-color-scheme:dark){summary{color:#9fd0f2}}
+input.cat{width:100%;font:14px "Segoe UI",Roboto,Arial,sans-serif;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);margin-top:10px}
+.btns{display:flex;gap:10px;margin-top:10px}
+button{flex:1;font:700 15px "Segoe UI",Roboto,Arial,sans-serif;padding:13px;border:0;border-radius:10px;color:#fff;cursor:pointer}
+button.ok{background:#1b8a3a}button.no{background:#c0392b}button:disabled{opacity:.5;cursor:default}
+.all{border-left:6px solid #1b8a3a}
+.msg{text-align:center;font-size:17px;padding:26px 10px}
+.msg.err{color:var(--red,#a82424)}.msg.good{color:var(--grn,#14602f)}
+.hasil{background:#e3f4e8;color:#14602f;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:14px;white-space:pre-wrap}
+.hasil.g{background:#fde8e8;color:#8a1c28}
+@media (prefers-color-scheme:dark){.hasil{background:#1d3a26;color:#a8e0b8}.hasil.g{background:#46191d;color:#ffb4b4}}
+.st{display:inline-block;border-radius:20px;padding:1px 9px;font-size:12px;font-weight:600;border:1px solid currentColor}.st.s{color:#1b8a3a}.st.m{color:#7f8c8d}.st.d{color:#17588f}.st.t{color:#c0392b}
+textarea.al{width:100%;font:14px "Segoe UI",Roboto,Arial,sans-serif;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);margin-top:8px;min-height:60px}
+.pil{display:flex;gap:8px;align-items:flex-start}.pil input{width:20px;height:20px;margin-top:2px;flex:0 0 auto}
+</style>
+<link rel="stylesheet" href="tema-halaman.css">
+<script src="nama-berkas.js"></script><script src="tema.js"></script>
+<link rel="stylesheet" href="gaya-baru.css">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head>
+<body>
+<div class="top"><h1>TANDA TANGAN BPB PENGGANTI</h1><div>PT SARANA CATUR TIRTA KELOLA</div></div>
+<div class="wrap" id="app"><div class="msg">Memuat...</div></div>
+<script>
+var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
+var q=new URLSearchParams(location.search),T=(q.get("t")||"").trim(),app=document.getElementById("app"),D=null,NOTE="",NOTEBAD=false,PIL={};
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function fq(n){return String(Math.round(Number(n)*1000)/1000).replace(".",",");}
+function dmy(s){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s||"");return m?m[3]+"/"+m[2]+"/"+m[1]:(s||"");}
+async function api(b){var maks=/Info$|^info$/i.test(b.action)?3:1,gal=null;for(var i=0;i<maks;i++){try{var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}catch(e){gal=e;if(i<maks-1)await new Promise(function(ok){setTimeout(ok,700*(i+1));});}}throw gal;}
+function kunci(b){document.querySelectorAll("button,input,textarea").forEach(function(x){x.disabled=b;});}
+var LBL={siap:["Siap disetujui","s"],menunggu:["Menunggu tahap sebelumnya","m"],sudah:["Sudah disetujui","d"],ditolak:["Ditolak","t"]};
+function render(){
+  var siap=D.rows.filter(function(x){return x.st==="siap";}),baS=D.ba.filter(function(x){return x.st==="siap";});
+  var h=(NOTE?'<div class="hasil'+(NOTEBAD?' g':'')+'">'+esc(NOTE)+'</div>':'')+
+   '<div class="card"><div class="row"><b>Nama</b><span>'+esc(D.nama)+'</span></div><div class="row"><b>Sebagai</b><span>'+esc(D.peran)+'</span></div><div class="row"><b>Berlaku</b><span>sampai '+esc(D.sampai)+'</span></div>'+
+   '<p class="mut">Ini adalah <b>BPB Pengganti</b>: dibuat ulang dari IA Accurate lama karena berkas BPB manualnya tidak lengkap di arsip. Dengan menyetujui, Anda menyatakan barang tersebut memang keluar untuk pekerjaan/proyek yang tertulis. Tanggal persetujuan Anda dicatat hari ini (bukan tanggal IA). Bila isinya tidak benar, pilih <b>Tolak</b> dan tulis alasannya.</p></div>';
+  if(baS.length||D.ba.length)h+=D.ba.map(function(b){return '<div class="card all"><b>Berita acara '+esc(b.nomor)+'</b> <span class="st '+(b.st==="siap"?"s":"d")+'">'+(b.st==="siap"?"Siap disetujui":"Sudah disetujui "+esc(b.waktu))+'</span><p class="mut">Pernyataan bahwa '+b.n+' BPB pengganti dibuat ulang dari data IA Accurate karena BPB manual lama tidak lengkap.</p><details><summary>Lihat daftar</summary><table><tr><th>BPB Pengganti</th><th>IA</th><th>Proyek</th></tr>'+b.daftar.map(function(d){return '<tr><td>'+esc(d.nomor)+'</td><td>'+esc(d.no)+'<br><span class="mut">'+esc(dmy(d.tgl))+'</span></td><td>'+esc(d.proyek||"-")+'</td></tr>';}).join("")+'</table></details>'+(b.st==="siap"?'<div class="btns"><button class="ok" data-ba="'+esc(b.id)+'">Setujui berita acara</button></div>':'')+'</div>';}).join("");
+  if(siap.length>1)h+='<div class="card all"><b>'+siap.length+' dokumen siap disetujui</b><div class="btns"><button class="ok" id="semua">Setujui semua ('+siap.length+')</button></div><p class="mut">Atau centang beberapa lalu tekan Setujui yang dicentang.</p><div class="btns"><button class="ok" id="centang" style="background:#2471a3">Setujui yang dicentang</button></div></div>';
+  if(!D.rows.length&&!D.ba.length)h+='<div class="card msg">Tidak ada dokumen untuk Anda.</div>';
+  h+=D.rows.map(function(x,i){var l=LBL[x.st]||[x.st,"m"];
+    return '<div class="card"><div class="pil">'+(x.st==="siap"?'<input type="checkbox" data-c="'+esc(x.id)+'"'+(PIL[x.id]?' checked':'')+' aria-label="Centang '+esc(x.nomor)+'">':'')+'<div style="flex:1;min-width:0"><b>'+esc(x.nomor)+'</b> <span class="st '+l[1]+'">'+esc(l[0])+(x.st==="sudah"&&x.waktu?" "+esc(x.waktu):"")+'</span>'+
+      '<div class="row"><b>IA Accurate</b><span>'+esc(x.no)+' ('+esc(dmy(x.tgl))+')</span></div><div class="row"><b>Proyek</b><span>'+esc(x.proyek||"-")+(x.ppbj?" · PPBJ "+esc(x.ppbj):"")+'</span></div><div class="row"><b>Pekerjaan</b><span>'+esc(x.kerja||"-")+'</span></div><div class="row"><b>Departemen</b><span>'+esc(x.dept)+'</span></div>'+
+      (x.sebelum.length?'<div class="row"><b>Sebelumnya</b><span>'+x.sebelum.map(function(s){return esc(s.peran+" "+s.nama)+": "+(s.waktu?"setuju "+esc(s.waktu):"belum");}).join("<br>")+'</span></div>':'')+
+      '<details'+(x.st==="siap"&&D.rows.length<=3?' open':'')+'><summary>'+x.barang.length+' barang</summary><table><tr><th>Barang</th><th>Jumlah</th></tr>'+x.barang.map(function(b){return '<tr><td>'+esc(b.nama)+'<br><span class="mut">'+esc(b.kode)+'</span></td><td>'+fq(b.jumlah)+' '+esc(b.satuan||"")+'</td></tr>';}).join("")+'</table>'+(x.lewat?'<p class="mut">'+esc(x.lewat)+'.</p>':'')+'</details>'+
+      (x.st==="siap"?'<div class="btns"><button class="ok" data-ok="'+esc(x.id)+'">Setujui</button><button class="no" data-no="'+i+'">Tolak</button></div><div data-tf="'+i+'" hidden><textarea class="al" data-al="'+i+'" placeholder="Alasan penolakan (wajib)"></textarea><div class="btns"><button class="no" data-tk="'+esc(x.id)+'" data-ti="'+i+'">Kirim penolakan</button></div></div>':'')+
+      '</div></div></div>';}).join("");
+  app.innerHTML=h;
+  app.querySelectorAll("[data-c]").forEach(function(c){c.onchange=function(){if(c.checked)PIL[c.getAttribute("data-c")]=1;else delete PIL[c.getAttribute("data-c")];};});
+  var s=document.getElementById("semua");if(s)s.onclick=function(){kirim(siap.map(function(x){return x.id;}),"setuju");};
+  var c=document.getElementById("centang");if(c)c.onclick=function(){var ids=Object.keys(PIL);if(!ids.length){NOTE="Centang dulu dokumennya.";NOTEBAD=true;render();return;}kirim(ids,"setuju");};
+  app.querySelectorAll("[data-ok]").forEach(function(b){b.onclick=function(){kirim([b.getAttribute("data-ok")],"setuju");};});
+  app.querySelectorAll("[data-ba]").forEach(function(b){b.onclick=function(){kirim([b.getAttribute("data-ba")],"setuju");};});
+  app.querySelectorAll("[data-no]").forEach(function(b){b.onclick=function(){var f=app.querySelector('[data-tf="'+b.getAttribute("data-no")+'"]');f.hidden=!f.hidden;};});
+  app.querySelectorAll("[data-tk]").forEach(function(b){b.onclick=function(){var a=app.querySelector('[data-al="'+b.getAttribute("data-ti")+'"]').value.trim();if(a.length<3){NOTE="Tulis alasan penolakan.";NOTEBAD=true;render();return;}kirim([b.getAttribute("data-tk")],"tolak",a);};});
+}
+async function kirim(ids,aksi,alasan){kunci(true);try{var r=await api({action:"pgtSetuju",t:T,ids:ids,aksi:aksi,alasan:alasan||""});NOTE=r.msg||(r.ok?"Tersimpan.":"Gagal.");NOTEBAD=!r.ok;PIL={};}catch(e){NOTE="Gagal terhubung ke server. Coba lagi.";NOTEBAD=true;}await muat();window.scrollTo(0,0);}
+async function muat(){
+  if(!T){app.innerHTML='<div class="card msg err">Tautan tidak lengkap.</div>';return;}
+  try{var r=await api({action:"pgtBuka",t:T});if(!r.ok){app.innerHTML='<div class="card msg err">'+esc(r.msg||"Tautan tidak berlaku.")+'</div>';return;}D=r;render();}
+  catch(e){app.innerHTML='<div class="card msg err">Gagal terhubung ke server. Periksa internet lalu muat ulang.</div>';}
+}
+muat();
+</script>
+</body>
+</html>

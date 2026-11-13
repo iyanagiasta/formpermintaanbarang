@@ -4,7 +4,7 @@
    Selesai -> masuk Arsip Bukti. Berita acara rekonstruksi ditandatangani Manager Gudang. */
 (function (root) {
   'use strict';
-  var PG = {}, el, api, toast, S = {tab: 'calon', cal: null, list: null, pil: {}, dpil: {}, q: '', rutin: false};
+  var PG = {}, el, api, toast, S = {tab: 'calon', cal: null, list: null, pil: {}, dpil: {}, q: '', rutin: false, pv: null, bebas: {}, hasil: null};
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
   function dmy(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : (iso || ''); }
   function qy(n) { n = Number(n) || 0; return (Math.round(n * 1000) / 1000).toLocaleString('id-ID'); }
@@ -37,8 +37,10 @@
 
   /* --- Calon --- */
   function tabCalon(box) {
+    if (S.hasil) { gambarHasil(box); return; }
+    if (S.pv && S.cal) { gambarPratinjau(box); return; }
     box.innerHTML = '<div class="note">Memuat IA lama...</div>';
-    api({action: 'adminPgtCalon'}).then(function (r) { if (!r.ok) { box.textContent = r.msg || 'Gagal.'; return; } S.cal = r; S.pil = {}; r.rows.forEach(function (x) { x._dept = x.dept; x._pic = (r.pic[x.dept] || []).length === 1 ? r.pic[x.dept][0] : ''; }); gambarCalon(box); });
+    api({action: 'adminPgtCalon'}).then(function (r) { if (!r.ok) { box.textContent = r.msg || 'Gagal.'; return; } S.cal = r; S.pil = {}; S.pv = null; S.bebas = {}; r.rows.forEach(function (x) { x._dept = x.dept; x._pic = (r.pic[x.dept] || []).length === 1 ? r.pic[x.dept][0] : ''; }); gambarCalon(box); });
   }
   /* Pencarian pintar (di layar saja): kata tepat > salah ketik 1 huruf > sebagian kata; semua kata harus cocok. */
   function pgNorm(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
@@ -82,6 +84,7 @@
     return out.map(function (o) { return o.x; });
   }
   function gambarCalon(box) {
+    if (S.pv) { gambarPratinjau(box); return; }
     var r = S.cal, L = saringCalon(r.rows);
     var nPil = Object.keys(S.pil).length, depts = r.dept.slice().sort();
     box.innerHTML = '<div class="note">Sistem digital mulai <b>' + esc(dmy(r.mulai)) + '</b> (BPB pertama). ' + r.rows.length + ' IA lama belum punya BPB pengganti' + (r.nSudah ? ', ' + r.nSudah + ' sudah dibuat' : '') + (r.nJasaSaja ? ', ' + r.nJasaSaja + ' IA isinya jasa saja (dilewati)' : '') + '. Departemen ditebak dari nama pekerjaan (kebocoran &rarr; Distribusi, SL/upgrade &rarr; RM, perbaikan lain &rarr; Produksi); periksa dan ubah bila perlu.</div>' +
@@ -91,7 +94,7 @@
       '<input type="date" id="pgT1" value="' + esc(S.t1 || '') + '" aria-label="Dari tanggal"> <input type="date" id="pgT2" value="' + esc(S.t2 || '') + '" aria-label="Sampai tanggal"><button id="pgReset">Reset</button>' +
       '<span class="pgt-warn" style="color:inherit">' + L.length + ' dari ' + r.rows.length + ' IA</span>' +
       '</div><div class="fr" style="gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px"><label><input type="checkbox" id="pgR"' + (S.rutin ? ' checked' : '') + '> tampilkan pemakaian rutin (kimia/reklas)</label>' +
-      '<button id="pgAll">Pilih yang lengkap (' + L.filter(function (x) { return x._dept && x._pic; }).length + ')</button><button id="pgNone">Kosongkan pilihan</button><button class="sv" id="pgBuat"' + (nPil ? '' : ' disabled') + '>Buat BPB Pengganti (' + nPil + ')</button></div>' +
+      '<button id="pgAll">Pilih yang lengkap (' + L.filter(function (x) { return x._dept && x._pic; }).length + ')</button><button id="pgNone">Kosongkan pilihan</button><button class="sv" id="pgBuat"' + (nPil ? '' : ' disabled') + '>Tinjau dan buat (' + nPil + ')</button></div>' +
       '<div class="pgt-wrap"><table class="pgt-tb"><thead><tr><th></th><th>IA</th><th>Pekerjaan / proyek</th><th>Departemen</th><th>PIC (peminta)</th><th>Barang</th></tr></thead><tbody>' +
       L.slice(0, 200).map(function (x) {
         var pics = r.pic[x._dept] || [];
@@ -111,15 +114,75 @@
     box.querySelector('#pgAll').onclick = function () { L.forEach(function (x) { if (x._dept && x._pic) S.pil[x.no] = 1; }); gambarCalon(box); };
     box.querySelector('#pgNone').onclick = function () { S.pil = {}; gambarCalon(box); };
     var byNo = {}; r.rows.forEach(function (x) { byNo[x.no] = x; });
-    box.querySelectorAll('[data-pp]').forEach(function (c) { c.onchange = function () { var n = c.getAttribute('data-pp'); if (c.checked) S.pil[n] = 1; else delete S.pil[n]; var b = box.querySelector('#pgBuat'); b.textContent = 'Buat BPB Pengganti (' + Object.keys(S.pil).length + ')'; b.disabled = !Object.keys(S.pil).length; }; });
+    box.querySelectorAll('[data-pp]').forEach(function (c) { c.onchange = function () { var n = c.getAttribute('data-pp'); if (c.checked) S.pil[n] = 1; else delete S.pil[n]; var b = box.querySelector('#pgBuat'); b.textContent = 'Tinjau dan buat (' + Object.keys(S.pil).length + ')'; b.disabled = !Object.keys(S.pil).length; }; });
     box.querySelectorAll('[data-pd]').forEach(function (s) { s.onchange = function () { var x = byNo[s.getAttribute('data-pd')]; x._dept = s.value; var p = r.pic[x._dept] || []; x._pic = p.length === 1 ? p[0] : ''; gambarCalon(box); }; });
     box.querySelectorAll('[data-pc]').forEach(function (s) { s.onchange = function () { byNo[s.getAttribute('data-pc')]._pic = s.value; }; });
     box.querySelector('#pgBuat').onclick = function () {
-      var b = this, items = Object.keys(S.pil).map(function (n) { var x = byNo[n]; return {no: n, dept: x._dept, pic: x._pic}; });
+      var items = Object.keys(S.pil).map(function (n) { var x = byNo[n]; return {no: n, dept: x._dept, pic: x._pic}; });
       var kurang = items.filter(function (x) { return !x.dept || !x.pic; }); if (kurang.length) { toast(kurang.length + ' IA terpilih belum lengkap departemen/PIC-nya.', true); return; }
-      b.disabled = true; b.textContent = 'Membuat...';
-      api({action: 'adminPgtBuat', items: items}).then(function (x) { toast(x.msg || (x.ok ? 'Selesai.' : 'Gagal.'), !x.ok); if (x.ok) { S.tab = 'tautan'; gambar(); } else { b.disabled = false; b.textContent = 'Buat BPB Pengganti (' + items.length + ')'; } });
+      S.pv = items.map(function (x) { return x.no; }); S.bebas = {}; gambarCalon(box);
     };
+  }
+
+  /* --- Pratinjau sebelum dibuat: belum ada yang tersimpan sampai tombol "Buat dan ambil tautan" ditekan --- */
+  function gambarPratinjau(box) {
+    var r = S.cal, byNo = {}; r.rows.forEach(function (x) { byNo[x.no] = x; });
+    var L = S.pv.map(function (n) { return byNo[n]; }).filter(Boolean);
+    function bebasDari(no) { return Object.keys(S.bebas[no] || {}); }
+    function nBrg(x) { return x.barang.filter(function (b) { return !(S.bebas[x.no] || {})[b.kode]; }).length; }
+    var nKosong = L.filter(function (x) { return nBrg(x) === 0; }).length, totBrg = L.reduce(function (a, x) { return a + nBrg(x); }, 0);
+    box.innerHTML = '<div class="note"><b>Pratinjau.</b> Belum ada yang dibuat. Periksa barang tiap IA, hilangkan centang barang yang tidak perlu dicantumkan (jumlah tidak bisa diubah, harus sama dengan IA Accurate). Setelah tombol <b>Buat dan ambil tautan</b> ditekan, dokumen dibuat dan tautan tanda tangan langsung muncul di layar ini. <b>Tidak ada email atau pesan yang terkirim otomatis.</b></div>' +
+      '<div class="fr" style="gap:6px;flex-wrap:wrap;align-items:center"><button id="pvKembali">&larr; Kembali ke daftar</button><span><b>' + L.length + '</b> IA &middot; <b>' + totBrg + '</b> barang akan dicantumkan</span><button class="sv" id="pvBuat"' + (nKosong || !L.length ? ' disabled' : '') + '>Buat dan ambil tautan (' + L.length + ')</button></div>' +
+      (nKosong ? '<div class="pgt-warn">' + nKosong + ' IA tidak punya barang tercentang. Centang minimal satu barang atau keluarkan IA itu dari pilihan.</div>' : '') +
+      L.map(function (x) {
+        var ats = r.atasan[x._dept] || '(Atasan belum terdaftar)';
+        return '<div class="pgt-card" data-ia="' + esc(x.no) + '"><div class="fr" style="gap:6px;flex-wrap:wrap;align-items:center;justify-content:space-between"><div><b>' + esc(x.no) + '</b> &middot; ' + esc(dmy(x.tgl)) + '<br><small>' + esc(x.kerja) + ' &middot; ' + esc(x.ppbj || 'tanpa PPBJ') + (x.proyek && x.proyek !== x.kerja ? ' &middot; ' + esc(x.proyek) : '') + '</small></div>' +
+          '<div><button data-pc="' + esc(x.no) + '">Lihat contoh PDF</button> <button data-pk="' + esc(x.no) + '">Keluarkan IA ini</button></div></div>' +
+          '<div style="margin:4px 0"><small>Departemen <b>' + esc(x._dept) + '</b> &middot; Tanda tangan: PIC <b>' + esc(x._pic) + '</b> &rarr; Atasan <b>' + esc(ats) + '</b> &rarr; Staff Gudang <b>' + esc(r.staff || '-') + '</b> &rarr; Manager Gudang <b>' + esc(r.manager || '-') + '</b></small></div>' +
+          '<div class="pgt-wrap"><table class="pgt-tb"><thead><tr><th></th><th>Barang</th><th>Jumlah</th><th>Satuan</th></tr></thead><tbody>' +
+          x.barang.map(function (b) { return '<tr><td><input type="checkbox" data-pb="' + esc(x.no) + '" data-k="' + esc(b.kode) + '"' + ((S.bebas[x.no] || {})[b.kode] ? '' : ' checked') + ' aria-label="Cantumkan ' + esc(b.nama) + '"></td><td data-l="Barang">' + esc(b.nama) + '<br><small>' + esc(b.kode) + '</small></td><td data-l="Jumlah">' + qy(b.qty) + '</td><td data-l="Satuan">' + esc(b.satuan) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
+          (x.jasa.length ? '<small><i>Tidak dicantumkan (jasa/pekerjaan): ' + esc(x.jasa.join('; ')) + '</i></small>' : '') + (x.ragu.length ? '<br><span class="pgt-warn">' + x.ragu.length + ' kode tidak ada di Master Barang, pastikan bukan jasa</span>' : '') + '</div>';
+      }).join('');
+    box.querySelector('#pvKembali').onclick = function () { S.pv = null; gambarCalon(box); };
+    box.querySelectorAll('[data-pb]').forEach(function (c) { c.onchange = function () { var n = c.getAttribute('data-pb'), k = c.getAttribute('data-k'); S.bebas[n] = S.bebas[n] || {}; if (c.checked) delete S.bebas[n][k]; else S.bebas[n][k] = 1; var y = window.scrollY; gambarPratinjau(box); window.scrollTo(0, y); }; });
+    box.querySelectorAll('[data-pk]').forEach(function (b) { b.onclick = function () { var n = b.getAttribute('data-pk'); S.pv = S.pv.filter(function (v) { return v !== n; }); delete S.pil[n]; if (!S.pv.length) S.pv = null; gambarCalon(box); }; });
+    box.querySelectorAll('[data-pc]').forEach(function (b) { b.onclick = function () { var n = b.getAttribute('data-pc'), x = byNo[n]; contohPdf({no: n, dept: x._dept, pic: x._pic, bebas: bebasDari(n)}, b); }; });
+    box.querySelector('#pvBuat').onclick = function () {
+      var btn = this; btn.disabled = true; btn.textContent = 'Membuat...';
+      var items = L.map(function (x) { return {no: x.no, dept: x._dept, pic: x._pic, bebas: bebasDari(x.no)}; });
+      api({action: 'adminPgtBuat', items: items}).then(function (x) {
+        if (!x.ok) { toast(x.msg || 'Gagal.', true); btn.disabled = false; btn.textContent = 'Buat dan ambil tautan (' + items.length + ')'; return; }
+        S.hasil = x; S.pv = null; S.pil = {}; S.bebas = {}; S.cal = null; gambar();
+      });
+    };
+  }
+  function contohPdf(item, btn) {
+    if (!root.PDFLib || !root.BuktiPdf) { toast('Pembuat PDF belum termuat. Muat ulang halaman.', true); return; }
+    btn.disabled = true; var t0 = btn.textContent; btn.textContent = 'Membuat PDF...';
+    api({action: 'adminPgtContoh', item: item}).then(function (r) { if (!r.ok) throw new Error(r.msg || 'Gagal'); return root.BuktiPdf.buatGabungan(r.docs, r.sig || {}); })
+      .then(function (u) { unduh(u, 'Contoh BPB Pengganti ' + item.no.replace(/[\\\/]/g, '-') + '.pdf'); })
+      .catch(function (e) { toast('PDF gagal: ' + (e && e.message ? e.message : e), true); }).then(function () { btn.disabled = false; btn.textContent = t0; });
+  }
+
+  /* --- Hasil: tautan langsung setelah dibuat (satu tautan per orang, isi semua IA-nya) --- */
+  function pesanWa(o, siap) {
+    return 'Yth. Bapak/Ibu ' + o.nama + ',\n\nMohon persetujuan digital *BPB Pengganti* (rekonstruksi dari IA Accurate lama yang berkas BPB manualnya tidak lengkap) sebagai ' + o.peran + '. ' +
+      (siap ? 'Saat ini ' + siap + ' dokumen siap disetujui.' : 'Dokumen akan masuk ke tautan ini setelah tahap sebelumnya selesai.') + '\n\nTautan: ' + urlTtd(o.token) + '\n(berlaku sampai ' + o.sampai + ')\n\nTerima kasih.\nGudang PT Sarana Catur Tirta Kelola';
+  }
+  function gambarHasil(box) {
+    var h = S.hasil, T = h.tautan || [];
+    box.innerHTML = '<div class="note"><b>' + h.n + ' BPB pengganti dibuat.</b> Satu tautan per orang, berisi semua dokumen miliknya. Tautan bisa dikirim sekaligus sekarang: orang hanya bisa menyetujui saat tahap sebelumnya sudah selesai. Kirim lewat WhatsApp dengan tombol Salin. <b>Tidak ada email atau pesan yang dikirim otomatis.</b></div>' +
+      (h.salah && h.salah.length ? '<div class="pgt-warn">Dilewati: ' + esc(h.salah.slice(0, 8).join('; ')) + (h.salah.length > 8 ? ' ...' : '') + '</div>' : '') +
+      T.map(function (o, i) {
+        return '<div class="pgt-card"><b>' + esc(o.nama) + '</b> <small>(' + esc(o.peran) + ')</small> &middot; ' + o.dok + ' dokumen &middot; berlaku sampai ' + esc(o.sampai) + (o.peran === 'PIC' ? ' &middot; <b>siap disetujui sekarang</b>' : ' &middot; menunggu tahap sebelumnya') +
+          '<div class="fr" style="gap:6px;flex-wrap:wrap;margin-top:4px"><button data-hl="' + i + '">Salin tautan</button><button data-hw="' + i + '">Salin pesan WhatsApp</button></div><small style="word-break:break-all;opacity:.8">' + esc(urlTtd(o.token)) + '</small></div>';
+      }).join('') +
+      '<div class="fr" style="gap:6px;flex-wrap:wrap;margin-top:8px"><button id="hsAll">Salin semua pesan WhatsApp</button><button id="hsLagi">Buat BPB pengganti lagi</button><button id="hsDaftar">Lihat daftar</button></div>';
+    box.querySelectorAll('[data-hl]').forEach(function (b) { b.onclick = function () { salin(urlTtd(T[+b.getAttribute('data-hl')].token), 'Tautan disalin.'); }; });
+    box.querySelectorAll('[data-hw]').forEach(function (b) { b.onclick = function () { var o = T[+b.getAttribute('data-hw')]; salin(pesanWa(o, o.peran === 'PIC' ? o.dok : 0), 'Pesan WhatsApp disalin.'); }; });
+    box.querySelector('#hsAll').onclick = function () { salin(T.map(function (o) { return pesanWa(o, o.peran === 'PIC' ? o.dok : 0); }).join('\n\n-----\n\n'), 'Semua pesan disalin.'); };
+    box.querySelector('#hsLagi').onclick = function () { S.hasil = null; gambar(); };
+    box.querySelector('#hsDaftar').onclick = function () { S.hasil = null; S.tab = 'daftar'; gambar(); };
   }
 
   /* --- Daftar --- */
@@ -160,7 +223,7 @@
           return '<div class="pgt-card"><b>' + esc(o.nama) + '</b> <small>(' + esc(o.peran) + ')</small> · siap disetujui <b>' + o.siap + '</b> · sudah ' + o.sudah + ' dari ' + o.total + (o.sampai ? ' · berlaku sampai ' + esc(o.sampai) : ' · <span class="pgt-warn">belum ada tautan aktif</span>') +
             '<div class="fr" style="gap:6px;flex-wrap:wrap;margin-top:4px">' + (o.token ? '<button data-sl="' + i + '">Salin tautan</button><button data-sw="' + i + '">Salin pesan WhatsApp</button>' : '') + '<button data-tb="' + i + '">' + (o.token ? 'Buat tautan baru' : 'Buat tautan') + '</button>' + (o.token ? '<button data-tc="' + i + '">Cabut</button>' : '') + '</div></div>';
         }).join('') : '<div class="note">Belum ada BPB pengganti.</div>');
-      function pesan(o) { return 'Yth. Bapak/Ibu ' + o.nama + ',\n\nMohon persetujuan digital *BPB Pengganti* (rekonstruksi dari IA Accurate lama yang berkas BPB manualnya tidak lengkap) sebagai ' + o.peran + '. Saat ini ' + o.siap + ' dokumen siap disetujui.\n\nTautan: ' + urlTtd(o.token) + '\n(berlaku sampai ' + o.sampai + ')\n\nTerima kasih.\nGudang PT Sarana Catur Tirta Kelola'; }
+      function pesan(o) { return pesanWa(o, o.siap); }
       box.querySelectorAll('[data-sl]').forEach(function (b) { b.onclick = function () { salin(urlTtd(r.orang[+b.getAttribute('data-sl')].token), 'Tautan disalin.'); }; });
       box.querySelectorAll('[data-sw]').forEach(function (b) { b.onclick = function () { salin(pesan(r.orang[+b.getAttribute('data-sw')]), 'Pesan WhatsApp disalin.'); }; });
       box.querySelectorAll('[data-tb]').forEach(function (b) { b.onclick = function () { var o = r.orang[+b.getAttribute('data-tb')]; api({action: 'adminPgtTautan', nama: o.nama, peran: o.peran, aksi: o.token ? 'baru' : ''}).then(function (x) { toast(x.msg || '', !x.ok); tabTautan(box); }); }; });

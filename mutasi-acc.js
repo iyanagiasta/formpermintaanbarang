@@ -93,7 +93,7 @@
   };
 
   /* ---------- 3. tampilan (admin.html, tab Mutasi Accurate) ---------- */
-  var el, api, toast, S = {tab: 'cari', ring: null, cari: {}, kartu: '', cekJenis: 'cek', hari: 180, last: {}};
+  var el, api, toast, S = {tab: 'cari', ring: null, cari: {}, kartu: '', ppbj: '', cekJenis: 'cek', hari: 180, last: {}};
   function rp(n) { return n ? 'Rp ' + Math.round(Number(n)).toLocaleString('id-ID') : '-'; }
   function qy(n) { return Number(n || 0).toLocaleString('id-ID', {maximumFractionDigits: 3}); }
   var BL = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -147,7 +147,7 @@
       '</div><div class="note" id="macInfo">' + (pesan || '') + '</div></div>';
     h += '<div class="card" id="macTanya"><b>Tanya</b><div class="note">Ketik pertanyaan biasa, mis. "kapan terakhir pipa 2 inch keluar". AI hanya menerjemahkan kalimat Anda menjadi pencarian; angkanya dihitung dari data Anda sendiri dan isi data tidak dikirim ke AI.</div><div class="fr" style="gap:6px;flex-wrap:wrap"><input id="mtQ" type="text" maxlength="300" placeholder="Tanya tentang mutasi barang..." style="flex:1;min-width:200px"><button class="sv" id="mtGo">Tanya</button></div>' +
       '<div class="mac-chip">' + ['kapan terakhir pipa 2 inch keluar', '10 barang paling sering keluar tahun ini', 'RI bulan lalu', 'proyek dengan pemakaian terbanyak bulan ini', 'vendor yang paling sering kirim barang', 'barang yang tidak bergerak 6 bulan'].map(function (t) { return '<button data-tq="' + esc(t) + '">' + esc(t) + '</button>'; }).join('') + '</div><div id="mtOut" aria-live="polite"></div></div>';
-    h += '<div class="card"><div class="mac-tabs" role="group" aria-label="Bagian">' + [['cari', 'Cari transaksi'], ['kartu', 'Kartu stok'], ['cek', 'Perlu dicek'], ['belumia', 'Barang proyek belum di-IA'], ['mati', 'Barang mati'], ['rapi', 'Kerapian keterangan']].map(function (t) { return '<button data-t="' + t[0] + '" aria-pressed="' + (S.tab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div><div id="macIsi"></div></div>';
+    h += '<div class="card"><div class="mac-tabs" role="group" aria-label="Bagian">' + [['cari', 'Cari transaksi'], ['kartu', 'Kartu stok'], ['ppbj', 'Per PPBJ'], ['cek', 'Perlu dicek'], ['belumia', 'Barang proyek belum di-IA'], ['mati', 'Barang mati'], ['rapi', 'Kerapian keterangan']].map(function (t) { return '<button data-t="' + t[0] + '" aria-pressed="' + (S.tab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div><div id="macIsi"></div></div>';
     el.innerHTML = h;
     pasangTanya();
     el.querySelector('#macUp').onclick = function () { el.querySelector('#macF').click(); };
@@ -155,10 +155,52 @@
     el.onclick = function (e) {
       var t = e.target.closest('[data-t]'); if (t && el.contains(t) && t.parentNode.classList.contains('mac-tabs')) { S.tab = t.getAttribute('data-t'); el.querySelectorAll('.mac-tabs button').forEach(function (b) { b.setAttribute('aria-pressed', String(b === t)); }); isi(); return; }
       var g = e.target.closest('[data-go]'); if (g) { S.tab = g.getAttribute('data-go'); el.querySelectorAll('.mac-tabs button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === S.tab)); }); isi(); return; }
+      var pj = e.target.closest('[data-ppbj]'); if (pj) { S.ppbj = pj.getAttribute('data-ppbj'); pindahTab('ppbj'); return; }
       var k = e.target.closest('[data-kartu]'); if (k) { S.kartu = k.getAttribute('data-kartu'); S.tab = 'kartu'; el.querySelectorAll('.mac-tabs button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === 'kartu')); }); isi(); el.querySelector('#macIsi').scrollIntoView({block: 'start'}); }
     };
     isi();
   }
+  /* --- Per PPBJ --- */
+  var SPR2 = [['', 'Otomatis'], ['belum jalan', 'belum jalan'], ['berjalan', 'berjalan'], ['selesai', 'selesai'], ['ditunda', 'ditunda']];
+  function pct(v) { return v == null ? '-' : String(v).replace('.', ',') + '%'; }
+  function tabPpbj(box) {
+    box.innerHTML = '<div class="note">Satu PPBJ lengkap: rencana material dan harga estimasi (Item Requisition), barang yang sudah masuk (RI), yang sudah dikeluarkan (IA), dan sisanya. Ketik nomor PPBJ atau pilih dari daftar.</div>' +
+      '<div class="fr" style="gap:6px;flex-wrap:wrap"><input id="mpQ" list="mpList" type="text" placeholder="mis. 047/PB/VII/2026" value="' + esc(S.ppbj || '') + '" style="flex:1;min-width:200px"><datalist id="mpList"></datalist><button class="sv" id="mpGo">Tampilkan</button><button id="mpXl">Unduh Excel</button></div><div id="mpOut" class="note">Pilih atau ketik nomor PPBJ.</div>';
+    var out = box.querySelector('#mpOut'), q = box.querySelector('#mpQ');
+    function daftar() { if (S.ppDaftar) { isiDaftar(); return; } api({action: 'adminMacPpbj'}).then(function (r) { if (r && r.ok) { S.ppDaftar = r.daftar; isiDaftar(); } }); }
+    function isiDaftar() { var dl = box.querySelector('#mpList'); if (dl) dl.innerHTML = (S.ppDaftar || []).map(function (x) { return '<option value="' + esc(x.ppbj) + '">' + esc(x.proyek || '') + '</option>'; }).join(''); }
+    function go() {
+      var v = q.value.trim(); S.ppbj = v; if (!v) { out.textContent = 'Pilih atau ketik nomor PPBJ.'; return; }
+      out.textContent = 'Memuat...'; api({action: 'adminMacPpbj', ppbj: v}).then(function (r) { if (!r.ok) { out.textContent = r.msg || 'Gagal.'; return; } S.last.ppbj = r; gambarPpbj(out, r); });
+    }
+    box.querySelector('#mpGo').onclick = go; q.onkeydown = function (e) { if (e.key === 'Enter') go(); };
+    box.querySelector('#mpXl').onclick = function () {
+      var r = S.last.ppbj; if (!r) { toast('Tampilkan dulu PPBJ-nya.', true); return; }
+      unduhTabel('PPBJ ' + String(r.ppbj).replace(/[\\\/:*?"<>|\[\]]/g, '-'), 'Laporan PPBJ ' + r.ppbj + (r.proyek ? ' - ' + r.proyek : ''), 'Status proyek: ' + r.status + ' · estimasi barang ' + rp(r.sum.estBarang) + ' · masuk (RI) ' + rp(r.sum.nilaiRi) + ' · sudah di-IA ' + rp(r.sum.nilaiIa) + ' · nilai masuk dan IA = perkiraan (jumlah x harga satuan)',
+        [{t: 'Kode', k: 'kode', w: 20}, {t: 'Nama', k: 'nama', w: 38}, {t: 'Jenis', k: 'jenis', w: 8}, {t: 'Rencana', k: 'rencana', f: '#,##0.###', w: 10}, {t: 'Harga estimasi', k: 'harga', f: '#,##0', w: 14}, {t: 'Total estimasi', k: 'est', f: '#,##0', w: 15}, {t: 'Masuk (RI)', k: 'masuk', f: '#,##0.###', w: 11}, {t: 'Nilai masuk', k: 'nMasuk', f: '#,##0', w: 14}, {t: 'Di-IA', k: 'ia', f: '#,##0.###', w: 11}, {t: 'Nilai IA', k: 'nIa', f: '#,##0', w: 14}, {t: 'Belum masuk', k: 'belumMasuk', f: '#,##0.###', w: 11}, {t: 'Masuk belum di-IA', k: 'belumIa', f: '#,##0.###', w: 12}, {t: 'PO', k: 'po', w: 16}, {t: 'Status', k: 'status', w: 26}], r.rows);
+    };
+    daftar();
+    if (S.ppbj) go();
+  }
+  function gambarPpbj(out, r) {
+    var s = r.sum;
+    out.className = '';
+    out.innerHTML = '<div><b>' + esc(r.ppbj) + '</b>' + (r.proyek ? ' · ' + esc(r.proyek) : '') + (r.nomorIr.length > 1 ? ' <small>(versi IR: ' + esc(r.nomorIr.join(', ')) + ')</small>' : '') + '</div>' +
+      '<div class="note">Status proyek: <span class="mac-st mac-st-' + esc(String(r.status).replace(/ /g, '')) + '">' + esc(r.status) + '</span> <small>(dari: ' + esc(r.statusDari || '-') + ')</small> &nbsp; Ganti: <select id="mpSt">' + SPR2.map(function (o) { return '<option value="' + o[0] + '"' + ((r.statusDari === 'manual' ? r.status : '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+      (!r.adaIr ? '<div class="note">PPBJ ini tidak ada di laporan Item Requisition yang diunggah, jadi rencana dan harga estimasi kosong.</div>' : '') +
+      '<div class="mac-sum"><div><b>' + rp(s.estBarang) + '</b><span>Estimasi barang (' + s.nBarang + ' item)</span></div><div><b>' + rp(s.estJasa) + '</b><span>Estimasi jasa (' + s.nJasa + ' item)</span></div><div><b>' + rp(s.nilaiRi) + '</b><span>Barang masuk (RI) · ' + pct(s.pctRi) + ' dari estimasi barang</span></div><div><b>' + rp(s.nilaiIa) + '</b><span>Sudah di-IA · ' + pct(s.pctIa) + ' dari estimasi barang</span></div>' + (s.nLuar ? '<div><b>' + s.nLuar + '</b><span>Barang di luar PPBJ</span></div>' : '') + '</div>' +
+      (r.nCek ? '<div class="note">Ada ' + r.nCek + ' transaksi yang mungkin milik PPBJ ini tetapi masih <button class="mac-link" data-go="cek">perlu dicek</button>; belum dihitung.</div>' : '') +
+      '<div class="note"><small>Nilai masuk dan IA adalah perkiraan (jumlah x harga satuan). IA bisa melebihi RI karena barang proyek sering diambil dari stok.</small></div>' +
+      '<div class="mac-wrap"><table class="mac-tb"><thead><tr><th>Barang</th><th class="nm">Rencana</th><th class="nm">Estimasi</th><th class="nm">Masuk (RI)</th><th class="nm">Di-IA</th><th class="nm">Belum masuk</th><th>Status</th></tr></thead><tbody>' +
+      (r.rows.length ? r.rows.map(function (o) {
+        return '<tr><td data-l="Barang"><button class="mac-link" data-kartu="' + esc(o.kode) + '">' + esc(o.nama) + '</button><br><small>' + esc(o.kode) + (o.jenis === 'jasa' ? ' · jasa' : '') + '</small></td><td class="nm" data-l="Rencana">' + (o.ada ? qy(o.rencana) : '-') + '</td><td class="nm" data-l="Estimasi">' + (o.ada ? rp(o.est) + '<br><small>@ ' + rp(o.harga) + '</small>' : '-') + '</td><td class="nm" data-l="Masuk">' + qy(o.masuk) + (o.nMasuk ? '<br><small>' + rp(o.nMasuk) + '</small>' : '') + '</td><td class="nm" data-l="Di-IA">' + qy(o.ia) + (o.nIa ? '<br><small>' + rp(o.nIa) + '</small>' : '') + '</td><td class="nm" data-l="Belum masuk">' + (o.jenis === 'barang' && o.ada ? qy(o.belumMasuk) : '-') + '</td><td data-l="Status"><small>' + esc(o.status) + '</small></td></tr>';
+      }).join('') : '<tr><td colspan="7">Belum ada data.</td></tr>') + '</tbody></table></div>' +
+      '<details style="margin-top:8px"><summary><b>Riwayat transaksi (' + r.nRiwayat + ')</b></summary><div id="mpRw"></div></details>';
+    var rw = out.querySelector('#mpRw'); tampilCari(rw, {rows: r.riwayat, total: riwTotal(r.riwayat), potong: r.potong});
+    out.querySelector('#mpSt').onchange = function () { var v = this.value; api({action: 'adminMacStatus', ppbj: r.ppbj, status: v}).then(function (x) { if (!x.ok) { toast(x.msg || 'Gagal.', true); return; } toast('Status proyek disimpan.'); S.last.belumia = null; api({action: 'adminMacPpbj', ppbj: r.ppbj}).then(function (n) { if (n.ok) { S.last.ppbj = n; gambarPpbj(out, n); } }); }); };
+  }
+  function riwTotal(L) { var t = {n: L.length, masuk: 0, keluar: 0, nMasuk: 0, nKeluar: 0}; L.forEach(function (x) { t.masuk += x.masuk; t.keluar += x.keluar; if (x.masuk > 0) t.nMasuk += x.nilai; else t.nKeluar += x.nilai; }); return t; }
+
   /* --- Tanya --- */
   function pindahTab(t) { S.tab = t; el.querySelectorAll('.mac-tabs button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === t)); }); isi(); var x = el.querySelector('#macIsi'); if (x && x.scrollIntoView) x.scrollIntoView({block: 'start'}); }
   var ALASAN = {tanpa_kunci: 'AI belum dipasang', batas: 'jatah AI hari ini habis', gagal: 'AI sedang tidak bisa dihubungi', tidak_tahu: 'AI tidak mengerti pertanyaan', dimatikan: ''};
@@ -173,7 +215,7 @@
         var kepala = '<div class="note"><b>Dipahami:</b> ' + esc(r.dipahami || '') + '<br><small>Diterjemahkan oleh: ' + esc(sum) + '</small></div>';
         if (h.tipe === 'ke') {
           out.innerHTML = kepala + '<div class="note">' + esc(h.ringkas || '') + '</div>';
-          if (h.tab === 'kartu' && h.kode) S.kartu = h.kode; if (h.tab === 'mati' && r.plan && r.plan.hari) S.hari = r.plan.hari; pindahTab(h.tab); return;
+          if (h.tab === 'kartu' && h.kode) S.kartu = h.kode; if (h.tab === 'ppbj' && h.ppbj) S.ppbj = h.ppbj; if (h.tab === 'mati' && r.plan && r.plan.hari) S.hari = r.plan.hari; pindahTab(h.tab); return;
         }
         if (h.tipe === 'pilih') { out.innerHTML = kepala + '<div class="note">Ada beberapa barang yang cocok. Pilih satu:</div><div class="mac-chip">' + (h.pilihan || []).map(function (b) { return '<button data-kartu="' + esc(b.kode) + '">' + esc(b.nama) + '</button>'; }).join('') + '</div>'; return; }
         if (h.tipe === 'ranking') {
@@ -193,7 +235,7 @@
     q.onkeydown = function (e) { if (e.key === 'Enter') kirim(q.value); };
     el.querySelectorAll('[data-tq]').forEach(function (b) { b.onclick = function () { kirim(b.getAttribute('data-tq')); }; });
   }
-  function isi() { var f = {cari: tabCari, kartu: tabKartu, cek: tabCek, belumia: tabBelumIa, mati: tabMati, rapi: tabRapi}[S.tab] || tabCari; f(el.querySelector('#macIsi')); }
+  function isi() { var f = {cari: tabCari, kartu: tabKartu, ppbj: tabPpbj, cek: tabCek, belumia: tabBelumIa, mati: tabMati, rapi: tabRapi}[S.tab] || tabCari; f(el.querySelector('#macIsi')); }
 
   /* unggah bertahap */
   function unggah(file) {
@@ -244,7 +286,7 @@
       (r.rows.length ? r.rows.map(function (x) {
         return '<tr><td data-l="Tanggal">' + esc(dmy(x.tgl)) + '</td><td data-l="Nomor">' + esc(x.no) + '<br><small>' + esc(x.tipe) + '</small></td><td data-l="Barang"><button class="mac-link" data-kartu="' + esc(x.kode) + '" title="Lihat kartu stok">' + esc(x.nama) + '</button><br><small>' + esc(x.kode) + '</small></td>' +
           '<td class="nm" data-l="Masuk">' + (x.masuk ? qy(x.masuk) : '') + '</td><td class="nm" data-l="Keluar">' + (x.keluar ? qy(x.keluar) : '') + '</td><td class="nm" data-l="Nilai" title="' + esc(x.hs ? 'Harga ' + x.hs : 'Harga belum ada') + '">' + rp(x.nilai) + '</td>' +
-          '<td data-l="PPBJ">' + esc(x.ppbj || '') + ' ' + badge(x.status, x.sumber) + '</td><td data-l="Keterangan"><small>' + esc(x.ket || x.desk) + '</small></td></tr>';
+          '<td data-l="PPBJ">' + (x.ppbj ? '<button class="mac-link" data-ppbj="' + esc(String(x.ppbj).split(',')[0].trim()) + '">' + esc(x.ppbj) + '</button>' : '') + ' ' + badge(x.status, x.sumber) + '</td><td data-l="Keterangan"><small>' + esc(x.ket || x.desk) + '</small></td></tr>';
       }).join('') : '<tr><td colspan="8">Tidak ada transaksi yang cocok.</td></tr>') + '</tbody></table></div>';
   }
 
@@ -310,7 +352,7 @@
       out.innerHTML = '<div class="fr" style="gap:8px;flex-wrap:wrap;align-items:center"><label>Status proyek <select id="mbSt"><option value="">Semua</option>' + SPR.map(function (k) { return '<option value="' + k + '"' + (S.stF === k ? ' selected' : '') + '>' + k + (ps[k] ? ' (' + ps[k] + ')' : '') + '</option>'; }).join('') + '</select></label></div>' +
         '<div class="mac-sum"><div><b>' + r.n + '</b><span>PPBJ</span></div><div><b>' + r.nBaris + '</b><span>Baris barang</span></div><div><b>' + rp(r.nilai) + '</b><span>Perkiraan nilai</span></div></div>' +
         (r.rows.filter(function (p) { return !S.stF || p.status === S.stF; }).length ? r.rows.filter(function (p) { return !S.stF || p.status === S.stF; }).map(function (p) {
-          return '<details class="mac-cek"><summary><b>' + esc(p.ppbj) + '</b> · ' + esc(p.proyek || '-') + ' · <span class="mac-st mac-st-' + esc(String(p.status).replace(/ /g, '')) + '">' + esc(p.status) + '</span> · ' + p.n + ' barang · ' + rp(p.nilai) + ' · terima terakhir ' + esc(dmy(p.tRi)) + '</summary><div class="note">Status proyek: <select data-stp="' + esc(p.ppbj) + '">' + [['', 'Otomatis'], ['belum jalan', 'belum jalan'], ['berjalan', 'berjalan'], ['selesai', 'selesai'], ['ditunda', 'ditunda']].map(function (o) { return '<option value="' + o[0] + '"' + ((p.statusDari === 'manual' ? p.status : '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select> <small>(dari: ' + esc(p.statusDari || '-') + ')</small></div><div class="mac-wrap"><table class="mac-tb"><thead><tr><th>Barang</th><th class="nm">Diterima</th><th class="nm">Di-IA</th><th class="nm">Sisa</th><th class="nm">Nilai</th></tr></thead><tbody>' +
+          return '<details class="mac-cek"><summary><b>' + esc(p.ppbj) + '</b> · ' + esc(p.proyek || '-') + ' · <span class="mac-st mac-st-' + esc(String(p.status).replace(/ /g, '')) + '">' + esc(p.status) + '</span> · ' + p.n + ' barang · ' + rp(p.nilai) + ' · terima terakhir ' + esc(dmy(p.tRi)) + '</summary><div class="note"><button class="mac-link" data-ppbj="' + esc(p.ppbj) + '">Buka laporan lengkap PPBJ ini</button><br>Status proyek: <select data-stp="' + esc(p.ppbj) + '">' + [['', 'Otomatis'], ['belum jalan', 'belum jalan'], ['berjalan', 'berjalan'], ['selesai', 'selesai'], ['ditunda', 'ditunda']].map(function (o) { return '<option value="' + o[0] + '"' + ((p.statusDari === 'manual' ? p.status : '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select> <small>(dari: ' + esc(p.statusDari || '-') + ')</small></div><div class="mac-wrap"><table class="mac-tb"><thead><tr><th>Barang</th><th class="nm">Diterima</th><th class="nm">Di-IA</th><th class="nm">Sisa</th><th class="nm">Nilai</th></tr></thead><tbody>' +
             p.barang.map(function (b) { return '<tr><td data-l="Barang"><button class="mac-link" data-kartu="' + esc(b.kode) + '">' + esc(b.nama) + '</button><br><small>' + esc(b.kode) + '</small></td><td class="nm" data-l="Diterima">' + qy(b.terima) + '</td><td class="nm" data-l="Di-IA">' + qy(b.pakai) + '</td><td class="nm" data-l="Sisa"><b>' + qy(b.sisa) + '</b></td><td class="nm" data-l="Nilai">' + rp(b.nilai) + '</td></tr>'; }).join('') + '</tbody></table></div></details>';
         }).join('') : '<div class="note">Tidak ada. Semua barang yang diterima untuk PPBJ sudah di-IA.</div>');
       var sf = out.querySelector('#mbSt'); if (sf) sf.onchange = function () { S.stF = this.value; tabBelumIa(box); };

@@ -136,19 +136,19 @@ function mintaKode(judul,ket,verif){
 /* ---- gerbang per kartu ---- */
 async function pastikanPegawai(){
   var k=st("sctk_kode");
-  if(k){try{var r=await api({action:"proyek",kode:k});if(r.ok)return k;}catch(e){return k;}st("sctk_kode",null);}
+  if(k)return k;   /* T112: langsung pindah; halaman tujuan memeriksa kode sendiri (hemat ±5 dtk per klik) */
   var v=await mintaKode("Masukkan kode akses","Halaman ini memerlukan kode akses. Silakan masukkan kode Anda, atau minta akses langsung kepada admin gudang.",function(x){return api({action:"proyek",kode:x});});
   if(v)st("sctk_kode",v);return v;
 }
 async function pastikanPic(){
   var k=st("sctk_pic"),pin=st("sctk_admin",undefined,true);
-  if(k||pin){try{var r=await api({action:"proyekPic",kode:k,pin:k?undefined:pin});if(r.ok)return true;}catch(e){return true;}st("sctk_pic",null);}
+  if(k||pin)return true;
   var v=await mintaKode("Masukkan kode akses","Halaman ini memerlukan kode akses. Silakan masukkan kode Anda, atau minta akses langsung kepada admin gudang.",function(x){return api({action:"proyekPic",kode:x});});
   if(v)st("sctk_pic",v);return !!v;
 }
 async function pastikanAdmin(){
   var pin=st("sctk_admin",undefined,true);
-  if(pin){try{var r=await api({action:"adminSistem",pin:pin});if(r.ok)return pin;}catch(e){return pin;}st("sctk_admin",null,true);}
+  if(pin)return pin;
   var v=await mintaKode("Masukkan kode akses","Halaman ini memerlukan kode akses. Silakan masukkan kode Anda, atau minta akses langsung kepada admin gudang.",function(x){return api({action:"adminSistem",pin:x});});
   if(v)st("sctk_admin",v,true);return v;
 }
@@ -158,7 +158,7 @@ async function buka(aksi,btn){
     if(aksi==="minta"){if(await pastikanPegawai())location.href="index.html?dari=utama";}
     else if(aksi==="cari"){
       var k=await pastikanPegawai();
-      if(k){var r=await api({action:"menu",kode:k}),u=(r&&r.ok&&r.cari)||"gudang.html";location.href=u;}
+      if(k){var cu=null;try{cu=JSON.parse(localStorage.getItem("sctk_cari_url")||"null");}catch(e){}if(cu&&cu.u&&Date.now()-cu.t<864e5){location.href=cu.u;return;}var r=await api({action:"menu",kode:k}),u=(r&&r.ok&&r.cari)||"gudang.html";try{if(r&&r.ok&&r.cari)localStorage.setItem("sctk_cari_url",JSON.stringify({u:u,t:Date.now()}));}catch(e){}location.href=u;}
     }
     else if(aksi==="tanya"){if(await pastikanPegawai())location.href="tanya.html";}
     else if(aksi==="masterbarang"){if(await pastikanPegawai())location.href="masterbarang.html";}

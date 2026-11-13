@@ -210,8 +210,9 @@
       r++; s.gabung(r, 3, r, 14); s.set(r, 3, 'Berita Acara Serah Terima Pekerjaan ' + b.nomor, {font: F(), al: {h: 'center'}});
       r++; s.gabung(r, 3, r, 14); s.set(r, 3, b.nama, {font: F({b: true}), al: {h: 'center', wrap: true}});
       r += 2; var subs = [];
-      baris.filter(function (x) { return x.jenis === 'IA' && ia[x.no]; }).forEach(function (x) {
-        var d = ia[x.no];
+      var iaB = iaPlus(ia, baris);
+      baris.filter(function (x) { return (x.jenis === 'IA' || x.jenis === 'PK') && iaB[x.no]; }).forEach(function (x) {
+        var d = iaB[x.no];
         s.gabung(r, 3, r, 14); s.set(r, 3, d.no + '  |  ' + dmy(d.tgl) + '  |  ' + (d.ppbj && d.ppbj.length ? 'PPBJ ' + d.ppbj.join(', ') : 'tanpa PPBJ'), {font: F({b: true})}); r++;
         s.gabung(r, 3, r, 14); s.baris(r, d.ket.length > 110 ? 26 : 14); s.set(r, 3, 'Keterangan: ' + d.ket, {font: F({sz: 9, i: true}), al: {h: 'left', wrap: true}}); r++;
         [[3, 3, 'No'], [4, 4, 'Kode Barang'], [5, 5, 'Nama Barang'], [6, 6, 'Qty'], [7, 8, 'Satuan'], [9, 9, 'Harga Satuan'], [10, 11, 'Total']].forEach(function (h) { if (h[0] !== h[1]) s.gabung(r, h[0], r, h[1]); s.set(r, h[0], h[2], hd); });
@@ -318,7 +319,7 @@
         var pos = [[0, 0.17], [0.17, 0.17], [0.34, 0.17], [0.51, 0.17], [0.68, 0.32]];
         TTD.forEach(function (t, i) { teks(t[1], M + CW * pos[i][0], y, fb, 9, {h: 'center', w: CW * pos[i][1]}); teks(tt[t[0]] || '', M + CW * pos[i][0], y - 12, f, 9, {h: 'center', w: CW * pos[i][1]}); });
         // lampiran
-        var iaL = baris.filter(function (x) { return x.jenis === 'IA' && ia[x.no]; });
+        var iaB = iaPlus(ia, baris), iaL = baris.filter(function (x) { return (x.jenis === 'IA' || x.jenis === 'PK') && iaB[x.no]; });
         if (!iaL.length) return;
         baru();
         teks('LAMPIRAN - DAFTAR PENYESUAIAN PERSEDIAAN', M, y - 10, fb, 11.5, {h: 'center', w: CW}); y -= 24;
@@ -328,7 +329,7 @@
         function kepL() { var h = 13; page.drawRectangle({x: M, y: y - h, width: CW, height: h, color: L.rgb(0.85, 0.88, 0.95), borderWidth: 0.6, borderColor: L.rgb(0, 0, 0)}); for (var i = 1; i < 7; i++) garis(LX[i], y, LX[i], y - h); ['No', 'Kode Barang', 'Nama Barang', 'Qty', 'Satuan', 'Harga Satuan', 'Total'].forEach(function (t, i) { teks(t, LX[i], y - 9.5, fb, 8, {h: 'center', w: LX[i + 1] - LX[i]}); }); y -= h; }
         var totL = 0;
         iaL.forEach(function (x) {
-          var d = ia[x.no], ketL = bungkus('Keterangan: ' + d.ket, fi, 7.5, CW);
+          var d = iaB[x.no], ketL = bungkus('Keterangan: ' + d.ket, fi, 7.5, CW);
           if (y - 40 - ketL.length * 9 < M) baru();
           teks(d.no + '  |  ' + dmy(d.tgl) + '  |  ' + (d.ppbj && d.ppbj.length ? 'PPBJ ' + d.ppbj.join(', ') : 'tanpa PPBJ'), M, y - 9, fb, 8.5); y -= 12;
           ketL.forEach(function (l) { teks(l, M, y - 8, fi, 7.5); y -= 9; }); y -= 2;
@@ -519,6 +520,13 @@
       return p.then(function () { return out.save(); }).then(function (u) { return {bytes: u, lewat: lewat}; });
     });
   };
+  /** Rincian lampiran: IA + pengembalian sisa proyek (qty dan nilai minus). */
+  function iaPlus(ia, baris) {
+    var o = {}; Object.keys(ia || {}).forEach(function (k) { o[k] = ia[k]; });
+    (baris || []).forEach(function (x) { if (x.jenis !== 'PK' || !x.no) return; o[x.no] = {no: x.no, tgl: x.tgl, ppbj: String(x.ppbj || '').replace(/^\s*PPBJ\s*/i, '').split(/\s*,\s*/).filter(String), ket: 'Pengembalian sisa proyek (mengurangi pemakaian)' + (x.oleh ? ', dikembalikan oleh ' + x.oleh : ''), nilai: Number(x.nilai) || 0, items: (x.items || []).map(function (i) { return {kode: i.kode, nama: i.nama, satuan: i.satuan, qty: -(Number(i.qty) || 0), harga: Number(i.harga) || 0, total: -(Number(i.total) || 0)}; })}; });
+    return o;
+  }
+  BA.iaPlus = iaPlus;
   /** PDF lengkap satu BAST: BAST + rincian, cetakan IA (urut baris), BPB (+BPB manual), file lain. */
   BA.pdfLengkap = function (b, ia, info) {
     var L = root.PDFLib, parts = [], lamp = info.lamp || [], urutIa = {}, catatan = [];
@@ -534,7 +542,7 @@
     }).then(function (arr) {
       arr.forEach(function (x) { parts.push(x); });
       var lepas = {}; ((b.data.bpb || {}).lepas || []).forEach(function (k) { lepas[k] = 1; });
-      var ids = (info.bpb || []).filter(function (x) { return !x.batal && !lepas[x.id] && (info.modeAktif === 'ia' ? x.ia.length : x.ppbjCocok); }).map(function (x) { return x.id; });
+      var ids = (info.bpb || []).filter(function (x) { return !x.batal && !lepas[x.id] && (x.kembali || (info.modeAktif === 'ia' ? x.ia.length : x.ppbjCocok)); }).map(function (x) { return x.id; });
       return bpbBytes(ids, catatan);
     }).then(function (u) {
       if (u) parts.push({bytes: u, mime: 'application/pdf', nama: 'BPB'});
@@ -804,14 +812,14 @@
     var aktif = bp.mode === 'auto' ? (r.semuaIa ? 'ia' : 'ppbj') : bp.mode, lepas = {}; (bp.lepas || []).forEach(function (k) { lepas[k] = 1; });
     var iaRows = d.baris.filter(function (x) { return x.jenis === 'IA'; }), byIa = {}; r.lamp.forEach(function (x) { if (x.jenis === 'IA') byIa[x.noIa] = x; });
     function fileBaris(x) { return '<div>' + esc(x.nama) + ' <small>(' + Math.max(1, Math.round(x.ukuran / 1024)) + ' KB, ' + esc(x.waktu) + ')</small> <button data-lh="' + esc(x.id) + '">Hapus</button></div>'; }
-    var bpbL = r.bpb.filter(function (x) { return aktif === 'ia' ? x.ia.length : x.ppbjCocok; });
-    var h = '<b>Lampiran</b> <span class="note">Urutan di PDF lengkap: BAST, rincian harga, cetakan IA, BPB, BPB manual, file lain.</span>' +
+    var bpbL = r.bpb.filter(function (x) { return x.kembali || (aktif === 'ia' ? x.ia.length : x.ppbjCocok); });
+    var h = '<b>Lampiran</b> <span class="note">Urutan di PDF lengkap: BAST, rincian harga, cetakan IA, BPB (lalu bukti pengembalian sisa proyek), BPB manual, file lain.</span>' +
       '<h4 style="margin:8px 0 4px">1. Cetakan IA Accurate (' + iaRows.filter(function (x) { return byIa[x.no]; }).length + '/' + iaRows.length + ')</h4>' +
       (iaRows.length ? iaRows.map(function (x) { var f = byIa[x.no]; return '<div style="padding:2px 0"><b>' + esc(x.no) + '</b> ' + (f ? '&#10003; ' + esc(f.nama) + ' <button data-lh="' + esc(f.id) + '">Hapus</button>' : '<span class="bst-tag">belum</span> <button data-lia="' + esc(x.no) + '">Unggah</button>') + '</div>'; }).join('') : '<div class="note">Tidak ada baris IA.</div>') +
       '<input type="file" id="beFIa" accept=".pdf,application/pdf" hidden><div class="note">Bisa juga unggah banyak cetakan sekaligus dari daftar BAST.</div>' +
       '<h4 style="margin:10px 0 4px">2. BPB dari sistem</h4><div class="fr" style="gap:6px;flex-wrap:wrap"><select id="beBpbM"><option value="auto">Otomatis (' + (r.semuaIa ? 'lewat nomor IA' : 'semua BPB per PPBJ') + ')</option><option value="ia">Lewat nomor IA</option><option value="ppbj">Semua BPB per PPBJ</option></select>' +
       (r.semuaIa ? '' : '<small>Belum semua IA punya pasangan BPB di tab Accurate.</small>') + '</div>' +
-      (bpbL.length ? '<div class="bst-ia">' + bpbL.map(function (x) { return '<label style="display:block"><input type="checkbox" data-bp="' + esc(x.id) + '"' + (lepas[x.id] || x.batal ? '' : ' checked') + (x.batal ? ' disabled' : '') + '> <b>' + esc(x.doc) + '</b> ' + esc(dmy(x.tgl)) + ' &middot; ' + esc(x.ppbj || '-') + ' &middot; ' + esc(x.status) + (x.ia.length ? ' &middot; ' + esc(x.ia.join(', ')) : '') + '</label>'; }).join('') + '</div>' : '<div class="note">Tidak ada BPB di sistem untuk ' + (aktif === 'ia' ? 'nomor IA' : 'PPBJ') + ' BAST ini. Untuk permintaan manual, unggah sebagai BPB manual.</div>') +
+      (bpbL.length ? '<div class="bst-ia">' + bpbL.map(function (x) { return '<label style="display:block"><input type="checkbox" data-bp="' + esc(x.id) + '"' + (lepas[x.id] || x.batal ? '' : ' checked') + (x.batal ? ' disabled' : '') + '> <b>' + esc(x.doc) + '</b> ' + esc(dmy(x.tgl)) + ' &middot; ' + esc(x.ppbj || '-') + ' &middot; ' + esc(x.kembali ? 'Bukti pengembalian sisa proyek' : x.status) + (x.ia.length ? ' &middot; ' + esc(x.ia.join(', ')) : '') + '</label>'; }).join('') + '</div>' : '<div class="note">Tidak ada BPB di sistem untuk ' + (aktif === 'ia' ? 'nomor IA' : 'PPBJ') + ' BAST ini. Untuk permintaan manual, unggah sebagai BPB manual.</div>') +
       '<h4 style="margin:10px 0 4px">3. BPB manual (permintaan kertas)</h4>' + r.lamp.filter(function (x) { return x.jenis === 'BPB manual'; }).map(fileBaris).join('') +
       '<input type="file" id="beFBm" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" multiple hidden><button id="beBm">+ BPB manual (PDF/foto)</button>' +
       '<h4 style="margin:10px 0 4px">4. File lain (RI, foto, dokumen pendukung)</h4>' + r.lamp.filter(function (x) { return x.jenis === 'Lain'; }).map(fileBaris).join('') +
@@ -849,8 +857,8 @@
     var d = S.ed.data, tb = el.querySelector('#beTb'), opsiKode = '<option value=""></option>' + KATEGORI.map(function (k) { return '<option value="' + k[0] + '">' + k[0] + ' ' + esc(k[1]) + '</option>'; }).join('');
     tb.innerHTML = d.baris.length ? d.baris.map(function (x, i) {
       return '<tr' + (x.ubah ? ' class="bst-ub"' : '') + ' data-i="' + i + '"><td>' + (i + 1) + '</td>' +
-        '<td data-l="Dokumen">' + (x.jenis === 'IA' ? '<b>' + esc(x.no) + '</b><br><small>' + esc(dmy(x.tgl)) + '</small>' : '<input data-k="no" value="' + esc(x.no) + '" placeholder="RI.2026.xx.xxxxx" aria-label="Nomor dokumen"><input type="date" data-k="tgl" value="' + esc(x.tgl) + '" aria-label="Tanggal dokumen">') +
-        (x.ubah ? '<br><span class="bst-tag">nilai berubah ' + esc(rpTeks(x.ubah.lama)) + ' &rarr; ' + esc(rpTeks(x.ubah.baru)) + '</span> <button data-ok="' + i + '">Oke</button>' : '') + '</td>' +
+        '<td data-l="Dokumen">' + (x.jenis === 'PK' ? '<b>' + esc(x.no) + '</b><br><small>' + esc(dmy(x.tgl)) + ' &middot; pengembalian sisa proyek (mengurangi)</small>' : x.jenis === 'IA' ? '<b>' + esc(x.no) + '</b><br><small>' + esc(dmy(x.tgl)) + '</small>' : '<input data-k="no" value="' + esc(x.no) + '" placeholder="RI.2026.xx.xxxxx" aria-label="Nomor dokumen"><input type="date" data-k="tgl" value="' + esc(x.tgl) + '" aria-label="Tanggal dokumen">') +
+        (x.ubah ? '<br><span class="bst-tag">' + (x.ubah.kembali ? 'pengembalian baru: ' + esc(rpTeks(x.ubah.baru)) : 'nilai berubah ' + esc(rpTeks(x.ubah.lama)) + ' &rarr; ' + esc(rpTeks(x.ubah.baru))) + '</span> <button data-ok="' + i + '">Oke</button>' : '') + '</td>' +
         '<td data-l="PPBJ"><input data-k="ppbj" value="' + esc(x.ppbj) + '" aria-label="PPBJ atau SPK"></td>' +
         '<td data-l="Akun"><input data-k="akun" list="bstAkun" value="' + esc(x.akun) + '" aria-label="Akun"></td>' +
         '<td data-l="Lokasi"><input data-k="lokasi" list="bstLok" value="' + esc(x.lokasi) + '" aria-label="Lokasi"></td>' +

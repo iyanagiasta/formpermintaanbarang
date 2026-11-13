@@ -542,9 +542,13 @@ async function saveXlsx(){
 }
 var elBy=document.getElementById("by"),elPem=document.getElementById("peminta"),elPpbj=document.getElementById("ppbj");
 combo(elPpbj,function(q){
-  var out=[];CARI.proyek(PROYEK,q,30).hasil.forEach(function(p){out.push({label:p.ppbj+" — "+p.ket,sub:(p.dept?p.dept+" · ":"")+p.status,value:p.ppbj});});
+  var out=[];CARI.proyek(PROYEK,q,30).hasil.forEach(function(p){out.push({label:p.ppbj+" — "+p.ket,sub:(p.dept?p.dept+" · ":"")+p.status,value:p.ppbj,p:p});});
   return out;
-},function(){});
+},function(it){
+  // keterangan kosong -> otomatis "Sisa proyek <nama proyek>" (bisa ditambah kondisi barang)
+  var a=document.getElementById("alasan");if(!it||!it.p||!a||a.value.trim())return;
+  a.value="Sisa proyek "+it.p.ket+" (PPBJ "+it.p.ppbj+")";if(a._upd)a._upd();try{autoGrow(a)}catch(e){}
+});
 function setDefaults(){document.getElementById("staff").value="Iyan";document.getElementById("mgrg").value="Bambang";}
 
 /* ===== Database bersama (dipakai semua pengguna link) ===== */

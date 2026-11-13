@@ -1013,9 +1013,14 @@ async function saveXlsx(){
 var elBy=document.getElementById("by"),elPem=document.getElementById("peminta"),elPpbj=document.getElementById("ppbj");
 elPpbj.addEventListener("change",function(){muatStokProyek();});
 combo(elPpbj,function(q){
-  var k=q.trim().toLowerCase(),o="Belum Tersedia";
-  return (!k||o.toLowerCase().indexOf(k)>=0)?[{label:o,value:o}]:[];
-},function(){});
+  var k=q.trim().toLowerCase(),o="Belum Tersedia",out=(!k||o.toLowerCase().indexOf(k)>=0)?[{label:o,value:o}]:[];
+  if(PROYEK.length)CARI.proyek(PROYEK,q,30).hasil.forEach(function(p){out.push({label:p.ppbj+" — "+p.ket,sub:(p.dept?p.dept+" · ":"")+p.status,value:p.ppbj,p:p});});
+  return out;
+},function(it){
+  // alasan kosong -> otomatis nama proyek (sama dengan memilih proyek di kolom Alasan)
+  var a=document.getElementById("alasan");if(it&&it.p&&a&&!a.value.trim()){a.value="Proyek "+it.p.ket+" (PPBJ "+it.p.ppbj+")";if(a._upd)a._upd();try{autoGrow(a)}catch(e){}}
+  if(it&&it.p)muatStokProyek();
+});
 function setDefaults(){document.getElementById("staff").value="Iyan";document.getElementById("mgrg").value="Bambang";}
 
 /* ===== Database bersama (dipakai semua pengguna link) ===== */

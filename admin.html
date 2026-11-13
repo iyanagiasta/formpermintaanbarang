@@ -692,7 +692,7 @@ var KP_KASUS=["Tercakup dokumen","Sebagian dokumen","Cek status dokumen","Sebara
 function drawKP(){
   var R=KP.res;
   var head='<div class="card"><b>Komparasi stok: Gudang (acuan) vs file perusahaan</b><div class="note"><b>Stok Gudang setelah opname adalah stok yang benar.</b> File perusahaan (Accurate dan Moka) yang disesuaikan. Unggah file dengan kolom <b>Kode Barang</b>, <b>Stok Accurate</b>, <b>Stok Moka</b> (boleh juga Nama Barang dan Total). Hasilnya: adjustment apa yang harus diinput di Accurate dan Moka, <b>MINUS</b> (kurangi) atau <b>PLUS</b> (tambah), berapa. Kalau perlu mengurangi, <b>Moka dipakai dulu</b>, baru Accurate. Tambahan stok masuk ke sumber kelebihan (bawaan Accurate). Stok Bekas tidak ikut. Hanya laporan: stok Gudang tidak diubah.</div>'+
-   '<div class="fr"><input type="file" id="kpf" accept=".xlsx,.xls,.csv"><span class="note" id="kpi">'+esc(KP.file)+'</span></div></div>';
+   '<div class="fr" style="gap:8px;flex-wrap:wrap"><input type="file" id="kpf" accept=".xlsx,.xls,.csv"><button id="kpTpl" title="Template berisi semua kode dan nama barang Gudang">Unduh template Excel</button><span class="note" id="kpi">'+esc(KP.file)+'</span></div></div>';
   var TSO=window.TS;
   var tsc='<div class="card"><b>Telusur penyebab selisih</b><div class="note">Analisis lebih dalam: selisih tiap barang diuraikan ke kemungkinan penyebab (barang keluar lewat sistem Gudang tapi IA kurang, dibeli untuk PPBJ tapi belum di-IA, IA ganda, salah kode, salah satuan, pola pekerjaan SL / pengembangan jaringan / kebocoran), lengkap dengan proyek yang terkait dan saran urutan opname. Stok aktual = stok Gudang terbaru.</div><div class="fr" style="gap:6px;flex-wrap:wrap"><button class="sv" id="tsFile"'+(KP.rows?'':' disabled title="Unggah file dulu"')+'>Telusur dari file yang diunggah</button><button id="tsMut">Telusur tanpa file (pakai saldo Mutasi Accurate)</button></div></div>';
   var sw=TSO&&TSO.res?'<div class="tabs"><button id="kvK" class="'+(KP.view!=="ts"?"on":"")+'">Komparasi</button><button id="kvT" class="'+(KP.view==="ts"?"on":"")+'">Hasil Telusur Selisih</button></div>':'';
@@ -850,7 +850,29 @@ function bindTS(){
   var k=document.getElementById("kvK");if(k)k.onclick=function(){KP.view="komp";drawKP();};
   var t=document.getElementById("kvT");if(t)t.onclick=function(){KP.view="ts";drawKP();};
 }
+async function kpUnduhTemplate(bt){
+  bt.disabled=true;var asli=bt.textContent;bt.textContent="Menyiapkan...";
+  try{
+    var r=await api({action:"adminStokList",q:"",hanyaStok:false,semua:true}),L=(r&&r.ok&&r.data)||[];
+    var isi=[["Kode Barang","Nama Barang","Stok Accurate","Stok Moka","Total"]];
+    L.forEach(function(x){isi.push([x.kode,x.nama,"","",""]);});
+    if(isi.length===1)isi.push(["BRG-001","Contoh nama barang",10,5,15]);
+    var pet=[["Petunjuk mengisi template Komparasi"],[""],
+      ["1. Isi di lembar 'Isi di sini'. Judul kolom jangan diubah: Kode Barang, Nama Barang, Stok Accurate, Stok Moka, Total."],
+      ["2. Kolom Stok Accurate dan Stok Moka wajib. Kolom Nama Barang dan Total boleh kosong."],
+      ["3. Kode Barang harus sama dengan kode di sistem Gudang. Kode di template ini sudah diisi semua barang Gudang."],
+      ["4. Salin angka dari laporan stok Accurate ke Stok Accurate, dan dari laporan Moka ke Stok Moka."],
+      ["5. Angka ditulis biasa. Desimal boleh pakai koma. Jangan pakai titik ribuan. Kosong dianggap 0."],
+      ["6. Satu barang satu baris. Kode yang dobel hanya dibaca baris pertama."],
+      ["7. Barang yang tidak ada di file akan dilewati. Hapus baris yang tidak perlu kalau mau."],
+      ["8. Simpan sebagai .xlsx atau .csv, lalu unggah di tab Komparasi."],
+      [""],["Dibuat: "+new Date().toLocaleString("id-ID")+" ("+L.length+" barang Gudang)"]];
+    if(unduhBanyak("template_komparasi_"+tglIso(new Date())+".xlsx",[{n:"Isi di sini",rows:isi,w:[16,44,15,15,12]},{n:"Petunjuk",rows:pet,w:[110]}]))toast("Template siap diunduh ("+L.length+" barang).");
+  }catch(e){toast("Gagal menyiapkan template.",true);}
+  bt.disabled=false;bt.textContent=asli;
+}
 function bindKP(){
+  var tp=document.getElementById("kpTpl");if(tp)tp.onclick=function(){kpUnduhTemplate(tp);};
   var f=document.getElementById("kpf");if(!f)return;
   f.onchange=function(){
     var file=this.files[0];if(!file)return;

@@ -98,6 +98,7 @@
   function qy(n) { return Number(n || 0).toLocaleString('id-ID', {maximumFractionDigits: 3}); }
   var BL = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
   function dmy(t) { t = String(t || ''); return /^\d{4}-\d{2}-\d{2}/.test(t) ? Number(t.slice(8, 10)) + ' ' + BL[Number(t.slice(5, 7)) - 1] + ' ' + t.slice(0, 4) : t; }
+  var SPR = ['belum jalan', 'berjalan', 'selesai', 'ditunda'];
   var STL = {yakin: 'Yakin', cek: 'Perlu dicek', kosong: 'Tanpa PPBJ', bukan: 'Bukan proyek'};
   var SBL = {nomor: 'nomor di keterangan', po: 'lewat nomor PO', keterangan: 'keterangan sama', nama: 'nama pekerjaan', koreksi: 'koreksi admin', reklas: 'reklas', rutin: 'pemakaian rutin'};
   function badge(st, sb) { var w = {yakin: '#1e8449', cek: '#d68910', kosong: '#7f8c8d', bukan: '#5d6d7e'}[st] || '#7f8c8d'; return '<span class="mac-tag" style="border-color:' + w + ';color:' + w + '" title="' + esc(SBL[sb] || '') + '">' + esc(STL[st] || st || '-') + '</span>'; }
@@ -108,6 +109,7 @@
       '.mac-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}.mac-tabs button[aria-pressed="true"]{outline:2px solid var(--gold,#c9a227);font-weight:700}' +
       '.mac-f{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-bottom:6px}.mac-f label{display:flex;flex-direction:column;font-size:12px;gap:2px}.mac-f input,.mac-f select{width:100%;box-sizing:border-box}' +
       '.mac-wrap{overflow-x:auto}.mac-tb{width:100%;border-collapse:collapse;font-size:13px}.mac-tb td,.mac-tb th{border-bottom:1px solid var(--line,#dde);padding:4px;vertical-align:top;text-align:left}.mac-tb .nm{text-align:right;white-space:nowrap}' +
+      '.mac-chip{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.mac-chip button{font-size:12px;padding:3px 9px;border-radius:14px;border:1px solid var(--line,#ccd);background:transparent;color:inherit;cursor:pointer;text-align:left}.mac-st{display:inline-block;font-size:11px;padding:0 7px;border-radius:9px;border:1px solid currentColor;white-space:nowrap}.mac-st-selesai{color:#1e8449}.mac-st-berjalan{color:#2471a3}.mac-st-ditunda{color:#b9770e}.mac-st-belumjalan{color:#7f8c8d}' +
       '.mac-tag{display:inline-block;font-size:11px;padding:0 6px;border-radius:9px;border:1px solid;white-space:nowrap}.mac-ingat{background:rgba(214,137,16,.15);border-left:3px solid #d68910;padding:6px 8px;margin:6px 0;border-radius:4px}' +
       '.mac-cek{border:1px solid var(--line,#ccd);border-radius:8px;padding:8px;margin:6px 0}.mac-cek .fr{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}.mac-link{background:none;border:0;padding:0;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}' +
       '@media (max-width:700px){.mac-tb,.mac-tb tbody,.mac-tb tr,.mac-tb td{display:block;width:100%;box-sizing:border-box}.mac-tb thead{display:none}.mac-tb tr{border:1px solid var(--line,#ccd);border-radius:8px;margin:6px 0;padding:4px}.mac-tb td{border:0}.mac-tb td[data-l]:before{content:attr(data-l) ": ";opacity:.7;font-size:12px}.mac-tb .nm{text-align:left}}';
@@ -143,8 +145,11 @@
       '<div class="fr" style="gap:6px;flex-wrap:wrap"><input type="file" id="macF" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden><button class="sv" id="macUp">Unggah Excel Mutasi per Gudang</button>' +
       (r.periode && r.periode.length ? '<details><summary>Riwayat unggah (' + r.periode.length + ')</summary><div class="note">' + r.periode.map(function (p) { return esc(dmy(p.dari) + ' s/d ' + dmy(p.sampai) + ' · ' + p.n + ' baris · ' + p.waktu); }).join('<br>') + '</div></details>' : '') +
       '</div><div class="note" id="macInfo">' + (pesan || '') + '</div></div>';
+    h += '<div class="card" id="macTanya"><b>Tanya</b><div class="note">Ketik pertanyaan biasa, mis. "kapan terakhir pipa 2 inch keluar". AI hanya menerjemahkan kalimat Anda menjadi pencarian; angkanya dihitung dari data Anda sendiri dan isi data tidak dikirim ke AI.</div><div class="fr" style="gap:6px;flex-wrap:wrap"><input id="mtQ" type="text" maxlength="300" placeholder="Tanya tentang mutasi barang..." style="flex:1;min-width:200px"><button class="sv" id="mtGo">Tanya</button></div>' +
+      '<div class="mac-chip">' + ['kapan terakhir pipa 2 inch keluar', '10 barang paling sering keluar tahun ini', 'RI bulan lalu', 'proyek dengan pemakaian terbanyak bulan ini', 'vendor yang paling sering kirim barang', 'barang yang tidak bergerak 6 bulan'].map(function (t) { return '<button data-tq="' + esc(t) + '">' + esc(t) + '</button>'; }).join('') + '</div><div id="mtOut" aria-live="polite"></div></div>';
     h += '<div class="card"><div class="mac-tabs" role="group" aria-label="Bagian">' + [['cari', 'Cari transaksi'], ['kartu', 'Kartu stok'], ['cek', 'Perlu dicek'], ['belumia', 'Barang proyek belum di-IA'], ['mati', 'Barang mati'], ['rapi', 'Kerapian keterangan']].map(function (t) { return '<button data-t="' + t[0] + '" aria-pressed="' + (S.tab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div><div id="macIsi"></div></div>';
     el.innerHTML = h;
+    pasangTanya();
     el.querySelector('#macUp').onclick = function () { el.querySelector('#macF').click(); };
     el.querySelector('#macF').onchange = function () { var f = this.files[0]; this.value = ''; if (f) unggah(f); };
     el.onclick = function (e) {
@@ -153,6 +158,40 @@
       var k = e.target.closest('[data-kartu]'); if (k) { S.kartu = k.getAttribute('data-kartu'); S.tab = 'kartu'; el.querySelectorAll('.mac-tabs button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === 'kartu')); }); isi(); el.querySelector('#macIsi').scrollIntoView({block: 'start'}); }
     };
     isi();
+  }
+  /* --- Tanya --- */
+  function pindahTab(t) { S.tab = t; el.querySelectorAll('.mac-tabs button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === t)); }); isi(); var x = el.querySelector('#macIsi'); if (x && x.scrollIntoView) x.scrollIntoView({block: 'start'}); }
+  var ALASAN = {tanpa_kunci: 'AI belum dipasang', batas: 'jatah AI hari ini habis', gagal: 'AI sedang tidak bisa dihubungi', tidak_tahu: 'AI tidak mengerti pertanyaan', dimatikan: ''};
+  function pasangTanya() {
+    var q = el.querySelector('#mtQ'), out = el.querySelector('#mtOut'); if (!q) return;
+    function kirim(teks) {
+      teks = String(teks || '').trim(); if (teks.length < 3) { out.innerHTML = '<div class="note">Tulis pertanyaan minimal 3 huruf.</div>'; return; }
+      q.value = teks; out.innerHTML = '<div class="note">Memikirkan pertanyaan...</div>';
+      api({action: 'adminMacTanya', teks: teks}).then(function (r) {
+        if (!r || !r.ok) { out.innerHTML = '<div class="note">' + esc((r && r.msg) || 'Gagal.') + '</div>'; return; }
+        var h = r.hasil || {}, sum = r.sumber === 'ai' ? 'AI (Gemini) menerjemahkan' : 'aturan biasa' + (ALASAN[r.alasanAi] ? ' (' + ALASAN[r.alasanAi] + ')' : '');
+        var kepala = '<div class="note"><b>Dipahami:</b> ' + esc(r.dipahami || '') + '<br><small>Diterjemahkan oleh: ' + esc(sum) + '</small></div>';
+        if (h.tipe === 'ke') {
+          out.innerHTML = kepala + '<div class="note">' + esc(h.ringkas || '') + '</div>';
+          if (h.tab === 'kartu' && h.kode) S.kartu = h.kode; if (h.tab === 'mati' && r.plan && r.plan.hari) S.hari = r.plan.hari; pindahTab(h.tab); return;
+        }
+        if (h.tipe === 'pilih') { out.innerHTML = kepala + '<div class="note">Ada beberapa barang yang cocok. Pilih satu:</div><div class="mac-chip">' + (h.pilihan || []).map(function (b) { return '<button data-kartu="' + esc(b.kode) + '">' + esc(b.nama) + '</button>'; }).join('') + '</div>'; return; }
+        if (h.tipe === 'ranking') {
+          var nilaiDulu = r.plan && r.plan.urut === 'nilai', keluar = h.arah !== 'masuk';
+          out.innerHTML = kepala + '<div class="note">' + esc(h.ringkas || '') + '</div><div class="mac-wrap"><table class="mac-tb"><thead><tr><th>#</th><th>' + ({barang: 'Barang', proyek: 'Proyek', vendor: 'Vendor', bulan: 'Bulan'}[h.kelompok] || 'Nama') + '</th><th class="nm">Transaksi</th><th class="nm">' + (keluar ? 'Jumlah keluar' : 'Jumlah masuk') + '</th><th class="nm">Nilai</th></tr></thead><tbody>' +
+            (h.rows || []).map(function (x, i) { var nm = h.kelompok === 'barang' && x.kode ? '<button class="mac-link" data-kartu="' + esc(x.kode) + '">' + esc(x.label) + '</button><br><small>' + esc(x.kode) + '</small>' : esc(x.label); return '<tr><td data-l="#">' + (i + 1) + '</td><td data-l="Nama">' + nm + '</td><td class="nm" data-l="Transaksi">' + qy(x.n) + '</td><td class="nm" data-l="Jumlah">' + qy(keluar ? x.keluar : x.masuk) + '</td><td class="nm" data-l="Nilai">' + rp(keluar ? x.nKeluar : x.nMasuk) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+          void nilaiDulu; return;
+        }
+        if (h.tipe === 'daftar') {
+          out.innerHTML = kepala + '<div class="note">' + esc(h.ringkas || '') + '</div>' + (h.catatan ? '<div class="note"><i>' + esc(h.catatan) + '</i></div>' : '') + '<div id="mtList"></div>';
+          tampilCari(out.querySelector('#mtList'), h); return;
+        }
+        out.innerHTML = kepala + '<div class="note">' + esc(h.ringkas || 'Tidak ada hasil.') + '</div>' + (h.tipe === 'bantuan' ? '' : '<div class="note">Coba kata yang lebih umum, atau ketik nomor PPBJ / IA / RI.</div>');
+      }).catch(function (e) { out.innerHTML = '<div class="note">Gagal: ' + esc(e && e.message ? e.message : e) + '</div>'; });
+    }
+    el.querySelector('#mtGo').onclick = function () { kirim(q.value); };
+    q.onkeydown = function (e) { if (e.key === 'Enter') kirim(q.value); };
+    el.querySelectorAll('[data-tq]').forEach(function (b) { b.onclick = function () { kirim(b.getAttribute('data-tq')); }; });
   }
   function isi() { var f = {cari: tabCari, kartu: tabKartu, cek: tabCek, belumia: tabBelumIa, mati: tabMati, rapi: tabRapi}[S.tab] || tabCari; f(el.querySelector('#macIsi')); }
 
@@ -267,15 +306,19 @@
     var out = box.querySelector('#mbOut');
     api({action: 'adminMacLaporan', jenis: 'belumia'}).then(function (r) {
       if (!r.ok) { out.textContent = r.msg || 'Gagal.'; return; } S.last.belumia = r;
-      out.innerHTML = '<div class="mac-sum"><div><b>' + r.n + '</b><span>PPBJ</span></div><div><b>' + r.nBaris + '</b><span>Baris barang</span></div><div><b>' + rp(r.nilai) + '</b><span>Perkiraan nilai</span></div></div>' +
-        (r.rows.length ? r.rows.map(function (p) {
-          return '<details class="mac-cek"><summary><b>' + esc(p.ppbj) + '</b> · ' + esc(p.proyek || '-') + ' · ' + p.n + ' barang · ' + rp(p.nilai) + ' · terima terakhir ' + esc(dmy(p.tRi)) + '</summary><div class="mac-wrap"><table class="mac-tb"><thead><tr><th>Barang</th><th class="nm">Diterima</th><th class="nm">Di-IA</th><th class="nm">Sisa</th><th class="nm">Nilai</th></tr></thead><tbody>' +
+      var ps = r.perStatus || {}; S.stF = S.stF || '';
+      out.innerHTML = '<div class="fr" style="gap:8px;flex-wrap:wrap;align-items:center"><label>Status proyek <select id="mbSt"><option value="">Semua</option>' + SPR.map(function (k) { return '<option value="' + k + '"' + (S.stF === k ? ' selected' : '') + '>' + k + (ps[k] ? ' (' + ps[k] + ')' : '') + '</option>'; }).join('') + '</select></label></div>' +
+        '<div class="mac-sum"><div><b>' + r.n + '</b><span>PPBJ</span></div><div><b>' + r.nBaris + '</b><span>Baris barang</span></div><div><b>' + rp(r.nilai) + '</b><span>Perkiraan nilai</span></div></div>' +
+        (r.rows.filter(function (p) { return !S.stF || p.status === S.stF; }).length ? r.rows.filter(function (p) { return !S.stF || p.status === S.stF; }).map(function (p) {
+          return '<details class="mac-cek"><summary><b>' + esc(p.ppbj) + '</b> · ' + esc(p.proyek || '-') + ' · <span class="mac-st mac-st-' + esc(String(p.status).replace(/ /g, '')) + '">' + esc(p.status) + '</span> · ' + p.n + ' barang · ' + rp(p.nilai) + ' · terima terakhir ' + esc(dmy(p.tRi)) + '</summary><div class="note">Status proyek: <select data-stp="' + esc(p.ppbj) + '">' + [['', 'Otomatis'], ['belum jalan', 'belum jalan'], ['berjalan', 'berjalan'], ['selesai', 'selesai'], ['ditunda', 'ditunda']].map(function (o) { return '<option value="' + o[0] + '"' + ((p.statusDari === 'manual' ? p.status : '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select> <small>(dari: ' + esc(p.statusDari || '-') + ')</small></div><div class="mac-wrap"><table class="mac-tb"><thead><tr><th>Barang</th><th class="nm">Diterima</th><th class="nm">Di-IA</th><th class="nm">Sisa</th><th class="nm">Nilai</th></tr></thead><tbody>' +
             p.barang.map(function (b) { return '<tr><td data-l="Barang"><button class="mac-link" data-kartu="' + esc(b.kode) + '">' + esc(b.nama) + '</button><br><small>' + esc(b.kode) + '</small></td><td class="nm" data-l="Diterima">' + qy(b.terima) + '</td><td class="nm" data-l="Di-IA">' + qy(b.pakai) + '</td><td class="nm" data-l="Sisa"><b>' + qy(b.sisa) + '</b></td><td class="nm" data-l="Nilai">' + rp(b.nilai) + '</td></tr>'; }).join('') + '</tbody></table></div></details>';
         }).join('') : '<div class="note">Tidak ada. Semua barang yang diterima untuk PPBJ sudah di-IA.</div>');
+      var sf = out.querySelector('#mbSt'); if (sf) sf.onchange = function () { S.stF = this.value; tabBelumIa(box); };
+      out.querySelectorAll('[data-stp]').forEach(function (d) { d.onchange = function () { var el2 = this; api({action: 'adminMacStatus', ppbj: el2.getAttribute('data-stp'), status: el2.value}).then(function (x) { if (!x.ok) { toast(x.msg || 'Gagal.', true); return; } toast('Status proyek disimpan.'); tabBelumIa(box); }); }; });
     });
     box.querySelector('#mbXl').onclick = function () {
-      var r = S.last.belumia; if (!r) return; var rows = []; r.rows.forEach(function (p) { p.barang.forEach(function (b) { rows.push({ppbj: p.ppbj, proyek: p.proyek, tRi: p.tRi, kode: b.kode, nama: b.nama, terima: b.terima, pakai: b.pakai, sisa: b.sisa, harga: b.harga, nilai: b.nilai}); }); });
-      unduhTabel('Barang proyek belum di-IA', 'Barang Proyek Belum di-IA (Accurate)', r.n + ' PPBJ, ' + r.nBaris + ' baris, perkiraan nilai ' + rp(r.nilai), [{t: 'PPBJ', k: 'ppbj', w: 18}, {t: 'Proyek', k: 'proyek', w: 40}, {t: 'Terima terakhir', k: 'tRi', f: 'tgl', w: 13}, {t: 'Kode', k: 'kode', w: 20}, {t: 'Nama barang', k: 'nama', w: 34}, {t: 'Diterima', k: 'terima', f: '#,##0.###', w: 9}, {t: 'Di-IA', k: 'pakai', f: '#,##0.###', w: 9}, {t: 'Sisa', k: 'sisa', f: '#,##0.###', w: 9}, {t: 'Harga', k: 'harga', f: '#,##0', w: 12}, {t: 'Nilai', k: 'nilai', f: '#,##0', w: 14}], rows);
+      var r = S.last.belumia; if (!r) return; var rows = []; r.rows.forEach(function (p) { p.barang.forEach(function (b) { rows.push({ppbj: p.ppbj, proyek: p.proyek, status: p.status, tRi: p.tRi, kode: b.kode, nama: b.nama, terima: b.terima, pakai: b.pakai, sisa: b.sisa, harga: b.harga, nilai: b.nilai}); }); });
+      unduhTabel('Barang proyek belum di-IA', 'Barang Proyek Belum di-IA (Accurate)', r.n + ' PPBJ, ' + r.nBaris + ' baris, perkiraan nilai ' + rp(r.nilai), [{t: 'PPBJ', k: 'ppbj', w: 18}, {t: 'Proyek', k: 'proyek', w: 40}, {t: 'Status proyek', k: 'status', w: 13}, {t: 'Terima terakhir', k: 'tRi', f: 'tgl', w: 13}, {t: 'Kode', k: 'kode', w: 20}, {t: 'Nama barang', k: 'nama', w: 34}, {t: 'Diterima', k: 'terima', f: '#,##0.###', w: 9}, {t: 'Di-IA', k: 'pakai', f: '#,##0.###', w: 9}, {t: 'Sisa', k: 'sisa', f: '#,##0.###', w: 9}, {t: 'Harga', k: 'harga', f: '#,##0', w: 12}, {t: 'Nilai', k: 'nilai', f: '#,##0', w: 14}], rows);
     };
   }
 

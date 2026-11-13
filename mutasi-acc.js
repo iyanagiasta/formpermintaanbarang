@@ -93,7 +93,39 @@
   };
 
   /* ---------- 3. tampilan (admin.html, tab Mutasi Accurate) ---------- */
-  var el, api, toast, S = {tab: 'cari', ring: null, cari: {}, kartu: '', ppbj: '', cekJenis: 'cek', hari: 180, last: {}};
+  var el, api, toast, S = {tab: 'cari', ring: null, cari: {}, kartu: '', ppbj: '', cekJenis: 'cek', hari: 180, last: {}, pend: {}, pend0: {}, segar: null};
+  /* --- Perubahan status proyek ditampung dulu, disimpan sekaligus lewat tombol Simpan perubahan --- */
+  function pendN() { return Object.keys(S.pend).length; }
+  function pendAda(p) { return Object.prototype.hasOwnProperty.call(S.pend, p); }
+  function pendNilai(p, asli) { return pendAda(p) ? S.pend[p] : asli; }
+  function pendSet(p, asli, v) { if (v === asli) { delete S.pend[p]; delete S.pend0[p]; } else { S.pend[p] = v; S.pend0[p] = asli; } }
+  function pendIsi() { var n = pendN(); return n ? '<b>' + n + ' perubahan status proyek belum disimpan</b> <button class="sv" data-pend="simpan">Simpan perubahan</button> <button data-pend="batal">Batalkan semua</button>' : ''; }
+  function pendBar() { return '<div class="mac-pend"' + (pendN() ? '' : ' hidden') + '>' + pendIsi() + '</div>'; }
+  function pendSegar() {
+    if (!el) return;
+    el.querySelectorAll('.mac-pend').forEach(function (d) {
+      d.innerHTML = pendIsi(); d.hidden = !pendN();
+      var a = d.querySelector('[data-pend="simpan"]'), b = d.querySelector('[data-pend="batal"]');
+      if (a) a.onclick = function () { pendSimpan(a); };
+      if (b) b.onclick = function () { S.pend = {}; S.pend0 = {}; if (S.segar) S.segar(); else pendSegar(); };
+    });
+  }
+  async function pendSimpan(bt) {
+    var ks = Object.keys(S.pend), ok = 0, gagal = [];
+    bt.disabled = true; bt.textContent = 'Menyimpan...';
+    for (var i = 0; i < ks.length; i++) {
+      try {
+        var x = await api({action: 'adminMacStatus', ppbj: ks[i], status: S.pend[ks[i]]});
+        if (x && x.ok) { delete S.pend[ks[i]]; delete S.pend0[ks[i]]; ok++; } else gagal.push(ks[i] + ' (' + ((x && x.msg) || 'gagal') + ')');
+      } catch (e) { gagal.push(ks[i] + ' (gagal terhubung)'); }
+    }
+    S.last.belumia = null;
+    if (gagal.length) toast(ok + ' tersimpan, ' + gagal.length + ' gagal: ' + gagal.slice(0, 3).join(', ') + (gagal.length > 3 ? ', ...' : '') + '. Yang gagal tetap ditandai, coba Simpan lagi.', true);
+    else toast(ok + ' perubahan status proyek disimpan.');
+    if (S.segar) S.segar(); else pendSegar();
+  }
+  try { window.addEventListener('beforeunload', function (e) { if (pendN()) { e.preventDefault(); e.returnValue = ''; } }); } catch (e0) {}
+  try { var stl = document.createElement('style'); stl.textContent = '.mac-pend{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0;padding:8px 10px;border:1px solid #d68910;border-radius:6px;background:var(--card,var(--bg,#fff))}.mac-pend[hidden]{display:none}.mac-ubah{outline:2px solid #d68910;outline-offset:1px}'; document.head.appendChild(stl); } catch (e1) {}
   function rp(n) { return n ? 'Rp ' + Math.round(Number(n)).toLocaleString('id-ID') : '-'; }
   function qy(n) { return Number(n || 0).toLocaleString('id-ID', {maximumFractionDigits: 3}); }
   var BL = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -186,7 +218,7 @@
     var s = r.sum;
     out.className = '';
     out.innerHTML = '<div><b>' + esc(r.ppbj) + '</b>' + (r.proyek ? ' · ' + esc(r.proyek) : '') + (r.nomorIr.length > 1 ? ' <small>(versi IR: ' + esc(r.nomorIr.join(', ')) + ')</small>' : '') + '</div>' +
-      '<div class="note">Status proyek: <span class="mac-st mac-st-' + esc(String(r.status).replace(/ /g, '')) + '">' + esc(r.status) + '</span> <small>(dari: ' + esc(r.statusDari || '-') + ')</small> &nbsp; Ganti: <select id="mpSt">' + SPR2.map(function (o) { return '<option value="' + o[0] + '"' + ((r.statusDari === 'manual' ? r.status : '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+      '<div class="note">Status proyek: <span class="mac-st mac-st-' + esc(String(r.status).replace(/ /g, '')) + '">' + esc(r.status) + '</span> <small>(dari: ' + esc(r.statusDari || '-') + ')</small> &nbsp; Ganti: <select id="mpSt"' + (pendAda(r.ppbj) ? ' class="mac-ubah"' : '') + '>' + SPR2.map(function (o) { return '<option value="' + o[0] + '"' + (pendNilai(r.ppbj, r.statusDari === 'manual' ? r.status : '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select> <small>(baru berlaku setelah Simpan perubahan)</small></div>' + pendBar() +
       (!r.adaIr ? '<div class="note">PPBJ ini tidak ada di laporan Item Requisition yang diunggah, jadi rencana dan harga estimasi kosong.</div>' : '') +
       '<div class="mac-sum"><div><b>' + rp(s.estBarang) + '</b><span>Estimasi barang (' + s.nBarang + ' item)</span></div><div><b>' + rp(s.estJasa) + '</b><span>Estimasi jasa (' + s.nJasa + ' item)</span></div><div><b>' + rp(s.nilaiRi) + '</b><span>Barang masuk (RI) · ' + pct(s.pctRi) + ' dari estimasi barang</span></div><div><b>' + rp(s.nilaiIa) + '</b><span>Sudah di-IA · ' + pct(s.pctIa) + ' dari estimasi barang</span></div>' + (s.nLuar ? '<div><b>' + s.nLuar + '</b><span>Barang di luar PPBJ</span></div>' : '') + '</div>' +
       (r.nCek ? '<div class="note">Ada ' + r.nCek + ' transaksi yang mungkin milik PPBJ ini tetapi masih <button class="mac-link" data-go="cek">perlu dicek</button>; belum dihitung.</div>' : '') +
@@ -197,7 +229,10 @@
       }).join('') : '<tr><td colspan="7">Belum ada data.</td></tr>') + '</tbody></table></div>' +
       '<details style="margin-top:8px"><summary><b>Riwayat transaksi (' + r.nRiwayat + ')</b></summary><div id="mpRw"></div></details>';
     var rw = out.querySelector('#mpRw'); tampilCari(rw, {rows: r.riwayat, total: riwTotal(r.riwayat), potong: r.potong});
-    out.querySelector('#mpSt').onchange = function () { var v = this.value; api({action: 'adminMacStatus', ppbj: r.ppbj, status: v}).then(function (x) { if (!x.ok) { toast(x.msg || 'Gagal.', true); return; } toast('Status proyek disimpan.'); S.last.belumia = null; api({action: 'adminMacPpbj', ppbj: r.ppbj}).then(function (n) { if (n.ok) { S.last.ppbj = n; gambarPpbj(out, n); } }); }); };
+    var asli = r.statusDari === 'manual' ? r.status : '';
+    S.segar = function () { S.last.belumia = null; api({action: 'adminMacPpbj', ppbj: r.ppbj}).then(function (n) { if (n.ok) { S.last.ppbj = n; gambarPpbj(out, n); } }); };
+    out.querySelector('#mpSt').onchange = function () { pendSet(r.ppbj, asli, this.value); this.classList.toggle('mac-ubah', pendAda(r.ppbj)); pendSegar(); };
+    pendSegar();
   }
   function riwTotal(L) { var t = {n: L.length, masuk: 0, keluar: 0, nMasuk: 0, nKeluar: 0}; L.forEach(function (x) { t.masuk += x.masuk; t.keluar += x.keluar; if (x.masuk > 0) t.nMasuk += x.nilai; else t.nKeluar += x.nilai; }); return t; }
 
@@ -383,7 +418,8 @@
 
   /* --- Barang proyek belum di-IA --- */
   function tabBelumIa(box) {
-    box.innerHTML = '<div class="note">Barang yang sudah diterima (RI) untuk suatu PPBJ tetapi belum dikeluarkan lewat IA dengan PPBJ yang sama. Hanya transaksi yang PPBJ-nya yakin. Bisa juga berarti IA-nya tidak menulis PPBJ: periksa di bagian Perlu dicek.</div><div class="fr"><button id="mbXl">Unduh Excel</button></div><div id="mbOut">Memuat...</div>';
+    box.innerHTML = '<div class="note">Barang yang sudah diterima (RI) untuk suatu PPBJ tetapi belum dikeluarkan lewat IA dengan PPBJ yang sama. Hanya transaksi yang PPBJ-nya yakin. Bisa juga berarti IA-nya tidak menulis PPBJ: periksa di bagian Perlu dicek.</div><div class="fr"><button id="mbXl">Unduh Excel</button></div>' + pendBar() + '<div id="mbOut">Memuat...</div>';
+    S.segar = function () { tabBelumIa(box); };
     var out = box.querySelector('#mbOut');
     api({action: 'adminMacLaporan', jenis: 'belumia'}).then(function (r) {
       if (!r.ok) { out.textContent = r.msg || 'Gagal.'; return; } S.last.belumia = r;
@@ -391,11 +427,12 @@
       out.innerHTML = '<div class="fr" style="gap:8px;flex-wrap:wrap;align-items:center"><label>Status proyek <select id="mbSt"><option value="">Semua</option>' + SPR.map(function (k) { return '<option value="' + k + '"' + (S.stF === k ? ' selected' : '') + '>' + k + (ps[k] ? ' (' + ps[k] + ')' : '') + '</option>'; }).join('') + '</select></label></div>' +
         '<div class="mac-sum"><div><b>' + r.n + '</b><span>PPBJ</span></div><div><b>' + r.nBaris + '</b><span>Baris barang</span></div><div><b>' + rp(r.nilai) + '</b><span>Perkiraan nilai</span></div></div>' +
         (r.rows.filter(function (p) { return !S.stF || p.status === S.stF; }).length ? r.rows.filter(function (p) { return !S.stF || p.status === S.stF; }).map(function (p) {
-          return '<details class="mac-cek"><summary><b>' + esc(p.ppbj) + '</b> · ' + esc(p.proyek || '-') + ' · <span class="mac-st mac-st-' + esc(String(p.status).replace(/ /g, '')) + '">' + esc(p.status) + '</span> · ' + p.n + ' barang · ' + rp(p.nilai) + ' · terima terakhir ' + esc(dmy(p.tRi)) + '</summary><div class="note"><button class="mac-link" data-ppbj="' + esc(p.ppbj) + '">Buka laporan lengkap PPBJ ini</button><br>Status proyek: <select data-stp="' + esc(p.ppbj) + '">' + [['', 'Otomatis'], ['belum jalan', 'belum jalan'], ['berjalan', 'berjalan'], ['selesai', 'selesai'], ['ditunda', 'ditunda']].map(function (o) { return '<option value="' + o[0] + '"' + ((p.statusDari === 'manual' ? p.status : '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select> <small>(dari: ' + esc(p.statusDari || '-') + ')</small></div><div class="mac-wrap"><table class="mac-tb"><thead><tr><th>Barang</th><th class="nm">Diterima</th><th class="nm">Di-IA</th><th class="nm">Sisa</th><th class="nm">Nilai</th></tr></thead><tbody>' +
+          return '<details class="mac-cek"><summary><b>' + esc(p.ppbj) + '</b> · ' + esc(p.proyek || '-') + ' · <span class="mac-st mac-st-' + esc(String(p.status).replace(/ /g, '')) + '">' + esc(p.status) + '</span> · ' + p.n + ' barang · ' + rp(p.nilai) + ' · terima terakhir ' + esc(dmy(p.tRi)) + '</summary><div class="note"><button class="mac-link" data-ppbj="' + esc(p.ppbj) + '">Buka laporan lengkap PPBJ ini</button><br>Status proyek: <select data-stp="' + esc(p.ppbj) + '" data-asli="' + esc(p.statusDari === 'manual' ? p.status : '') + '"' + (pendAda(p.ppbj) ? ' class="mac-ubah"' : '') + '>' + [['', 'Otomatis'], ['belum jalan', 'belum jalan'], ['berjalan', 'berjalan'], ['selesai', 'selesai'], ['ditunda', 'ditunda']].map(function (o) { return '<option value="' + o[0] + '"' + (pendNilai(p.ppbj, p.statusDari === 'manual' ? p.status : '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select> <small>(dari: ' + esc(p.statusDari || '-') + ')</small></div><div class="mac-wrap"><table class="mac-tb"><thead><tr><th>Barang</th><th class="nm">Diterima</th><th class="nm">Di-IA</th><th class="nm">Sisa</th><th class="nm">Nilai</th></tr></thead><tbody>' +
             p.barang.map(function (b) { return '<tr><td data-l="Barang"><button class="mac-link" data-kartu="' + esc(b.kode) + '">' + esc(b.nama) + '</button><br><small>' + esc(b.kode) + '</small></td><td class="nm" data-l="Diterima">' + qy(b.terima) + '</td><td class="nm" data-l="Di-IA">' + qy(b.pakai) + '</td><td class="nm" data-l="Sisa"><b>' + qy(b.sisa) + '</b></td><td class="nm" data-l="Nilai">' + rp(b.nilai) + '</td></tr>'; }).join('') + '</tbody></table></div></details>';
         }).join('') : '<div class="note">Tidak ada. Semua barang yang diterima untuk PPBJ sudah di-IA.</div>');
       var sf = out.querySelector('#mbSt'); if (sf) sf.onchange = function () { S.stF = this.value; tabBelumIa(box); };
-      out.querySelectorAll('[data-stp]').forEach(function (d) { d.onchange = function () { var el2 = this; api({action: 'adminMacStatus', ppbj: el2.getAttribute('data-stp'), status: el2.value}).then(function (x) { if (!x.ok) { toast(x.msg || 'Gagal.', true); return; } toast('Status proyek disimpan.'); tabBelumIa(box); }); }; });
+      out.querySelectorAll('[data-stp]').forEach(function (d) { d.onchange = function () { var pp = this.getAttribute('data-stp'); pendSet(pp, this.getAttribute('data-asli') || '', this.value); this.classList.toggle('mac-ubah', pendAda(pp)); pendSegar(); }; });
+      pendSegar();
     });
     box.querySelector('#mbXl').onclick = function () {
       var r = S.last.belumia; if (!r) return; var rows = []; r.rows.forEach(function (p) { p.barang.forEach(function (b) { rows.push({ppbj: p.ppbj, proyek: p.proyek, status: p.status, tRi: p.tRi, kode: b.kode, nama: b.nama, terima: b.terima, pakai: b.pakai, sisa: b.sisa, harga: b.harga, nilai: b.nilai}); }); });

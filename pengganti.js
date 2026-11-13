@@ -40,11 +40,57 @@
     box.innerHTML = '<div class="note">Memuat IA lama...</div>';
     api({action: 'adminPgtCalon'}).then(function (r) { if (!r.ok) { box.textContent = r.msg || 'Gagal.'; return; } S.cal = r; S.pil = {}; r.rows.forEach(function (x) { x._dept = x.dept; x._pic = (r.pic[x.dept] || []).length === 1 ? r.pic[x.dept][0] : ''; }); gambarCalon(box); });
   }
+  /* Pencarian pintar (di layar saja): kata tepat > salah ketik 1 huruf > sebagian kata; semua kata harus cocok. */
+  function pgNorm(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+  function pgNol(w) { return /^\d+$/.test(w) ? w.replace(/^0+(?=\d)/, '') : w; }
+  function pgMirip(a, b) {
+    if (a === b) return true; var la = a.length, lb = b.length; if (Math.abs(la - lb) > 1 || la < 4) return false;
+    if (la === lb) { var p = 0; while (p < la && a[p] === b[p]) p++; if (p < la - 1 && a[p] === b[p + 1] && a[p + 1] === b[p] && a.slice(p + 2) === b.slice(p + 2)) return true; }
+    var i = 0, j = 0, d = 0; while (i < la && j < lb) { if (a[i] === b[j]) { i++; j++; continue; } if (++d > 1) return false; if (la === lb) { i++; j++; } else if (la > lb) i++; else j++; }
+    return d + (la - i) + (lb - j) <= 1;
+  }
+  function pgIndeks(x) {
+    if (x._ix) return x._ix;
+    var teks = [x.no, x.ppbj, x.kerja, x.proyek, x.ket, x.dept].concat((x.barang || []).map(function (b) { return b.nama + ' ' + b.kode; })).join(' ');
+    var kata = pgNorm(teks).split(' ').map(pgNol).filter(String), set = {}; kata.forEach(function (w) { set[w] = 1; });
+    return (x._ix = {kata: Object.keys(set), teks: ' ' + kata.join(' ') + ' '});
+  }
+  function pgSkor(x, qs) {
+    var ix = pgIndeks(x), tot = 0;
+    for (var i = 0; i < qs.length; i++) {
+      var w = qs[i], sk = 0;
+      if (ix.kata.indexOf(w) >= 0) sk = 3;
+      else if (/^\d+$/.test(w) ? ix.kata.some(function (k) { return k.indexOf(w) === 0; }) : (ix.teks.indexOf(w) >= 0 && w.length >= 2)) sk = 2;
+      else if (ix.kata.some(function (k) { return pgMirip(w, k); })) sk = 1;
+      if (!sk) return 0; tot += sk;
+    }
+    return tot || 1;
+  }
+  function saringCalon(rows) {
+    var qs = pgNorm(S.q).split(' ').map(pgNol).filter(String), out = [];
+    rows.forEach(function (x) {
+      if (!S.rutin && x.rutin) return;
+      if (S.fd && (x._dept || '') !== S.fd) return;
+      if (S.fs === 'lengkap' && !(x._dept && x._pic)) return;
+      if (S.fs === 'belum' && x._dept && x._pic) return;
+      if (S.t1 && x.tgl < S.t1) return;
+      if (S.t2 && x.tgl > S.t2) return;
+      var sk = qs.length ? pgSkor(x, qs) : 1; if (!sk) return;
+      out.push({x: x, sk: sk});
+    });
+    if (qs.length) out.sort(function (a, b) { return b.sk - a.sk; });
+    return out.map(function (o) { return o.x; });
+  }
   function gambarCalon(box) {
-    var r = S.cal, q = S.q.toLowerCase(), L = r.rows.filter(function (x) { return (S.rutin || !x.rutin) && (!q || (x.no + ' ' + x.kerja + ' ' + x.ppbj + ' ' + x.proyek).toLowerCase().indexOf(q) >= 0); });
+    var r = S.cal, L = saringCalon(r.rows);
     var nPil = Object.keys(S.pil).length, depts = r.dept.slice().sort();
     box.innerHTML = '<div class="note">Sistem digital mulai <b>' + esc(dmy(r.mulai)) + '</b> (BPB pertama). ' + r.rows.length + ' IA lama belum punya BPB pengganti' + (r.nSudah ? ', ' + r.nSudah + ' sudah dibuat' : '') + (r.nJasaSaja ? ', ' + r.nJasaSaja + ' IA isinya jasa saja (dilewati)' : '') + '. Departemen ditebak dari nama pekerjaan (kebocoran &rarr; Distribusi, SL/upgrade &rarr; RM, perbaikan lain &rarr; Produksi); periksa dan ubah bila perlu.</div>' +
-      '<div class="fr" style="gap:6px;flex-wrap:wrap;align-items:center"><input id="pgQ" placeholder="Cari IA, pekerjaan, PPBJ" value="' + esc(S.q) + '" style="flex:1;min-width:180px"><label><input type="checkbox" id="pgR"' + (S.rutin ? ' checked' : '') + '> tampilkan pemakaian rutin (kimia/reklas)</label>' +
+      '<div class="fr" style="gap:6px;flex-wrap:wrap;align-items:center"><input id="pgQ" placeholder="Cari nomor IA, PPBJ, pekerjaan, proyek, atau nama barang" value="' + esc(S.q) + '" style="flex:1;min-width:220px">' +
+      '<select id="pgFd" aria-label="Departemen"><option value="">Semua departemen</option>' + depts.map(function (d) { return '<option' + (S.fd === d ? ' selected' : '') + '>' + esc(d) + '</option>'; }).join('') + '</select>' +
+      '<select id="pgFs" aria-label="Kelengkapan"><option value="">Semua status</option><option value="lengkap"' + (S.fs === 'lengkap' ? ' selected' : '') + '>Departemen &amp; PIC lengkap</option><option value="belum"' + (S.fs === 'belum' ? ' selected' : '') + '>Belum lengkap</option></select>' +
+      '<input type="date" id="pgT1" value="' + esc(S.t1 || '') + '" aria-label="Dari tanggal"> <input type="date" id="pgT2" value="' + esc(S.t2 || '') + '" aria-label="Sampai tanggal"><button id="pgReset">Reset</button>' +
+      '<span class="pgt-warn" style="color:inherit">' + L.length + ' dari ' + r.rows.length + ' IA</span>' +
+      '</div><div class="fr" style="gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px"><label><input type="checkbox" id="pgR"' + (S.rutin ? ' checked' : '') + '> tampilkan pemakaian rutin (kimia/reklas)</label>' +
       '<button id="pgAll">Pilih yang lengkap (' + L.filter(function (x) { return x._dept && x._pic; }).length + ')</button><button id="pgNone">Kosongkan pilihan</button><button class="sv" id="pgBuat"' + (nPil ? '' : ' disabled') + '>Buat BPB Pengganti (' + nPil + ')</button></div>' +
       '<div class="pgt-wrap"><table class="pgt-tb"><thead><tr><th></th><th>IA</th><th>Pekerjaan / proyek</th><th>Departemen</th><th>PIC (peminta)</th><th>Barang</th></tr></thead><tbody>' +
       L.slice(0, 200).map(function (x) {
@@ -54,9 +100,14 @@
           '<td data-l="Departemen"><select data-pd="' + esc(x.no) + '"><option value="">- pilih -</option>' + depts.map(function (d) { return '<option' + (x._dept === d ? ' selected' : '') + '>' + esc(d) + '</option>'; }).join('') + '</select>' + (x.dept ? '' : '<br><span class="pgt-warn">tidak terdeteksi</span>') + '</td>' +
           '<td data-l="PIC"><select data-pc="' + esc(x.no) + '"><option value="">- pilih -</option>' + pics.map(function (n) { return '<option' + (x._pic === n ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') + '</select></td>' +
           '<td data-l="Barang"><details><summary>' + x.barang.length + ' barang' + (x.jasa.length ? ', ' + x.jasa.length + ' jasa dilewati' : '') + '</summary><small>' + x.barang.map(function (b) { return esc(b.nama) + ' (' + qy(b.qty) + ' ' + esc(b.satuan) + ')'; }).join('<br>') + (x.jasa.length ? '<br><i>Tidak dicantumkan: ' + esc(x.jasa.join('; ')) + '</i>' : '') + '</small></details>' + (x.ragu.length ? '<span class="pgt-warn">' + x.ragu.length + ' kode tidak ada di Master Barang, pastikan bukan jasa</span>' : '') + '</td></tr>';
-      }).join('') + (L.length ? '' : '<tr><td colspan="6">Tidak ada IA lama pada saringan ini.</td></tr>') + '</tbody></table></div>' + (L.length > 200 ? '<div class="note">Tampil 200 pertama. Persempit dengan kotak cari.</div>' : '');
+      }).join('') + (L.length ? '' : '<tr><td colspan="6">Tidak ada IA lama pada saringan ini.</td></tr>') + '</tbody></table></div>' + (L.length > 200 ? '<div class="note">Tampil 200 pertama. Persempit dengan kotak cari atau saringan.</div>' : '');
     box.querySelector('#pgQ').oninput = function () { S.q = this.value; clearTimeout(gambarCalon.h); var v = this; gambarCalon.h = setTimeout(function () { gambarCalon(box); var i = box.querySelector('#pgQ'); i.focus(); i.setSelectionRange(v.value.length, v.value.length); }, 250); };
     box.querySelector('#pgR').onchange = function () { S.rutin = this.checked; gambarCalon(box); };
+    box.querySelector('#pgFd').onchange = function () { S.fd = this.value; gambarCalon(box); };
+    box.querySelector('#pgFs').onchange = function () { S.fs = this.value; gambarCalon(box); };
+    box.querySelector('#pgT1').onchange = function () { S.t1 = this.value; gambarCalon(box); };
+    box.querySelector('#pgT2').onchange = function () { S.t2 = this.value; gambarCalon(box); };
+    box.querySelector('#pgReset').onclick = function () { S.q = ''; S.fd = ''; S.fs = ''; S.t1 = ''; S.t2 = ''; gambarCalon(box); };
     box.querySelector('#pgAll').onclick = function () { L.forEach(function (x) { if (x._dept && x._pic) S.pil[x.no] = 1; }); gambarCalon(box); };
     box.querySelector('#pgNone').onclick = function () { S.pil = {}; gambarCalon(box); };
     var byNo = {}; r.rows.forEach(function (x) { byNo[x.no] = x; });

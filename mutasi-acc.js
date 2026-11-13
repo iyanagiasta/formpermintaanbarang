@@ -147,7 +147,7 @@
       '</div><div class="note" id="macInfo">' + (pesan || '') + '</div></div>';
     h += '<div class="card" id="macTanya"><b>Tanya</b><div class="note">Ketik pertanyaan biasa, mis. "kapan terakhir pipa 2 inch keluar". AI hanya menerjemahkan kalimat Anda menjadi pencarian; angkanya dihitung dari data Anda sendiri dan isi data tidak dikirim ke AI.</div><div class="fr" style="gap:6px;flex-wrap:wrap"><input id="mtQ" type="text" maxlength="300" placeholder="Tanya tentang mutasi barang..." style="flex:1;min-width:200px"><button class="sv" id="mtGo">Tanya</button></div>' +
       '<div class="mac-chip">' + ['kapan terakhir pipa 2 inch keluar', '10 barang paling sering keluar tahun ini', 'RI bulan lalu', 'proyek dengan pemakaian terbanyak bulan ini', 'vendor yang paling sering kirim barang', 'barang yang tidak bergerak 6 bulan'].map(function (t) { return '<button data-tq="' + esc(t) + '">' + esc(t) + '</button>'; }).join('') + '</div><div id="mtOut" aria-live="polite"></div></div>';
-    h += '<div class="card"><div class="mac-tabs" role="group" aria-label="Bagian">' + [['cari', 'Cari transaksi'], ['kartu', 'Kartu stok'], ['ppbj', 'Per PPBJ'], ['cek', 'Perlu dicek'], ['belumia', 'Barang proyek belum di-IA'], ['mati', 'Barang mati'], ['rapi', 'Kerapian keterangan']].map(function (t) { return '<button data-t="' + t[0] + '" aria-pressed="' + (S.tab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div><div id="macIsi"></div></div>';
+    h += '<div class="card"><div class="mac-tabs" role="group" aria-label="Bagian">' + [['cari', 'Cari transaksi'], ['kartu', 'Kartu stok'], ['ppbj', 'Per PPBJ'], ['rekon', 'Cocokkan dengan sistem'], ['cek', 'Perlu dicek'], ['belumia', 'Barang proyek belum di-IA'], ['mati', 'Barang mati'], ['rapi', 'Kerapian keterangan']].map(function (t) { return '<button data-t="' + t[0] + '" aria-pressed="' + (S.tab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div><div id="macIsi"></div></div>';
     el.innerHTML = h;
     pasangTanya();
     el.querySelector('#macUp').onclick = function () { el.querySelector('#macF').click(); };
@@ -201,6 +201,45 @@
   }
   function riwTotal(L) { var t = {n: L.length, masuk: 0, keluar: 0, nMasuk: 0, nKeluar: 0}; L.forEach(function (x) { t.masuk += x.masuk; t.keluar += x.keluar; if (x.masuk > 0) t.nMasuk += x.nilai; else t.nKeluar += x.nilai; }); return t; }
 
+  /* --- Cocokkan sistem gudang vs Accurate (Tahap 2) --- */
+  var RK_ST = {belum: ['Belum ada di Accurate', '#c0392b'], beda: ['Jumlah beda', '#d68910'], menunggu: ['Menunggu', '#7f8c8d'], tanpa: ['Rincian tidak terbaca', '#7f8c8d'], cocok: ['Cocok', '#1e8449'], hanya: ['Tidak ada di sistem', '#c0392b'], lain: ['Reklas/rutin/opname', '#7f8c8d']};
+  var RK_JN = {KELUAR: 'BPB (keluar)', KEMBALI: 'Pengembalian', TERIMA: 'Terima barang'};
+  function rkJenis(x) { return x.sisi === 'sistem' ? RK_JN[x.jenis] || x.jenis : x.jenis === 'RI' ? 'RI (masuk)' : 'IA ' + x.arah; }
+  function tabRekon(box) {
+    S.rk = S.rk || {sisi: 'sistem', st: '', semua: false, kat: false};
+    box.innerHTML = '<div class="note">Membandingkan transaksi di sistem gudang (BPB, pengembalian, terima barang; hanya bagian stok Accurate) dengan mutasi Accurate, per barang. Mulai dari BPB pertama di sistem. Transaksi yang belum berpasangan berstatus <b>Menunggu</b> selama ' + 14 + ' hari, lalu menjadi selisih. Stok tidak berubah.</div><div id="rkOut">Memuat...</div>';
+    var out = box.querySelector('#rkOut');
+    api({action: 'adminMacRekon', semua: S.rk.semua, kat: S.rk.kat}).then(function (r) { if (!r.ok) { out.textContent = r.msg || 'Gagal.'; return; } S.last.rekon = r; gambarRekon(out, r, box); });
+  }
+  function gambarRekon(out, r, box) {
+    var sm = r.sum, k = S.rk, L = (k.sisi === 'sistem' ? r.sistem : r.accurate).filter(function (x) { return !k.st || x.status === k.st; });
+    var opsi = k.sisi === 'sistem' ? ['belum', 'beda', 'menunggu', 'tanpa', 'cocok'] : ['hanya', 'beda', 'cocok', 'lain'];
+    out.innerHTML = '<div class="note">Mulai ' + esc(dmy(r.mulai)) + ' · data Accurate sampai ' + esc(dmy(r.sampai)) + (sm.dicek ? ' · ' + sm.dicek + ' sudah ditandai dicek' : '') + '</div>' +
+      '<div class="mac-sum"><div><b>' + sm.sistem.belum + '</b><span>BPB/terima belum ada di Accurate</span></div><div><b>' + sm.sistem.beda + '</b><span>Jumlah beda</span></div><div><b>' + sm.sistem.menunggu + '</b><span>Menunggu (&lt; 14 hari)</span></div><div><b>' + sm.accurate.hanya + '</b><span>IA/RI tanpa transaksi sistem</span></div><div><b>' + (sm.sistem.cocok + sm.accurate.cocok) + '</b><span>Cocok</span></div></div>' +
+      '<div class="fr" style="gap:8px;flex-wrap:wrap;align-items:center"><div class="mac-tabs" role="group" aria-label="Sisi"><button data-rs="sistem" aria-pressed="' + (k.sisi === 'sistem') + '">Dari sisi sistem gudang</button><button data-rs="accurate" aria-pressed="' + (k.sisi === 'accurate') + '">Dari sisi Accurate</button></div>' +
+      '<label>Status <select id="rkSt"><option value="">Semua</option>' + opsi.map(function (o) { return '<option value="' + o + '"' + (k.st === o ? ' selected' : '') + '>' + RK_ST[o][0] + '</option>'; }).join('') + '</select></label>' +
+      '<label><input type="checkbox" id="rkSm"' + (k.semua ? ' checked' : '') + '> tampilkan yang sudah dicek</label>' + (k.sisi === 'accurate' ? '<label><input type="checkbox" id="rkKt"' + (k.kat ? ' checked' : '') + '> tampilkan reklas/rutin/opname</label>' : '') + '<button id="rkXl">Unduh Excel</button></div>' +
+      (L.length ? L.slice(0, 300).map(function (x, i) {
+        var c = RK_ST[x.status] || [x.status, '#555'];
+        return '<details class="mac-cek"><summary><b>' + esc(x.doc) + '</b> · ' + esc(dmy(x.tgl)) + ' · ' + esc(rkJenis(x)) + (x.ppbj ? ' · ' + esc(x.ppbj) : '') + (x.proyek ? ' · ' + esc(x.proyek) : '') + ' · <span class="mac-st" style="color:' + c[1] + '">' + esc(c[0]) + '</span>' + (x.pasangan.length ? ' · ' + esc(x.pasangan.slice(0, 4).join(', ')) + (x.pasangan.length > 4 ? ' …' : '') : '') + (x.dicek ? ' · <i>dicek</i>' : '') + '</summary>' +
+          (x.ket ? '<div class="note">' + esc(x.ket) + '</div>' : '') + (x.tercatat && x.tercatat.length ? '<div class="note">Nomor Accurate yang dicatat di tab Accurate: ' + esc(x.tercatat.join(', ')) + '</div>' : '') +
+          '<div class="mac-wrap"><table class="mac-tb"><thead><tr><th>Barang</th><th class="nm">Jumlah</th><th class="nm">Berpasangan</th><th>Dengan</th></tr></thead><tbody>' +
+          (x.items.length ? x.items.map(function (it) { var kurang = it.qty - it.pas > 0.0005; return '<tr><td data-l="Barang"><button class="mac-link" data-kartu="' + esc(it.kode) + '">' + esc(it.nama) + '</button><br><small>' + esc(it.kode) + '</small></td><td class="nm" data-l="Jumlah">' + qy(it.qty) + '</td><td class="nm" data-l="Berpasangan"' + (kurang ? ' style="color:#c0392b;font-weight:600"' : '') + '>' + qy(it.pas) + '</td><td data-l="Dengan"><small>' + esc(it.ke || '-') + '</small></td></tr>'; }).join('') : '<tr><td colspan="4">Rincian barang tidak terbaca dari Mutasi sistem.</td></tr>') + '</tbody></table></div>' +
+          (x.status === 'cocok' ? '' : x.dicek ? '<div class="note">Sudah dicek ' + esc(x.dicek.waktu) + (x.dicek.cat ? ': ' + esc(x.dicek.cat) : '') + ' <button data-rkh="' + esc(x.kunci) + '">Hapus tanda</button></div>' :
+            '<div class="fr" style="gap:6px;flex-wrap:wrap"><input data-rkc="' + i + '" placeholder="Catatan (opsional), mis. sudah dibuat IA bulan depan" style="flex:1;min-width:200px"><button data-rkd="' + esc(x.kunci) + '" data-ri="' + i + '">Tandai sudah dicek</button></div>') + '</details>';
+      }).join('') + (L.length > 300 ? '<div class="note">Tampil 300 pertama. Unduh Excel untuk semua.</div>' : '') : '<div class="note">Tidak ada data pada saringan ini.</div>');
+    out.querySelectorAll('[data-rs]').forEach(function (b) { b.onclick = function () { k.sisi = b.getAttribute('data-rs'); k.st = ''; gambarRekon(out, r, box); }; });
+    out.querySelector('#rkSt').onchange = function () { k.st = this.value; gambarRekon(out, r, box); };
+    out.querySelector('#rkSm').onchange = function () { k.semua = this.checked; tabRekon(box); };
+    var kt = out.querySelector('#rkKt'); if (kt) kt.onchange = function () { k.kat = this.checked; tabRekon(box); };
+    out.querySelectorAll('[data-rkd]').forEach(function (b) { b.onclick = function () { var inp = out.querySelector('[data-rkc="' + b.getAttribute('data-ri') + '"]'); b.disabled = true; api({action: 'adminMacRekonCek', kunci: [b.getAttribute('data-rkd')], catatan: inp ? inp.value : ''}).then(function (x) { toast(x.msg || (x.ok ? 'Tersimpan.' : 'Gagal.'), !x.ok); if (x.ok) tabRekon(box); else b.disabled = false; }); }; });
+    out.querySelectorAll('[data-rkh]').forEach(function (b) { b.onclick = function () { api({action: 'adminMacRekonCek', kunci: [b.getAttribute('data-rkh')], hapus: true}).then(function (x) { toast(x.msg || '', !x.ok); if (x.ok) tabRekon(box); }); }; });
+    out.querySelector('#rkXl').onclick = function () {
+      var rows = []; L.forEach(function (x) { x.items.forEach(function (it) { rows.push({doc: x.doc, tgl: x.tgl, jenis: rkJenis(x), ppbj: x.ppbj, status: (RK_ST[x.status] || [x.status])[0], kode: it.kode, nama: it.nama, qty: it.qty, pas: it.pas, ke: it.ke, cek: x.dicek ? (x.dicek.cat || 'dicek') : ''}); }); if (!x.items.length) rows.push({doc: x.doc, tgl: x.tgl, jenis: rkJenis(x), ppbj: x.ppbj, status: (RK_ST[x.status] || [x.status])[0]}); });
+      unduhTabel('Cocokkan ' + (k.sisi === 'sistem' ? 'sistem' : 'Accurate'), 'Cocokkan sistem gudang dengan Accurate (' + (k.sisi === 'sistem' ? 'dari sisi sistem gudang' : 'dari sisi Accurate') + ')', 'Mulai ' + dmy(r.mulai) + ', data Accurate sampai ' + dmy(r.sampai) + ', ' + L.length + ' dokumen', [{t: 'Dokumen', k: 'doc', w: 20}, {t: 'Tanggal', k: 'tgl', f: 'tgl', w: 12}, {t: 'Jenis', k: 'jenis', w: 14}, {t: 'PPBJ', k: 'ppbj', w: 18}, {t: 'Status', k: 'status', w: 18}, {t: 'Kode', k: 'kode', w: 18}, {t: 'Nama barang', k: 'nama', w: 34}, {t: 'Jumlah', k: 'qty', f: '#,##0.###', w: 10}, {t: 'Berpasangan', k: 'pas', f: '#,##0.###', w: 12}, {t: 'Dengan', k: 'ke', w: 30}, {t: 'Catatan dicek', k: 'cek', w: 26}], rows);
+    };
+  }
+
   /* --- Tanya --- */
   function pindahTab(t) { S.tab = t; el.querySelectorAll('.mac-tabs button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === t)); }); isi(); var x = el.querySelector('#macIsi'); if (x && x.scrollIntoView) x.scrollIntoView({block: 'start'}); }
   var ALASAN = {tanpa_kunci: 'AI belum dipasang', batas: 'jatah AI hari ini habis', gagal: 'AI sedang tidak bisa dihubungi', tidak_tahu: 'AI tidak mengerti pertanyaan', dimatikan: ''};
@@ -235,7 +274,7 @@
     q.onkeydown = function (e) { if (e.key === 'Enter') kirim(q.value); };
     el.querySelectorAll('[data-tq]').forEach(function (b) { b.onclick = function () { kirim(b.getAttribute('data-tq')); }; });
   }
-  function isi() { var f = {cari: tabCari, kartu: tabKartu, ppbj: tabPpbj, cek: tabCek, belumia: tabBelumIa, mati: tabMati, rapi: tabRapi}[S.tab] || tabCari; f(el.querySelector('#macIsi')); }
+  function isi() { var f = {cari: tabCari, kartu: tabKartu, ppbj: tabPpbj, rekon: tabRekon, cek: tabCek, belumia: tabBelumIa, mati: tabMati, rapi: tabRapi}[S.tab] || tabCari; f(el.querySelector('#macIsi')); }
 
   /* unggah bertahap */
   function unggah(file) {

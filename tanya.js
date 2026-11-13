@@ -338,12 +338,31 @@ function tampilBukti(d,per){
   chat.scrollTop=chat.scrollHeight;
 }
 
+/* ===== RIWAYAT BARANG DARI MUTASI ACCURATE (tanpa harga dan tanpa nomor IA/RI) ===== */
+var KATA_RIWAYAT=/\b(riwayat|history|pernah (keluar|dipakai|diambil)|kapan terakhir (keluar|dipakai|diambil|terpakai|masuk|diterima|datang)|terakhir (keluar|dipakai|diambil|terpakai)|dipakai untuk (proyek )?apa|keluar (untuk|ke) (proyek )?apa|berapa (banyak |total )?(pemakaian|yang (keluar|dipakai|terpakai)))\b/;
+async function jawabMutasi(teks,kb){
+  var r;try{r=await bot("mutasi",{q:teks,kb:kb||undefined})}catch(e){add("tq-b","<p>Gagal terhubung ke server.</p>");return}
+  if(!r.ok){add("tq-b","<p>"+esc(r.msg||"Riwayat belum bisa dibaca.")+"</p>");return}
+  var cat='<p class="tq-sm">Sumber: laporan mutasi Accurate'+(r.sampai||r.dataSampai?", data sampai "+tglBukti(r.sampai||r.dataSampai):"")+'.</p>';
+  if(r.tipe==="kosong"){add("tq-b","<p>"+esc(r.msg||"Tidak ada riwayat yang cocok.")+"</p>"+(r.sampai?cat:""));return}
+  if(r.tipe==="pilih"){
+    var d=add("tq-b","<p>Ada <b>"+r.banyak+"</b> barang yang cocok"+(r.banyak>r.pilihan.length?" (ditampilkan "+r.pilihan.length+" dengan mutasi terbaru)":"")+". Yang mana?</p>");
+    d.appendChild(chips(r.pilihan.map(function(b){return{label:b.nama,kode:b.kode}}),function(x){add("tq-u",esc(x.label));jawabMutasi(teks,x.kode)}));return;
+  }
+  var per=r.dari?" sejak "+tglBukti(r.dari):"";
+  var h="<p><b>"+esc(r.nama)+"</b> <span class=\"tq-sm\">("+esc(r.kode)+")</span></p><p>Keluar"+per+": <b>"+fq(r.keluar)+"</b> · Masuk: <b>"+fq(r.masuk)+"</b></p>";
+  h+="<p>Terakhir keluar: "+(r.terakhirKeluar?"<b>"+tglBukti(r.terakhirKeluar.tgl)+"</b> ("+fq(r.terakhirKeluar.qty)+")":"tidak ada")+"<br>Terakhir masuk: "+(r.terakhirMasuk?"<b>"+tglBukti(r.terakhirMasuk.tgl)+"</b> ("+fq(r.terakhirMasuk.qty)+")":"tidak ada")+"</p>";
+  if(r.perPpbj&&r.perPpbj.length)h+="<p>Dipakai untuk PPBJ:<br>"+r.perPpbj.map(function(x){return esc(x.ppbj)+" — "+fq(x.qty)}).join("<br>")+"</p>";
+  if(r.riwayat&&r.riwayat.length)h+="<p>Riwayat terbaru"+(r.nRiwayat>r.riwayat.length?" ("+r.riwayat.length+" dari "+r.nRiwayat+")":"")+":<br>"+r.riwayat.map(function(x){return tglBukti(x.tgl)+" · "+(x.arah==="keluar"?(x.jenis==="retur"?"retur ":"keluar ")+fq(x.qty):"masuk "+fq(x.qty))+(x.ppbj?" · "+esc(x.ppbj):"")}).join("<br>")+"</p>";
+  add("tq-b",h+cat);
+}
+
 /* ===== PENGURAI PERTANYAAN ===== */
 var S={tunggu:false};
 var KATA_QTY=/\b(butuh|perlu|minta|ambil|mau|cukup|pesan|kebutuhan|pakai|pake|keluarkan|bawa)\b/;
 function catatGagal(t){bot("catat",{teks:t}).catch(function(){})}
 async function jawabSatu(teks,prev){
-  var per=periodeDari(teks.toLowerCase());
+  var teks0=teks,per=periodeDari(teks.toLowerCase());
   if(per)teks=teks.replace(/(hari ini|minggu ini|bulan ini|\d{1,3}\s*hari(?: terakhir| lalu)?)/ig," ");
   var raw=norm(teks),low=teks.toLowerCase().trim();
   askLok=/\b(dimana|di mana|lokasi|letak|rak|ditaruh|disimpan|simpan)\b/.test(low);
@@ -355,6 +374,7 @@ async function jawabSatu(teks,prev){
   var mn=low.match(/^(?:nama\s+)?(?:saya|aku)\s+([a-z ]{3,40})$/);
   if(mn&&!/(butuh|perlu|mau|minta|ambil)/.test(low)){USER_NAMA=mn[1].trim();ls("sctk_bot_nama",USER_NAMA);add("tq-b","<p>Baik, <b>"+esc(USER_NAMA)+"</b>. Tanya \"bpb saya sampai mana?\" kapan saja.</p>");return}
   if(/\bbukti\b/.test(low)||(/\b(cetak|unduh|download|pdf)\b/.test(low)&&/\b(bpb|pengambilan)\b/.test(low)))return jawabBukti(teks,per);
+  if(KATA_RIWAYAT.test(low)&&!/\b(bpb|bukti)\b/.test(low))return jawabMutasi(teks0);
   if(/\b(bpb|permintaan|pengajuan)\b/.test(low)&&/(saya|aku|ku\b|status|sampai mana|kemarin)/.test(low))return jawabBpb();
   var qty=0,rc=raw,ia=-1;raw.forEach(function(t,i){if(/^\d+$/.test(t)&&ia<0)ia=i});
   if(ia>=0&&(KATA_QTY.test(low)||/\d+\s*(pcs|batang|unit|roll|kaleng|buah|biji|btg|bh|meter)\b/.test(low))){qty=+raw[ia];rc=raw.filter(function(t,i){return i!==ia})}

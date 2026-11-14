@@ -83,7 +83,7 @@
   }
   function tutup(t) {
     var a = tabs(), i = a.findIndex(function (x) { return x.t === t; }); if (i < 0) return;
-    if (t === window.TAB && kotor[t] && !konfirmasi(t)) return;
+    if (t === window.TAB && adaKotor(t) && !konfirmasi(t)) return;
     a.splice(i, 1); lsSet(KT, a); delete gulir[t]; delete kotor[t];
     if (t === window.TAB) { var n = a[i] || a[i - 1]; if (n) window.goTab(n.t); else gambarBar(); } else gambarBar();
   }
@@ -93,12 +93,14 @@
   function seperti_cari(el) { return el.type === "search" || /cari|search|filter|saring|^q$|[_-]q$|ketik nama|ketik kode/i.test((el.id || "") + " " + (el.placeholder || "")); }
   d.addEventListener("input", function (e) {
     var el = e.target, p = d.getElementById("pane"); if (!p || !el || !p.contains(el)) return;
-    if (el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && /^(text|number|date|tel|email|)$/.test(el.type || "text") && !seperti_cari(el))) kotor[window.TAB] = true;
+    if (el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && /^(text|number|date|tel|email|)$/.test(el.type || "text") && !seperti_cari(el))) { var a = kotor[window.TAB] || (kotor[window.TAB] = []); if (a.indexOf(el) < 0) a.push(el); }
   }, true);
-  d.addEventListener("click", function (e) {
-    var b = e.target && e.target.closest ? e.target.closest("button") : null; if (!b) return;
-    if (/simpan|kirim|terapkan|ajukan|serahkan|terima|setujui|impor|unggah|catat/i.test(b.textContent || "") && d.getElementById("pane") && d.getElementById("pane").contains(b)) setTimeout(function () { kotor[window.TAB] = false; }, 800);
-  }, true);
+  /* Isian dianggap belum disimpan hanya bila elemen yang diketik masih tampil di halaman dan isinya berbeda dari isi awal.
+     Setelah disimpan, halaman biasanya digambar ulang sehingga elemen lama hilang dan peringatan tidak muncul. */
+  function adaKotor(t) {
+    var a = (kotor[t] || []).filter(function (el) { return el.isConnected; }); kotor[t] = a;
+    return a.some(function (el) { var v = String(el.value == null ? "" : el.value); return v.trim() !== "" && v !== String(el.defaultValue == null ? "" : el.defaultValue); });
+  }
 
   /* ---------- posisi gulir ---------- */
   function pulih(t) {
@@ -176,9 +178,9 @@
     var asliGo = window.goTab, asliUI = window.tabsUI;
     window.goTab = function (t) {
       var lama = window.TAB;
-      if (t !== lama && kotor[lama] && d.getElementById("pane") && !konfirmasi(lama)) return;
+      if (t !== lama && adaKotor(lama) && d.getElementById("pane") && !konfirmasi(lama)) return;
       if (lama && d.getElementById("pane")) gulir[lama] = window.scrollY;
-      kotor[lama] = false;
+      kotor[lama] = [];
       if (!luar(t) && t !== lama) { try { window.scrollTo(0, 0); } catch (e) { /* abaikan */ } }
       catat(t);
       if (!dariRiwayat && t !== lama && !luar(t)) { try { history.pushState(null, "", "#" + t); } catch (e3) { /* abaikan */ } }

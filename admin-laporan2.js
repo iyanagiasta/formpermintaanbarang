@@ -60,7 +60,7 @@ var LX=(function(){
     Array.prototype.forEach.call(pane().querySelectorAll("[data-lj]"),function(b){b.onclick=function(){S.jenis=b.getAttribute("data-lj");pusat();};});
     Array.prototype.forEach.call(pane().querySelectorAll("tr.dd"),function(tr){tr.onclick=function(){rinci(S.tab,L[+tr.getAttribute("data-ri")]);};});
     $("lxxl").onclick=function(){xlsx(NB.buat("xlsx","Laporan Pintar",NB.periode(S.dari,S.sampai)),[["Ringkasan",[["Laporan Pemakaian Barang"],["Periode",tgl(S.dari)+" s.d. "+tgl(S.sampai)],[r.narasi],[],["Nilai",T.nilai],["Baris",T.baris],["Periode lalu (nilai)",B.nilai.lalu],["Perubahan %",B.nilai.persen==null?"":B.nilai.persen]]]].concat(TABS.map(function(x){return [x[1],[[x[1],"Baris","Qty","Nilai","Periode lalu","Perubahan %"]].concat(((r.rekap||{})[x[0]]||[]).map(function(y){return [y.label||y.k,y.baris,y.qty,y.nilai,y.lalu,y.persen==null?"":y.persen];}))];})));};
-    if($("lxgoacc"))$("lxgoacc").onclick=function(){goTab("accurate");};
+    if($("lxgoacc"))$("lxgoacc").onclick=function(){(window.bukaTab||goTab)("accurate");};
   }
   function kartuAcc(pa){
     if(!pa||!pa.ok)return "";var R=pa.ringkas;
@@ -111,7 +111,7 @@ var LX=(function(){
       (r.rows.length?tab(["Departemen","Baris","PPBJ terisi","PPBJ terdaftar","Harga ada","Skor","Perlu diperbaiki"],r.rows.map(function(x){return '<tr><td><b>'+esc(x.dept)+'</b></td><td class="nm">'+x.baris+'</td><td class="nm">'+x.ppbj+'%</td><td class="nm">'+x.terdaftar+'%</td><td class="nm">'+x.harga+'%</td><td class="nm"><b style="color:'+wr(x.skor)+'">'+x.skor+'</b></td><td><small>'+(x.tanpaPpbj?x.tanpaPpbj+' tanpa PPBJ. ':"")+(x.belumTerdaftar?x.belumTerdaftar+' PPBJ belum terdaftar. ':"")+(x.tanpaHarga?x.tanpaHarga+' tanpa harga.':"")+'</small></td></tr>';}),[1,2,3,4,5]):'<div class="card msg">Belum ada data pada rentang ini.</div>')+
       '<div class="card"><b>Dokumen yang tertahan</b> <span class="note" style="margin:0">tidak bisa diinput ke Accurate sampai dilengkapi</span>'+(r.tertahan.length?tab(["Dokumen","Tanggal","Departemen","Alasan"],r.tertahan.map(function(x){return '<tr><td><b>'+esc(x.doc)+'</b></td><td>'+esc(x.tgl||"")+'</td><td>'+esc(x.dept||"")+'</td><td>'+esc(x.alasan)+'</td></tr>';})):'<p class="note">Tidak ada.</p>')+'<div class="bar noprint"><button class="gh" id="lxkp">Buka Kotak Pengingat PPBJ</button></div></div>';
     pasangBar(pane(),muatAktif);pasangPeriode(pane(),muatAktif);
-    $("lxkp").onclick=function(){goTab("kerja");};
+    $("lxkp").onclick=function(){(window.bukaTab||goTab)("kerja");};
   }
   /* ---- Segel & tautan ---- */
   async function segel(aksi){

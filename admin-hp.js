@@ -32,7 +32,7 @@
         var mb = d.getElementById("mnbtn"); if (mb) { try { mb.focus(); } catch (x) { /* abaikan */ } }
         return;
       }
-      if (typeof window.goTab === "function") { window.goTab(k); try { window.scrollTo(0, 0); } catch (x) { /* abaikan */ } }
+      if (typeof window.goTab === "function") { (window.bukaTab || window.goTab)(k); }
     });
   }
   function tandai() {

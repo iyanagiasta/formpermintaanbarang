@@ -341,7 +341,7 @@ function drawLapAtasan(){
   document.getElementById("kn_l").onclick=function(){lihatKondisi(false);};
   document.getElementById("kn_s").onclick=function(){lihatKondisi(true);};
   document.getElementById("kn_t").onclick=buatTautanKondisi;
-  document.getElementById("kn_pw").onclick=function(){goTab("kerja");};
+  document.getElementById("kn_pw").onclick=function(){(window.bukaTab||goTab)("kerja");};
   document.getElementById("la_b").onclick=function(){buatLap({jenis:"Bulanan"});};
   document.getElementById("la_k").onclick=function(){buatLap({jenis:"Khusus",dari:document.getElementById("la_d1").value,sampai:document.getElementById("la_d2").value});};
   document.getElementById("la_m").onclick=function(){buatLap({jenis:"2 Mingguan",dari:document.getElementById("la_d1").value,sampai:document.getElementById("la_d2").value});};

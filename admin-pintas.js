@@ -34,7 +34,13 @@
       '<table><tr><td><kbd>/</kbd></td><td>Langsung ke kotak cari di halaman ini</td></tr>' +
       '<tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>Cari menu, barang, atau No PPBJ (kotak di menu samping)</td></tr>' +
       '<tr><td><kbd>Alt</kbd> + <kbd>1</kbd>..<kbd>8</kbd></td><td>Pindah ke tab ke-1 sampai ke-8 di atas</td></tr>' +
+      '<tr><td><kbd>Alt</kbd> + <kbd>Q</kbd></td><td>Kembali ke tab yang terakhir dibuka (bolak-balik dua tab)</td></tr>' +
+      '<tr><td><kbd>Alt</kbd> + <kbd>[</kbd> / <kbd>]</kbd></td><td>Pindah ke tab di kiri / kanan</td></tr>' +
+      '<tr><td><kbd>Alt</kbd> + <kbd>T</kbd></td><td>Buka tab baru jenis yang sama (Stok &amp; Harga, Mutasi, Telusur)</td></tr>' +
+      '<tr><td><kbd>Alt</kbd> + <kbd>R</kbd></td><td>Muat ulang tab ini saja</td></tr>' +
       '<tr><td><kbd>Alt</kbd> + <kbd>W</kbd></td><td>Tutup tab yang sedang terbuka</td></tr>' +
+      '<tr><td>Ctrl+klik / klik tengah menu</td><td>Buka menu di tab baru (Stok &amp; Harga, Mutasi, Telusur)</td></tr>' +
+      '<tr><td>Klik tengah / klik 2x tab</td><td>Tutup tab / muat ulang tab. Seret tab untuk mengatur urutan.</td></tr>' +
       '<tr><td><kbd>?</kbd></td><td>Tampilkan atau tutup daftar ini</td></tr>' +
       '<tr><td><kbd>r</kbd></td><td>Mode baca: huruf lebih besar, baris lebih lega</td></tr>' +
       '<tr><td><kbd>Esc</kbd></td><td>Tutup daftar pintasan ini</td></tr>' + baris + '</table>' +
@@ -91,7 +97,7 @@
     if (gAktif) {
       clearTimeout(gTmr); gAktif = 0; petunjukG(false);
       var t = PETA[String(k).toLowerCase()];
-      if (t && typeof window.goTab === "function") { e.preventDefault(); window.goTab(t); }
+      if (t && typeof window.goTab === "function") { e.preventDefault(); (window.bukaTab || window.goTab)(t); }
       return;
     }
     if (k === "/") { e.preventDefault(); if (!fokus(kotakCari())) { /* tidak ada kotak cari */ } return; }

@@ -120,7 +120,7 @@ var PDN=(function(){
     var t=null;q.oninput=function(){Q=q.value;clearTimeout(t);t=setTimeout(function(){var pos=q.selectionStart;tampil();var n=document.getElementById("pdq");n.focus();try{n.setSelectionRange(pos,pos);}catch(e){}},220);};
     document.getElementById("pdp").onchange=function(){PERAN=this.value;tampil();};
     document.getElementById("pdcetak").onclick=function(){window.print();};
-    var kb=document.getElementById("pdkb");if(kb)kb.onclick=function(){goTab(kembaliTab);};
+    var kb=document.getElementById("pdkb");if(kb)kb.onclick=function(){(window.bukaTab||goTab)(kembaliTab);};
     el.querySelectorAll("[data-buka]").forEach(function(b){b.onclick=function(){buka(b.getAttribute("data-buka"));};});
     var run=document.getElementById("pdrun");if(run)run.onclick=jalankanPeriksa;
     var tg=document.getElementById("pdtg"),toc=document.getElementById("pdtoc");

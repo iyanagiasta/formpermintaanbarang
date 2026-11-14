@@ -23,7 +23,7 @@ var PX=(function(){
     w.innerHTML=tiles([[R.aktif,"Proyek mengikat stok"],[R.tinggi,"Prioritas Tinggi"],[R.terancam,"Proyek terancam kekurangan",R.terancam?"var(--red,#a82424)":""],[R.jalanDuluan,"Proyek bergerak, proyek lain terancam",R.jalanDuluan?"var(--warn-t,#6b4300)":""],[R.dokTertahan,"Dokumen tertahan di Accurate",R.dokTertahan?"var(--red,#a82424)":""],[R.tanpaRab,"Belum ada RAB"]])+
       (r.tanpaPpbj.length?'<div class="card"><b>Barang keluar tanpa No PPBJ</b> <span class="note" style="margin:0">belum diinput ke Accurate; lengkapi lewat Kotak Pengingat PPBJ</span>'+tab(["Departemen","Dokumen","Nilai","Menunggu paling lama"],r.tanpaPpbj.map(function(x){return '<tr><td><b>'+esc(x.dept)+'</b></td><td class="nm">'+x.dok+'</td><td class="nm">'+rp(x.nilai)+'</td><td class="nm">'+x.tertua+' hari</td></tr>';}),[1,2,3])+'<div class="bar noprint"><button class="gh" id="pxkp">Buka Daftar Kerja (Kotak Pengingat)</button></div></div>':"")+
       '<div class="bar noprint" id="pxf"></div>';
-    if($("pxkp"))$("pxkp").onclick=function(){goTab("kerja");};
+    if($("pxkp"))$("pxkp").onclick=function(){(window.bukaTab||goTab)("kerja");};
     saring();isi();
   }
   function filterUI(){

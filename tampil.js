@@ -220,6 +220,10 @@
     bersih: bersih,
     adaBaru: function () { barJenis = "baru"; gambarBar(); },
     adaBaruHapus: function () { if (barJenis === "baru") { barJenis = ""; gambarBar(); } },
+    /* Tambahan 127 (tab tetap standby, admin-nav.js): sebelum ruang tab dilepas, simpan cuplikannya;
+       sesudah ruang tab lain dipasang, tab itulah yang hidup dan pita lama dihapus/diperbarui. */
+    lepas: function () { try { clearTimeout(simpanT); simpanCuplikan(tab()); } catch (e) { } },
+    aktif: function () { liveTab = tab(); pindah = false; barJenis = ""; barPesan = ""; tahanSejak = 0; gambarBar(); },
     _jenis: jenisHtml, _cuplikan: cuplikan, _simpan: function () { simpanCuplikan(tab()); }
   };
 })(window, document);

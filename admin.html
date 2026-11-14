@@ -10,10 +10,10 @@
 <script src="pdfbukti.js?v=124"></script><script src="seri-meter.js?v=124"></script>
 <script src="mb-excel.js?v=38"></script>
 <script src="laporan.js"></script>
-<script src="admin-kerja.js?v=125"></script>
+<script src="admin-kerja.js?v=127"></script>
 <script src="admin-mutasi.js"></script>
-<script src="admin-laporan2.js"></script>
-<script src="admin-proyek2.js?v=119"></script>
+<script src="admin-laporan2.js?v=127"></script>
+<script src="admin-proyek2.js?v=127"></script>
 <script src="ppbj-ganti.js?v=1"></script>
 <script src="kb-impor.js"></script>
 <script src="serah-edit.js"></script>
@@ -37,7 +37,7 @@
 <script src="kimia.js?v=122"></script>
 <script src="kpi.js"></script>
 <script src="tanda.js"></script>
-<script src="panduan.js"></script>
+<script src="panduan.js?v=127"></script>
 <title>Admin Gudang - Pantauan No BPB</title>
 <style>
 :root{--navy:#17588f;--gold:var(--accent,#1a6cab);--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c}
@@ -1385,7 +1385,7 @@ function drawAccurate(){
   $("pad").onchange=function(){PAF.dari=this.value;drawAccurate();};$("paz").onchange=function(){PAF.sampai=this.value;drawAccurate();};
   $("paa").onchange=function(){PAF.acc=this.checked;drawAccurate();};$("par").onclick=function(){loadAccurate(true);};
   document.querySelectorAll("[data-pt]").forEach(function(b){b.onclick=function(){PAF.tahan=b.getAttribute("data-pt");drawAccurate();};});
-  if($("pajb"))$("pajb").onclick=function(){LX.jembatan(this);};if($("pakp"))$("pakp").onclick=function(){goTab("kerja");};
+  if($("pajb"))$("pajb").onclick=function(){LX.jembatan(this);};if($("pakp"))$("pakp").onclick=function(){(window.bukaTab||goTab)("kerja");};
   $("paq").onkeydown=function(e){if(e.key==="Enter"){PAF.q=this.value;drawAccurate();}};$("paq").onchange=function(){PAF.q=this.value;drawAccurate();};
   $("pall").onchange=function(){var on=this.checked;vis.slice(0,500).forEach(function(x){if(on)PAS[x.key]=1;else delete PAS[x.key];});drawAccurate();};
   document.querySelectorAll("[data-pk]").forEach(function(c){c.onchange=function(){var k=c.getAttribute("data-pk");if(c.checked)PAS[k]=1;else delete PAS[k];$("pasel").textContent=paTerpilih().length+" dokumen dipilih";};});
@@ -2321,8 +2321,8 @@ function bindOs(){pane().querySelectorAll("[data-os]").forEach(function(b){b.onc
 </script>
 <script src="swr.js?v=117"></script>
 <script src="basi.js?v=116"></script>
-<script src="tampil.js?v=117"></script>
-<script src="admin-hp.js"></script>
-<script src="admin-pintas.js?v=126"></script><script src="admin-nav.js?v=126"></script>
+<script src="tampil.js?v=127"></script>
+<script src="admin-hp.js?v=127"></script>
+<script src="admin-pintas.js?v=127"></script><script src="admin-nav.js?v=127"></script>
 </body>
 </html>

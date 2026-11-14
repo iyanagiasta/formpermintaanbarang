@@ -407,20 +407,79 @@ async function simpanCatat(){
   }catch(e){toast("Koneksi terputus. Cek Riwayat sebelum menyimpan ulang — jika tercatat, jangan kirim lagi.",true);}finally{BUSY=false;}
 }
 /* ===== riwayat ===== */
+/* ===== Riwayat: pencarian pintar + saring cepat (T121) ===== */
+var RW={d:[],admin:false,q:"",st:"",jn:"",wk:""};
+function rwNorm(t){return String(t==null?"":t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g," ").trim();}
+function rwDekat(a,b){ /* beda paling banyak 1 huruf (salah ketik kecil) */
+  if(a===b)return true;var la=a.length,lb=b.length;if(Math.abs(la-lb)>1)return false;
+  var i=0,j=0,beda=0;while(i<la&&j<lb){if(a[i]===b[j]){i++;j++;continue;}if(++beda>1)return false;if(la===lb){i++;j++;}else if(la>lb)i++;else j++;}
+  return beda+(la-i)+(lb-j)<=1;
+}
+function rwJerami(x){
+  var t=[x.nomor,x.po,x.ppbj,x.proyek,x.pic,x.vendor,x.oleh,x.cat,x.waktu,x.tglDatang,x.mode==="Catat"?"catatan manual":"",x.tertaut?"tertaut po":"",x.batal?"dibatalkan":"",x.accurate==="Sudah"?"sudah accurate":"belum accurate",isBufPP(x.ppbj,x.proyek)?"buffer":""];
+  (x.items||[]).forEach(function(i){t.push(i.nama,i.kode);});
+  return rwNorm(t.join(" "));
+}
+function rwCocok(x,toks){
+  if(!x.__h)x.__h=rwJerami(x);if(!x.__k)x.__k=x.__h.split(" ");
+  return toks.every(function(t){
+    if(t.length<3)return x.__k.some(function(w){return w.indexOf(t)===0;});   /* token pendek ("b" dari PP/B): hanya awal kata */
+    if(x.__h.indexOf(t)>=0)return true;
+    if(t.length<5)return false;
+    return x.__k.some(function(w){return w.length>=4&&rwDekat(t,w.slice(0,t.length))||rwDekat(t,w);});
+  });
+}
+function rwLolos(x){
+  if(RW.st==="belum"&&(x.batal||x.accurate==="Sudah"))return false;
+  if(RW.st==="sudah"&&(x.batal||x.accurate!=="Sudah"))return false;
+  if(RW.st==="batal"&&!x.batal)return false;
+  if(RW.jn==="po"&&(x.mode==="Catat"||!x.po))return false;
+  if(RW.jn==="manual"&&x.mode!=="Catat")return false;
+  if(RW.jn==="buffer"&&!isBufPP(x.ppbj,x.proyek))return false;
+  if(RW.wk){var n=new Date(),t=x.t||0,mulai=new Date(n.getFullYear(),n.getMonth(),n.getDate()).getTime();
+    if(RW.wk==="hari"&&t<mulai)return false;
+    if(RW.wk==="minggu"&&t<mulai-6*864e5)return false;
+    if(RW.wk==="bulan"&&t<new Date(n.getFullYear(),n.getMonth(),1).getTime())return false;}
+  var toks=rwNorm(RW.q).split(" ").filter(Boolean);
+  return !toks.length||rwCocok(x,toks);
+}
+function rwKartu(x){
+  var st=x.batal?'<span class="tag bad">Dibatalkan</span>':(x.accurate==="Sudah"?'<span class="tag ok">Sudah di Accurate</span>':'<span class="tag w">Belum di Accurate</span>');
+  return '<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b class="'+(x.batal?"can":"")+'">'+esc(x.nomor)+'</b>'+st+'</div><div class="note">'+esc(x.waktu)+' · oleh '+esc(x.oleh)+(x.po?' · PO '+esc(x.po):'')+'</div>'+
+    (x.mode==="Catat"?'<div style="margin-top:4px"><span class="tag">Catatan manual</span>'+(x.tertaut?' <span class="tag ok">Tertaut ke PO</span>':'')+' Datang <b>'+esc(x.tglDatang||"-")+'</b>'+(x.vendor?' · Vendor: <b>'+esc(x.vendor)+'</b>':'')+'</div>'+(x.tutup>0?'<div class="note">Menutup '+fq(x.tutup)+' barang yang sudah keluar lebih dulu dari stok.</div>':''):'')+
+    ((x.proyek||x.ppbj)?'<div style="margin-top:4px">Untuk proyek: <b>'+esc(x.proyek||x.ppbj)+'</b>'+(x.proyek&&x.ppbj?' ('+esc(x.ppbj)+')':'')+tagBuf(x.ppbj,x.proyek)+(x.pic?' · PIC: '+esc(x.pic):'')+'</div>':'')+
+    '<div style="margin-top:6px;font-size:13px">'+x.items.map(function(i){return esc(i.nama)+' <b>'+fq(i.qty)+'</b> '+esc(i.satuan)+(i.daftar?' <span class="tag w">perlu didaftarkan</span>':'')+(i.luar?' <span class="tag">di luar pesanan</span>':'');}).join('<br>')+'</div>'+
+    '<div class="note" style="margin-top:6px">'+(x.foto?x.foto+' foto surat jalan':(x.alasanFoto?'Tanpa foto: '+esc(x.alasanFoto):'Tanpa foto'))+(x.cat?' · '+esc(x.cat):'')+'</div>'+
+    (x.batal?'<div class="box r">Dibatalkan oleh '+esc(x.batalOleh)+': '+esc(x.batalAlasan)+'</div>':(RW.admin?'<div class="fr"><button class="rd" data-b="'+esc(x.nomor)+'">Batalkan penerimaan</button></div>':''))+'</div>';
+}
+function rwChip(grup,nilai,label){var on=RW[grup]===nilai;return '<button type="button" class="'+(on?"":"gh")+'" data-rw="'+grup+'" data-v="'+nilai+'" style="padding:6px 11px;font-size:12px;flex:none">'+label+'</button>';}
+function rwGambar(){
+  var box=document.getElementById("rwhasil");if(!box)return;
+  var ada=RW.d.filter(rwLolos);
+  var aktif=!!(RW.q||RW.st||RW.jn||RW.wk);
+  document.getElementById("rwjml").innerHTML=(aktif?'Menampilkan <b>'+ada.length+'</b> dari '+RW.d.length+' penerimaan terbaru':RW.d.length+' penerimaan terbaru')+(aktif?' · <a href="#" id="rwhapus">hapus pencarian</a>':'');
+  box.innerHTML=ada.length?ada.map(rwKartu).join(""):'<div class="card note" style="text-align:center">'+(RW.d.length?'Tidak ada penerimaan yang cocok. Coba kata lain atau hapus saringan.':'Belum ada penerimaan.')+'</div>';
+  box.querySelectorAll("[data-b]").forEach(function(e){e.onclick=function(){batal(e.getAttribute("data-b"),false);};});
+  var h=document.getElementById("rwhapus");if(h)h.onclick=function(ev){ev.preventDefault();RW.q=RW.st=RW.jn=RW.wk="";rwKerangka();};
+  document.querySelectorAll("[data-rw]").forEach(function(b){var g=b.getAttribute("data-rw"),v=b.getAttribute("data-v"),on=RW[g]===v;b.className=on?"":"gh";});
+}
+function rwKerangka(){
+  var el=document.getElementById("isi");
+  el.innerHTML='<div class="card"><label class="l" for="rwq">Cari penerimaan</label><input id="rwq" type="search" autocomplete="off" placeholder="mis. pipa pvc, cibadak, PP/B, vendor" value="'+esc(RW.q)+'">'+
+    '<div class="fr" style="margin:8px 0 0">'+rwChip("st","","Semua status")+rwChip("st","belum","Belum di Accurate")+rwChip("st","sudah","Sudah di Accurate")+rwChip("st","batal","Dibatalkan")+'</div>'+
+    '<div class="fr" style="margin:6px 0 0">'+rwChip("jn","","Semua jenis")+rwChip("jn","po","Dari PO")+rwChip("jn","manual","Catatan manual")+rwChip("jn","buffer","PPBJ buffer")+'</div>'+
+    '<div class="fr" style="margin:6px 0 0">'+rwChip("wk","","Semua waktu")+rwChip("wk","hari","Hari ini")+rwChip("wk","minggu","7 hari")+rwChip("wk","bulan","Bulan ini")+'</div>'+
+    '<div class="note" id="rwjml" style="margin-top:8px"></div></div><div id="rwhasil"></div>';
+  var q=document.getElementById("rwq"),tm=0;
+  q.oninput=function(){clearTimeout(tm);tm=setTimeout(function(){RW.q=q.value;rwGambar();},120);};
+  el.querySelectorAll("[data-rw]").forEach(function(b){b.onclick=function(){var g=b.getAttribute("data-rw"),v=b.getAttribute("data-v");RW[g]=(RW[g]===v&&v!=="")?"":v;rwGambar();};});
+  rwGambar();
+}
 async function riwayat(){
   var el=document.getElementById("isi");el.innerHTML='<div class="note" style="text-align:center;padding:20px">Memuat...</div>';
   try{
     var r=await api({action:"terimaDaftar"});if(!r.ok){el.innerHTML='<p class="err">'+esc(r.msg||"Gagal.")+'</p>';return;}
-    var d=r.data||[];
-    el.innerHTML=d.length?d.map(function(x){
-      var st=x.batal?'<span class="tag bad">Dibatalkan</span>':(x.accurate==="Sudah"?'<span class="tag ok">Sudah di Accurate</span>':'<span class="tag w">Belum di Accurate</span>');
-      return '<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b class="'+(x.batal?"can":"")+'">'+esc(x.nomor)+'</b>'+st+'</div><div class="note">'+esc(x.waktu)+' · oleh '+esc(x.oleh)+(x.po?' · PO '+esc(x.po):'')+'</div>'+
-        (x.mode==="Catat"?'<div style="margin-top:4px"><span class="tag">Catatan manual</span>'+(x.tertaut?' <span class="tag ok">Tertaut ke PO</span>':'')+' Datang <b>'+esc(x.tglDatang||"-")+'</b>'+(x.vendor?' · Vendor: <b>'+esc(x.vendor)+'</b>':'')+'</div>'+(x.tutup>0?'<div class="note">Menutup '+fq(x.tutup)+' barang yang sudah keluar lebih dulu dari stok.</div>':''):'')+
-        ((x.proyek||x.ppbj)?'<div style="margin-top:4px">Untuk proyek: <b>'+esc(x.proyek||x.ppbj)+'</b>'+(x.proyek&&x.ppbj?' ('+esc(x.ppbj)+')':'')+tagBuf(x.ppbj,x.proyek)+(x.pic?' · PIC: '+esc(x.pic):'')+'</div>':'')+
-        '<div style="margin-top:6px;font-size:13px">'+x.items.map(function(i){return esc(i.nama)+' <b>'+fq(i.qty)+'</b> '+esc(i.satuan)+(i.daftar?' <span class="tag w">perlu didaftarkan</span>':'')+(i.luar?' <span class="tag">di luar pesanan</span>':'');}).join('<br>')+'</div>'+
-        '<div class="note" style="margin-top:6px">'+(x.foto?x.foto+' foto surat jalan':(x.alasanFoto?'Tanpa foto: '+esc(x.alasanFoto):'Tanpa foto'))+(x.cat?' · '+esc(x.cat):'')+'</div>'+
-        (x.batal?'<div class="box r">Dibatalkan oleh '+esc(x.batalOleh)+': '+esc(x.batalAlasan)+'</div>':(r.admin?'<div class="fr"><button class="rd" data-b="'+esc(x.nomor)+'">Batalkan penerimaan</button></div>':''))+'</div>';}).join(""):'<div class="card note" style="text-align:center">Belum ada penerimaan.</div>';
-    el.querySelectorAll("[data-b]").forEach(function(e){e.onclick=function(){batal(e.getAttribute("data-b"),false);};});
+    RW.d=r.data||[];RW.admin=!!r.admin;rwKerangka();
   }catch(e){el.innerHTML='<p class="err">Gagal terhubung ke server.</p>';}
 }
 async function batal(no,setuju){

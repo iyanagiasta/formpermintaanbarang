@@ -562,7 +562,7 @@ function tampilChat(){
   document.getElementById("q").focus();
   if(window.TGA)TGA.pasang(KODE);
 }
+window.__tanya={tanya:tanya,jawabSatu:jawabSatu,norm:norm,bersih:bersih,api:api,add:add,chips:chips,esc:esc};
 var k0=ls("sctk_kode");if(!k0){try{k0=sessionStorage.getItem("sctk_tanya_adm")}catch(e){}}
 if(k0){KODE=k0;mulai(false)}else loginView("");
-window.__tanya={tanya:tanya,jawabSatu:jawabSatu,norm:norm,bersih:bersih,api:api,add:add,chips:chips,esc:esc};
 })();

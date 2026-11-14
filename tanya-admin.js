@@ -122,7 +122,7 @@
     add("tq-u", esc(o.label || teks));
     var m = add("tq-b tga", '<p class="tq-sm tga-tunggu">Menghitung dari data...</p>');
     var t0 = Date.now();
-    api({action: "adminBotTanya", pin: A.pin, teks: teks, konteks: A.K, pilih: o.pilih || null}).then(function (r) {
+    api({action: "adminBotTanya", pin: A.pin, teks: teks, konteks: A.K, pilih: o.pilih || null, segar: o.segar ? 1 : 0}).then(function (r) {
       if (!m) return; m.innerHTML = "";
       if (!r || !r.ok) {
         var msg = (r && r.msg) || "Gagal.";
@@ -133,7 +133,8 @@
       gambarBlok(r.blok || [], m);
       if (r.konteks) A.K = {kodes: r.konteks.kodes || [], nama: r.konteks.nama || [], ppbj: r.konteks.ppbj || ""};
       if ((r.saran || []).length) m.appendChild(chips(r.saran, function (x) { if (/ $/.test(x.tanya)) { var q = document.getElementById("q"); if (q) { q.value = x.tanya; q.focus(); } } else tanya(x.tanya); }));
-      m.insertAdjacentHTML("beforeend", '<p class="tq-sm tga-meta">' + (r.ai ? "AI membantu memahami pertanyaan · " : "") + "dihitung dari data " + ((Date.now() - t0) / 1000).toFixed(1).replace(".", ",") + " dtk</p>");
+      m.insertAdjacentHTML("beforeend", '<p class="tq-sm tga-meta">' + (r.ai ? "AI membantu memahami pertanyaan · " : "") + "dihitung dari data " + ((Date.now() - t0) / 1000).toFixed(1).replace(".", ",") + " dtk" + (r.dataJam ? ' · bacaan data per ' + esc(r.dataJam) + ' <a href="#" class="tga-segar">hitung ulang dari data terbaru</a>' : "") + "</p>");
+      var sg = m.querySelector(".tga-segar"); if (sg) sg.onclick = function (ev) { ev.preventDefault(); tanya(teks, {segar: true, pilih: o.pilih, label: teks + " (data terbaru)"}); };
       bawah();
     }).catch(function () { if (m) m.innerHTML = '<p class="err">Gagal terhubung ke server. Periksa internet lalu coba lagi.</p>'; });
   }
@@ -155,11 +156,10 @@
   function matikan() { A.aktif = false; A.pin = ""; ss("sctk_tanya_adm", null); tombol(); placeholder(); }
   /** T135: pemeriksaan admin dimulai bersamaan dengan pemuatan data (dipanggil tanya.js di awal), jadi tidak menambah waktu tunggu. */
   var AWAL = null;
-  function awal(kode) { if (kode) AWAL = {kode: kode, p: api({action: "adminBotCek", kode: kode}).catch(function () { return null; })}; }
+  function awal(kode) { if (kode && T().api) AWAL = {kode: kode, p: api({action: "adminBotCek", kode: kode}).catch(function () { return null; })}; }
   function cek(kode) {
     var pre = AWAL && AWAL.kode === kode ? AWAL.p : null; AWAL = pre ? null : AWAL;
-    return (pre || api({action: "adminBotCek", kode: kode})).then(function (r) {
-      if (r === null) return {ok: false, msg: "Gagal terhubung ke server."};
+    return (pre ? pre.then(function (r) { return r === null ? api({action: "adminBotCek", kode: kode}) : r; }) : api({action: "adminBotCek", kode: kode})).then(function (r) {
       if (r && r.ok && r.admin) { A.versi = r.versi || ""; nyalakan(kode); }
       return r;
     }).catch(function () { return {ok: false, msg: "Gagal terhubung ke server."}; });

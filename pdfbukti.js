@@ -97,7 +97,9 @@
       y = ty + .45 + 5.6;
       var items = (d.items || []).slice(); while (items.length < 5) items.push(null);
       items.forEach(function (it, k) {
-        var nm = it ? wrap(F, 8.5, it.nama || "", cols[2] - 3) : [""], h = Math.max(5.4, nm.length * 3.75 + 1.6), xx = X0;
+        var nm = it ? wrap(F, 8.5, it.nama || "", cols[2] - 3) : [""];
+        if (it && it.meter) nm = nm.concat(wrap(F, 8.5, "No seri: " + ((it.seri && it.seri.length) ? it.seri.join(", ") : "-") + (it.seriKurang > 0 ? " (belum lengkap, kurang " + it.seriKurang + ")" : ""), cols[2] - 3));   // T124
+        var h = Math.max(5.4, nm.length * 3.75 + 1.6), xx = X0;
         G(X0, y, X0 + CW, y, .15, SOFT);
         cols.forEach(function (c, i) { if (i > 0) G(xx, y, xx, y + h, .15, SOFT); xx += c; });
         if (it) {

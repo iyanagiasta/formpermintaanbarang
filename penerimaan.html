@@ -48,7 +48,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;colo
 .pita table{margin-top:6px}.pita .fr{margin:6px 0 0}.pita button{padding:7px 10px;font-size:12px}
 </style>
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="nama-berkas.js"></script><script src="tema.js"></script>
+<script src="nama-berkas.js"></script><script src="tema.js"></script><script src="seri-meter.js?v=124"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
@@ -78,6 +78,7 @@ async function masuk(){
   if(!ok){KODE="";PINADM=v;ok=await mulai(true);if(ok){try{sessionStorage.setItem("sctk_admin",v);}catch(e){}}else{PINADM="";loginView("Kode atau PIN salah.");}}
 }
 async function mulai(diam){
+  if(window.SERI)SERI.muat(api).then(function(){if(TAB==="catat"&&document.getElementById("cdaftar"))gambarCt();});
   try{
     var r=await api({action:"terimaPesanan"});
     if(!r.ok){if(diam)return false;KODE="";try{localStorage.removeItem("sctk_pic");}catch(e){}loginView(r.msg||"Kode tidak dikenali. Periksa lagi atau minta ke admin gudang.");return false;}
@@ -337,9 +338,10 @@ function gambarCt(){
   var d=document.getElementById("cdaftar");if(!d)return;
   if(!CT.items.length){d.innerHTML='<div class="note">Belum ada barang. Cari barang di kotak bawah.</div>';return;}
   d.innerHTML=CT.items.map(function(x,i){
-    return '<div class="ci"><div>'+(x.bebas?'<input data-f="nama" data-i="'+i+'" value="'+esc(x.nama)+'" placeholder="Nama barang (belum terdaftar)"><input class="sat" data-f="satuan" data-i="'+i+'" value="'+esc(x.satuan)+'" placeholder="Satuan"><small>Belum terdaftar: stok belum bertambah, perlu didaftarkan admin.</small>':'<b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+'</small>')+'</div><input data-f="qty" data-i="'+i+'" value="'+esc(x.qty)+'" inputmode="decimal" placeholder="Jumlah"><button type="button" class="gh" data-x="'+i+'" title="Hapus">×</button></div>';
+    return '<div class="ci"><div>'+(x.bebas?'<input data-f="nama" data-i="'+i+'" value="'+esc(x.nama)+'" placeholder="Nama barang (belum terdaftar)"><input class="sat" data-f="satuan" data-i="'+i+'" value="'+esc(x.satuan)+'" placeholder="Satuan"><small>Belum terdaftar: stok belum bertambah, perlu didaftarkan admin.</small>':'<b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+'</small>')+'</div><input data-f="qty" data-i="'+i+'" value="'+esc(x.qty)+'" inputmode="decimal" placeholder="Jumlah"><button type="button" class="gh" data-x="'+i+'" title="Hapus">×</button>'+(window.SERI&&!x.bebas&&SERI.isMeter(x.kode)?'<div style="grid-column:1/-1" data-sb="'+i+'">'+SERI.kotak("seri",x.seri||"",true)+'</div>':'')+'</div>';
   }).join("");
-  d.querySelectorAll("input[data-f]").forEach(function(e){e.oninput=function(){CT.items[+e.getAttribute("data-i")][e.getAttribute("data-f")]=e.value;};});
+  d.querySelectorAll("input[data-f]").forEach(function(e){e.oninput=function(){var i=+e.getAttribute("data-i");CT.items[i][e.getAttribute("data-f")]=e.value;var b=d.querySelector('[data-sb="'+i+'"]');if(b)SERI.hitung(b,CT.items[i].qty);};});
+  d.querySelectorAll("[data-sb]").forEach(function(b){var i=+b.getAttribute("data-sb");SERI.hitung(b,CT.items[i].qty);b.addEventListener("input",function(){CT.items[i].seri=b.querySelector("textarea").value;SERI.hitung(b,CT.items[i].qty);});});
   d.querySelectorAll("[data-x]").forEach(function(e){e.onclick=function(){CT.items.splice(+e.getAttribute("data-x"),1);gambarCt();};});
 }
 function formCatat(){
@@ -372,7 +374,7 @@ function formCatat(){
   document.getElementById("fk").onchange=function(){tambahFile(this.files);this.value="";};document.getElementById("fg").onchange=function(){tambahFile(this.files);this.value="";};
   document.getElementById("cc").onclick=periksaCatat;
 }
-function kirimCt(){return CT.items.filter(function(x){return numIn(x.qty)>0&&(x.kode||String(x.nama||"").trim());}).map(function(x){return {kode:x.kode,nama:x.nama,satuan:x.satuan,qty:numIn(x.qty)};});}
+function kirimCt(){return CT.items.filter(function(x){return numIn(x.qty)>0&&(x.kode||String(x.nama||"").trim());}).map(function(x){return {kode:x.kode,nama:x.nama,satuan:x.satuan,qty:numIn(x.qty),seri:x.seri&&window.SERI?SERI.parse(x.seri):undefined};});}
 async function periksaCatat(){
   if(BUSY)return;simpanCt();var it=kirimCt();
   if(!it.length){toast("Pilih barang dan isi jumlahnya.",true);return;}
@@ -417,7 +419,7 @@ function rwDekat(a,b){ /* beda paling banyak 1 huruf (salah ketik kecil) */
 }
 function rwJerami(x){
   var t=[x.nomor,x.po,x.ppbj,x.proyek,x.pic,x.vendor,x.oleh,x.cat,x.waktu,x.tglDatang,x.mode==="Catat"?"catatan manual":"",x.tertaut?"tertaut po":"",x.batal?"dibatalkan":"",x.accurate==="Sudah"?"sudah accurate":"belum accurate",isBufPP(x.ppbj,x.proyek)?"buffer":""];
-  (x.items||[]).forEach(function(i){t.push(i.nama,i.kode);});
+  (x.items||[]).forEach(function(i){t.push(i.nama,i.kode,(i.seri||[]).join(" "));});
   return rwNorm(t.join(" "));
 }
 function rwCocok(x,toks){
@@ -448,9 +450,9 @@ function rwKartu(x){
   return '<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b class="'+(x.batal?"can":"")+'">'+esc(x.nomor)+'</b>'+st+'</div><div class="note">'+esc(x.waktu)+' · oleh '+esc(x.oleh)+(x.po?' · PO '+esc(x.po):'')+'</div>'+
     (x.mode==="Catat"?'<div style="margin-top:4px"><span class="tag">Catatan manual</span>'+(x.tertaut?' <span class="tag ok">Tertaut ke PO</span>':'')+' Datang <b>'+esc(x.tglDatang||"-")+'</b>'+(x.vendor?' · Vendor: <b>'+esc(x.vendor)+'</b>':'')+'</div>'+(x.tutup>0?'<div class="note">Menutup '+fq(x.tutup)+' barang yang sudah keluar lebih dulu dari stok.</div>':''):'')+
     ((x.proyek||x.ppbj)?'<div style="margin-top:4px">Untuk proyek: <b>'+esc(x.proyek||x.ppbj)+'</b>'+(x.proyek&&x.ppbj?' ('+esc(x.ppbj)+')':'')+tagBuf(x.ppbj,x.proyek)+(x.pic?' · PIC: '+esc(x.pic):'')+'</div>':'')+
-    '<div style="margin-top:6px;font-size:13px">'+x.items.map(function(i){return esc(i.nama)+' <b>'+fq(i.qty)+'</b> '+esc(i.satuan)+(i.daftar?' <span class="tag w">perlu didaftarkan</span>':'')+(i.luar?' <span class="tag">di luar pesanan</span>':'');}).join('<br>')+'</div>'+
+    '<div style="margin-top:6px;font-size:13px">'+x.items.map(function(i){return esc(i.nama)+' <b>'+fq(i.qty)+'</b> '+esc(i.satuan)+(i.daftar?' <span class="tag w">perlu didaftarkan</span>':'')+(i.luar?' <span class="tag">di luar pesanan</span>':'')+(i.meter&&window.SERI?SERI.baris(i):'');}).join('<br>')+'</div>'+
     '<div class="note" style="margin-top:6px">'+(x.foto?x.foto+' foto surat jalan':(x.alasanFoto?'Tanpa foto: '+esc(x.alasanFoto):'Tanpa foto'))+(x.cat?' · '+esc(x.cat):'')+'</div>'+
-    (x.batal?'<div class="box r">Dibatalkan oleh '+esc(x.batalOleh)+': '+esc(x.batalAlasan)+'</div>':(RW.admin?'<div class="fr"><button class="rd" data-b="'+esc(x.nomor)+'">Batalkan penerimaan</button></div>':''))+'</div>';
+    (x.batal?'<div class="box r">Dibatalkan oleh '+esc(x.batalOleh)+': '+esc(x.batalAlasan)+'</div>':(RW.admin?'<div class="fr">'+(x.items.some(function(i){return i.meter;})?'<button class="gh" data-sre="'+esc(x.nomor)+'">'+(x.seriKurang>0?'Lengkapi no seri':'Ubah no seri')+'</button>':'')+'<button class="rd" data-b="'+esc(x.nomor)+'">Batalkan penerimaan</button></div>':''))+'</div>';
 }
 function rwChip(grup,nilai,label){var on=RW[grup]===nilai;return '<button type="button" class="'+(on?"":"gh")+'" data-rw="'+grup+'" data-v="'+nilai+'" style="padding:6px 11px;font-size:12px;flex:none">'+label+'</button>';}
 function rwGambar(){
@@ -460,6 +462,7 @@ function rwGambar(){
   document.getElementById("rwjml").innerHTML=(aktif?'Menampilkan <b>'+ada.length+'</b> dari '+RW.d.length+' penerimaan terbaru':RW.d.length+' penerimaan terbaru')+(aktif?' · <a href="#" id="rwhapus">hapus pencarian</a>':'');
   box.innerHTML=ada.length?ada.map(rwKartu).join(""):'<div class="card note" style="text-align:center">'+(RW.d.length?'Tidak ada penerimaan yang cocok. Coba kata lain atau hapus saringan.':'Belum ada penerimaan.')+'</div>';
   box.querySelectorAll("[data-b]").forEach(function(e){e.onclick=function(){batal(e.getAttribute("data-b"),false);};});
+  box.querySelectorAll("[data-sre]").forEach(function(e){e.onclick=function(){SERI.edit(api,e.getAttribute("data-sre"),{toast:toast,selesai:riwayat});};});
   var h=document.getElementById("rwhapus");if(h)h.onclick=function(ev){ev.preventDefault();RW.q=RW.st=RW.jn=RW.wk="";rwKerangka();};
   document.querySelectorAll("[data-rw]").forEach(function(b){var g=b.getAttribute("data-rw"),v=b.getAttribute("data-v"),on=RW[g]===v;b.className=on?"":"gh";});
 }

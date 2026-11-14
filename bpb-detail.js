@@ -25,7 +25,7 @@ var BPBD=(function(){
       var nm=it.gantiKe?it.gantiKe.nama:it.nama,kd=it.gantiKe?it.gantiKe.kode:it.kode,sat=it.gantiKe?it.gantiKe.satuan:it.satuan;
       var q=it.qtyBaru!=null?it.qtyBaru:it.qty;
       var aksi=edit?'<button class="gh" data-bg="'+i+'">Ganti barang</button>'+(it.gantiKe?' <button class="gh" data-bb="'+i+'">Batal ganti</button>':''):"";
-      return '<tr><td data-l="Barang"><b>'+(i+1)+'. '+esc(nm)+'</b> <small>'+esc(kd)+'</small>'+(it.gantiKe?'<br><small>semula: '+esc(it.nama)+'</small>':'')+(ST.mode==="serah"&&it.diminta!=null&&it.diminta!==it.qty?'<br><small>diminta: '+fmt(it.diminta)+'</small>':'')+'</td>'+
+      return '<tr><td data-l="Barang"><b>'+(i+1)+'. '+esc(nm)+'</b> <small>'+esc(kd)+'</small>'+(it.gantiKe?'<br><small>semula: '+esc(it.nama)+'</small>':'')+(ST.mode==="serah"&&it.diminta!=null&&it.diminta!==it.qty?'<br><small>diminta: '+fmt(it.diminta)+'</small>':'')+(it.meter&&window.SERI?SERI.baris(it):'')+'</td>'+
         '<td data-l="Jumlah">'+(edit?'<input type="number" min="0" step="any" inputmode="decimal" data-bq="'+i+'" value="'+esc(String(q))+'" style="width:84px"> ':'<b>'+esc(fmt(q))+'</b> ')+esc(sat||"")+'</td><td data-l="">'+aksi+'</td></tr>';
     }).join("");
     var baru=ST.baru.map(function(b,i){
@@ -36,11 +36,13 @@ var BPBD=(function(){
       (ST.mode==="serah"?'<div class="note" style="border-left:3px solid var(--ambt,#b8760a);padding-left:8px">Sudah diserahkan: perubahan menyesuaikan stok dan Mutasi, dan dokumennya di tab Accurate kembali ke Belum.</div>':'')+
       (!edit?'<div class="note err">'+esc(ST.alasanTutup||"Tidak bisa diubah.")+'</div>':'<div class="note">Ubah jumlah, ganti, atau tambah barang lalu Simpan. Stok ikut otomatis, PDF dan link cetak memakai isi terbaru. Riwayat di sheet.</div>')+
       '<div class="tw"><table><thead><tr><th>Nama barang</th><th>Jumlah</th><th></th></tr></thead><tbody>'+rows+baru+'</tbody></table></div>'+
+      (ST.items.some(function(it){return it.meter;})&&window.SERI?'<div style="margin-top:6px"><button type="button" class="gh" id="bpb-seri">'+(ST.seriKurang>0?'Lengkapi no seri meter air':'Ubah no seri meter air')+'</button></div>':'')+
       (edit?'<div style="margin-top:8px"><input type="text" id="bpb-q" placeholder="Tambah / ganti barang: cari kode atau nama..." style="width:100%"><div id="bpb-h" class="note"></div></div>':'')+
       (edit?'<div style="margin-top:6px"><input type="text" id="bpb-al" placeholder="Alasan (boleh kosong)" maxlength="200" style="width:100%"></div>':'')+
       '<div class="bar"><button class="gh" id="bpb-x">Tutup</button><button class="gh" id="bpb-s">Salin daftar</button>'+(edit?'<button class="sv" id="bpb-ok">Simpan perubahan</button>':'')+'</div>'+
       (rw?'<details style="margin-top:10px"><summary><b>Riwayat perubahan ('+ST.riwayat.length+')</b></summary><div class="tw"><table><thead><tr><th>Waktu</th><th>Oleh</th><th>Perubahan</th><th>Status</th></tr></thead><tbody>'+rw+'</tbody></table></div></details>':'');
     o.querySelector("#bpb-x").onclick=tutup;o.querySelector("#bpb-s").onclick=salin;
+    var bsr=o.querySelector("#bpb-seri");if(bsr)bsr.onclick=function(){var id=ST.id;SERI.edit(api,id,{toast:toast,selesai:function(){muat(id);}});};
     if(!edit)return;
     o.querySelector("#bpb-ok").onclick=simpan;
     o.querySelectorAll("[data-bq]").forEach(function(e){e.oninput=function(){var it=ST.items[Number(e.getAttribute("data-bq"))],v=num(e.value);it.qtyBaru=v;};});
@@ -100,7 +102,7 @@ var BPBD=(function(){
     var r=await api({action:"bpbDetail",id:id});
     if(!r.ok){toast(r.msg||"Gagal memuat detail.",true);tutup();return;}
     ST={id:r.id,doc:r.doc,status:r.status,mode:r.mode,bisaUbah:r.bisaUbah,alasanTutup:r.alasanTutup,key:r.key,riwayat:r.riwayat||[],baru:[],ganti:null,
-        items:r.items.map(function(x){return {no:x.no,kode:x.kode,nama:x.nama,satuan:x.satuan,qty:x.qty,diminta:x.diminta,qtyBaru:null,gantiKe:null};})};
+        seriKurang:r.seriKurang||0,items:r.items.map(function(x){return {no:x.no,kode:x.kode,nama:x.nama,satuan:x.satuan,qty:x.qty,diminta:x.diminta,qtyBaru:null,gantiKe:null,meter:x.meter,seri:x.seri,seriKurang:x.seriKurang};})};
     modal("");gambar();
   }
   function buka(id){modal("<b>Memuat...</b>");muat(id);}

@@ -95,7 +95,7 @@ table th:nth-child(6),table td:nth-child(6),colgroup col:nth-child(6){display:no
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
 <link rel="stylesheet" href="lembar.css">
-<script src="cari-pintar.js"></script><script src="nama-berkas.js"></script><script src="tema.js"></script>
+<script src="cari-pintar.js"></script><script src="seri-meter.js?v=124"></script><script src="nama-berkas.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css"><link rel="stylesheet" href="form-baru.css"><link rel="stylesheet" href="form-hp.css"><link rel="stylesheet" href="form-wah.css?v=1"><script src="wah-init.js?v=1"></script><link rel="stylesheet" href="form-wah.css?v=1">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
@@ -179,7 +179,7 @@ function addRow(){
   var tb=document.getElementById("rows");
   var tr=document.createElement("tr");
   tr.innerHTML='<td class="c"></td><td><input class="kode" readonly tabindex="-1"></td>'+
-  '<td><input class="nama" autocomplete="off"></td>'+
+  '<td><input class="nama" autocomplete="off"><div class="seriwrap"></div></td>'+
   '<td class="c"><input class="sat" readonly tabindex="-1"></td>'+
   '<td class="c"><input class="jml" inputmode="decimal"></td>'+
   '<td class="nop stk"><div class="stinfo"></div></td>'+
@@ -190,9 +190,19 @@ function addRow(){
   combo(tr.querySelector(".nama"),itemOpts,function(){lookup(tr);renderStok(tr);});
   tr.querySelector(".nama").addEventListener("input",function(){renderStok(tr);});
   tr.querySelector(".nama").addEventListener("change",function(){renderStok(tr);});
-  tr.querySelector(".jml").addEventListener("input",function(){renderStok(tr);});
+  tr.querySelector(".jml").addEventListener("input",function(){renderStok(tr);seriBaris(tr);});
+  tr.querySelector(".seriwrap").addEventListener("input",function(){seriBaris(tr);});
   renderStok(tr);
   number();
+}
+/* T124: kotak nomor seri untuk meter air yang dikembalikan */
+function seriBaris(tr){
+  if(!window.SERI)return;var w=tr.querySelector(".seriwrap");if(!w)return;
+  var meter=SERI.isMeter(tr.querySelector(".kode").value);
+  if(!meter){if(w.firstChild)w.innerHTML="";return;}
+  if(document.body.classList.contains("cetak"))return;
+  if(!w.querySelector(".seribox"))w.innerHTML=SERI.kotak("seri","",false).replace("wajib sebelum barang diserahkan","wajib sebelum diterima gudang");
+  SERI.hitung(w.querySelector(".seribox"),tr.querySelector(".jml").value);
 }
 function delRow(b){b.closest("tr").remove();number();}
 function number(){
@@ -207,9 +217,11 @@ function lookup(tr){
     kd.value=hit.kode;st.value=hit.satuan;tr.dataset.auto="1";
     st.readOnly=true;st.tabIndex=-1;kd.placeholder="";
     tr.classList.remove("baru");nm.title="";
+    seriBaris(tr);
   }else{
     // barang di luar database: kode dikosongkan, satuan diisi manual
     if(tr.dataset.auto==="1"){kd.value="";st.value="";tr.dataset.auto="0";}
+    seriBaris(tr);
     if(cetak)return;
     if(v.trim()){
       st.readOnly=false;st.removeAttribute("tabindex");st.placeholder="isi satuan";
@@ -631,8 +643,11 @@ async function kirim(){
   var items=[];
   document.querySelectorAll("#rows tr").forEach(function(tr){
     var n=tr.querySelector(".nama").value.trim();if(!n)return;
-    items.push({kode:tr.querySelector(".kode").value.trim(),nama:n,satuan:tr.querySelector(".sat").value.trim(),jumlah:tr.querySelector(".jml").value.trim()});
+    var sr=tr.querySelector("textarea.seri");
+    items.push({kode:tr.querySelector(".kode").value.trim(),nama:n,satuan:tr.querySelector(".sat").value.trim(),jumlah:tr.querySelector(".jml").value.trim(),seri:sr&&window.SERI?SERI.parse(sr.value):undefined});
   });
+  var srSalah=items.filter(function(i){if(!i.seri||!i.seri.length)return false;var x=SERI.info(i.seri.join("\n"),i.jumlah);return x.lebih||x.dobel;})[0];
+  if(srSalah){toast("Periksa nomor seri "+srSalah.nama+": "+SERI.info(srSalah.seri.join("\n"),srSalah.jumlah).teks+".",false);return;}
   if(!KODEPEG){toast("Masukkan kode akses di bagian atas dulu, lalu klik Buka.",false);return;}
   if(!DB.size){toast("Daftar barang belum termuat. Tunggu sebentar atau muat ulang halaman.",false);return;}
   if(!g("by")||!g("dept")||!items.length){toast("Isi Nama Pengembali, Nama Departemen, dan minimal satu barang dulu.",false);return;}
@@ -678,6 +693,7 @@ async function kirim(){
     d.items.forEach(function(it){
       addRow();var tr=document.querySelector("#rows tr:last-child");
       tr.querySelector(".nama").value=it.nama;tr.querySelector(".kode").value=(it.kode==="BARU"?"":it.kode);tr.querySelector(".sat").value=it.satuan;tr.querySelector(".jml").value=it.jumlah;
+      if(it.meter&&window.SERI){var w=tr.querySelector(".seriwrap");if(w)w.innerHTML=SERI.baris(it);}
     });
     for(var k=d.items.length;k<5;k++)addRow();
     number();
@@ -734,6 +750,7 @@ function resetForm(){window.__sentNo="";setTimeout(loadNomor,50);
   loadGudang();
   loadBarang();
   loadNomor();
+  if(window.SERI)SERI.muat(api).then(function(){document.querySelectorAll("#rows tr").forEach(seriBaris);});
 })();
 function loadNomor(){
   if(new URLSearchParams(location.search).get("m")==="cetak")return;

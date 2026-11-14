@@ -73,7 +73,7 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="cari-pintar.js"></script><script src="nama-berkas.js"></script><script src="tema.js"></script><script src="menu-admin.js?v=82"></script><script src="kb-impor.js"></script><script src="po-baca.js"></script><script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script><script src="pdfpengajuan.js?v=59"></script><script src="kompres.js?v=59"></script><script src="pdf-realisasi.js?v=59"></script><script src="real-berkas.js?v=59"></script><script src="boq-ui.js?v=98"></script><script src="po-ui.js"></script><script src="lintas-ui.js"></script><script src="qr-mini.js"></script><script src="ttd-stempel.js"></script><script src="arsip-ui.js"></script>
+<script src="cari-pintar.js"></script><script src="nama-berkas.js"></script><script src="tema.js"></script><script src="seri-meter.js?v=124"></script><script src="menu-admin.js?v=82"></script><script src="kb-impor.js"></script><script src="po-baca.js"></script><script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script><script src="pdfpengajuan.js?v=59"></script><script src="kompres.js?v=59"></script><script src="pdf-realisasi.js?v=59"></script><script src="real-berkas.js?v=59"></script><script src="boq-ui.js?v=98"></script><script src="po-ui.js"></script><script src="lintas-ui.js"></script><script src="qr-mini.js"></script><script src="ttd-stempel.js"></script><script src="arsip-ui.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
@@ -172,7 +172,7 @@ async function excel(){
 }
 /* ===== detail ===== */
 function kembaliDetail(){if(window.__dariAkan&&window.POUI){window.__dariAkan=false;POUI.tampil("akan");return;}muat();}
-async function buka(id){try{var r=await api({action:"plDetail",id:id});if(!r.ok){toast(r.msg||"Gagal.",true);return false;}CUR=r;gambarDetail();return true;}catch(e){toast("Gagal terhubung ke server.",true);return false;}}
+async function buka(id){try{if(window.SERI)await SERI.muat(api);var r=await api({action:"plDetail",id:id});if(!r.ok){toast(r.msg||"Gagal.",true);return false;}CUR=r;gambarDetail();return true;}catch(e){toast("Gagal terhubung ke server.",true);return false;}}
 function gambarDetail(){
   var r=CUR,m=r.meta,hak=r.hak||[],bataled=m.status==="Dibatalkan",selesai=m.status==="Diterima lengkap";
   var dtg={};(r.log||[]).forEach(function(l){(dtg[l.no]=dtg[l.no]||[]).push(fq(l.qty)+' ('+String(l.waktu||'').slice(0,5)+')');});
@@ -181,7 +181,8 @@ function gambarDetail(){
   var itemsH=r.items.map(function(i){var sisa=Math.round((i.qBeli-i.qTerima)*1000)/1000,pc=i.qBeli>0?Math.min(100,Math.round(i.qTerima/i.qBeli*100)):0;
     var kolSudah='<td class="nm">'+fq(i.qTerima)+' / '+fq(i.qBeli)+'<div class="bar2"><i style="width:'+pc+'%"></i></div>'+(dtg[i.no]?'<small style="white-space:normal">datang: '+esc(dtg[i.no].join(', '))+'</small>':'')+'</td>';
     var kolNow='';if(terimaOk){kolNow='<td class="nm">'+(sisa>0?'<div class="stp"><button type="button" class="gh" data-mn="'+i.no+'" aria-label="Kurangi">&minus;</button><input type="text" inputmode="decimal" data-tq="'+i.no+'" placeholder="Baik" title="Jumlah BAIK (masuk stok)"><button type="button" class="gh" data-pl="'+i.no+'" aria-label="Tambah">+</button></div><small>sisa '+fq(sisa)+' '+esc(i.satuan)+'</small><a href="#" class="lgp" data-sisa="'+i.no+'" data-v="'+sisa+'">Lengkap (semua baik)</a><a href="#" class="msl" data-mas="'+i.no+'">Ada masalah (rusak / salah kirim)</a><div class="mas" data-masbox="'+i.no+'" hidden><div style="display:flex;gap:4px;justify-content:flex-end"><input type="text" inputmode="decimal" data-tr="'+i.no+'" placeholder="Rusak" title="Jumlah rusak (tidak masuk stok, jadi klaim vendor)" style="width:72px;padding:7px;text-align:right;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"><input type="text" inputmode="decimal" data-ts="'+i.no+'" placeholder="Salah" title="Jumlah salah kirim (tidak masuk stok, jadi klaim vendor)" style="width:72px;padding:7px;text-align:right;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"></div><input type="text" data-tk="'+i.no+'" placeholder="Keterangan rusak / salah kirim" style="width:100%;margin-top:4px;padding:7px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"></div>':'<small style="color:#17683c;font-weight:700">lengkap</small>')+'</td>';}
-    return '<tr><td>'+i.no+'</td><td>'+esc(i.nama)+'<small>'+esc(i.kode?i.kode+' · masuk stok':'di luar stok (tidak menambah stok)')+'</small></td><td class="nm">'+fq(i.qBeli)+' '+esc(i.satuan)+'</td><td class="nm">'+rp(i.harga)+'</td>'+kolSudah+kolNow+'</tr>';}).join("");
+    var srb=(terimaOk&&sisa>0&&i.kode&&window.SERI&&SERI.isMeter(i.kode))?'<div data-srb="'+i.no+'">'+SERI.kotak("seri","",true)+'</div>':'';
+    return '<tr><td>'+i.no+'</td><td>'+esc(i.nama)+'<small>'+esc(i.kode?i.kode+' · masuk stok':'di luar stok (tidak menambah stok)')+'</small>'+srb+'</td><td class="nm">'+fq(i.qBeli)+' '+esc(i.satuan)+'</td><td class="nm">'+rp(i.harga)+'</td>'+kolSudah+kolNow+'</tr>';}).join("");
   var rgk='<div class="rgk"><b>'+nLkp+' dari '+r.items.length+' barang lengkap</b><div class="bar2"><i style="width:'+(r.items.length?Math.round(nLkp/r.items.length*100):0)+'%"></i></div></div>';
 
   var terimaF=terimaOk;
@@ -238,6 +239,9 @@ function pasangTerimaUI(){
   app.querySelectorAll("[data-mn]").forEach(function(b){b.onclick=function(){var no=b.getAttribute("data-mn"),e=app.querySelector('[data-tq="'+no+'"]'),n=Math.round((numIn(e.value)-1)*1000)/1000;e.value=n>0?fq(n):"";drafSimpan();};});
   app.querySelectorAll("[data-mas]").forEach(function(a){a.onclick=function(e){e.preventDefault();var bx=app.querySelector('[data-masbox="'+a.getAttribute("data-mas")+'"]');bx.hidden=!bx.hidden;};});
   app.querySelectorAll("[data-tq],[data-tr],[data-ts],[data-tk],#tc").forEach(function(i){i.addEventListener("input",drafSimpan);});
+  function srHit(no){var b=app.querySelector('[data-srb="'+no+'"]'),e=app.querySelector('[data-tq="'+no+'"]');if(b&&window.SERI)SERI.hitung(b,e?numIn(e.value):0);}
+  app.querySelectorAll("[data-srb]").forEach(function(b){var no=b.getAttribute("data-srb");srHit(no);b.addEventListener("input",function(){srHit(no);});var e=app.querySelector('[data-tq="'+no+'"]');if(e)e.addEventListener("input",function(){srHit(no);});});
+  app.querySelectorAll("[data-pl],[data-mn],[data-sisa]").forEach(function(b){b.addEventListener("click",function(){var no=b.getAttribute("data-pl")||b.getAttribute("data-mn")||b.getAttribute("data-sisa");setTimeout(function(){srHit(no);},0);});});
   var la=document.getElementById("lgall");if(la)la.onclick=function(){app.querySelectorAll("[data-sisa]").forEach(function(a){set(a.getAttribute("data-sisa"),a.getAttribute("data-v").replace(".",","));});drafSimpan();toast("Semua sisa diisi sebagai Baik. Ubah jumlah barang yang berbeda sebelum konfirmasi.");};
   var ko=document.getElementById("kosong");if(ko)ko.onclick=function(){if(!confirm("Kosongkan semua isian dan hapus draf?"))return;app.querySelectorAll("[data-tq],[data-tr],[data-ts],[data-tk]").forEach(function(i){i.value="";});var c=document.getElementById("tc");if(c)c.value="";drafHapus();var d=document.getElementById("drf");if(d)d.innerHTML="";hitungTerima();};
   var dr=drafBaca(),bx=document.getElementById("drf");
@@ -248,8 +252,10 @@ function pasangTerimaUI(){
 }
 async function konfirmTerima(){
   if(BUSY)return;var its=[],dn=function(a,no){var e=app.querySelector('['+a+'="'+no+'"]');return e?numIn(e.value):0;},nk=0;
-  app.querySelectorAll("[data-tq]").forEach(function(i){var no=Number(i.getAttribute("data-tq")),q=numIn(i.value),rs=dn("data-tr",no),sl=dn("data-ts",no),ke=app.querySelector('[data-tk="'+no+'"]');if(q>0||rs>0||sl>0){nk+=(rs>0?1:0)+(sl>0?1:0);its.push({no:no,qty:q,rusak:rs,salah:sl,ket:ke?ke.value:""});}});
+  app.querySelectorAll("[data-tq]").forEach(function(i){var no=Number(i.getAttribute("data-tq")),q=numIn(i.value),rs=dn("data-tr",no),sl=dn("data-ts",no),ke=app.querySelector('[data-tk="'+no+'"]');if(q>0||rs>0||sl>0){nk+=(rs>0?1:0)+(sl>0?1:0);var sb=app.querySelector('[data-srb="'+no+'"] textarea');its.push({no:no,qty:q,rusak:rs,salah:sl,ket:ke?ke.value:"",seri:sb&&window.SERI?SERI.parse(sb.value):undefined});}});
   if(!its.length){toast("Isi jumlah yang diterima fisik (Baik, Rusak, atau Salah kirim) minimal untuk satu barang.",true);return;}
+  var srS=null;its.forEach(function(x){if(srS||!(x.qty>0))return;var b=app.querySelector('[data-srb="'+x.no+'"]');if(!b)return;var t=b.querySelector("textarea").value,inf=SERI.info(t,x.qty);if(!inf.pas)srS={b:b,m:"Nomor seri meter air baris "+x.no+": "+inf.teks+". Jumlah nomor seri harus sama dengan jumlah Baik."};});
+  if(srS){toast(srS.m,true);srS.b.querySelector("textarea").focus();return;}
   if(!confirm("Konfirmasi barang diterima fisik di gudang? Stok bertambah hanya untuk jumlah BAIK."+(nk?" "+nk+" catatan rusak/salah kirim akan menjadi klaim vendor.":"")))return;
   BUSY=true;var bt=document.getElementById("ts");bt.disabled=true;
   try{var fl=FILES.length?await siapFile(FILES):[],r=await api({action:"plTerima",id:CUR.meta.id,items:its,catatan:document.getElementById("tc").value,files:fl});toast(r.msg||"",!r.ok);if(r.ok){drafHapus();await buka(CUR.meta.id);}}

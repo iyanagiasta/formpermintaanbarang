@@ -669,18 +669,30 @@ function drawStok(total,q,hs){
 }
 function formKoreksi(d){
   var box=document.getElementById("kform");
+  var hNow=(d.harga!=null&&Number(d.harga)>0)?Number(d.harga):null;
   box.innerHTML='<div class="card" style="border-color:var(--gold)"><b>Koreksi stok: '+esc(d.nama)+'</b> <small>('+esc(d.kode)+')</small>'+
    '<div class="note">Isi saldo BARU untuk satu sumber (bukan selisih). Alasan wajib dan tercatat di sheet Mutasi.</div>'+
    '<div class="fr"><select id="ks">'+SUMB.map(function(s,j){return '<option value="'+esc(s)+'">'+esc(s)+' (sekarang '+fmtN(d.q[j])+')</option>';}).join("")+'</select>'+
    '<input type="number" id="kq" min="0" step="any" placeholder="Qty baru"><input type="text" id="ka" maxlength="300" placeholder="Alasan koreksi" style="flex:1;min-width:200px"></div>'+
+   '<div class="note" style="margin-top:8px">Harga satuan sekarang: <b>'+(hNow!=null?rp(hNow):"belum ada")+'</b>. Isi kolom di bawah hanya bila harganya ikut dikoreksi; kosongkan bila tidak. Harga lama tidak dihapus, tersimpan di riwayat harga.</div>'+
+   '<div class="fr"><input type="text" id="kh" inputmode="decimal" placeholder="Harga baru (Rp), opsional" autocomplete="off" style="flex:1;min-width:200px"></div>'+
+   '<div id="krw" class="note" style="margin-top:6px"></div>'+
    '<div class="fr"><button class="sv" id="kgo">Simpan koreksi</button><button class="gh" id="kx">Batal</button></div></div>';
   box.scrollIntoView({behavior:"smooth",block:"center"});
   document.getElementById("kx").onclick=function(){box.innerHTML="";};
+  api({action:"adminHargaRiwayatList",kode:d.kode}).then(function(r){
+    var el=document.getElementById("krw");if(!el||!r||!r.ok||!(r.data||[]).length)return;
+    el.innerHTML='<b>Riwayat harga</b><br>'+r.data.slice(0,5).map(function(x){return esc(x.waktu)+': '+(x.lama!=null?rp(x.lama):"(belum ada)")+' → <b>'+rp(x.baru)+'</b> <small>('+esc(x.asal||"")+(x.oleh?", "+esc(x.oleh):"")+')</small>';}).join("<br>");
+  }).catch(function(){});
   document.getElementById("kgo").onclick=function(){
-    var qv=document.getElementById("kq").value,al=document.getElementById("ka").value.trim();
+    var qv=document.getElementById("kq").value,al=document.getElementById("ka").value.trim(),hv=document.getElementById("kh").value.trim();
     if(qv===""||Number(qv)<0){toast("Isi qty baru (0 atau lebih).",true);return;}
     if(al.length<3){toast("Alasan koreksi wajib diisi.",true);return;}
-    kirimAdmin(document.getElementById("kgo"),{action:"adminKoreksi",kode:d.kode,sumber:document.getElementById("ks").value,qty:qv,alasan:al},loadStok);
+    if(hv){
+      var hn=Number(hv.replace(/\./g,"").replace(",","."));
+      if(hNow&&isFinite(hn)&&hn>0&&(hn/hNow>=50||hn/hNow<=1/50)&&!confirm("Harga baru ("+hv+") berbeda sangat jauh dari harga sekarang ("+rp(hNow)+"). Lanjutkan?"))return;
+    }
+    kirimAdmin(document.getElementById("kgo"),{action:"adminKoreksi",kode:d.kode,sumber:document.getElementById("ks").value,qty:qv,alasan:al,harga:hv},loadStok);
   };
 }
 async function kirimAdmin(btn,body,after){

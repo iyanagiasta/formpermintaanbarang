@@ -144,7 +144,7 @@ function drawTLBarang(){
   var r=TL.det,i=r.info,h=document.getElementById("tl_h");if(!h)return;
   var x='<div class="card"><p style="margin:0"><b>'+esc(i.nama)+'</b> <span class="note">'+esc(i.kode)+' &middot; '+esc(i.satuan)+'</span></p>'+
    '<div class="kpi"><div><b>'+LPR.nf(i.q[0])+'</b><span>Bekas</span></div><div><b>'+LPR.nf(i.q[1])+'</b><span>Moka</span></div><div><b>'+LPR.nf(i.q[2])+'</b><span>Accurate</span></div><div><b>'+LPR.nf(i.bebas)+'</b><span>Stok bebas</span></div><div><b>'+LPR.nf(i.tercadang)+'</b><span>Tercadang permintaan</span></div><div><b>'+(i.harga!=null?LPR.rp(i.harga):"-")+'</b><span>Harga satuan</span></div></div>'+
-   '<button id="tl_x" class="gh noprint">Unduh riwayat (Excel)</button></div>';
+   '<button id="tl_x" class="gh noprint">Unduh riwayat (Excel)</button> <button id="tl_an" class="gh noprint">Analisa barang ini</button></div>';
   x+='<div class="card"><h3 style="margin-top:0">Permintaan berjalan</h3>'+kt(["Dokumen","Pemohon","Dept","No PPBJ","Qty","Status"],["t","t","t","t","n","t"],r.permintaan,"Tidak ada permintaan berjalan.")+'</div>';
   x+='<div class="card"><h3 style="margin-top:0">Kebutuhan RAB &amp; alokasi proyek</h3>'+kt(["No PPBJ","Proyek","Status","RAB","Sudah diserahkan"],["t","t","t","n","n"],r.rab,"Tidak ada di RAB proyek manapun.")+kt(["No PPBJ","Proyek","Qty dialokasi","Status"],["t","t","n","t"],i.alokasi)+'</div>';
   x+='<div class="card"><h3 style="margin-top:0">Kedaluwarsa</h3>'+kt(["Batch","Qty","Tgl","Sisa hari","Status"],["t","n","d","n","t"],r.kedaluwarsa,"Tidak ada batch tercatat.")+'</div>';
@@ -152,6 +152,7 @@ function drawTLBarang(){
   x+='<div class="card"><h3 style="margin-top:0">Opname</h3>'+kt(["Waktu","Sesi","Stok sistem","Hasil","Selisih","Status","Oleh"],["t","t","n","n","n","t","t"],r.opname,"Belum pernah dihitung.")+'</div>';
   x+='<div class="card"><h3 style="margin-top:0">Mutasi ('+r.mutasiTotal+' catatan, terbaru dulu)</h3>'+kt(["Waktu","Jenis","Sumber","Qty","Saldo","Referensi","Proyek","Keterangan","Oleh"],["t","t","t","n","n","t","t","t","t"],r.mutasi.slice(0,60),"Belum ada mutasi.")+(r.mutasi.length>60?'<div class="note">60 teratas ditampilkan; semua ada di Excel.</div>':'')+'</div>';
   h.innerHTML=x;
+  var anb=document.getElementById("tl_an");if(anb)anb.onclick=function(){var i0=TL.det&&TL.det.info;if(i0&&window.AB)AB.bukaDengan([{kode:i0.kode,nama:i0.nama}]);};
   document.getElementById("tl_x").onclick=async function(){
     var f=await api({action:"adminTelusurBarang",kode:i.kode,unduh:true});if(!f.ok){toast(f.msg||"Gagal",true);return;}
     unduhBanyak("riwayat_"+i.kode+"_"+tglIso(new Date())+".xlsx",[
@@ -217,7 +218,7 @@ function drawTLPpbj(){
   var batalT=/^(batal|dibatalkan)$/i.test(String(r.status||"").trim());
   var x=(batalT?'<div class="stinfo" role="alert">Proyek ini sudah DIBATALKAN.</div>':'')+'<div class="card">'+(batalT?'<div class="stempel" role="img" aria-label="Proyek ini dibatalkan"><b>BATAL</b><span>PROYEK DIBATALKAN</span></div>':'')+'<p style="margin:0"><b>'+esc(c.ppbj)+'</b> &middot; '+esc(c.nama||"(belum terdaftar)")+' <span class="note">'+esc(c.dept||"")+' &middot; status '+esc(r.status||"-")+'</span></p>'+(lama?'<p class="tlnomor note">'+lama+'</p>':'')+
    '<div class="kpi"><div><b>'+LPR.rp(t.nilaiRab)+'</b><span>Nilai RAB</span></div><div><b>'+LPR.rp(t.nilaiBersih)+'</b><span>Nilai keluar (bersih)</span></div><div><b>'+(t.melebihi||0)+'</b><span>Barang melebihi RAB</span></div><div><b>'+(t.diluar||0)+'</b><span>Barang di luar RAB</span></div></div>'+
-   '<div class="bar noprint"><button id="tl_px" class="gh">Unduh (Excel)</button><button id="tl_pp" class="gh">Cetak / PDF</button></div></div>';
+   '<div class="bar noprint"><button id="tl_px" class="gh">Unduh (Excel)</button><button id="tl_an2" class="gh">Analisa semua barang PPBJ ini</button><button id="tl_pp" class="gh">Cetak / PDF</button></div></div>';
   x+='<div class="card"><h3 style="margin-top:0">Material: RAB vs keluar</h3><div id="tl_mat">'+tlBaris(r)+'</div></div>';
   x+='<div class="card"><h3 style="margin-top:0">Kekurangan stok untuk proyek ini</h3>'+kt(["Kode","Barang","Sisa kebutuhan","Stok bebas","Status","Kurang"],["t","t","n","n","t","n"],r.kurang,"Tidak ada kekurangan.")+'</div>';
   x+='<div class="card"><h3 style="margin-top:0">Alokasi stok</h3>'+kt(["Kode","Qty","Status proyek"],["t","n","t"],r.alokasi,"Tidak ada alokasi.")+'</div>';
@@ -227,6 +228,7 @@ function drawTLPpbj(){
   h.innerHTML=x;
   pasangMatTL();
   document.getElementById("tl_pp").onclick=function(){window.print();};
+  var an2=document.getElementById("tl_an2");if(an2)an2.onclick=function(){var rw=((TL.cek||{}).cek||{}).rows||[];var it=rw.filter(function(w){return w.kode;}).map(function(w){return {kode:w.kode,nama:w.nama};});if(!it.length){toast("Tidak ada barang berkode di PPBJ ini.",true);return;}if(window.AB)AB.bukaDengan(it.slice(0,80));};
   document.getElementById("tl_px").onclick=function(){
     var st=r.stok||{};
     unduhBanyak("ppbj_"+String(c.ppbj).replace(/[^\w-]+/g,"_")+"_"+tglIso(new Date())+".xlsx",[

@@ -10,7 +10,7 @@
 <script src="pdfbukti.js?v=124"></script><script src="seri-meter.js?v=124"></script>
 <script src="mb-excel.js?v=38"></script>
 <script src="laporan.js"></script>
-<script src="admin-kerja.js?v=127"></script>
+<script src="admin-kerja.js?v=129"></script>
 <script src="admin-mutasi.js"></script>
 <script src="admin-laporan2.js?v=127"></script>
 <script src="admin-proyek2.js?v=127"></script>
@@ -141,7 +141,7 @@ var app=document.getElementById("app");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},4500);}
 /* Tambahan 102: aksi BACA yang gagal karena jaringan dicoba ulang sekali otomatis (aksi tulis tidak pernah diulang supaya tidak tersimpan dua kali). */
-var API_BACA=/(List|Cari|Baca|Laporan|Rinci|Daftar|Ringkas|Analisa|Pintar|Cek|Unduh|Telusur|Indeks|Arsip|Periksa|Kpi|Kurang|Tren|Kerapian|Kerja|Mati|Komparasi|Pada|Panduan)$/i,API_BACA_SET={notifDaftar:1,adminSistem:1,cariPic:1,adminArsipBukti:1,adminPaBukti:1,adminBastLampAmbil:1,adminBastKomparasi:1,boqJasa:1,pengumuman:1,info:1};
+var API_BACA=/(List|Cari|Baca|Laporan|Rinci|Daftar|Ringkas|Analisa|Pintar|Cek|Unduh|Telusur|Indeks|Arsip|Periksa|Kpi|Kurang|Tren|Kerapian|Kerja|Mati|Komparasi|Pada|Panduan)$/i,API_BACA_SET={adminTelusurBanyak:1,notifDaftar:1,adminSistem:1,cariPic:1,adminArsipBukti:1,adminPaBukti:1,adminBastLampAmbil:1,adminBastKomparasi:1,boqJasa:1,pengumuman:1,info:1};
 async function api(b){
   b.pin=PIN;
   var baca=!!(b.action&&(API_BACA.test(b.action)||API_BACA_SET[b.action])),j;
@@ -2319,10 +2319,10 @@ function bindOs(){pane().querySelectorAll("[data-os]").forEach(function(b){b.onc
   if(saved){PIN=saved;load(true);}else loginView("");
 })();
 </script>
-<script src="swr.js?v=117"></script>
+<script src="swr.js?v=129"></script>
 <script src="basi.js?v=116"></script>
 <script src="tampil.js?v=127"></script>
 <script src="admin-hp.js?v=127"></script>
-<script src="admin-pintas.js?v=127"></script><script src="admin-nav.js?v=127"></script>
+<script src="admin-pintas.js?v=127"></script><script src="admin-nav.js?v=129"></script>
 </body>
 </html>

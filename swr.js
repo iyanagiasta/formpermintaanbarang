@@ -12,7 +12,7 @@
   var DAFTAR = {adminKerja: 1, adminProyekPintar: 1, adminProyekKurang: 1, adminKpi: 1, adminBufferList: 1, adminPaList: 1, adminProyekList: 1, adminList: 1, adminSerahList: 1, adminPengingatDaftar: 1, adminPaRingkas: 1, adminSistem: 1, adminArsipList: 1};
   // Aksi yang hanya MEMBACA tetapi namanya tidak berakhiran kata baca di bawah. Tanpa ini, tiap panggilan (mis. indeks barang 259x dalam 6 hari)
   // dianggap penulisan dan menghapus seluruh simpanan, sehingga tampil-dulu hampir tidak pernah terpakai.
-  var BACA_EKSTRA = {adminIndeksBarang: 1, adminMutasi: 1, adminLapSegel: 1, adminLapTren: 1, adminLapKerapian: 1, adminLapRab: 1, adminKondisiTautan: 1, adminKartuStok: 1, adminKomparasi: 1, adminBarangMati: 1, adminTelusurBarang: 1, adminPaRincian: 1, adminAnalisaBarang: 1, adminOpnameDampak: 1, adminSerahSemuaCek: 1};
+  var BACA_EKSTRA = {adminTelusurBanyak: 1, adminIndeksBarang: 1, adminMutasi: 1, adminLapSegel: 1, adminLapTren: 1, adminLapKerapian: 1, adminLapRab: 1, adminKondisiTautan: 1, adminKartuStok: 1, adminKomparasi: 1, adminBarangMati: 1, adminTelusurBarang: 1, adminPaRincian: 1, adminAnalisaBarang: 1, adminOpnameDampak: 1, adminSerahSemuaCek: 1};
   var BACA = /(List|Get|Rinci|Daftar|Ringkas|Info|Cari|Indeks|Pintar|Kurang|Pratinjau|Periksa|Riwayat|Analisis|Analisa|Kpi|Pada|Laporan|Dugaan|Simulasi|Telusur|Lihat)$/;
   try { if (localStorage.getItem("sctk_swr_off") === "1") return; } catch (e) { return; }
   var asli = W.api, jalan = {}, tahanSampai = 0, baru = {};

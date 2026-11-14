@@ -1,4 +1,4 @@
-/* Tambahan 126 + 127: navigasi admin.
+/* Tambahan 126 + 127 + 129: navigasi admin. T129: angka penanda di menu (BPB perlu tindakan, pengembalian, no seri) dan cari dokumen dari kotak cari menu.
    T126:
    - Tab di atas area kerja seperti Accurate (maks 8, diingat setelah muat ulang).
    - Pencarian pintar di kotak menu samping (kata sehari-hari, toleran salah ketik), panah + Enter, Esc.
@@ -43,7 +43,7 @@
     komparasi: "komparasi bandingkan selisih accurate moka", proyek: "proyek projek ppbj rab cek material kebutuhan monitor order",
     pengajuan: "pengajuan umo ajukan uang muka", pembelian: "pengadaan vendor po pembelian supplier beli",
     realisasi: "realisasi umo laporan uang muka", laporan: "laporan report rekap bulanan", lapatasan: "laporan atasan atasan manajemen direksi",
-    telusur: "telusur lacak riwayat barang jejak ppbj bpb", analisa: "analisa analisis cukup kekurangan beli anggaran cukup proyek",
+    telusur: "telusur lacak riwayat barang jejak ppbj bpb dokumen no seri banyak barang linimasa", analisa: "analisa analisis cukup kekurangan beli anggaran cukup proyek",
     arsip: "arsip bukti pdf bukti cetak bukti pengambilan", bast: "bast berita acara serah terima", pengganti: "bpb pengganti pengganti ganti",
     mutasiacc: "mutasi accurate", masterbarang: "master barang barang baru kode barang katalog daftar barang", label: "label barcode stiker cetak label",
     pengumuman: "pengumuman info berita", sistem: "sistem pengaturan setting admin pin", kecepatan: "kecepatan lambat performa aplikasi",
@@ -121,7 +121,7 @@
   var STATE = {
     stok: {v: ["STOK", "STOKR", "JNS"], baru: function () { return {STOK: [], STOKR: null, JNS: {tampil: "periksa", q: "", ubah: {}}}; }},
     mutasi: {v: ["MUT", "MF", "MVIEW", "MR"], baru: function () { return {MUT: [], MF: {dari: "", sampai: "", jenis: "", sumber: "", arah: "", dept: "", proyek: "", q: ""}, MVIEW: "rinci", MR: null, catatan: ""}; }},
-    telusur: {v: ["TL"], baru: function () { return {TL: {mode: "barang", q: "", hasil: null, lebih: 0, det: null, ppbj: "", cek: null, bpb: "", bpbHasil: null, saring: false, buka: "", seq: ((W.TL && W.TL.seq) || 0) + 1}}; }}
+    telusur: {v: ["TL"], baru: function () { return {TL: {mode: "barang", q: "", hasil: null, lebih: 0, det: null, ppbj: "", cek: null, bpb: "", bpbHasil: null, saring: false, buka: "", seq: ((W.TL && W.TL.seq) || 0) + 1, banyak: [], bHasil: null, bBuka: "", linSemua: false, simpan: ""}}; }}
   };
   function ambilState(t) {
     var c = STATE[t], o = {}; c.v.forEach(function (k) { if (k in W) o[k] = W[k]; });
@@ -153,7 +153,7 @@
       var milik = PEMILIK[x.t] === x.id, st = milik ? null : x.st;
       if (x.t === "stok") { var q = x.el && x.el.querySelector("#sq"); s = q ? q.value : ""; }
       else if (x.t === "mutasi") { var mf = milik ? W.MF : (st && st.MF); s = mf ? (mf.q || mf.proyek || "") : ""; }
-      else if (x.t === "telusur") { var tl = milik ? W.TL : (st && st.TL); if (tl) s = tl.mode === "ppbj" ? tl.ppbj : tl.mode === "bpb" ? tl.bpb : tl.q; }
+      else if (x.t === "telusur") { var tl = milik ? W.TL : (st && st.TL); if (tl) s = tl.mode === "ppbj" ? tl.ppbj : tl.mode === "bpb" ? tl.bpb : tl.mode === "banyak" ? (tl.banyak && tl.banyak.length ? tl.banyak.length + " barang" : "") : tl.q; }
     } catch (e) { s = ""; }
     s = String(s || "").trim(); return s.length > 16 ? s.slice(0, 15) + "…" : s;
   }
@@ -202,6 +202,7 @@
       try { if (W.TAMPIL && W.TAMPIL.aktif) W.TAMPIL.aktif(); } catch (e) { /* abaikan */ }
       if (!sama) { try { W.scrollTo(0, 0); } catch (e) { /* abaikan */ } }
       var yLama = x.y; x.dimuat = Date.now(); x.basi = false;
+      if (!x.el.firstChild && !MULTI[t]) x.el.innerHTML = '<div class="card msg">Memuat...</div>';   // bukan untuk tab ganda: tampilan terakhir tab lain jangan ikut terbaca   // ruang baru: tanda memuat (tampil.js mengganti dengan tampilan terakhir / kerangka)
       asliGo(t);
       if (!sama && !kosong && mode !== "program" && yLama > 0) pulih(id, yLama);
     } else {
@@ -288,6 +289,7 @@
     var ubah = false;
     Object.keys(INST).forEach(function (id) { var x = INST[id]; if (id !== asal && x.dimuat && kena.indexOf(x.t) >= 0 && !x.basi) { x.basi = true; ubah = true; } });
     if (ubah) setTimeout(gambarBar, 0);
+    muatAngkaNanti(4000);
   }
   function bungkusApi() {
     var asli = W.api; if (typeof asli !== "function" || asli.__nav) return;
@@ -421,8 +423,26 @@
       var h = '<div class="mgt nfvg">Favorit</div>' + f.map(function (t) { return '<button type="button" class="' + (W.TAB === t ? "on" : "") + '" data-tab="' + esc(t) + '" data-fv="1">' + esc(nama(t)) + '</button>'; }).join("");
       box.insertAdjacentHTML("afterbegin", h);
     }
-    pasangCari();
+    pasangCari(); pasangAngka();
   }
+  /* ---------- T129: angka penanda di menu samping ---------- */
+  var ANGKA = null, angkaJalan = false, TIP_ANGKA = {pantau: " BPB perlu tindakan (menunggu persetujuan / siap diserahkan)", terima: " pengembalian belum selesai diterima", seri: " dokumen meter air belum lengkap nomor serinya"};
+  function muatAngka() {
+    if (angkaJalan || !W.PIN || typeof W.api !== "function" || !kolom()) return; angkaJalan = true;
+    Promise.resolve(W.api({action: "adminMenuRingkas"})).then(function (r) { angkaJalan = false; if (r && r.ok && r.angka) { ANGKA = r.angka; pasangAngka(); } }, function () { angkaJalan = false; });
+  }
+  var muatAngkaNanti = (function () { var t = null; return function (ms) { clearTimeout(t); t = setTimeout(muatAngka, ms || 4000); }; })();
+  function pasangAngka() {
+    var box = d.getElementById("tabs"); if (!box || !ANGKA) return;
+    box.querySelectorAll("button[data-tab]").forEach(function (b) {
+      var t = b.getAttribute("data-tab"), n = ANGKA[t], ada = b.querySelector(".nbd");
+      if (!(t in TIP_ANGKA)) return;
+      if (!n) { if (ada) ada.remove(); return; }
+      if (!ada) { ada = d.createElement("span"); ada.className = "nbd"; var st = b.querySelector(".nfv"); b.insertBefore(ada, st || null); }
+      ada.textContent = n > 99 ? "99+" : String(n); ada.setAttribute("data-tip", n + TIP_ANGKA[t]); ada.setAttribute("aria-label", n + TIP_ANGKA[t]);
+    });
+  }
+  setInterval(function () { if (d.visibilityState !== "hidden") muatAngka(); }, 5 * 60000);
   function tutupSamping() { var sd = d.getElementById("side"); if (sd) sd.classList.remove("buka"); }
   /* Klik menu ditangani di sini (sebelum onclick bawaan): Ctrl+klik = tab baru, klik biasa = tampilkan tab yang tersimpan. */
   d.addEventListener("click", function (e) {
@@ -437,7 +457,7 @@
     e.preventDefault(); tutupSamping(); bukaBaru(b.getAttribute("data-tab"));
   }, true);
 
-  var SEL = 0, HASIL = [], KUNCI = null;
+  var SEL = 0, HASIL = [], KUNCI = null, DOKQ = "", DOKS = [], dokT = null;
   function pasangCari() {
     var qc = d.getElementById("qcepat"); if (!qc) return;
     if (qc.dataset.nav) { if (KUNCI) qc.onkeydown = KUNCI; return; }   // tabsUI asli memasang ulang onkeydown setiap kali menu digambar
@@ -453,10 +473,17 @@
       } else {
         HASIL = cariMenu(v).map(function (m) { return {jenis: "menu", t: m.t}; }); HASIL.push({jenis: "barang", v: v});
         h = HASIL.length > 1 ? '<div class="nsj">Menu</div>' : '<div class="nsj">Tidak ada menu yang cocok</div>';
+        if (v.length >= 3 && /\d/.test(v)) {   // T129: nomor dokumen / no seri
+          HASIL.push({jenis: "dok", v: v});
+          if (DOKQ === v) DOKS.forEach(function (g) { HASIL.push({jenis: "dokx", g: g}); });
+          else { clearTimeout(dokT); dokT = setTimeout(function () { ambilDok(v); }, 450); }
+        }
       }
       if (SEL >= HASIL.length) SEL = 0;
       h += HASIL.map(function (x, i) {
         if (x.jenis === "barang") return '<div class="nsi nsb' + (i === SEL ? " on" : "") + '" role="option" data-ns="' + i + '" aria-selected="' + (i === SEL) + '">Cari barang / No PPBJ: <b>' + esc(x.v) + '</b></div>';
+        if (x.jenis === "dok") return '<div class="nsi nsb' + (i === SEL ? " on" : "") + '" role="option" data-ns="' + i + '" aria-selected="' + (i === SEL) + '">Cari dokumen / no seri: <b>' + esc(x.v) + '</b></div>';
+        if (x.jenis === "dokx") { var g = x.g; return (HASIL[i - 1] && HASIL[i - 1].jenis === "dok" ? '<div class="nsj">Dokumen</div>' : "") + '<div class="nsi' + (i === SEL ? " on" : "") + '" role="option" data-ns="' + i + '" aria-selected="' + (i === SEL) + '"><b>' + esc(g.doc) + '</b> <small>' + esc((g.jenis === "BPK" ? "Pengembalian" : g.jenis) + " · " + g.status + (g.ppbj ? " · " + g.ppbj : "") + (g.pemohon ? " · " + g.pemohon : "") + (g.seriCocok ? " · seri " + g.seriCocok.join(", ") : "")) + '</small></div>'; }
         var m = menuSemua().filter(function (y) { return y.t === x.t; })[0];
         return '<div class="nsi' + (i === SEL ? " on" : "") + '" role="option" data-ns="' + i + '" aria-selected="' + (i === SEL) + '"><b>' + esc(m.nama) + '</b><small>' + esc(m.grup) + '</small></div>';
       }).join("");
@@ -465,7 +492,17 @@
     }
     function pilih(i, baru) {
       var x = HASIL[i]; if (!x) return; var v = qc.value; qc.value = ""; pn.hidden = true; SEL = 0; qc.blur(); tutupSamping();
-      if (x.jenis === "menu") { if (baru) bukaBaru(x.t); else bukaMenu(x.t); } else if (typeof W.cepatCari === "function") W.cepatCari(v);
+      if (x.jenis === "menu") { if (baru) bukaBaru(x.t); else bukaMenu(x.t); }
+      else if (x.jenis === "dok") { if (typeof W.tlBukaDok === "function") W.tlBukaDok(x.v); }
+      else if (x.jenis === "dokx") { if (typeof W.tlBukaDok === "function") W.tlBukaDok(x.g.doc); }
+      else if (typeof W.cepatCari === "function") W.cepatCari(v);
+    }
+    function ambilDok(v) {
+      if (typeof W.api !== "function") return;
+      Promise.resolve(W.api({action: "adminTelusurBpb", q: v, ringkas: 1})).then(function (r) {
+        DOKQ = v; DOKS = r && r.ok ? (r.rows || []).slice(0, 5) : [];
+        if (qc.value.trim() === v && d.activeElement === qc) tampil();
+      }, function () { DOKQ = v; DOKS = []; });
     }
     qc.addEventListener("input", function () { SEL = 0; tampil(); });
     qc.addEventListener("focus", tampil);
@@ -515,6 +552,7 @@
     if (STATE[t]) PEMILIK[t] = id;
     catat(id, t);
     try { history.replaceState({navId: id}, "", location.hash || ("#" + t)); } catch (e) { /* abaikan */ }
+    setTimeout(muatAngka, 2500);
   }
   /* Nama tab mengikuti isi pencarian (Stok: pipa 3in) */
   var lblLama = "";
@@ -565,6 +603,7 @@
     "#tabs button .nfv{float:right;opacity:.35;padding:0 2px;margin-left:6px;cursor:pointer}#tabs button:hover .nfv,#tabs button .nfv:focus-visible,#tabs button .nfv.on{opacity:1}#tabs button .nfv.on{color:#e0a800}" +
     "#tabs button .npl{float:right;opacity:0;padding:0 5px;margin-left:2px;cursor:pointer;font-weight:700;border-radius:4px}#tabs button:hover .npl,#tabs button .npl:focus-visible{opacity:.85}#tabs button .npl:hover{background:rgba(43,179,192,.22);opacity:1}" +
     "@media (hover:none){#tabs button .npl{opacity:.6}}" +
+    "#tabs button .nbd{display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:#c0392b;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;vertical-align:1px}" +
     ".mcari{position:relative}#navsaran{position:absolute;left:0;right:0;top:100%;z-index:50;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.35);max-height:60vh;overflow:auto;margin-top:2px}" +
     ".nsj{font-size:11px;font-weight:700;opacity:.7;padding:7px 10px 3px;letter-spacing:.03em}.nsi{padding:8px 10px;cursor:pointer;border-top:1px solid var(--line);font-size:13px}.nsi small{display:block;opacity:.65;font-size:11px}" +
     ".nsi.on,.nsi:hover{background:rgba(43,179,192,.16)}.nsb{font-size:12.5px}" +

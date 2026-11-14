@@ -32,6 +32,9 @@
     var h = d.createElement("div"); h.id = "pintasBantuan"; h.setAttribute("role", "dialog"); h.setAttribute("aria-label", "Daftar pintasan keyboard");
     h.innerHTML = '<div class="pb-kotak"><div class="pb-judul"><b>Pintasan keyboard</b><button type="button" id="pbTutup" aria-label="Tutup">&times;</button></div>' +
       '<table><tr><td><kbd>/</kbd></td><td>Langsung ke kotak cari di halaman ini</td></tr>' +
+      '<tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>Cari menu, barang, atau No PPBJ (kotak di menu samping)</td></tr>' +
+      '<tr><td><kbd>Alt</kbd> + <kbd>1</kbd>..<kbd>8</kbd></td><td>Pindah ke tab ke-1 sampai ke-8 di atas</td></tr>' +
+      '<tr><td><kbd>Alt</kbd> + <kbd>W</kbd></td><td>Tutup tab yang sedang terbuka</td></tr>' +
       '<tr><td><kbd>?</kbd></td><td>Tampilkan atau tutup daftar ini</td></tr>' +
       '<tr><td><kbd>r</kbd></td><td>Mode baca: huruf lebih besar, baris lebih lega</td></tr>' +
       '<tr><td><kbd>Esc</kbd></td><td>Tutup daftar pintasan ini</td></tr>' + baris + '</table>' +

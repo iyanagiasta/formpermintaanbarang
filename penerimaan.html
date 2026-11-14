@@ -132,7 +132,7 @@ async function formBaru(){
     var pc=x.persen||0,sebagian=x.qTerima>0;
     var baris=it.map(function(i){var sisa=Math.round((i.qBeli-i.qTerima)*1000)/1000,p=i.qBeli>0?Math.min(100,Math.round(i.qTerima/i.qBeli*100)):0;
       return '<tr><td>'+esc(i.nama)+'</td><td class="nm">'+fq(i.qBeli)+' '+esc(i.satuan||"")+'</td><td class="nm">'+fq(i.qTerima)+'<div class="bar2"><i style="width:'+p+'%"></i></div></td><td class="nm">'+(sisa>0?'<span class="sk">sisa '+fq(sisa)+'</span>':'<span class="lk">lengkap</span>')+'</td></tr>';}).join("");
-    return '<div class="card kp"><div class="kh"><div><b>'+esc(x.nomor)+'</b> <small>'+esc(x.tgl||"")+'</small><br>'+esc(x.supplier||"")+' <small>PO '+esc(x.po||"-")+'</small><br><small>'+esc(x.proyek||x.ppbj||"")+(x.proyek&&x.ppbj?' ('+esc(x.ppbj)+')':'')+'</small></div>'+
+    return '<div class="card kp"><div class="kh"><div><b>'+esc(x.nomor)+'</b> <small>'+esc(x.tgl||"")+'</small><br>'+esc(x.supplier||"")+' <small>PO '+esc(x.po||"-")+'</small><br><small>'+esc(x.proyek||x.ppbj||"")+(x.proyek&&x.ppbj?' ('+esc(x.ppbj)+')':'')+'</small>'+tagBuf(x.ppbj,x.proyek)+'</div>'+
       '<div style="text-align:right"><span class="tag '+(sebagian?'w':'')+'">'+esc(sebagian?'Sebagian':x.status)+'</span><br><small>'+(it.length?nL+' dari '+it.length+' barang lengkap':'')+'</small><div class="bar2"><i style="width:'+pc+'%"></i></div></div></div>'+
       (it.length?'<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Dipesan</th><th class="nm">Diterima</th><th class="nm">Sisa</th></tr></thead><tbody>'+baris+'</tbody></table></div>':'')+
       '<div class="fr" style="margin-top:8px"><a href="pengadaan.html?terima='+encodeURIComponent(x.id)+'"><button type="button">'+(sebagian?'Terima barang berikutnya':'Terima barang')+'</button></a></div></div>';}).join("");
@@ -310,7 +310,17 @@ function pasangSaran(inp,ambil,pilih){
   inp.addEventListener("input",tampilkan);inp.addEventListener("focus",tampilkan);inp.addEventListener("blur",function(){setTimeout(function(){if(SINP===inp)tutupSaran();},250);});
 }
 /* ===== Catat barang masuk (Tambahan 82) ===== */
-var CT={items:[],tgl:"",po:"",vendor:"",cat:""},VEND=null,BO=null;
+var CT={items:[],tgl:"",po:"",vendor:"",cat:"",ppbj:""},VEND=null,BO=null;
+/* Tambahan 119: PPBJ buffer (keterangan proyek "buffer stock") + PPBJ tujuan pada Catat barang masuk */
+function proyPP(pp){var k=String(pp||"").trim().toLowerCase();return k?PROY.filter(function(z){return String(z.ppbj).toLowerCase()===k;})[0]||null:null;}
+function isBufPP(pp,ket){var p=proyPP(pp);return !!(p&&p.buffer)||/buffer\s*-?\s*sto(c)?k/i.test(String(ket||(p&&p.ket)||""));}
+function tagBuf(pp,ket){return isBufPP(pp,ket)?' <span class="tag w">Buffer</span>':'';}
+function saranPpbj(q){
+  q=String(q||"").trim();var L=PROY.filter(function(p){return p.status!=="Batal"&&p.status!=="Selesai";});
+  var r=q?CARI.saring(L,q,function(c){return c.ppbj+" "+c.ket;},8).hasil:L.slice(0,8);
+  return r.map(function(c){return {judul:c.ppbj+" — "+c.ket,kecil:(c.buffer?"PPBJ buffer · ":"")+(c.dept||"")+(c.status?" · "+c.status:""),d:c};});
+}
+function catatTulisT(r){try{if(r&&typeof r._st==="number"){var t=Math.max(Number(localStorage.getItem("sctk_tulis_t")||0),r._st);localStorage.setItem("sctk_tulis_t",String(t));}}catch(e){}}
 function hariIni(){var d=new Date(),m=d.getMonth()+1,t=d.getDate();return d.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(t<10?"0":"")+t;}
 function saranBarang(q){
   q=String(q||"").trim();if(!q||!BARANG.length)return [];
@@ -322,7 +332,7 @@ function saranVendor(q){
   var r=q?CARI.saring(L,q,function(c){return c.nama;},8).hasil:L.slice(0,8);
   return r.map(function(c){return {judul:c.nama,d:c};});
 }
-function simpanCt(){var g=function(i){var e=document.getElementById(i);return e?e.value:null;};var a=g("ctgl");if(a!==null)CT.tgl=a;a=g("cpo");if(a!==null)CT.po=a;a=g("cv");if(a!==null)CT.vendor=a;a=g("ccat");if(a!==null)CT.cat=a;}
+function simpanCt(){var g=function(i){var e=document.getElementById(i);return e?e.value:null;};var a=g("ctgl");if(a!==null)CT.tgl=a;a=g("cpo");if(a!==null)CT.po=a;a=g("cv");if(a!==null)CT.vendor=a;a=g("ccat");if(a!==null)CT.cat=a;a=g("cpp");if(a!==null)CT.ppbj=a;}
 function gambarCt(){
   var d=document.getElementById("cdaftar");if(!d)return;
   if(!CT.items.length){d.innerHTML='<div class="note">Belum ada barang. Cari barang di kotak bawah.</div>';return;}
@@ -337,6 +347,7 @@ function formCatat(){
   var h='<div class="card"><h3>Catat barang masuk</h3><div class="note">Catatan cepat untuk barang yang datang. Stok Accurate langsung bertambah. No PO, vendor, dan foto surat jalan boleh dikosongkan.</div>';
   h+='<label class="l">Barang yang masuk</label><div id="cdaftar"></div><input id="cb" placeholder="Cari nama atau kode barang..." autocomplete="off"><button type="button" class="gh" id="cbebas" style="margin-top:6px;width:100%">+ Barang belum terdaftar</button>';
   h+='<div class="fr"><div><label class="l">Tanggal kedatangan</label><input type="date" id="ctgl" value="'+esc(CT.tgl)+'" max="'+hariIni()+'"></div><div><label class="l">No PO (opsional)</label><input id="cpo" value="'+esc(CT.po)+'" placeholder="mis. PO-123" autocomplete="off"></div></div>';
+  h+='<label class="l">Untuk PPBJ / proyek (opsional)</label><input id="cpp" value="'+esc(CT.ppbj)+'" placeholder="Cari No PPBJ atau nama proyek, atau ketik manual" autocomplete="off"><div class="note" id="cppn"></div>';
   h+='<label class="l">Vendor / supplier (opsional)</label><input id="cv" value="'+esc(CT.vendor)+'" placeholder="Cari dari daftar atau ketik bebas" autocomplete="off">';
   h+='<label class="l">Foto surat jalan (opsional, boleh banyak)</label><div class="fr"><button type="button" id="kam">Ambil foto</button><button type="button" class="gh" id="gal">Pilih dari galeri / PDF</button></div><input type="file" id="fk" accept="image/*" capture="environment" style="display:none"><input type="file" id="fg" accept="image/*,application/pdf" multiple style="display:none"><div class="th" id="th"></div><div class="note" id="fn"></div>';
   h+='<label class="l">Catatan (opsional)</label><input id="ccat" value="'+esc(CT.cat)+'" placeholder="mis. dari sisa proyek lama" autocomplete="off"></div>';
@@ -352,6 +363,10 @@ function formCatat(){
   var cv=document.getElementById("cv");
   pasangSaran(cv,function(q){return saranVendor(q);},function(x){cv.value=x.d.nama;CT.vendor=x.d.nama;});
   cv.addEventListener("input",function(){CT.vendor=cv.value;});
+  var cpp=document.getElementById("cpp");
+  function infoPP(){var n=document.getElementById("cppn");if(!n)return;var v=cpp.value.trim(),p=proyPP(v);n.innerHTML=!v?'Kosongkan bila barang masuk sebagai stok umum. Stok tetap bebas dipakai proyek mana pun.':p?('PPBJ terdaftar: <b>'+esc(p.ket)+'</b>'+tagBuf(p.ppbj)+'. Status order barang untuk PPBJ ini ikut diperbarui. Stok tetap bebas dipakai proyek mana pun.'):'PPBJ ini tidak ada di tab Proyek: hanya dicatat sebagai keterangan. Stok tetap bertambah.';}
+  pasangSaran(cpp,function(q){return saranPpbj(q);},function(x){cpp.value=x.d.ppbj;CT.ppbj=x.d.ppbj;infoPP();});
+  cpp.addEventListener("input",function(){CT.ppbj=cpp.value;infoPP();});infoPP();
   document.getElementById("cbebas").onclick=function(){CT.items.push({kode:"",nama:"",satuan:"",qty:"",bebas:1});gambarCt();};
   document.getElementById("kam").onclick=function(){document.getElementById("fk").click();};document.getElementById("gal").onclick=function(){document.getElementById("fg").click();};
   document.getElementById("fk").onchange=function(){tambahFile(this.files);this.value="";};document.getElementById("fg").onchange=function(){tambahFile(this.files);this.value="";};
@@ -364,7 +379,7 @@ async function periksaCatat(){
   CT.items=CT.items.filter(function(x){return numIn(x.qty)>0&&(x.kode||String(x.nama||"").trim());});gambarCt();
   BUSY=true;var b=document.getElementById("cc");b.disabled=true;b.textContent="Memeriksa...";
   try{
-    var r=await api({action:"terimaPratinjau",mode:"catat",items:it,po:CT.po,tgl:CT.tgl,vendor:CT.vendor});
+    var r=await api({action:"terimaPratinjau",mode:"catat",items:it,po:CT.po,tgl:CT.tgl,vendor:CT.vendor,ppbj:CT.ppbj});
     if(!r.ok){toast(r.msg||"Gagal.",true);return;}
     ringkasanCatat(r);
   }catch(e){toast("Gagal terhubung ke server.",true);}finally{BUSY=false;b.disabled=false;b.textContent="Periksa dan lihat ringkasan";}
@@ -372,9 +387,10 @@ async function periksaCatat(){
 function tglId(iso){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||""));return m?m[3]+"/"+m[2]+"/"+m[1]:"";}
 function ringkasanCatat(r){
   var el=document.getElementById("cring");KUNCI=KUNCI||rid();
-  var h='<div class="card" style="border:2px solid var(--gold);margin-top:12px"><h3>Ringkasan sebelum disimpan</h3><div class="box">Datang: <b>'+esc(tglId(CT.tgl)||"hari ini")+'</b>'+(CT.vendor?' · Vendor: <b>'+esc(CT.vendor)+'</b>':'')+(CT.po?' · PO: <b>'+esc(CT.po)+'</b>':'')+' · '+(FILES.length?FILES.length+' foto/berkas':'tanpa foto')+'</div>';
+  var h='<div class="card" style="border:2px solid var(--gold);margin-top:12px"><h3>Ringkasan sebelum disimpan</h3><div class="box">Datang: <b>'+esc(tglId(CT.tgl)||"hari ini")+'</b>'+(CT.vendor?' · Vendor: <b>'+esc(CT.vendor)+'</b>':'')+(CT.po?' · PO: <b>'+esc(CT.po)+'</b>':'')+' · '+(FILES.length?FILES.length+' foto/berkas':'tanpa foto')+'</div>'+
+    (CT.ppbj.trim()?'<div class="box">Untuk PPBJ: <b>'+esc(r.proyek&&r.proyek.ppbj||CT.ppbj)+'</b>'+(r.proyek&&r.proyek.terdaftar?' · '+esc(r.proyek.proyek)+(r.proyek.buffer?' <span class="tag w">Buffer</span>':''):' <span class="tag">tidak terdaftar, hanya keterangan</span>')+'</div>':'');
   h+='<table><tr><th>Barang</th><th class="nm">Masuk</th><th class="nm">Stok '+esc(r.sumber)+'</th></tr>'+r.items.map(function(x){
-    return '<tr><td><b>'+esc(x.nama)+'</b><small style="display:block;color:var(--mut)">'+esc(x.kode||"belum terdaftar")+'</small></td><td class="nm">+'+fq(x.qty)+' '+esc(x.satuan)+'</td><td class="nm">'+(x.daftar?'<span class="tag w">tidak bertambah</span>':fq(x.sebelum)+' → <b>'+fq(x.sesudah)+'</b>')+'</td></tr>';}).join("")+'</table>';
+    return '<tr><td><b>'+esc(x.nama)+'</b><small style="display:block;color:var(--mut)">'+esc(x.kode||"belum terdaftar")+'</small>'+(x.kebutuhan&&x.kebutuhan.length?'<small style="display:block;color:var(--mut)">Dibutuhkan: '+x.kebutuhan.map(function(z){return esc(z.ppbj)+(z.kurang>0?' (kurang '+fq(z.kurang)+')':'');}).join(", ")+'</small>':'')+'</td><td class="nm">+'+fq(x.qty)+' '+esc(x.satuan)+'</td><td class="nm">'+(x.daftar?'<span class="tag w">tidak bertambah</span>':fq(x.sebelum)+' → <b>'+fq(x.sesudah)+'</b>')+'</td></tr>';}).join("")+'</table>';
   (r.peringatan||[]).forEach(function(w){h+='<div class="box w">⚠ '+esc(w)+'</div>';});
   h+='<div class="fr"><button type="button" class="gh" id="ckb">Kembali ubah</button><button type="button" class="sv" id="csm">Simpan catatan masuk</button></div><div class="note">Stok langsung bertambah saat disimpan. Pembatalan hanya bisa oleh admin.</div></div>';
   el.innerHTML=h;el.scrollIntoView({behavior:"smooth"});
@@ -383,9 +399,9 @@ function ringkasanCatat(r){
 async function simpanCatat(){
   if(BUSY)return;BUSY=true;var b=document.getElementById("csm");b.disabled=true;b.textContent="Menyimpan...";
   try{
-    var r=await api({action:"terimaSimpan",mode:"catat",kunciKirim:KUNCI,items:kirimCt(),po:CT.po,tgl:CT.tgl,vendor:CT.vendor,catatan:CT.cat,files:FILES.map(function(x){return {nama:x.nama,mime:x.mime,data:x.data};})});
+    var r=await api({action:"terimaSimpan",mode:"catat",kunciKirim:KUNCI,items:kirimCt(),po:CT.po,tgl:CT.tgl,vendor:CT.vendor,ppbj:CT.ppbj,catatan:CT.cat,files:FILES.map(function(x){return {nama:x.nama,mime:x.mime,data:x.data};})});
     if(!r.ok){toast(r.msg||"Gagal menyimpan.",true);return;}
-    toast(r.msg);CT={items:[],tgl:"",po:"",vendor:"",cat:""};FILES=[];KUNCI="";TAB="riwayat";VEND=null;
+    catatTulisT(r);toast(r.msg);CT={items:[],tgl:"",po:"",vendor:"",cat:"",ppbj:""};FILES=[];KUNCI="";TAB="riwayat";VEND=null;
     try{sessionStorage.removeItem("sctk_idx_v1");}catch(e){}
     await mulai();
   }catch(e){toast("Koneksi terputus. Cek Riwayat sebelum menyimpan ulang — jika tercatat, jangan kirim lagi.",true);}finally{BUSY=false;}
@@ -400,7 +416,7 @@ async function riwayat(){
       var st=x.batal?'<span class="tag bad">Dibatalkan</span>':(x.accurate==="Sudah"?'<span class="tag ok">Sudah di Accurate</span>':'<span class="tag w">Belum di Accurate</span>');
       return '<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b class="'+(x.batal?"can":"")+'">'+esc(x.nomor)+'</b>'+st+'</div><div class="note">'+esc(x.waktu)+' · oleh '+esc(x.oleh)+(x.po?' · PO '+esc(x.po):'')+'</div>'+
         (x.mode==="Catat"?'<div style="margin-top:4px"><span class="tag">Catatan manual</span>'+(x.tertaut?' <span class="tag ok">Tertaut ke PO</span>':'')+' Datang <b>'+esc(x.tglDatang||"-")+'</b>'+(x.vendor?' · Vendor: <b>'+esc(x.vendor)+'</b>':'')+'</div>'+(x.tutup>0?'<div class="note">Menutup '+fq(x.tutup)+' barang yang sudah keluar lebih dulu dari stok.</div>':''):'')+
-        ((x.proyek||x.ppbj)?'<div style="margin-top:4px">Untuk proyek: <b>'+esc(x.proyek||x.ppbj)+'</b>'+(x.pic?' · PIC: '+esc(x.pic):'')+'</div>':'')+
+        ((x.proyek||x.ppbj)?'<div style="margin-top:4px">Untuk proyek: <b>'+esc(x.proyek||x.ppbj)+'</b>'+(x.proyek&&x.ppbj?' ('+esc(x.ppbj)+')':'')+tagBuf(x.ppbj,x.proyek)+(x.pic?' · PIC: '+esc(x.pic):'')+'</div>':'')+
         '<div style="margin-top:6px;font-size:13px">'+x.items.map(function(i){return esc(i.nama)+' <b>'+fq(i.qty)+'</b> '+esc(i.satuan)+(i.daftar?' <span class="tag w">perlu didaftarkan</span>':'')+(i.luar?' <span class="tag">di luar pesanan</span>':'');}).join('<br>')+'</div>'+
         '<div class="note" style="margin-top:6px">'+(x.foto?x.foto+' foto surat jalan':(x.alasanFoto?'Tanpa foto: '+esc(x.alasanFoto):'Tanpa foto'))+(x.cat?' · '+esc(x.cat):'')+'</div>'+
         (x.batal?'<div class="box r">Dibatalkan oleh '+esc(x.batalOleh)+': '+esc(x.batalAlasan)+'</div>':(r.admin?'<div class="fr"><button class="rd" data-b="'+esc(x.nomor)+'">Batalkan penerimaan</button></div>':''))+'</div>';}).join(""):'<div class="card note" style="text-align:center">Belum ada penerimaan.</div>';

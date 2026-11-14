@@ -1,5 +1,5 @@
 /* tanya-admin.js (T133, Paket F): Tanya Gudang MODE ADMIN (bot pintar khusus admin).
-   Aktif otomatis bila kode yang dipakai masuk adalah password admin, atau lewat tombol "Mode admin" (isi password admin).
+   Aktif otomatis bila kode yang dipakai masuk adalah password admin (tanpa tombol; T135).
    Semua pertanyaan dikirim ke server (aksi adminBotTanya). Jawaban berupa blok: teks, kartu, tabel (lihat semua + unduh Excel),
    grafik kecil, pilihan (bot belajar), dan aksi yang wajib dikonfirmasi sebelum mengubah data. */
 (function () {
@@ -127,7 +127,7 @@
       if (!r || !r.ok) {
         var msg = (r && r.msg) || "Gagal.";
         if (/is not defined|tidak dikenal/i.test(msg)) msg = "Bot admin belum terpasang di server (BotAdmin.gs). Pasang dulu BotAdmin.gs dan baris route di Code.gs, lalu Deploy.";
-        if (/Kode tidak dikenali|Terlalu banyak/i.test(msg)) { matikan(); msg += " Mode admin dimatikan."; }
+        if (/Kode tidak dikenali|Terlalu banyak/i.test(msg)) { matikan(); msg += " Silakan keluar lalu masuk lagi."; }
         m.innerHTML = '<p class="err">' + esc(msg) + "</p>"; return;
       }
       gambarBlok(r.blok || [], m);
@@ -140,28 +140,17 @@
 
   /* ---------- mode ---------- */
   function sapa() {
-    var a = add("tq-b tga", "<p><b>Mode admin pintar aktif.</b> Tanyakan apa saja: stok dan alasannya, pesanan, proyek, simulasi, laporan (bisa diunduh Excel), nomor seri, lacak BPB. Perintah yang mengubah data selalu minta konfirmasi dulu.</p>");
+    var a = add("tq-b tga", "<p><b>Halo, admin.</b> Tanyakan apa saja: stok dan alasannya, pesanan, proyek, simulasi, laporan (bisa diunduh Excel), nomor seri, lacak BPB. Perintah yang mengubah data selalu minta konfirmasi dulu.</p>");
     if (a) a.appendChild(chips([{label: "Briefing hari ini", t: "briefing"}, {label: "Ada yang aneh?", t: "ada yang aneh hari ini"}, {label: "Proyek berisiko", t: "proyek mana paling berisiko"}, {label: "Pesanan terlambat", t: "pesanan yang telat"}, {label: "Contoh pertanyaan", t: "bantuan"}], function (x) { tanya(x.t); }));
   }
+  /** Tidak ada tombol "Mode admin": admin dikenali dari kode masuk (password admin). Hanya lencana ADMIN kecil di judul. */
   function tombol() {
-    var end = document.querySelector(".tq-end"); if (!end) return;
-    var b = document.getElementById("tga-mode");
-    if (!b) { b = document.createElement("button"); b.type = "button"; b.id = "tga-mode"; b.className = "gh"; end.insertBefore(b, end.lastChild); }
-    b.textContent = A.aktif ? "Mode admin: AKTIF" : (A.pin ? "Mode admin: mati" : "Mode admin");
-    b.classList.toggle("tga-on", A.aktif);
-    b.onclick = function () { if (A.pin) { A.aktif = !A.aktif; tombol(); placeholder(); if (A.aktif) sapa(); else add("tq-b", "<p>Kembali ke bot biasa.</p>"); } else formPin(); };
+    var old = document.getElementById("tga-mode"); if (old) old.remove();
     var badge = document.getElementById("tga-badge"), top = document.querySelector(".top h1");
     if (A.aktif && top && !badge) top.insertAdjacentHTML("beforeend", ' <span id="tga-badge" class="tga-badge">ADMIN</span>');
     if (!A.aktif && badge) badge.remove();
   }
   function placeholder() { var q = document.getElementById("q"); if (q) q.placeholder = A.aktif ? "Contoh: kenapa pipa pvc 3 inch kurang? / rekap keluar bulan ini per proyek" : "Contoh: stok pipa pvc 3 inch"; }
-  function formPin() {
-    var m = add("tq-b tga", '<p>Masukkan <b>password admin</b> untuk membuka mode admin pintar.</p><div class="tga-pin"><input class="t" type="password" autocomplete="off" aria-label="Password admin" placeholder="Password admin"><button type="button">Masuk</button></div><p class="tq-sm tga-hasil"></p>');
-    if (!m) return; var i = m.querySelector("input"), b = m.querySelector("button"), h = m.querySelector(".tga-hasil"); i.focus();
-    function go() { var v = i.value.trim(); if (!v) return; b.disabled = true; h.textContent = "Memeriksa...";
-      cek(v).then(function (r) { if (r && r.admin) { h.textContent = "Berhasil."; i.value = ""; m.querySelector(".tga-pin").remove(); } else { b.disabled = false; h.textContent = (r && r.msg) || "Bukan password admin."; } }); }
-    b.onclick = go; i.onkeydown = function (e) { if (e.key === "Enter") go(); };
-  }
   function nyalakan(pin) { A.pin = pin; A.aktif = true; ss("sctk_tanya_adm", pin); tombol(); placeholder(); sapa(); }
   function matikan() { A.aktif = false; A.pin = ""; ss("sctk_tanya_adm", null); tombol(); placeholder(); }
   function cek(kode) {

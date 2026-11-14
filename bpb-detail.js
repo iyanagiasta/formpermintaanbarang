@@ -25,7 +25,7 @@ var BPBD=(function(){
       var nm=it.gantiKe?it.gantiKe.nama:it.nama,kd=it.gantiKe?it.gantiKe.kode:it.kode,sat=it.gantiKe?it.gantiKe.satuan:it.satuan;
       var q=it.qtyBaru!=null?it.qtyBaru:it.qty;
       var aksi=edit?'<button class="gh" data-bg="'+i+'">Ganti barang</button>'+(it.gantiKe?' <button class="gh" data-bb="'+i+'">Batal ganti</button>':''):"";
-      return '<tr><td data-l="Barang"><b>'+(i+1)+'. '+esc(nm)+'</b> <small>'+esc(kd)+'</small>'+(it.gantiKe?'<br><small>semula: '+esc(it.nama)+'</small>':'')+(ST.mode==="serah"&&it.diminta!=null&&it.diminta!==it.qty?'<br><small>diminta: '+fmt(it.diminta)+'</small>':'')+(it.meter&&window.SERI?SERI.baris(it):'')+'</td>'+
+      return '<tr><td data-l="Barang"><b>'+(i+1)+'. '+esc(nm)+'</b> <small>'+esc(kd)+'</small>'+(window.OLH?OLH(kd):'')+(it.gantiKe?'<br><small>semula: '+esc(it.nama)+'</small>':'')+(ST.mode==="serah"&&it.diminta!=null&&it.diminta!==it.qty?'<br><small>diminta: '+fmt(it.diminta)+'</small>':'')+(it.meter&&window.SERI?SERI.baris(it):'')+'</td>'+
         '<td data-l="Jumlah">'+(edit?'<input type="number" min="0" step="any" inputmode="decimal" data-bq="'+i+'" value="'+esc(String(q))+'" style="width:84px"> ':'<b>'+esc(fmt(q))+'</b> ')+esc(sat||"")+'</td><td data-l="">'+aksi+'</td></tr>';
     }).join("");
     var baru=ST.baru.map(function(b,i){

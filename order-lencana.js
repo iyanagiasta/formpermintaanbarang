@@ -16,7 +16,8 @@
   function gaya() {
     if (document.getElementById('olGaya')) return;
     var st = document.createElement('style'); st.id = 'olGaya';
-    st.textContent = '.ol-w:empty{display:none}.ol-b{display:inline-block;margin:2px 0 0 4px;padding:1px 8px;border-radius:10px;font:600 11px/1.5 "Segoe UI",Roboto,Arial,sans-serif;cursor:pointer;border:1px solid transparent;white-space:normal;text-align:left;vertical-align:middle;max-width:100%}' +
+    st.textContent = '.ol-w:empty{display:none}.ol-b{display:inline-flex;flex-wrap:wrap;align-items:center;column-gap:0;margin:2px 0 0 4px;padding:2px 8px 2px 3px;border-radius:12px;font:600 11px/1.5 "Segoe UI",Roboto,Arial,sans-serif;cursor:pointer;border:1px solid transparent;white-space:normal;text-align:left;vertical-align:middle;max-width:100%}' +
+      '.ol-b span{white-space:nowrap}.ol-j{display:inline-block;padding:0 7px;margin-right:2px;border-radius:9px;color:#fff;font-weight:700;letter-spacing:.2px}.ol-j-proyek{background:#4f46e5}.ol-j-buffer{background:#0f766e}.ol-x{font-weight:700}.ol-b.ol-BELUM{border-left:4px solid #d9a400}.ol-b.ol-DIPESAN{border-left:4px solid #2f7fc1}.ol-b.ol-SEBAGIAN{border-left:4px solid #e07b1a}' +
       '.ol-b:hover,.ol-b:focus{outline:2px solid var(--accent,#1b6ca8);outline-offset:1px}.ol-BELUM{background:#fff3cd;color:#6b4e00;border-color:#e6c76a}.ol-DIPESAN{background:#e3f0fb;color:#0d4a7a;border-color:#9cc6ea}.ol-SEBAGIAN{background:#fde8d4;color:#7a3a00;border-color:#efb27a}' +
       '.ol-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:12px}.ol-md{background:var(--card,#fff);color:var(--ink,#1b2a33);border-radius:12px;max-width:1100px;width:100%;max-height:88vh;overflow:auto;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.3)}' +
       '.ol-md table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}.ol-md th,.ol-md td{border-bottom:1px solid var(--line,#ccd);padding:6px;text-align:left;vertical-align:top;background:transparent!important;color:inherit;white-space:normal;word-break:break-word}.ol-md th{font-size:12px;opacity:.8}.ol-md td.n,.ol-md th.n{text-align:right;white-space:nowrap}' +
@@ -37,10 +38,14 @@
   /** Isi HTML lencana (tanpa pembungkus). '' bila tidak ada pesanan berjalan. */
   OL.lencana = function (kode) {
     var L = daftar(kode); if (!L.length) return '';
-    var o = L[0], t = teks(o), akan = L.reduce(function (a, x) { return a + (Number(x.akan) || 0); }, 0);
-    if (L.length > 1) t += ' · +' + (L.length - 1) + ' PPBJ lain · akan datang ' + nf(akan);
+    var o = L[0], akan = L.reduce(function (a, x) { return a + (Number(x.akan) || 0); }, 0);
+    var st = o.st === 'BELUM' ? (o.peringatan ? 'belum ada PO (lama)' : 'belum ada PO') : o.st === 'SEBAGIAN' ? 'datang ' + nf(o.diterima) + ' dari ' + nf(o.rab || o.dipesan) : (o.po ? 'PO ' + poPendek(o.po) : 'sudah dipesan');
+    if (o.eta) st += ' · tiba ±' + tgl(o.eta);
+    var h = '<span class="ol-j ol-j-' + (o.jenis === 'buffer' ? 'buffer' : 'proyek') + '">' + (o.jenis === 'buffer' ? 'Order buffer' : 'Order proyek') + '</span>' +
+      '<span class="ol-p"> · PPBJ ' + esc(o.ppbj) + '</span><span class="ol-s"> · ' + esc(st) + '</span>';
+    if (L.length > 1) h += '<span class="ol-x"> · +' + (L.length - 1) + ' PPBJ lain · akan datang ' + esc(nf(akan)) + '</span>';
     var judul = L.map(teks).join('\n') + '\nKlik untuk rincian.';
-    return '<button type="button" class="ol-b ol-' + esc(o.st) + '" data-olb="' + esc(kunci(kode)) + '" title="' + esc(judul) + '">' + esc(t) + '</button>';
+    return '<button type="button" class="ol-b ol-' + esc(o.st) + '" data-olb="' + esc(kunci(kode)) + '" title="' + esc(judul) + '">' + h + '</button>';
   };
   /** Tempat lencana di samping nama barang. Terisi otomatis setelah peta dimuat. */
   OL.html = function (kode) {

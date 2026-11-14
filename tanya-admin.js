@@ -153,8 +153,13 @@
   function placeholder() { var q = document.getElementById("q"); if (q) q.placeholder = A.aktif ? "Contoh: kenapa pipa pvc 3 inch kurang? / rekap keluar bulan ini per proyek" : "Contoh: stok pipa pvc 3 inch"; }
   function nyalakan(pin) { A.pin = pin; A.aktif = true; ss("sctk_tanya_adm", pin); tombol(); placeholder(); sapa(); }
   function matikan() { A.aktif = false; A.pin = ""; ss("sctk_tanya_adm", null); tombol(); placeholder(); }
+  /** T135: pemeriksaan admin dimulai bersamaan dengan pemuatan data (dipanggil tanya.js di awal), jadi tidak menambah waktu tunggu. */
+  var AWAL = null;
+  function awal(kode) { if (kode) AWAL = {kode: kode, p: api({action: "adminBotCek", kode: kode}).catch(function () { return null; })}; }
   function cek(kode) {
-    return api({action: "adminBotCek", kode: kode}).then(function (r) {
+    var pre = AWAL && AWAL.kode === kode ? AWAL.p : null; AWAL = pre ? null : AWAL;
+    return (pre || api({action: "adminBotCek", kode: kode})).then(function (r) {
+      if (r === null) return {ok: false, msg: "Gagal terhubung ke server."};
       if (r && r.ok && r.admin) { A.versi = r.versi || ""; nyalakan(kode); }
       return r;
     }).catch(function () { return {ok: false, msg: "Gagal terhubung ke server."}; });
@@ -169,5 +174,5 @@
       if (simpan) { ss("sctk_tanya_adm", null); if (kode && kode !== simpan) cek(kode); }
     });
   }
-  window.TGA = {pasang: pasang, tanya: tanya, get aktif() { return A.aktif; }, matikan: matikan, _A: A};
+  window.TGA = {awal: awal, pasang: pasang, tanya: tanya, get aktif() { return A.aktif; }, matikan: matikan, _A: A};
 })();

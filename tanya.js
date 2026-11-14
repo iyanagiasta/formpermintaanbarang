@@ -518,6 +518,7 @@ async function masuk(){
 async function mulai(dariLogin){
   app.innerHTML='<div class="card note" style="text-align:center">Memuat data barang dan stok...</div>';
   try{
+    if(window.TGA&&TGA.awal){var sa="";try{sa=sessionStorage.getItem("sctk_tanya_adm")||""}catch(e){}TGA.awal(sa||KODE)}
     var rs=await Promise.all([api({action:"barang"}),api({action:"stok"}),api({action:"sinonim"}),bot("rak").catch(function(){return null}),bot("butuh").catch(function(){return null})]);
     var rb=rs[0],rk=rs[1],rn=rs[2],rr=rs[3],rb2=rs[4];var NET={};if(rb2&&rb2.ok===true&&rb2.net){NETOK=true;NET=rb2.net;TANPA=rb2.tanpaRab||[]}RAKOK=!!(rr&&rr.ok===true&&rr.rak);var RM=RAKOK?rr.rak:{};
     if(!rk.ok){KODE="";ls("sctk_kode",null);loginView(rk.msg||"Kode tidak dikenali.");return}

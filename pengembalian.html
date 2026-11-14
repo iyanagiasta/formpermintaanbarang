@@ -402,7 +402,21 @@ function proyekOpts(q){
 }
 
 /* ===== Departemen & manager ===== */
-var DEPTS=[{n:"RM",m:"Fiji"},{n:"Distribusi",m:"Reza"},{n:"Sales",m:"Reza"},{n:"Produksi",m:"Asep"}];
+var DEPTS_DASAR=[{n:"RM",m:"Fiji"},{n:"Distribusi",m:"Reza"},{n:"Sales",m:"Reza"},{n:"Produksi",m:"Asep"}];
+var DEPTS=DEPTS_DASAR.slice(); // daftar dasar = cadangan; departemen baru (mis. GA) ikut dari sheet Pengguna lewat gabungDept()
+/* Tambahan 118: gabungkan departemen dari sheet Pengguna (PIC + Atasan) ke daftar dasar. */
+function gabungDept(pic,ats){
+  var out=DEPTS_DASAR.map(function(d){return {n:d.n,m:d.m};});
+  ats=ats||{};
+  Object.keys(ats).forEach(function(k){var n=norm(k);out.forEach(function(d){if(norm(d.n)===n&&ats[k])d.m=ats[k];});});
+  Object.keys(pic||{}).forEach(function(k){
+    var n=norm(k);if(!n)return;
+    if(out.some(function(d){return norm(d.n)===n;}))return;
+    var m="";Object.keys(ats).forEach(function(x){if(norm(x)===n)m=ats[x];});
+    out.push({n:String(k).trim(),m:m});
+  });
+  DEPTS=out;
+}
 var elDept=document.getElementById("dept"),elAts=document.getElementById("atasan");
 function findDept(v){var k=norm(v);if(!k)return null;for(var i=0;i<DEPTS.length;i++){if(norm(DEPTS[i].n)===k)return DEPTS[i];}return null;}
 function autoGrow(el){if(!el)return;el.style.height="auto";el.style.height=Math.max(el.scrollHeight+2,0)+"px";}
@@ -436,22 +450,22 @@ elPic.addEventListener("input",syncPic);
 elPic.addEventListener("change",function(){checkPic();});
 function loadPic(){
   if(new URLSearchParams(location.search).get("m")==="cetak")return;
-  function apply(d){PICS={};Object.keys(d||{}).forEach(function(k){PICS[norm(k)]=d[k];});checkPic();}
-  try{var c=JSON.parse(localStorage.getItem("sctk_pic_v1")||"null");if(c&&c.d)apply(c.d);}catch(e){}
+  function apply(d,a){PICS={};Object.keys(d||{}).forEach(function(k){PICS[norm(k)]=d[k];});gabungDept(d,a);checkPic();}
+  try{var c=JSON.parse(localStorage.getItem("sctk_pic_v1")||"null");if(c&&c.d)apply(c.d,c.a);}catch(e){}
   api({action:"pic"}).then(function(r){
-    if(r&&r.ok){apply(r.data);try{localStorage.setItem("sctk_pic_v1",JSON.stringify({d:r.data}));}catch(e){}}
+    if(r&&r.ok){apply(r.data,r.atasan);try{localStorage.setItem("sctk_pic_v1",JSON.stringify({d:r.data,a:r.atasan}));}catch(e){}}
   }).catch(function(){});
 }
 combo(elDept,function(q){
   var k=q.trim().toLowerCase();
-  return DEPTS.filter(function(d){return !k||d.n.toLowerCase().indexOf(k)>=0||!!CARI.skor(d.n,k);}).map(function(d){return {label:d.n,sub:"Manager: "+d.m,value:d.n};});
+  return DEPTS.filter(function(d){return !k||d.n.toLowerCase().indexOf(k)>=0||!!CARI.skor(d.n,k);}).map(function(d){return {label:d.n,sub:d.m?"Manager: "+d.m:"Departemen",value:d.n};});
 },autoManager);
 elDept.addEventListener("input",autoManager);
 elDept.addEventListener("change",autoManager);
 elAts.addEventListener("input",function(){elAts.dataset.auto="0";});
 combo(elAts,function(q){
   var k=q.trim().toLowerCase(),cur=findDept(elDept.value);
-  var list=DEPTS.filter(function(d){return !k||d.m.toLowerCase().indexOf(k)>=0||!!CARI.skor(d.m,k);});
+  var list=DEPTS.filter(function(d){return d.m&&(!k||d.m.toLowerCase().indexOf(k)>=0||!!CARI.skor(d.m,k));});
   if(cur&&!k)list=[cur];
   return list.map(function(d){return {label:d.m,sub:"Manager "+d.n,value:d.m};});
 },function(){elAts.dataset.auto="0";});

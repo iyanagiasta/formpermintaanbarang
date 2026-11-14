@@ -1,7 +1,7 @@
 /* Opname Bahan Kimia: dipakai oleh kimia.html (operator) dan tab "Opname Kimia" di admin.html.
    Bergantung pada fungsi global api(body) yang menambahkan kode akses, serta esc() dan toast(). */
 var KM=(function(){
-  var S=null,P="",TAB="bulanan",draft={},supOpen={},form=null,semua=false,cache={},el=null,banding=null,param=null,bukaForm=false;
+  var S=null,P="",TAB="bulanan",draft={},supOpen={},tkOpen={},form=null,semua=false,cache={},el=null,banding=null,param=null,bukaForm=false;
   function E(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
   function T(m,bad){if(typeof toast==="function")toast(m,bad);else alert(m);}
   function nf(n,d){if(n==null||n==="")return "-";d=d==null?2:d;return Number(n).toLocaleString("id-ID",{minimumFractionDigits:d,maximumFractionDigits:d});}
@@ -12,7 +12,7 @@ var KM=(function(){
   function css(){
     if(document.getElementById("kmcss"))return;var s=document.createElement("style");s.id="kmcss";
     s.textContent=".km .tw{overflow-x:auto;max-width:100%}@media (max-width:820px){.km td,.km td.n{white-space:normal;text-align:left}.km table{width:100%;min-width:0}}.km .grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}.km .stbox{border:1px solid var(--line,#ccd);border-radius:4px;padding:10px;background:var(--card,#fff)}"+
-    ".km .stbox h4{margin:0 0 6px;font-size:14px}.km .stbox label{display:block;font-size:12px;color:var(--mut,#567);margin:6px 0 2px}.km .stbox input,.km .stbox select{width:100%}.km .stbox .duo{display:grid;grid-template-columns:1fr 1fr;gap:6px}.km .stbox .sup3{display:grid;grid-template-columns:1fr 90px 34px;gap:6px;margin-top:4px}.km .stbox .sup3 button{padding:6px}"+
+    ".km .stbox h4{margin:0 0 6px;font-size:14px}.km .stbox label{display:block;font-size:12px;color:var(--mut,#567);margin:6px 0 2px}.km .cara{margin:6px 0;font-size:12.5px}.km .ck{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line,#ccd)}.km .ck:first-of-type{border-top:0}.km .ck>span:nth-child(2){flex:1;min-width:0}.km .ck button{padding:6px 10px;font-size:12px;flex:none}.km .kmflash{animation:kmfl 1.6s ease-out}@keyframes kmfl{0%{box-shadow:0 0 0 3px var(--accent,#1b6ca8)}100%{box-shadow:0 0 0 3px transparent}}@media (prefers-reduced-motion:reduce){.km .kmflash{animation:none;outline:2px solid var(--accent,#1b6ca8)}}.km .stbox input,.km .stbox select{width:100%}.km .stbox .duo{display:grid;grid-template-columns:1fr 1fr;gap:6px}.km .stbox .sup3{display:grid;grid-template-columns:1fr 90px 34px;gap:6px;margin-top:4px}.km .stbox .sup3 button{padding:6px}"+
     ".km .lv{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;letter-spacing:.3px;margin-right:6px}.km .lv.blok{background:var(--bad-bg,#fbe0e0);color:var(--bad-t,#8a1c1c)}.km .lv.warn{background:var(--warn-bg,#fff0cf);color:var(--warn-t,#6b4300)}.km .lv.ok{background:var(--ok-bg,#dff1e5);color:var(--ok-t,#14602f)}.km .lv.info{background:var(--info-bg,#dcebf5);color:var(--info-t,#0a4a70)}"+
     ".km .tm{border:1px solid var(--line,#ccd);border-left:4px solid var(--warn-t,#6b4300);border-radius:3px;padding:10px 12px;margin:8px 0;background:var(--card,#fff)}.km .tm.blok{border-left-color:var(--bad-t,#8a1c1c)}.km .tm.done{border-left-color:var(--ok-t,#14602f)}"+
     ".km .tm ul{margin:4px 0 4px 18px;padding:0}.km .tm textarea{width:100%;min-height:54px}.km .rumus{font-size:12.5px;color:var(--mut,#567);margin:2px 0 8px}"+
@@ -62,7 +62,7 @@ var KM=(function(){
     var H=S.hasil,h="";
     // waktu hitung
     var b=H.bulan,ed=!final();
-    h+='<div class="card"><p style="margin:0 0 8px"><b>Waktu hitung stok</b> <span class="note">Patokan: hari terakhir bulan (30/31) pada jam kerja, bukan hari Sabtu. Catat apakah dihitung sebelum atau sesudah kiriman di hari yang sama.</span></p>'+
+    h+='<div class="card" id="kmwaktu"><p style="margin:0 0 8px"><b>Waktu hitung stok</b> <span class="note">Patokan: hari terakhir bulan (30/31) pada jam kerja, bukan hari Sabtu. Catat apakah dihitung sebelum atau sesudah kiriman di hari yang sama.</span></p>'+
      '<div class="fr"><label class="fl">Tanggal</label><input type="date" id="kmtg" value="'+E(b.tglHitung)+'"'+(ed?"":" disabled")+' min="'+P+'-01" max="'+P+'-31"><label class="fl">Jam</label><input type="time" id="kmjm" value="'+E(b.jam)+'"'+(ed?"":" disabled")+'>'+
      '<select id="kmur"'+(ed?"":" disabled")+'><option value="">Tidak ada kiriman di hari itu</option><option value="sebelum"'+(b.urutan==="sebelum"?" selected":"")+'>Dihitung SEBELUM kiriman masuk</option><option value="sesudah"'+(b.urutan==="sesudah"?" selected":"")+'>Dihitung SESUDAH kiriman masuk</option></select>'+
      (ed?'<button id="kmwk" class="sv">Simpan</button>':'')+'</div></div>';
@@ -73,15 +73,54 @@ var KM=(function(){
     h+=rows.length?'<div class="tw"><table><thead><tr><th>Bahan</th><th class="n">Saldo awal</th><th class="n">Penerimaan</th><th class="n">Stok akhir</th><th class="n">Pemakaian</th><th class="n">Rata/hari</th><th class="n">vs bulan lalu</th></tr></thead><tbody>'+
      rows.map(function(r){return '<tr><td><b>'+E(r.nama)+'</b><small>'+E(rumusTxt(r))+'</small></td><td class="n">'+nf(r.saldoAwal)+'</td><td class="n">'+nf(r.penerimaan)+'</td><td class="n">'+(r.stokAkhir==null?'<span class="bd w">belum</span>':nf(r.stokAkhir))+'</td><td class="n"><b>'+(r.pemakaian==null?"-":nf(r.pemakaian))+'</b></td><td class="n">'+nf(r.rata)+'</td><td class="n">'+(r.deltaPct==null?"-":(r.deltaPct>0?"+":"")+nf(r.deltaPct,1)+"%")+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="msg">Belum ada data bulan ini.</div>';
     h+='</div>';
-    // temuan
-    h+=temuanHtml();
+    h+=kelengkapanHtml();
     if(!final()||true)h+=stokHtml();
     h+=penerimaanHtml();
     h+=fotoHtml();
+    h+=temuanHtml();
     if(adm()&&!final())h+='<div class="card noprint"><b>Finalisasi bulan</b><p class="note">Final mengunci seluruh data bulan ini dan menjadikan stok akhir sebagai saldo awal bulan berikutnya. Syarat: tidak ada hal yang harus dibereskan dan semua temuan sudah dijawab.</p><div class="fr"><button id="kmfn" class="sv"'+(S.bisaFinal?"":" disabled")+'>FINAL bulan ini</button>'+(S.bisaFinal?'':'<span class="note">'+(S.blok?S.blok+' hal harus dibereskan. ':'')+(S.belumJawab?S.belumJawab+' temuan belum dijawab.':'')+'</span>')+'</div></div>';
     if(adm()&&final()&&S.bisaBuka)h+='<div class="card noprint"><b>Koreksi bulan Final</b><p class="note">Membuka kembali menjadikan bulan ini Draf. Alasan tercatat di riwayat.</p><div class="fr"><button id="kmbk" class="rm bahaya">Buka kembali bulan ini</button></div></div>';
     h+='<details class="card"><summary><b>Riwayat perubahan bulan ini</b> ('+S.riwayat.length+')</summary>'+(S.riwayat.length?'<div class="tw"><table><thead><tr><th>Waktu</th><th>Oleh</th><th>Aksi</th><th>Rincian</th></tr></thead><tbody>'+S.riwayat.map(function(x){return '<tr><td>'+E(x.waktu)+'</td><td>'+E(x.oleh)+' <small>'+E(x.peran)+'</small></td><td>'+E(x.aksi)+'</td><td>'+E(x.rincian)+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="msg">Belum ada.</div>')+'</details>';
     return h;
+  }
+  /* ---------- tombol Perbaiki + kelengkapan (T123) ---------- */
+  function periodeSebelumBelumFinal(){var a=(S.periodeDaftar||[]).filter(function(x){return x.p<P&&x.status!=="Final";}).sort(function(x,y){return x.p<y.p?1:-1;});return a[0]||null;}
+  function fxInfo(t){
+    var k=String(t.kunci||""),i=k.indexOf(":"),jn=i<0?k:k.slice(0,i),arg=i<0?"":k.slice(i+1);
+    if(jn==="tgl"||jn==="urutan"||jn==="patokan")return {l:"Isi waktu hitung",c:"Isi tanggal dan jam hitung di kotak Waktu hitung stok (hari terakhir bulan, jam kerja), pilih sebelum atau sesudah kiriman, lalu Simpan.",a:{t:"waktu"}};
+    if(jn==="stok"||jn==="minus"||jn==="selisih"||jn==="samakemasan"||jn==="kosong"||jn==="sup")return {l:"Ke stok "+(bahanP(arg)?bahanP(arg).nama:"bahan"),c:jn==="stok"?"Hitung stok akhir bahan ini di gudang dan tangki, isi lalu tekan Simpan stok.":jn==="minus"?"Cek ulang stok akhir (satuan dan jumlah tangki) dan pastikan semua kiriman bulan ini sudah dicatat di Penerimaan.":jn==="sup"?"Samakan rincian supplier dengan total, atau perbaiki jumlah kemasan dan kg lepas.":"Hitung ulang stok akhir bahan ini lalu simpan, kemudian jawab konfirmasinya.",a:{t:"stok",k:arg}};
+    if(jn==="foto")return {l:"Unggah foto "+arg,c:"Pilih "+arg+" di bagian Foto, ambil foto tangkinya, lalu Unggah foto.",a:{t:"foto",k:arg}};
+    if(jn==="sj"||jn==="sjganda"||jn==="supplier"||jn==="nosup"||jn==="lewat"||jn==="kembar")return {l:"Ke baris penerimaan",c:"Tekan Ubah pada baris penerimaan ini lalu lengkapi nomor surat jalan atau supplier.",a:{t:"pen",k:arg}};
+    if(jn==="saldo"||jn==="celah"){var pb=periodeSebelumBelumFinal();return pb?{l:"Buka "+blnTxt(pb.p)+" ("+pb.status+")",c:blnTxt(pb.p)+" masih "+pb.status+". Isi stok akhirnya lalu tekan FINAL di bagian bawah; setelah itu bulan ini otomatis punya saldo awal.",a:{t:"bulan",k:pb.p}}:{l:"",c:"Belum ada bulan sebelumnya di daftar Periode. Minta admin menambah bulannya lebih dulu.",a:null};}
+    return null;
+  }
+  function fxHtml(t){
+    if(final())return "";var f=fxInfo(t);if(!f)return "";
+    return '<div class="cara"><b>Cara memperbaiki:</b> '+E(f.c)+'</div>'+(f.a?'<div class="noprint"><button type="button" class="sv" data-fx="'+E(t.kunci)+'">'+E(f.l)+'</button></div>':'');
+  }
+  function kelengkapanHtml(){
+    if(final())return "";
+    var H=S.hasil,b=H.bulan,T_=H.temuan,rows=H.bahan.filter(function(r){return r.ada;}),isi=rows.filter(function(r){return r.stokAkhir!=null;}).length;
+    var fotoK=T_.filter(function(t){return /^foto:/.test(t.kunci);}),tk=T_.filter(function(t){return t.kunci==="tgl"||t.kunci==="urutan"}).length;
+    var sal=T_.filter(function(t){return t.kunci==="saldo";})[0];
+    var it=[
+      {ok:!!(b.tglHitung&&b.jam)&&!tk,t:"Waktu hitung stok",d:b.tglHitung&&b.jam?tglTxt(b.tglHitung)+" pukul "+E(b.jam):"belum diisi",fx:T_.filter(function(t){return t.kunci==="tgl"||t.kunci==="urutan";})[0]},
+      {ok:!sal,t:"Saldo awal",d:sal?"bulan sebelumnya belum Final":(H.prevPeriode?"dari "+blnTxt(H.prevPeriode):"-"),fx:sal},
+      {ok:isi>=rows.length,t:"Stok akhir",d:isi+" dari "+rows.length+" bahan",fx:T_.filter(function(t){return /^stok:/.test(t.kunci);})[0]},
+      {ok:!fotoK.length,t:"Foto tangki",d:fotoK.length?fotoK.length+" tangki belum ada foto":"lengkap",fx:fotoK[0]},
+      {ok:!S.blok&&!S.belumJawab,t:"Temuan",d:S.blok+" harus dibereskan, "+S.belumJawab+" belum dijawab",fx:null,gulir:true}];
+    return '<div class="card" id="kmlengkap"><p style="margin:0 0 6px"><b>Kelengkapan sebelum Final</b> <span class="note">Selesaikan yang bertanda merah. Tombol membawa Anda ke bagian yang perlu diisi.</span></p>'+
+      it.map(function(x){var f=x.fx&&fxInfo(x.fx);return '<div class="ck"><span class="bd '+(x.ok?'d':'w')+'" style="min-width:64px;text-align:center">'+(x.ok?"selesai":"perlu")+'</span><span><b>'+x.t+'</b> <small>'+x.d+'</small></span>'+
+        (!x.ok&&f&&f.a?'<button type="button" class="gh" data-fx="'+E(x.fx.kunci)+'">'+E(f.l.length>34?f.l.slice(0,33)+"…":f.l)+'</button>':(!x.ok&&x.gulir?'<button type="button" class="gh" data-fxt="1">Lihat temuan</button>':''))+'</div>';}).join("")+'</div>';
+  }
+  function pergi(sel,fokus){var n=typeof sel==="string"?el.querySelector(sel):sel;if(!n)return;n.scrollIntoView({block:"center",behavior:"smooth"});n.classList.remove("kmflash");void n.offsetWidth;n.classList.add("kmflash");if(fokus){var f=n.matches("input,select,textarea,button")?n:n.querySelector(fokus===true?"input:not([disabled]),select,textarea":fokus);if(f&&f.focus)setTimeout(function(){try{f.focus({preventScroll:true});}catch(e){f.focus();}},350);}}
+  function jalankanFx(kunci){
+    var t=S.hasil.temuan.filter(function(x){return x.kunci===kunci;})[0];if(!t)return;var f=fxInfo(t);if(!f||!f.a)return;var a=f.a;
+    if(a.t==="waktu")pergi("#kmwaktu","#kmtg");
+    else if(a.t==="stok")pergi('.stbox[data-b="'+String(a.k).replace(/"/g,'\\"')+'"]',true);
+    else if(a.t==="foto"){pergi("#kmfoto",true);var sl=el.querySelector("#kmft");if(sl){sl.value=a.k;var j=el.querySelector("#kmfj");if(j)j.value="Tangki";}}
+    else if(a.t==="pen"){var bt=el.querySelector('[data-pu="'+String(a.k).replace(/"/g,'\\"')+'"]');pergi(bt?bt.closest("tr"):"#kmpen",false);}
+    else if(a.t==="bulan"){draft={};form=null;muat(a.k);}
   }
   function temuanHtml(){
     var T_=S.hasil.temuan;if(!T_.length)return '<div class="card"><span class="lv ok">BERSIH</span> Tidak ada temuan. Semua pemeriksaan otomatis lolos.</div>';
@@ -91,18 +130,21 @@ var KM=(function(){
       return '<div class="tm '+t.level+(t.jawab?' done':'')+'"><span class="lv '+(t.jawab&&t.level==="warn"?"ok":t.level)+'">'+(t.jawab&&t.level==="warn"?"SUDAH DIJAWAB":nm[t.level])+'</span><b>'+E(t.judul)+'</b>'+(t.bahan?' <small>'+E(t.bahan)+'</small>':'')+'<div>'+E(t.uraian)+'</div>'+
        (t.penyebab.length?'<div class="note">Kemungkinan penyebab:</div><ul>'+t.penyebab.map(function(x){return '<li>'+E(x)+'</li>';}).join("")+'</ul>':'')+
        (t.tanya.length?'<div class="note">Yang perlu ditanyakan:</div><ul>'+t.tanya.map(function(x){return '<li><b>'+E(x.siapa)+':</b> '+E(x.tanya)+'</li>';}).join("")+'</ul>':'')+jwb+
+       fxHtml(t)+
        (adm()&&t.level==="warn"&&!final()?'<div class="noprint"><textarea data-jk="'+E(t.kunci)+'" placeholder="Hasil konfirmasi / jawaban (wajib sebelum Final)">'+E(t.jawab||"")+'</textarea><button class="sv" data-jb="'+E(t.kunci)+'">Simpan jawaban</button></div>':'')+'</div>';}).join("")+'</div>';
   }
   function dr(kode){var b=bahanP(kode),s=S.hasil.bahan.filter(function(r){return r.kode===kode;})[0],st=s&&s.stok;return draft[kode]||{kemasan:st?st.kemasan:"",lepas:st?st.lepas:"",tangki:st?JSON.parse(JSON.stringify(st.tangki)):{},ket:st?st.ket:"",kons:st?JSON.parse(JSON.stringify(st.kons||{})):{},sup:st?JSON.parse(JSON.stringify(st.sup||[])):[]};}
   function supInfo(d,k){var a=(d.sup||[]).filter(function(x){return pn(x.kg)>0;});if(!a.length)return "";var j=0;a.forEach(function(x){j+=pn(x.kg);});var sl=Math.round((j-k.total)*100)/100;return "Rincian supplier "+nf(j)+" kg, total stok "+nf(k.total)+" kg"+(Math.abs(sl)>0.004?" (selisih "+(sl>0?"+":"")+nf(sl)+" kg)":" (pas)");}
   function stokHtml(){
-    var ed=!final(),h='<div class="card"><p style="margin:0 0 8px"><b>Stok akhir</b> <span class="note">Isi jumlah kemasan di gudang, kg lepas, dan liter tiap tangki. Konversi ke kg dihitung otomatis. Isi 0 bila memang kosong.</span></p><div class="grid2">';
+    var ed=!final(),h='<div class="card" id="kmstok"><p style="margin:0 0 8px"><b>Stok akhir</b> <span class="note">Isi jumlah kemasan di gudang, kg lepas, dan liter tiap tangki. Konversi ke kg dihitung otomatis. Isi 0 bila memang kosong.</span></p><div class="grid2">';
     S.param.bahan.forEach(function(b){
       var d=dr(b.kode),k=kgStok(b,d),tk=tangkiBahan(b),sav=S.hasil.bahan.filter(function(r){return r.kode===b.kode;})[0],ada=sav&&sav.stok;
       h+='<div class="stbox" data-b="'+E(b.kode)+'"><h4>'+E(b.nama)+(ada?' <span class="bd d">tersimpan</span>':' <span class="bd w">belum</span>')+'</h4>';
       if(b.kgKem>0)h+='<label>Jumlah '+E(b.kemasan||"kemasan")+' di gudang ('+nf(b.kgKem,0)+' kg/'+E(b.kemasan||"kemasan")+')</label><input type="text" inputmode="decimal" data-f="kemasan" value="'+E(d.kemasan)+'"'+(ed?"":" disabled")+'>';
       h+='<label>Kg lepas (di luar kemasan)</label><input type="text" inputmode="decimal" data-f="lepas" value="'+E(d.lepas)+'"'+(ed?"":" disabled")+'>';
-      tk.forEach(function(t){
+      var tkSemua=(!b.tangki.length&&tk.length>0),adaTk=tk.some(function(t){return d.tangki[t]!=null&&d.tangki[t]!=="";}),bukaTk=!tkSemua||adaTk||tkOpen[b.kode];
+      if(!bukaTk&&ed)h+='<button type="button" class="gh" data-topen style="margin-top:8px">+ Isi liter tangki</button>';
+      (bukaTk?tk:[]).forEach(function(t){
         if(b.pembagi>0){var kn=d.kons&&d.kons[t]!=null?d.kons[t]:"";h+='<label>'+E(t)+' (liter &middot; konsentrasi %, kosong = '+String(b.konsBawaan).replace(".",",")+'%)</label><div class="duo"><input type="text" inputmode="decimal" data-tk="'+E(t)+'" placeholder="liter" value="'+E(d.tangki[t]==null?"":d.tangki[t])+'"'+(ed?"":" disabled")+'><input type="text" inputmode="decimal" data-ks="'+E(t)+'" placeholder="'+E(String(b.konsBawaan).replace(".",","))+' %" value="'+E(kn)+'"'+(ed?"":" disabled")+'></div>';}
         else h+='<label>'+E(t)+' (liter, x '+String(b.faktor).replace(".",",").slice(0,8)+')</label><input type="text" inputmode="decimal" data-tk="'+E(t)+'" value="'+E(d.tangki[t]==null?"":d.tangki[t])+'"'+(ed?"":" disabled")+'>';});
       var sp=d.sup||[];
@@ -115,7 +157,7 @@ var KM=(function(){
   }
   function fRow(){return form||(form={id:"",tanggal:"",kode:S.param.bahan[0]?S.param.bahan[0].kode:"",noSJ:"",sjVol:"",sjSat:"Kg",vol:"",sat:"Kg",bj:"",supplier:"",faktur:"",catatan:""});}
   function penerimaanHtml(){
-    var H=S.hasil,ed=!final(),h='<div class="card"><p style="margin:0 0 8px"><b>Penerimaan (per surat jalan)</b> <span class="note">Satu baris per surat jalan, dicatat di bulan sesuai tanggal surat jalan. Baris lama tidak pernah ditimpa; koreksi tercatat di riwayat.</span></p>';
+    var H=S.hasil,ed=!final(),h='<div class="card" id="kmpen"><p style="margin:0 0 8px"><b>Penerimaan (per surat jalan)</b> <span class="note">Satu baris per surat jalan, dicatat di bulan sesuai tanggal surat jalan. Baris lama tidak pernah ditimpa; koreksi tercatat di riwayat.</span></p>';
     h+=H.penerimaan.length?'<div class="tw"><table><thead><tr><th>Tanggal</th><th>Bahan</th><th>No SJ</th><th class="n">Diterima</th><th class="n">Kg</th><th>Supplier</th><th>Dicatat</th>'+(ed?'<th class="noprint"></th>':'')+'</tr></thead><tbody>'+
      H.penerimaan.map(function(x){return '<tr><td>'+tglTxt(x.tanggal)+'</td><td>'+E(x.nama)+'</td><td>'+(x.noSJ?E(x.noSJ):'<span class="bd w">kosong</span>')+(x.faktur?'<small>Faktur '+E(x.faktur)+'</small>':'')+'</td><td class="n">'+nf(x.vol)+' '+E(x.sat)+(x.bj?'<small>BJ '+String(x.bj).replace(".",",")+'</small>':'')+'</td><td class="n"><b>'+nf(x.kg)+'</b></td><td>'+(x.supplier?E(x.supplier):'<span class="bd w">kosong</span>')+'</td><td>'+E(x.oleh)+'<small>'+E(x.waktu)+'</small></td>'+
       (ed?'<td class="noprint"><div class="act"><button class="gh" data-pu="'+E(x.id)+'">Ubah</button>'+(adm()?'<button class="rm bahaya" data-pb="'+E(x.id)+'">Batal</button>':'')+'</div></td>':'')+'</tr>';}).join("")+'</tbody></table></div>':'<div class="msg">Belum ada penerimaan bulan ini.</div>';
@@ -131,7 +173,7 @@ var KM=(function(){
     return h+'</div>';
   }
   function fotoHtml(){
-    var F=S.hasil.foto,ed=!final(),h='<div class="card"><p style="margin:0 0 8px"><b>Foto tangki dan stok</b> <span class="note">Foto tiap tangki yang terisi wajib ada sebelum Final. Foto diperkecil otomatis dan disimpan di Google Drive.</span></p>';
+    var F=S.hasil.foto,ed=!final(),h='<div class="card" id="kmfoto"><p style="margin:0 0 8px"><b>Foto tangki dan stok</b> <span class="note">Foto tiap tangki yang terisi wajib ada sebelum Final. Foto diperkecil otomatis dan disimpan di Google Drive.</span></p>';
     if(ed)h+='<div class="fr noprint"><select id="kmfj"><option>Tangki</option><option>Gudang</option><option>Lain</option></select><select id="kmft">'+S.param.tangki.map(function(t){return '<option>'+E(t)+'</option>';}).join("")+'</select>'+
       '<input type="file" id="kmff" accept="image/*" multiple><input type="text" id="kmfc" placeholder="Catatan foto (opsional)" style="flex:1;min-width:140px"><button class="sv" id="kmfu">Unggah foto</button></div><div id="kmfs" class="note"></div>';
     h+=F.length?'<div class="fotos">'+F.map(function(f){return '<div class="fto"><div data-fi="'+E(f.id)+'">'+(cache[f.id]?'<img src="'+cache[f.id]+'" alt="'+E(f.jenis+" "+f.tangki)+'" data-big="'+E(f.id)+'">':'<div class="nopic">memuat...</div>')+'</div><b>'+E(f.jenis)+(f.tangki?' - '+E(f.tangki):'')+'</b><br>'+E(f.oleh)+'<br><small>'+E(f.waktu)+'</small>'+(f.catatan?'<br><small>'+E(f.catatan)+'</small>':'')+
@@ -161,12 +203,15 @@ var KM=(function(){
     var all=q("#kmall");if(all)all.onchange=function(){semua=this.checked;render();};
     var wk=q("#kmwk");if(wk)wk.onclick=async function(){var r=await api({action:"kimiaBulanSimpan",periode:P,tglHitung:q("#kmtg").value,jam:q("#kmjm").value,urutan:q("#kmur").value});T(r.msg||"Gagal",!r.ok);if(r.ok)muat();};
     qa("[data-jb]").forEach(function(b){b.onclick=async function(){var k=b.getAttribute("data-jb"),t=q('[data-jk="'+k.replace(/"/g,'\\"')+'"]').value;var r=await api({action:"kimiaJawab",periode:P,kunci:k,teks:t});T(r.msg||"Gagal",!r.ok);if(r.ok)muat();};});
+    qa("[data-fx]").forEach(function(b){b.onclick=function(){jalankanFx(b.getAttribute("data-fx"));};});
+    qa("[data-fxt]").forEach(function(b){b.onclick=function(){var t=el.querySelector(".tm");if(t)pergi(t.parentNode,false);};});
     // stok
     qa(".stbox").forEach(function(box){var kode=box.getAttribute("data-b"),b=bahanP(kode);
       function baca(){var d={kemasan:"",lepas:"",tangki:{},ket:"",kons:{},sup:[]};box.querySelectorAll("[data-f]").forEach(function(i){d[i.getAttribute("data-f")]=i.value;});box.querySelectorAll("[data-tk]").forEach(function(i){if(i.value!=="")d.tangki[i.getAttribute("data-tk")]=i.value;});box.querySelectorAll("[data-ks]").forEach(function(i){if(i.value!=="")d.kons[i.getAttribute("data-ks")]=i.value;});box.querySelectorAll("[data-sn]").forEach(function(i){var n=i.getAttribute("data-sn"),k=box.querySelector('[data-sk="'+n+'"]');d.sup.push({nama:i.value,kg:k?k.value:""});});return d;}
       box.addEventListener("input",function(){var d=baca();draft[kode]=d;var k=kgStok(b,d);box.querySelector("[data-pv]").innerHTML=nf(k.total)+" kg"+(k.lar?" <small>(kemasan "+nf(k.kem)+" + lepas "+nf(k.lepas)+" + larutan "+nf(k.lar)+")</small>":"");var sv2=box.querySelector("[data-sv]");if(sv2)sv2.textContent=supInfo(d,k);});
       var sa=box.querySelector("[data-sadd]");if(sa)sa.onclick=function(){var d=baca();d.sup.push({nama:"",kg:""});draft[kode]=d;supOpen[kode]=1;render();};
       box.querySelectorAll("[data-sdel]").forEach(function(x){x.onclick=function(){var d=baca();d.sup.splice(+x.getAttribute("data-sdel"),1);draft[kode]=d;render();};});
+      var to=box.querySelector("[data-topen]");if(to)to.onclick=function(){var d=baca();draft[kode]=d;tkOpen[kode]=1;render();};
       var so=box.querySelector("[data-sopen]");if(so)so.onclick=function(){var d=baca();if(!d.sup.length)d.sup.push({nama:"",kg:""});draft[kode]=d;supOpen[kode]=1;render();};
       var sv=box.querySelector("[data-ss]");if(sv)sv.onclick=async function(){var d=baca();sv.disabled=true;var r=await api({action:"kimiaStokSimpan",periode:P,kode:kode,kemasan:d.kemasan,lepas:d.lepas,tangki:d.tangki,kons:d.kons,sup:d.sup,ket:d.ket});sv.disabled=false;T(r.msg||"Gagal",!r.ok);if(r.ok){delete draft[kode];muat();}};});
     // penerimaan
@@ -215,7 +260,7 @@ var KM=(function(){
     var box=el.querySelector("#kmpr");box.innerHTML='<div class="card msg">Memuat...</div>';
     var r=await api({action:"kimiaParam"});if(!r.ok){box.innerHTML='<div class="card msg err">'+E(r.msg)+'</div>';return;}param=r;
     var h='<div class="card"><b>Bahan kimia</b><p class="note">Perubahan faktor atau kg per kemasan hanya berlaku untuk bulan yang masih Draf. Bulan Final tidak berubah.</p><div class="tw"><table><thead><tr><th>Bahan</th><th>Kemasan</th><th class="n">Kg/kemasan</th><th class="n">Faktor larutan</th><th>Tangki</th><th>Supplier sah</th><th>Aktif</th><th></th></tr></thead><tbody>'+
-     r.bahan.map(function(b){return '<tr><td><b>'+E(b.nama)+'</b><small>'+E(b.kode)+' &middot; '+E(b.kelompok)+'</small></td><td>'+E(b.kemasan||"-")+'</td><td class="n">'+(b.kgKem?nf(b.kgKem,2):"-")+'</td><td class="n">'+(b.faktor?String(Math.round(b.faktor*1e6)/1e6).replace(".",","):"-")+'</td><td>'+E(b.tangki.join(", ")||(b.faktor?"semua":"-"))+'</td><td>'+E(b.supplier.join(", ")||"-")+'</td><td>'+(b.aktif?'<span class="bd d">aktif</span>':'<span class="bd l">nonaktif</span>')+'</td><td><button class="gh" data-be="'+E(b.kode)+'">Ubah</button></td></tr>';}).join("")+'</tbody></table></div><div class="fr"><button class="sv" id="kmbn">+ Bahan baru</button></div><div id="kmbf"></div></div>';
+     r.bahan.map(function(b){return '<tr><td><b>'+E(b.nama)+'</b><small>'+E(b.kode)+' &middot; '+E(b.kelompok)+'</small></td><td>'+E(b.kemasan||"-")+'</td><td class="n">'+(b.kgKem?nf(b.kgKem,2):"-")+'</td><td class="n">'+(b.faktor?String(Math.round(b.faktor*1e6)/1e6).replace(".",","):"-")+(b.pembagi>0?'<small>= '+String(b.konsBawaan).replace(".",",")+'% &divide; '+b.pembagi+'</small>':(b.faktor?'<small>BJ</small>':''))+'</td><td>'+E(b.tangki.join(", ")||(b.faktor?"semua":"-"))+'</td><td>'+E(b.supplier.join(", ")||"-")+'</td><td>'+(b.aktif?'<span class="bd d">aktif</span>':'<span class="bd l">nonaktif</span>')+'</td><td><button class="gh" data-be="'+E(b.kode)+'">Ubah</button></td></tr>';}).join("")+'</tbody></table></div><div class="fr"><button class="sv" id="kmbn">+ Bahan baru</button></div><div id="kmbf"></div></div>';
     h+='<div class="card"><b>Tangki</b><div class="fr">'+r.tangki.map(function(t){return '<button class="chip '+(t.aktif?"on":"")+'" data-tl="tangki|'+E(t.nama)+'|'+(t.aktif?1:0)+'" title="Klik untuk '+(t.aktif?"nonaktifkan":"aktifkan")+'">'+E(t.nama)+(t.aktif?"":" (nonaktif)")+'</button>';}).join("")+'<button class="gh" id="kmtn">+ Tangki</button></div></div>';
     h+='<div class="card"><b>Supplier</b><div class="fr">'+r.supplier.map(function(t){return '<button class="chip '+(t.aktif?"on":"")+'" data-tl="supplier|'+E(t.nama)+'|'+(t.aktif?1:0)+'" title="Klik untuk '+(t.aktif?"nonaktifkan":"aktifkan")+'">'+E(t.nama)+(t.aktif?"":" (nonaktif)")+'</button>';}).join("")+'<button class="gh" id="kmsn">+ Supplier</button></div></div>';
     h+='<div class="card"><b>Operator</b><p class="note">Setiap operator punya kode sendiri; semua isian dan foto tercatat atas namanya. Kode tidak ditampilkan; isi kode baru untuk menggantinya.</p><div class="tw"><table><thead><tr><th>Nama</th><th>Status</th><th></th></tr></thead><tbody>'+

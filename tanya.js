@@ -468,6 +468,7 @@ async function jawabSatu(teks,prev){
 }
 function tanya(teks){
   teks=String(teks||"").trim();if(!teks)return;
+  if(window.TGA&&TGA.aktif){TGA.tanya(teks);return}
   add("tq-u",esc(teks));
   var prev=terakhir,bagian=teks.split(/\s+(?:dan|sama|serta|plus)\s+|\s*&\s*|;|\n/).filter(function(x){return x.trim()});
   (async function(){for(var i=0;i<bagian.length;i++){try{await jawabSatu(bagian[i],prev)}catch(e){add("tq-b","<p>Maaf, ada gangguan saat membaca data. Coba lagi.</p>")}}})();
@@ -546,7 +547,7 @@ function tampilChat(){
    '<div class="tq-end"><span class="note">Angka diambil dari data stok. AI hanya membantu memahami pertanyaan.</span><button type="button" class="gh" id="lo">Keluar</button></div>'+adminPanel()+'</div>';
   chat=document.getElementById("chat");
   document.getElementById("f").onsubmit=function(e){e.preventDefault();var i=document.getElementById("q"),v=i.value;i.value="";tanya(v);i.focus()};
-  document.getElementById("lo").onclick=function(){KODE="";ls("sctk_kode",null);loginView("")};
+  document.getElementById("lo").onclick=function(){KODE="";ls("sctk_kode",null);try{sessionStorage.removeItem("sctk_tanya_adm")}catch(e){}if(window.TGA)TGA.matikan();loginView("")};
   document.getElementById("amuat").onclick=muatGagal;
   var mic=document.getElementById("mic");
   mic.onclick=function(){
@@ -558,8 +559,9 @@ function tampilChat(){
   var a=add("tq-b","<p>Halo! Tanyakan stok barang, kebutuhan, paket pekerjaan, atau status BPB Anda. Tulis seperti biasa, salah ketik pun saya usahakan paham.</p>");
   a.appendChild(chips([{label:"stok pipa pvc 3 inch"},{label:"butuh 30 elbow 3 inch"},{label:"barang yang stok bebasnya habis"},{label:"bpb saya sampai mana"}],function(x){tanya(x.label)}));
   document.getElementById("q").focus();
+  if(window.TGA)TGA.pasang(KODE);
 }
-var k0=ls("sctk_kode");
+var k0=ls("sctk_kode");if(!k0){try{k0=sessionStorage.getItem("sctk_tanya_adm")}catch(e){}}
 if(k0){KODE=k0;mulai(false)}else loginView("");
-window.__tanya={tanya:tanya,jawabSatu:jawabSatu,norm:norm,bersih:bersih};
+window.__tanya={tanya:tanya,jawabSatu:jawabSatu,norm:norm,bersih:bersih,api:api,add:add,chips:chips,esc:esc};
 })();

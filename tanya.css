@@ -65,3 +65,40 @@ html[data-tema=terang] .tq-mic.on{background:#F8D7DA}
   #app.wrap{max-width:1280px}
   .tq-m{font-size:16px}
 }
+/* T133: mode admin pintar */
+.tq-m.tga{max-width:100%;width:100%}
+.tga-badge{font:700 10px Inter,"Segoe UI",sans-serif;letter-spacing:1px;padding:2px 7px;border-radius:99px;background:#FFC857;color:#3a2600;vertical-align:middle}
+#tga-mode.tga-on{border-color:#FFC857;font-weight:700}
+.tga-k{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:6px 0}
+.tga-r{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding:5px 0;font-size:14px}
+.tga-r span{flex:0 0 38%;min-width:120px}.tga-r b{text-align:right;flex:1;font-weight:600}
+.tga-r.tga-lanjut{border-top:0;padding-top:0}
+.tga-cat{margin-top:6px!important}
+.tga-tb{margin:8px 0}.tga-tj{margin-bottom:4px}
+.tga-sc{overflow-x:auto;max-height:440px;overflow-y:auto;border-radius:8px;border:1px solid var(--line)}
+.tga-sc:empty{display:none}
+.tga-t{border-collapse:collapse;width:100%;font-size:13px}
+.tga-t th,.tga-t td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}
+.tga-t td{white-space:normal;min-width:60px}
+.tga-t th{position:sticky;top:0;font-weight:700}
+.tga-t .nm{text-align:right;white-space:nowrap}
+.tga-bt{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.tga-g{margin:8px 0;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.tga-gr{display:grid;grid-template-columns:minmax(90px,34%) 1fr auto;gap:8px;align-items:center;font-size:12.5px;margin-top:4px}
+.tga-gl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tga-gb{height:12px;border-radius:6px;overflow:hidden}.tga-gb i{display:block;height:100%;border-radius:6px}
+.tga-gv{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tga-aksi{border:2px solid #FFC857;border-radius:12px;padding:10px 12px;margin:6px 0}
+.tga-aksi ul,.tga-ul{margin:6px 0;padding-left:20px}.tga-aksi li,.tga-ul li{margin:3px 0}
+.tga-ab{display:flex;gap:8px;flex-wrap:wrap}
+.tga-pin{display:flex;gap:8px;margin-top:6px}.tga-pin input{flex:1;min-width:0}
+.tga-meta{opacity:.85;margin-top:6px!important}
+html[data-tema=gelap] .tga-t th{background:#0B1530;color:#EAF2FF}
+html[data-tema=gelap] .tga-gb{background:#233A6E}html[data-tema=gelap] .tga-gb i{background:#58E6FF}
+html[data-tema=gelap] .tga-k,html[data-tema=gelap] .tga-g,html[data-tema=gelap] .tga-aksi{background:#0B1530}
+html[data-tema=gelap] .tga-r span{color:#B7C8E4}
+html[data-tema=terang] .tga-t th{background:#E6EEF9;color:#0B1B33}
+html[data-tema=terang] .tga-gb{background:#DCE6F3}html[data-tema=terang] .tga-gb i{background:#1757C9}
+html[data-tema=terang] .tga-k,html[data-tema=terang] .tga-g,html[data-tema=terang] .tga-aksi{background:#F7FAFE}
+html[data-tema=terang] .tga-r span{color:#43587A}
+@media (max-width:600px){.tga-r{flex-direction:column;gap:0}.tga-r span{flex:none}.tga-r b{text-align:left}.tga-gr{grid-template-columns:1fr auto}.tga-gb{grid-column:1/3;order:3}}

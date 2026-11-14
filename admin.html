@@ -179,7 +179,7 @@ async function login(){
 async function load(first){
   try{
     var r=await api({action:"adminList",semua:SEMUA});
-    if(!r.ok){PIN="";try{sessionStorage.removeItem("sctk_admin");sessionStorage.removeItem("sctk_idx_v1");localStorage.removeItem("sctk_idx_v1");localStorage.removeItem("sctk_ntf_c")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
+    if(!r.ok){PIN="";try{if(window.TAMPIL)TAMPIL.bersih();sessionStorage.removeItem("sctk_admin");sessionStorage.removeItem("sctk_idx_v1");localStorage.removeItem("sctk_idx_v1");localStorage.removeItem("sctk_ntf_c")}catch(e){}loginView(r.msg||"Gagal masuk.");return;}
     DATA=r.data||[];try{sessionStorage.setItem("sctk_admin",PIN)}catch(e){}
     var h=(location.hash||"").replace("#","");
     if(first&&h&&h!=="pantau"&&tabAda(h)){goTab(h);return;}
@@ -220,7 +220,7 @@ function draw(now){
   document.getElementById("q").oninput=drawRows;
   document.getElementById("rf").onclick=function(){load(false);};
   document.getElementById("rkgo").onclick=loadRekap;
-  document.getElementById("lo").onclick=function(){PIN="";try{sessionStorage.removeItem("sctk_admin");sessionStorage.removeItem("sctk_idx_v1");localStorage.removeItem("sctk_idx_v1");localStorage.removeItem("sctk_ntf_c")}catch(e){}try{if(window.IDX)IDX.hapus();}catch(e){}loginView("");};
+  document.getElementById("lo").onclick=function(){PIN="";try{if(window.TAMPIL)TAMPIL.bersih();sessionStorage.removeItem("sctk_admin");sessionStorage.removeItem("sctk_idx_v1");localStorage.removeItem("sctk_idx_v1");localStorage.removeItem("sctk_ntf_c")}catch(e){}try{if(window.IDX)IDX.hapus();}catch(e){}loginView("");};
   pane().querySelectorAll("[data-chip]").forEach(function(b){b.onclick=function(){
     var k=b.getAttribute("data-chip");
     if(k==="semua"){SEMUA=true;MODE="belum";}else{SEMUA=false;MODE=k;}
@@ -2286,8 +2286,9 @@ function bindOs(){pane().querySelectorAll("[data-os]").forEach(function(b){b.onc
   if(saved){PIN=saved;load(true);}else loginView("");
 })();
 </script>
-<script src="swr.js?v=51"></script>
+<script src="swr.js?v=117"></script>
 <script src="basi.js?v=116"></script>
+<script src="tampil.js?v=117"></script>
 <script src="admin-hp.js"></script>
 <script src="admin-pintas.js"></script>
 </body>

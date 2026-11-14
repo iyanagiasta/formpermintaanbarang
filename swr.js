@@ -31,6 +31,8 @@
     catch (e) { bersih(); try { localStorage.setItem(k, JSON.stringify({t: Date.now(), d: teks})); } catch (e2) { } }
   }
   function pita(tampil) {
+    // Tambahan 117: bila tampil.js ada, pita "Ada data lebih baru" tampil di atas isi dengan tombol Perbarui (tidak melayang di bawah).
+    if (W.TAMPIL) { var lamaEl = document.getElementById("swr-pita"); if (lamaEl) lamaEl.style.display = "none"; if (tampil) W.TAMPIL.adaBaru(); else W.TAMPIL.adaBaruHapus(); return; }
     var el = document.getElementById("swr-pita");
     if (!tampil) { if (el) el.style.display = "none"; return; }
     if (!el) {
@@ -77,5 +79,10 @@
       return asli(b).then(function (j2) { try { if (j2 && j2.ok !== false) simpan(k, JSON.stringify(j2)); } catch (e) { } return j2; });
     } catch (e) { return asli(b); }
   };
-  W.SWR = {bersih: bersih, terakhir: null, daftar: DAFTAR};
+  function tampilkan() {
+    pita(false); tahanSampai = Date.now() + 4000;   // pakai hasil yang baru saja tersimpan, tanpa memanggil ulang
+    try { if (typeof W.goTab === "function") W.goTab(W.TAB || "pantau"); else location.reload(); } catch (e) { location.reload(); }
+  }
+  function ada(b) { try { return !!(b && DAFTAR[b.action] && pinAktif(b) && baca(kunci(b))); } catch (e) { return false; } }
+  W.SWR = {bersih: bersih, terakhir: null, daftar: DAFTAR, tampilkan: tampilkan, ada: ada};
 })(window);

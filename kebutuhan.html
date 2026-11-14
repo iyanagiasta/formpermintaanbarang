@@ -47,7 +47,7 @@ tr.beli td.b{background:var(--beli);color:var(--belit);font-weight:700}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
-<script src="nama-berkas.js"></script><script src="tema.js"></script>
+<script src="order-info.js?v=132"></script><script src="nama-berkas.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
@@ -65,6 +65,7 @@ function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replac
 function rp(n){return n==null?"":"Rp "+Math.round(n).toLocaleString("id-ID");}
 var PINADM="";try{PINADM=sessionStorage.getItem("sctk_admin")||"";}catch(e){}
 async function api(b){b.kode=KODE;if(PINADM&&!KODE)b.pin=PINADM;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
+if(window.OI)OI.atur(function(){return api({action:"orderPetaPublik"});});
 function loginView(msg){
   app.innerHTML='<div class="card" style="max-width:380px;margin:30px auto"><p style="margin-top:0"><b>Masukkan kode akses</b></p><div class="note" style="margin-bottom:8px">Halaman ini memerlukan kode akses. Silakan masukkan kode Anda, atau minta akses langsung kepada admin gudang.</div><input class="t" id="kd" type="password" autocomplete="off" placeholder="Kode akses"><div style="height:10px"></div><button id="go" style="width:100%">Masuk</button><p class="err" id="lerr" style="margin:10px 0 0">'+esc(msg||"")+'</p></div>';
   var i=document.getElementById("kd");i.focus();i.onkeydown=function(e){if(e.key==="Enter")masuk();};document.getElementById("go").onclick=masuk;
@@ -135,7 +136,7 @@ function renderRows(i,akhir){
   var box=document.getElementById("rb"+i);if(!box)return;var R=BL[i].rows;
   if(!R.length){box.innerHTML="";return;}
   var tampilR=R.slice(0,300);
-  box.innerHTML='<div class="note"><b>'+R.length+' barang</b> di proyek ini'+(R.length>300?' (menampilkan 300 pertama)':'')+'. Ubah jumlah di kolom kanan bila perlu.</div><div class="rw">'+tampilR.map(function(x,j){return '<div class="rr"><span><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+'</small></span><input inputmode="decimal" aria-label="Jumlah" data-q="'+j+'" value="'+esc(x.qty)+'"><button type="button" class="gh" aria-label="Hapus barang" data-x="'+j+'">&times;</button></div>';}).join("")+'</div>';
+  box.innerHTML='<div class="note"><b>'+R.length+' barang</b> di proyek ini'+(R.length>300?' (menampilkan 300 pertama)':'')+'. Ubah jumlah di kolom kanan bila perlu.</div><div class="rw">'+tampilR.map(function(x,j){return '<div class="rr"><span><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+'</small>'+(window.OIH?OIH(x.kode):'')+'</span><input inputmode="decimal" aria-label="Jumlah" data-q="'+j+'" value="'+esc(x.qty)+'"><button type="button" class="gh" aria-label="Hapus barang" data-x="'+j+'">&times;</button></div>';}).join("")+'</div>';
   box.querySelectorAll("[data-q]").forEach(function(e){e.oninput=function(){BL[i].rows[Number(e.getAttribute("data-q"))].qty=e.value;};});
   box.querySelectorAll("[data-x]").forEach(function(b){b.onclick=function(){BL[i].rows.splice(Number(b.getAttribute("data-x")),1);renderRows(i);};});
   if(akhir){var rw=box.querySelector(".rw");if(rw)rw.scrollTop=rw.scrollHeight;}
@@ -173,7 +174,7 @@ function tampil(){
    '<div class="sum"><div><b>'+t.barang+'</b><span>Jenis barang</span></div><div><b>'+rp(t.nilaiStok)+'</b><span>Nilai pemakaian stok (bukan total RAB)</span></div><div><b>'+t.adaBeli+'</b><span>Barang yang perlu BELI</span></div>'+(t.tanpaHarga?'<div><b>'+t.tanpaHarga+'</b><span>Barang stok tanpa harga</span></div>':'')+(t.tidakDikenal?'<div><b>'+t.tidakDikenal+'</b><span>Kode tidak dikenal</span></div>':'')+'</div>'+
    '<div class="fr"><button class="sv" id="xl">Unduh Excel</button>'+(TAB>0&&r.proyek[TAB-1].ppbj?'<button class="gold" id="alk">Simpan sebagai alokasi (admin)</button>':'')+(TAB>0&&t.adaBeli>0?'<button class="sv" id="bl">Buat pengajuan pembelian ('+t.adaBeli+' barang BELI)</button>':'')+'</div>'+
    '<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Butuh</th>'+r.oto.map(function(n){return '<th class="nm">Pakai '+esc(n)+'</th>';}).join("")+'<th class="nm">BELI</th><th class="nm">Harga satuan</th><th class="nm">Subtotal (stok)</th><th>Catatan</th></tr></thead><tbody>'+
-   cur.rows.map(function(x){return '<tr class="'+(x.beli>0?"beli":"")+'"><td><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+(TAB===0&&x.perProyek?' · '+x.perProyek.map(function(q,i){return q?esc(r.proyek[i].nama)+' '+fmtN(q):"";}).filter(Boolean).join(", "):'')+'</small></td><td class="nm">'+fmtN(x.butuh)+'</td>'+
+   cur.rows.map(function(x){return '<tr class="'+(x.beli>0?"beli":"")+'"><td><b>'+esc(x.nama||x.kode)+'</b><small>'+esc(x.kode)+(x.satuan?' · '+esc(x.satuan):'')+(TAB===0&&x.perProyek?' · '+x.perProyek.map(function(q,i){return q?esc(r.proyek[i].nama)+' '+fmtN(q):"";}).filter(Boolean).join(", "):'')+'</small>'+(window.OIH?OIH(x.kode):'')+'</td><td class="nm">'+fmtN(x.butuh)+'</td>'+
      x.ambil.map(function(a){return '<td class="nm">'+(a?fmtN(a):'-')+'</td>';}).join("")+'<td class="nm b">'+(x.beli>0?fmtN(x.beli):'-')+'</td><td class="nm">'+rp(x.harga)+'</td><td class="nm">'+rp(x.subtotal)+'</td><td><small>'+esc(x.cat)+'</small></td></tr>';}).join("")+'</tbody></table></div>';
   box.querySelectorAll("[data-t]").forEach(function(b){b.onclick=function(){TAB=Number(b.getAttribute("data-t"));tampil();};});
   document.getElementById("xl").onclick=unduhExcel;

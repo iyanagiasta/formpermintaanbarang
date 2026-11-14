@@ -11,7 +11,7 @@
 <script src="mb-excel.js?v=38"></script>
 <script src="laporan.js"></script>
 <script src="admin-kerja.js?v=131"></script>
-<script src="admin-mutasi.js"></script>
+<script src="admin-mutasi.js?v=132"></script>
 <script src="admin-laporan2.js?v=127"></script>
 <script src="admin-proyek2.js?v=127"></script>
 <script src="ppbj-ganti.js?v=1"></script>
@@ -30,8 +30,8 @@
 <script src="xlsx-tulis.js"></script>
 <script src="bast-logo.js"></script>
 <script src="bast.js?v=107"></script>
-<script src="mutasi-acc.js?v=114"></script>
-<script src="pengganti.js?v=111"></script><script src="telusur-selisih.js?v=130"></script><script src="order-lencana.js?v=132"></script>
+<script src="mutasi-acc.js?v=132"></script>
+<script src="pengganti.js?v=111"></script><script src="telusur-selisih.js?v=132"></script><script src="order-lencana.js?v=132"></script>
 <script src="order-monitor.js"></script>
 <script src="analisa-barang.js?v=132"></script>
 <script src="kimia.js?v=122"></script>
@@ -492,7 +492,7 @@ async function jenisMuat(){
      '<div class="fr"><input id="jq" placeholder="Cari nama, kode, atau kategori..." value="'+esc(JNS.q)+'" style="flex:1;min-width:160px"><button class="gh" id="jcari">Cari</button></div>'+
      '<div class="note">Menampilkan '+r.data.length+' dari '+r.cocok+' barang. Ubah jenis di kolom kanan, lalu tekan Simpan.</div>'+
      (r.data.length?'<table><thead><tr><th>Barang</th><th class="nm">Kategori</th><th class="nm">Jenis</th></tr></thead><tbody>'+r.data.map(function(d,i){
-       return '<tr><td data-l="Barang"><b>'+esc(d.nama)+'</b><small>'+esc(d.kode)+(d.alasan?' · '+esc(d.alasan):'')+(d.sumber==="Manual"?' · diputuskan manual':'')+'</small></td><td class="nm" data-l="Kategori">'+esc(d.kategori||"-")+'</td><td class="nm" data-l="Jenis"><select data-ji="'+i+'">'+r.jenis.map(function(j){return '<option'+(j===d.jenis?" selected":"")+'>'+esc(j)+'</option>';}).join("")+'</select></td></tr>';}).join("")+'</tbody></table><div class="fr"><button class="sv" id="jsim" disabled>Simpan perubahan</button><span class="note" id="jsinfo"></span></div>':'<div class="note">Tidak ada barang di daftar ini.</div>');
+       return '<tr><td data-l="Barang"><b>'+esc(d.nama)+'</b><small>'+esc(d.kode)+(d.alasan?' · '+esc(d.alasan):'')+(d.sumber==="Manual"?' · diputuskan manual':'')+'</small>'+OLH(d.kode)+'</td><td class="nm" data-l="Kategori">'+esc(d.kategori||"-")+'</td><td class="nm" data-l="Jenis"><select data-ji="'+i+'">'+r.jenis.map(function(j){return '<option'+(j===d.jenis?" selected":"")+'>'+esc(j)+'</option>';}).join("")+'</select></td></tr>';}).join("")+'</tbody></table><div class="fr"><button class="sv" id="jsim" disabled>Simpan perubahan</button><span class="note" id="jsinfo"></span></div>':'<div class="note">Tidak ada barang di daftar ini.</div>');
     box.querySelectorAll("[data-jt]").forEach(function(b){b.onclick=function(){JNS.tampil=b.getAttribute("data-jt");JNS.q=(document.getElementById("jq")||{}).value||"";jenisMuat();};});
     var cr=document.getElementById("jcari");if(cr)cr.onclick=function(){JNS.q=document.getElementById("jq").value.trim();jenisMuat();};
     var jq=document.getElementById("jq");if(jq)jq.onkeydown=function(e){if(e.key==="Enter")cr.click();};
@@ -767,7 +767,7 @@ function kpCek(x,sm){
 }
 function kpBarisHtml(x){
   var dk=(x.dokPen||[]).map(function(d){return '<li><b>'+esc(d.doc)+'</b> '+kpSelTxt(d.efek)+' <span class="kpt">'+esc(d.status||d.jenis)+'</span><small> '+esc(d.jenis)+(d.alasan?' &middot; '+esc(d.alasan):'')+' &middot; '+d.umur+' hari</small></li>';}).join("");
-  return '<tr><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+' &middot; '+esc(x.kasus)+'</small></td><td class="nm" data-l="File Accurate">'+fmtN(x.fa)+'</td><td class="nm" data-l="File Moka">'+fmtN(x.fm)+'</td><td class="nm" data-l="Gudang Accurate">'+fmtN(x.ga)+'</td><td class="nm" data-l="Gudang Moka">'+fmtN(x.gm)+'</td><td class="nm" data-l="Selisih total">'+kpSel(x.dT)+'</td><td class="nm" data-l="Dijelaskan dokumen">'+kpSel(x.jelas)+'</td><td class="nm" data-l="Sisa">'+kpSel(x.sisaManual)+'</td><td class="nm" data-l="Adjustment Moka">'+kpSel(x.rekM)+kpCek(x,"Moka")+'</td><td class="nm" data-l="Adjustment Accurate">'+kpSel(x.rekA)+kpCek(x,"Accurate")+'</td><td class="nm" data-l="Nilai">'+(x.nilai!=null?rp(x.nilai):(kpRek(x)?"harga kosong":"-"))+'</td><td data-l="Hitung ulang" style="min-width:110px">'+(x.hu?'<b style="color:var(--grn,#1b8a3a)">&#10003; '+fmtN(x.hh)+'</b><small>'+esc(x.tgh)+'</small>':'<span class="note">belum</span>')+'</td><td data-l="Analisis" style="min-width:320px">'+esc(x.analisis)+(dk?'<ul class="kpdok">'+dk+'</ul>':'')+'</td></tr>';
+  return '<tr><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+' &middot; '+esc(x.kasus)+'</small>'+OLH(x.kode)+'</td><td class="nm" data-l="File Accurate">'+fmtN(x.fa)+'</td><td class="nm" data-l="File Moka">'+fmtN(x.fm)+'</td><td class="nm" data-l="Gudang Accurate">'+fmtN(x.ga)+'</td><td class="nm" data-l="Gudang Moka">'+fmtN(x.gm)+'</td><td class="nm" data-l="Selisih total">'+kpSel(x.dT)+'</td><td class="nm" data-l="Dijelaskan dokumen">'+kpSel(x.jelas)+'</td><td class="nm" data-l="Sisa">'+kpSel(x.sisaManual)+'</td><td class="nm" data-l="Adjustment Moka">'+kpSel(x.rekM)+kpCek(x,"Moka")+'</td><td class="nm" data-l="Adjustment Accurate">'+kpSel(x.rekA)+kpCek(x,"Accurate")+'</td><td class="nm" data-l="Nilai">'+(x.nilai!=null?rp(x.nilai):(kpRek(x)?"harga kosong":"-"))+'</td><td data-l="Hitung ulang" style="min-width:110px">'+(x.hu?'<b style="color:var(--grn,#1b8a3a)">&#10003; '+fmtN(x.hh)+'</b><small>'+esc(x.tgh)+'</small>':'<span class="note">belum</span>')+'</td><td data-l="Analisis" style="min-width:320px">'+esc(x.analisis)+(dk?'<ul class="kpdok">'+dk+'</ul>':'')+'</td></tr>';
 }
 function kpSegarTabel(){
   var q=document.getElementById("kpq");if(q)KP.q=q.value;
@@ -960,7 +960,7 @@ function drawBA(){
   var tbl=L.length?'<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Sistem</th><th class="nm">Hitung</th><th class="nm">Selisih</th><th class="nm">Nilai</th><th>Penghitung</th><th>Penyebab dan catatan</th>'+thk+'</tr></thead><tbody>'+L.slice(0,400).map(function(x,i){
     var k=BA.ket[x.kode]||{p:"",c:""},kos=!k.p&&!k.c,kp=x.kp||{};
     var kc=ada?(kp.tidakAda?'<td colspan="5" class="note">Barang tidak ada di file</td>':'<td class="nm">'+fmtN(kp.fa)+'</td><td class="nm">'+fmtN(kp.fm)+'</td><td class="nm">'+kpSel(kp.rekM)+'</td><td class="nm">'+kpSel(kp.rekA)+'</td><td><small>'+esc(kp.kasus||"")+'</small></td>'):'';
-    return '<tr'+(x.besar&&kos?' style="outline:2px solid var(--red,#c0392b);outline-offset:-2px"':'')+'><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.rak?' &middot; '+esc(x.rak):'')+(x.besar?' &middot; <span style="color:var(--red,#c0392b)">BESAR</span>':'')+'</small></td>'+
+    return '<tr'+(x.besar&&kos?' style="outline:2px solid var(--red,#c0392b);outline-offset:-2px"':'')+'><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.rak?' &middot; '+esc(x.rak):'')+(x.besar?' &middot; <span style="color:var(--red,#c0392b)">BESAR</span>':'')+'</small>'+OLH(x.kode)+'</td>'+
      '<td class="nm" data-l="Sistem">'+fmtN(x.sistem)+'</td><td class="nm" data-l="Hitung">'+fmtN(x.hitung)+'</td><td class="nm" data-l="Selisih">'+kpSel(x.selisih)+'</td><td class="nm" data-l="Nilai">'+(x.nilai==null?"-":rp(x.nilai))+'</td><td data-l="Penghitung">'+esc(x.oleh)+'</td>'+
      '<td data-l="Keterangan" style="min-width:230px"><select data-bap="'+esc(x.kode)+'" style="width:100%">'+optP(k.p)+'</select><input data-bac="'+esc(x.kode)+'" placeholder="Catatan (opsional)" value="'+esc(k.c)+'" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"></td>'+kc+'</tr>';
    }).join("")+'</tbody></table></div>':'<div class="card msg">Tidak ada baris sesuai filter.</div>';
@@ -1921,7 +1921,7 @@ function drawMati(){
    '<div class="sum"><div><b>'+r.total+'</b><span>Barang berstok yang tidak keluar '+r.hari+'+ hari</span></div><div><b>'+rp(r.nilai)+'</b><span>Nilai uang yang diam (Moka + Accurate)</span></div><div><b>'+r.tanpaHarga+'</b><span>Belum ada harga (tidak terhitung)</span></div></div>'+
    '<div class="note">Dihitung dari catatan Mutasi jenis Serah (barang keluar). "Belum pernah keluar" = tidak ada catatan keluar sama sekali di Mutasi. Diurutkan dari nilai terbesar.</div>'+
    (r.data.length?'<table><thead><tr><th>Barang</th>'+SUMB.map(function(s){return '<th class="nm">'+esc(s)+'</th>';}).join("")+'<th class="nm">Harga</th><th class="nm">Nilai</th><th>Terakhir keluar</th></tr></thead><tbody>'+
-   r.data.map(function(d){return '<tr><td data-l="Barang"><b>'+esc(d.nama)+'</b><small>'+esc(d.kode)+' · '+esc(d.satuan||"")+'</small></td>'+d.q.map(function(x,j){return '<td class="nm" data-l="'+esc(SUMB[j])+'">'+fmtN(x)+'</td>';}).join("")+'<td class="nm" data-l="Harga">'+rp(d.harga)+'</td><td class="nm" data-l="Nilai">'+rp(d.nilai)+'</td><td data-l="Terakhir keluar">'+(d.terakhir?esc(d.terakhir)+'<small>'+d.umur+' hari lalu</small>':'<small>belum pernah keluar</small>')+'</td></tr>';}).join("")+'</tbody></table>'+(r.total>r.data.length?'<div class="note">Menampilkan '+r.data.length+' dari '+r.total+'. Unduh Excel untuk semuanya.</div>':''):'<div class="card msg">Tidak ada barang mati pada batas ini.</div>');
+   r.data.map(function(d){return '<tr><td data-l="Barang"><b>'+esc(d.nama)+'</b><small>'+esc(d.kode)+' · '+esc(d.satuan||"")+'</small>'+OLH(d.kode)+'</td>'+d.q.map(function(x,j){return '<td class="nm" data-l="'+esc(SUMB[j])+'">'+fmtN(x)+'</td>';}).join("")+'<td class="nm" data-l="Harga">'+rp(d.harga)+'</td><td class="nm" data-l="Nilai">'+rp(d.nilai)+'</td><td data-l="Terakhir keluar">'+(d.terakhir?esc(d.terakhir)+'<small>'+d.umur+' hari lalu</small>':'<small>belum pernah keluar</small>')+'</td></tr>';}).join("")+'</tbody></table>'+(r.total>r.data.length?'<div class="note">Menampilkan '+r.data.length+' dari '+r.total+'. Unduh Excel untuk semuanya.</div>':''):'<div class="card msg">Tidak ada barang mati pada batas ini.</div>');
   document.getElementById("mtg").onclick=loadMati;
   document.getElementById("mtx").onclick=async function(){var bt=this;bt.disabled=true;try{var u=await api({action:"adminBarangMati",hari:r.hari,unduh:true});if(!u.ok){toast(u.msg||"Gagal.",true);bt.disabled=false;return;}
     var rows=[["Kode","Nama","Satuan"].concat(SUMB).concat(["Harga","Nilai (Moka+Accurate)","Terakhir keluar","Umur (hari)"])].concat((u.data||[]).map(function(d){return [d.kode,d.nama,d.satuan].concat(d.q).concat([d.harga==null?"":d.harga,d.nilai==null?"":d.nilai,d.terakhir||"belum pernah",d.umur==null?"":d.umur]);}));
@@ -1964,7 +1964,7 @@ function drawTerima(){
   pane().innerHTML='<div class="bar">'+Object.keys(lab).map(function(k){return '<button class="chip'+(KFIL===k?" on":"")+'" data-kf="'+k+'">'+lab[k]+'</button>';}).join("")+'<button class="gh" id="kref">Segarkan</button></div>'+
    '<div class="note">Pengembalian barang sisa proyek. Stok <b>Accurate</b> bertambah saat Anda menekan <b>Terima</b>, setelah barang benar-benar ada di gudang.</div>'+
    (L.length?L.map(function(d,ix){
-     var rows=d.items.map(function(it){return '<tr><td data-l="Barang"><b>'+esc(it.nama)+'</b><small>'+esc(it.kode)+' · '+esc(it.satuan||"")+'</small></td><td class="nm" data-l="Diajukan">'+fmtN(it.jumlah)+'</td>'+
+     var rows=d.items.map(function(it){return '<tr><td data-l="Barang"><b>'+esc(it.nama)+'</b><small>'+esc(it.kode)+' · '+esc(it.satuan||"")+'</small>'+OLH(it.kode)+'</td><td class="nm" data-l="Diajukan">'+fmtN(it.jumlah)+'</td>'+
        (d.status==="Siap Diterima"?'<td class="nm" data-l="Diterima"><input class="kq" data-no="'+it.no+'" inputmode="decimal" value="'+esc(it.jumlah)+'" style="width:80px;padding:6px;border:1px solid var(--line);border-radius:7px;text-align:right;background:var(--card);color:var(--ink)"></td>':(d.status==="Selesai Diterima"?'<td class="nm" data-l="Diterima"><b>'+fmtN(it.diterima)+'</b></td>':''))+'</tr>';}).join("");
      var st=d.status==="Siap Diterima"?'<span class="bd w">Siap diterima</span>':d.status==="Selesai Diterima"?'<span class="bd d">Diterima</span>':d.status==="Ditolak"?'<span class="bd b">Ditolak</span>':'<span class="bd n">'+esc(d.status)+'</span>';
      return '<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+esc(d.doc||d.id)+'</b>'+st+'</div>'+
@@ -2197,7 +2197,7 @@ function drawOpname(){
     isi=(rowsV.length?'<div class="bar"><button class="sv" id="oter"'+(mn.length?"":" disabled")+'>Terapkan terpilih</button><button class="gh" id="oab"'+(mn.length?"":" disabled")+'>Abaikan terpilih</button><span class="note">'+mn.length+' menunggu (terlihat)</span></div>'+
      '<table><thead><tr><th></th><th>Barang</th><th class="nm">Stok saat dihitung</th><th class="nm">Hasil hitung</th><th class="nm">Selisih</th><th class="nm">Nilai selisih</th><th class="nm">Stok gudang sekarang</th><th>Terapkan ke</th><th>Status</th></tr></thead><tbody>'+
      vis.map(function(i){var x=OPR[i],m=x.status==="Menunggu";
-      return '<tr><td>'+(m?'<input type="checkbox" data-oc="'+i+'" checked>':'')+'</td><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.rak?' · rak '+esc(x.rak):'')+(OPSEL.length>1?' · '+esc(x.sesiNama):'')+(x.oleh?' · '+esc(x.oleh):'')+'</small></td>'+
+      return '<tr><td>'+(m?'<input type="checkbox" data-oc="'+i+'" checked>':'')+'</td><td data-l="Barang"><b>'+esc(x.nama)+'</b><small>'+esc(x.kode)+(x.rak?' · rak '+esc(x.rak):'')+(OPSEL.length>1?' · '+esc(x.sesiNama):'')+(x.oleh?' · '+esc(x.oleh):'')+'</small>'+OLH(x.kode)+'</td>'+
        '<td class="nm" data-l="Saat dihitung">'+fmtN(x.snap)+'</td><td class="nm" data-l="Hasil hitung">'+(x.tak?'<span class="note">belum diketahui</span>':fmtN(x.hitung))+'</td>'+
        '<td class="nm" data-l="Selisih">'+(x.tak?'-':'<b style="color:'+(x.selisih<0?"var(--red,#a82424)":x.selisih>0?"var(--grn,#14602f)":"inherit")+'">'+(x.selisih>0?"+":"")+fmtN(x.selisih)+'</b>')+'</td>'+
        '<td class="nm" data-l="Nilai">'+(x.tak?(x.nilaiStok!=null?'stok '+rp(x.nilaiStok):'-'):(x.nilai!=null?rp(x.nilai):"-"))+'</td>'+

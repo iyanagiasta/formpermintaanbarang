@@ -386,7 +386,7 @@
         if (o.jasa || (o.jasaDugaan && !D.bukanJasa[o.i])) return;
         var bad = !o.ok && !pil, skip = pil === 'skip';
         var dbCell;
-        if (o.ok) dbCell = '<b>' + esc(o.nama) + '</b><small>' + esc(o.kode) + (o.via && o.via !== 'kode' && o.via !== 'nama' ? ' · ' + esc(o.via) : '') + '</small>' + (o.satuanBeda ? '<small class="err" style="color:var(--k-red)">satuan di file: ' + esc(o.satuanBeda) + '</small>' : '');
+        if (o.ok) dbCell = '<b>' + esc(o.nama) + '</b><small>' + esc(o.kode) + (o.via && o.via !== 'kode' && o.via !== 'nama' ? ' · ' + esc(o.via) : '') + '</small>' + (window.OIH ? OIH(o.kode) : '') + (o.satuanBeda ? '<small class="err" style="color:var(--k-red)">satuan di file: ' + esc(o.satuanBeda) + '</small>' : '');
         else {
           var ops = '<option value="">— pilih barang —</option>' + (o.saran || []).map(function (s) { return '<option value="' + esc(s.kode) + '"' + (pil === s.kode ? ' selected' : '') + '>' + esc(s.nama) + (s.satuan ? ' · ' + esc(s.satuan) : '') + '</option>'; }).join('') + '<option value="skip"' + (skip ? ' selected' : '') + '>Lewati baris ini</option>';
           dbCell = '<span class="tag r">TIDAK ADA di database</span><br><select data-kp="' + o.i + '">' + ops + '</select>' + ((o.saran || []).length ? '' : '<small>Tidak ada saran. Lewati, atau daftarkan barangnya dulu di Master Barang.</small>');

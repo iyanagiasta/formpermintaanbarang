@@ -20,7 +20,7 @@ var MX=(function(){
   }
   function tiles(a){return '<div class="sum">'+a.map(function(t){return '<div><b'+(t[2]?' style="color:'+t[2]+'"':'')+'>'+t[0]+'</b><span>'+t[1]+'</span></div>';}).join("")+'</div>';}
   function tab(kep,baris,rata){return '<table><thead><tr>'+kep.map(function(k,i){return '<th'+(rata&&rata.indexOf(i)>=0?' class="nm"':'')+'>'+k+'</th>';}).join("")+'</tr></thead><tbody>'+baris.join("")+'</tbody></table>';}
-  function ksLink(kode,nama){return '<b class="ks" data-ks="'+esc(kode)+'" data-kn="'+esc(nama)+'" title="Buka Kartu Stok barang ini">'+esc(nama)+'</b><small>'+esc(kode)+'</small>';}
+  function ksLink(kode,nama){return '<b class="ks" data-ks="'+esc(kode)+'" data-kn="'+esc(nama)+'" title="Buka Kartu Stok barang ini">'+esc(nama)+'</b><small>'+esc(kode)+'</small>'+(window.OLH?OLH(kode):'');}
   function pasangKs(root){Array.prototype.forEach.call(root.querySelectorAll("[data-ks]"),function(b){b.onclick=function(e){e.preventDefault();bukaKartu(b.getAttribute("data-ks"),b.getAttribute("data-kn"));};});}
   function pasangCetak(root){Array.prototype.forEach.call(root.querySelectorAll("[data-cetak]"),function(b){b.onclick=async function(){
     var w=window.open("","_blank");b.disabled=true;

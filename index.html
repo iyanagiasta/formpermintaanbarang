@@ -120,7 +120,7 @@ body.cetak .scan-fab{display:none}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
 <link rel="stylesheet" href="lembar.css">
-<script src="cari-pintar.js"></script><script src="seri-meter.js?v=124"></script><script src="nama-berkas.js"></script><script src="tema.js"></script>
+<script src="order-info.js?v=132"></script><script src="cari-pintar.js"></script><script src="seri-meter.js?v=124"></script><script src="nama-berkas.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css"><link rel="stylesheet" href="form-baru.css"><link rel="stylesheet" href="form-hp.css"><link rel="stylesheet" href="form-wah.css?v=1"><script src="wah-init.js?v=1"></script>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
@@ -824,7 +824,7 @@ function renderStok(tr){
     if(x.kurang>0){var bk=SUMB.indexOf("Bekas")>=0&&OTO.indexOf("Bekas")<0?(x.s[SUMB.indexOf("Bekas")]||0):0;extra='<span class="stbad">'+(x.bebas<=0?"Stok barang tidak tersedia":"Stok tersedia hanya "+fmtQ(x.bebas)+", diminta "+fmtQ(q))+(bk>0?" (ada Bekas "+fmtQ(bk)+", dipilih manual oleh gudang)":"")+". Hubungi Staff Gudang. Permintaan tetap bisa dikirim.</span>";}
     else extra='<span class="stok">Ambil: '+x.take.map(function(t){return t.s+" "+fmtQ(t.q);}).join(" + ")+'</span>';
   }else if(r.bebas<OTO.reduce(function(a,nm){return a+(r.s[SUMB.indexOf(nm)]||0);},0)){extra='<span class="stw">Bebas '+fmtQ(r.bebas)+' (sisanya untuk proyek lain / permintaan berjalan)</span>';}
-  box.innerHTML=line+extra;
+  box.innerHTML=line+extra+(window.OIH?OIH(kode):"");
 }
 function renderAllStok(){document.querySelectorAll("#rows tr").forEach(renderStok);}
 function gateUI(ok,msg){
@@ -1106,6 +1106,7 @@ function toast(msg,ok){
   var t=document.getElementById("toast");t.textContent=msg;t.className="toast "+(ok?"ok":"err");t.style.display="block";
   clearTimeout(toast._t);toast._t=setTimeout(function(){t.style.display="none";},ok?9000:12000);
 }
+if(window.OI)OI.atur(function(){return api({action:"orderPetaPublik",kode:KODEPEG});});
 async function api(body){
   var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)});
   return await r.json();

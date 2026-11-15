@@ -86,6 +86,7 @@
       api({action: "adminBotJalankan", pin: A.pin, token: b.token}).then(function (r) {
         if (!r || !r.ok) { hs.textContent = (r && r.msg) || "Gagal."; return; }
         hs.textContent = r.berhasil ? "Sudah dijalankan." : "Tidak berhasil.";
+        if (r.berhasil) { RK = null; setTimeout(ambilRk, 500); }   // T140: data berubah: ringkasan lama tidak dipakai lagi
         var m = add("tq-b tga", ""); if (m) { gambarBlok(r.blok || [], m); if ((r.saran || []).length) m.appendChild(chips(r.saran, function (x) { tanya(x.tanya); })); }
         bawah();
       }).catch(function () { hs.textContent = "Gagal terhubung ke server. Coba lagi: tanyakan ulang perintahnya."; });
@@ -145,13 +146,80 @@
 
   /* ---------- bertanya ---------- */
   function layar() { return (window.innerWidth || 1000) < 700 ? "hp" : "pc"; }
+  /* ---------- T140: ringkasan (jawaban instan di browser) ---------- */
+  var RK = null, RK_TIMER = null, RK_SEDANG = false;
+  function rkSegar() { return !!(RK && RK.kartu && (RK.umur + (Date.now() - RK.terima)) < RK.ttl); }
+  function ambilRk() {
+    if (!A.aktif || RK_SEDANG) return; RK_SEDANG = true;
+    api({action: "adminBotRingkas", pin: A.pin, t: RK && rkSegar() ? RK.t : 0}).then(function (r) {
+      RK_SEDANG = false; if (!r || !r.ok) return;
+      if (r.sama && RK) { RK.umur = r.umur || 0; RK.terima = Date.now(); RK.ttl = r.ttl || RK.ttl; return; }
+      if (r.kartu) RK = {t: r.t, umur: r.umur || 0, terima: Date.now(), ttl: r.ttl || 600000, kartu: r.kartu, siap: r.siap || {}};
+      else if (r.kosong) RK = null;
+    }).catch(function () { RK_SEDANG = false; });
+  }
+  function rkMulai() {
+    ambilRk();
+    if (RK_TIMER) clearInterval(RK_TIMER);
+    RK_TIMER = setInterval(function () { if (A.aktif && document.visibilityState !== "hidden") ambilRk(); }, 180000);   // segarkan tiap 3 menit selama halaman terbuka
+  }
+  function rkJam() { var d = new Date(RK.t), z = function (n) { return (n < 10 ? "0" : "") + n; }; return z(d.getHours()) + ":" + z(d.getMinutes()); }
+  var LK_SIAP = [
+    ["briefing", /^(briefing|brifing|briefing hari ini|ringkasan pagi|ringkasan hari ini|rangkuman hari ini)$/],
+    ["beli", /^(daftar beli|daftar belanja|daftar pembelian|apa saja yang (harus|perlu) dibeli|barang yang (harus|perlu) dibeli|perlu dibeli apa saja|yang (harus|perlu) dibeli)$/],
+    ["buffer", /^(buffer menipis|buffer kurang|buffer habis|stok buffer menipis|stok buffer kurang)$/],
+    ["aneh", /^(ada yang aneh|ada yang aneh hari ini|ada yang janggal|ada yang janggal hari ini|hal aneh hari ini)$/]];
+  // kata yang menandakan pertanyaan lebih dari sekadar cek stok: dijawab server
+  var LK_BUKAN = /\b(kenapa|mengapa|knp|napa|cukup|proyek|projek|ppbj|riwayat|mutasi|keluar|masuk|bulan|minggu|hari|kemarin|tanggal|simulasi|kalau|jika|andai|ubah|tandai|set|ganti|hapus|email|kirim|harga|rp|nilai|seri|bpb|lacak|bandingkan|banding|vs|selisih|ukuran|mirip|sejenis|pengganti|buat|tolong|semua|daftar|apa|yang|terlambat|telat|order|pesan|pesanan|datang|jelaskan|rinci|dimana|mana|rak|lokasi|untuk|buat|berapa proyek|jatah|alokasi|kurang|lebih|beli|po|supplier|vendor|bekas)\b/;
+  function lokal(teks) {
+    if (!rkSegar()) return null;
+    var low = String(teks).toLowerCase().replace(/[?!.]+$/g, "").replace(/\s+/g, " ").trim();
+    if (!low || low.length > 120) return null;
+    for (var i = 0; i < LK_SIAP.length; i++) if (LK_SIAP[i][1].test(low)) {
+      var x = RK.siap[LK_SIAP[i][0]]; if (!x || !(x.blok || []).length) return null;
+      return {pahami: x.pahami, alat: x.alat, blok: JSON.parse(JSON.stringify(x.blok)), saran: x.saran || [], konteks: null, lokal: {jenis: "siap", kunci: LK_SIAP[i][0]}, simpul: !!x.simpul};
+    }
+    var isi = low.replace(/^(cek stok|cek stock|stok|stock|cek|sisa stok|sisa|berapa stok|stoknya|ada stok)\s+/, "");
+    if (isi === low && !/^[\w\s\/".,-]+$/.test(low)) return null;
+    if (LK_BUKAN.test(isi)) return null;
+    var bag = isi.split(/\s+(?:dan|sama|serta|&)\s+|\s*,\s*/).filter(function (x) { return x.trim(); });
+    if (!bag.length || bag.length > 2) return null;
+    var tj = T(); if (!tj.cari || !tj.norm || !tj.bersih) return null;
+    var kartu = [], kodes = [], nama = [];
+    for (var k = 0; k < bag.length; k++) {
+      var tok = tj.bersih(tj.norm(bag[k])); if (!tok.length) return null;
+      var h = tj.cari(tok); if (!h.length) return null;
+      var top = h[0]; if (top.cov < 0.99 || (h[1] && h[1].skor > top.skor - 0.08)) return null;   // hanya bila barangnya pasti; ragu → server (yang bisa menawarkan pilihan)
+      var kt = RK.kartu[top.b.key]; if (!kt || kodes.indexOf(top.b.kode) >= 0) return null;
+      kartu.push(JSON.parse(JSON.stringify(kt))); kodes.push(top.b.kode); nama.push(top.b.nama);
+    }
+    var n1 = nama[0];
+    return {pahami: "Cek stok: " + nama.join(", "), alat: "stok", blok: kartu, konteks: {kodes: kodes, nama: nama, ppbj: ""}, lokal: {jenis: "stok", kodes: kodes},
+      saran: [{label: "Kenapa angkanya begitu?", tanya: "jelaskan " + n1}, {label: "Cukup untuk berapa proyek?", tanya: "cukup untuk berapa proyek " + n1}, {label: "Riwayat bulan ini", tanya: "riwayat " + n1 + " bulan ini"}, {label: "Ukuran lain", tanya: "ukuran lain " + n1}, {label: "Ringkas saja", tanya: teks, ulang: "ringkas"}, {label: "Jelaskan lebih rinci", tanya: teks, ulang: "rinci"}]};
+  }
+  function idLokal() { return "L" + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); }
+
+  /* ---------- bertanya ---------- */
+  function layar() { return (window.innerWidth || 1000) < 700 ? "hp" : "pc"; }
   function tanya(teks, o) {
     o = o || {}; teks = String(teks || "").trim(); if (!teks) return;
     if (!o.pilih && !o.paksa && !o.mode) A.lastTeks = teks;
+    var t0 = Date.now();
+    if (!o.server && !o.pilih && !o.paksa && !o.mode && !o.segar) {
+      var L = null; try { L = lokal(teks); } catch (eL) { L = null; }
+      if (L) {   // T140: jawaban instan dari ringkasan (tanpa menunggu server)
+        add("tq-u", esc(o.label || teks));
+        var ml = add("tq-b tga", "");
+        if (layar() === "hp") L.blok.forEach(function (b) { if (b.t === "tabel") b.tampil = Math.min(b.tampil || 15, 6); });
+        L.id = idLokal(); L.jalur = "instan"; L.ok = true;
+        tampilkan(ml, L, teks, o, t0);
+        api({action: "adminBotSusul", pin: A.pin, id: L.id, lokal: L.lokal, simpul: L.simpul ? 1 : 0, teks: teks, pahami: L.pahami, ms: Date.now() - t0}).then(function (s) { if (s && s.ok && s.simpul) sisipSimpul(ml, s.simpul); else hapusTunggu(ml); }).catch(function () { hapusTunggu(ml); });
+        return;
+      }
+    }
     add("tq-u", esc(o.label || teks));
     var m = add("tq-b tga", '<p class="tq-sm tga-tunggu">Memahami dan menghitung dari data...</p>');
-    var t0 = Date.now();
-    api({action: "adminBotTanya", pin: A.pin, teks: teks, konteks: A.K, pilih: o.pilih || null, segar: o.segar ? 1 : 0, riwayat: A.H.slice(-6), layar: layar(), mode: o.mode || "", paksa: o.paksa || ""}).then(function (r) {
+    api({action: "adminBotTanya", pin: A.pin, teks: teks, konteks: A.K, pilih: o.pilih || null, segar: o.segar ? 1 : 0, riwayat: A.H.slice(-6), layar: layar(), mode: o.mode || "", paksa: o.paksa || "", bertahap: 1}).then(function (r) {
       if (!m) return; m.innerHTML = "";
       if (!r || !r.ok) {
         var msg = (r && r.msg) || "Gagal.";
@@ -159,19 +227,42 @@
         if (/Kode tidak dikenali|Terlalu banyak/i.test(msg)) { matikan(); msg += " Silakan keluar lalu masuk lagi."; }
         m.innerHTML = '<p class="err">' + esc(msg) + "</p>"; return;
       }
-      if (r.pahami) m.insertAdjacentHTML("beforeend", '<p class="tq-sm tga-paham">Dipahami sebagai: <b>' + esc(r.pahami) + "</b>" + (r.jalur === "kilat" ? ' <span class="tga-jl">kilat</span>' : r.jalur === "ai" || r.jalur === "pilihan" ? ' <span class="tga-jl tga-jl-ai">AI</span>' : r.jalur === "belajar" ? ' <span class="tga-jl">hasil belajar</span>' : "") + "</p>");
-      gambarBlok(r.blok || [], m);
-      if (r.konteks) A.K = {kodes: r.konteks.kodes || [], nama: r.konteks.nama || [], ppbj: r.konteks.ppbj || ""};
-      if (r.alat !== "tanya") { A.H.push({q: teks, p: r.pahami || ""}); if (A.H.length > 6) A.H.shift(); }
-      if ((r.saran || []).length) m.appendChild(chips(r.saran, function (x) {
-        if (x.ulang) { tanya(x.tanya, {mode: x.ulang, pilih: o.pilih, paksa: o.paksa, label: x.label}); return; }
-        if (/ $/.test(x.tanya)) { var q = document.getElementById("q"); if (q) { q.value = x.tanya; q.focus(); } } else tanya(x.tanya);
-      }));
-      m.insertAdjacentHTML("beforeend", '<p class="tq-sm tga-meta">' + "dihitung dari data " + ((Date.now() - t0) / 1000).toFixed(1).replace(".", ",") + " dtk" + (r.dataJam ? ' · bacaan data per ' + esc(r.dataJam) + ' <a href="#" class="tga-segar">hitung ulang dari data terbaru</a>' : "") + (r.id && r.alat !== "tanya" ? ' · <a href="#" class="tga-salah">Bukan ini maksud saya</a>' : "") + "</p>");
-      var sg = m.querySelector(".tga-segar"); if (sg) sg.onclick = function (ev) { ev.preventDefault(); tanya(teks, {segar: true, pilih: o.pilih, paksa: o.paksa, label: teks + " (data terbaru)"}); };
-      var sl = m.querySelector(".tga-salah"); if (sl) sl.onclick = function (ev) { ev.preventDefault(); bukanIni(r, teks, sl); };
-      bawah();
+      tampilkan(m, r, teks, o, t0);
+      if (r.susul) {   // T140: log + kesimpulan AI menyusul, tidak menahan jawaban
+        api({action: "adminBotSusul", pin: A.pin, id: r.id, ms: Date.now() - t0}).then(function (s) { if (s && s.ok && s.simpul) sisipSimpul(m, s.simpul); else hapusTunggu(m); }).catch(function () { hapusTunggu(m); });
+      }
     }).catch(function () { if (m) m.innerHTML = '<p class="err">Gagal terhubung ke server. Periksa internet lalu coba lagi.</p>'; });
+  }
+  function sisipSimpul(m, s) {
+    var w = m.querySelector(".tga-simpul-tunggu"), d = document.createElement("div");
+    d.innerHTML = '<div class="tga-simpul"><div class="tq-sm"><b>Kesimpulan AI</b> · tafsiran dari angka di atas, bukan angka baru</div><p>' + tebal(s) + "</p></div>";
+    if (w) w.replaceWith(d.firstChild); else { var meta = m.querySelector(".tga-meta"); m.insertBefore(d.firstChild, meta || null); }
+    bawah();
+  }
+  function hapusTunggu(m) { var w = m && m.querySelector(".tga-simpul-tunggu"); if (w) w.remove(); }
+  /** Menggambar satu jawaban (dari server atau instan dari ringkasan). */
+  function tampilkan(m, r, teks, o, t0) {
+    var instan = r.jalur === "instan";
+    if (r.pahami) m.insertAdjacentHTML("beforeend", '<p class="tq-sm tga-paham">Dipahami sebagai: <b>' + esc(r.pahami) + "</b>" + (instan ? ' <span class="tga-jl">instan</span>' : r.jalur === "kilat" ? ' <span class="tga-jl">kilat</span>' : r.jalur === "ai" || r.jalur === "pilihan" ? ' <span class="tga-jl tga-jl-ai">AI</span>' : r.jalur === "belajar" ? ' <span class="tga-jl">belajar</span>' : "") + "</p>");
+    gambarBlok(r.blok || [], m);
+    if (r.simpulNanti || (instan && r.simpul)) m.insertAdjacentHTML("beforeend", '<p class="tq-sm tga-simpul-tunggu">Menyusun kesimpulan AI…</p>');
+    if (r.konteks) A.K = {kodes: r.konteks.kodes || [], nama: r.konteks.nama || [], ppbj: r.konteks.ppbj || ""};
+    if (r.alat !== "tanya") { A.H.push({q: teks, p: r.pahami || ""}); if (A.H.length > 6) A.H.shift(); }
+    if ((r.saran || []).length) m.appendChild(chips(r.saran, function (x) {
+      if (x.ulang) { tanya(x.tanya, {mode: x.ulang, pilih: o.pilih, paksa: o.paksa, label: x.label}); return; }
+      if (/ $/.test(x.tanya)) { var q = document.getElementById("q"); if (q) { q.value = x.tanya; q.focus(); } } else tanya(x.tanya);
+    }));
+    var dtk = ((Date.now() - t0) / 1000).toFixed(1).replace(".", ",");
+    if (instan) m.insertAdjacentHTML("beforeend", '<p class="tq-sm tga-meta">jawaban instan dari ringkasan per ' + esc(rkJam()) + ' · <a href="#" class="tga-segar">hitung ulang dari data terbaru</a> · <a href="#" class="tga-salah">Bukan ini maksud saya</a></p>');
+    else m.insertAdjacentHTML("beforeend", '<p class="tq-sm tga-meta">' + "dihitung dari data " + dtk + " dtk" + (r.dataJam ? ' · bacaan data per ' + esc(r.dataJam) + ' <a href="#" class="tga-segar">hitung ulang dari data terbaru</a>' : "") + (r.id && r.alat !== "tanya" ? ' · <a href="#" class="tga-salah">Bukan ini maksud saya</a>' : "") + "</p>");
+    var sg = m.querySelector(".tga-segar"); if (sg) sg.onclick = function (ev) { ev.preventDefault(); tanya(teks, {segar: true, pilih: o.pilih, paksa: o.paksa, label: teks + " (data terbaru)"}); };
+    var sl = m.querySelector(".tga-salah");
+    if (sl) sl.onclick = function (ev) {
+      ev.preventDefault();
+      if (instan) { sl.replaceWith(document.createTextNode("ditanyakan ulang ke server")); api({action: "adminBotNilai", pin: A.pin, id: r.id, nilai: "salah"}).catch(function () {}); tanya(teks, {server: true, label: teks + " (tanya server)"}); return; }
+      bukanIni(r, teks, sl);
+    };
+    bawah();
   }
   /** "Bukan ini maksud saya": dicatat (bahan belajar), lalu tawarkan tafsiran lain atau tulis ulang maksudnya. */
   function bukanIni(r, teks, link) {
@@ -203,8 +294,8 @@
     if (!A.aktif && badge) badge.remove();
   }
   function placeholder() { var q = document.getElementById("q"); if (q) q.placeholder = A.aktif ? "Contoh: kenapa pipa pvc 3 inch kurang? / rekap keluar bulan ini per proyek" : "Contoh: stok pipa pvc 3 inch"; }
-  function nyalakan(pin) { A.pin = pin; A.aktif = true; ss("sctk_tanya_adm", pin); tombol(); placeholder(); sapa(); }
-  function matikan() { A.aktif = false; A.pin = ""; ss("sctk_tanya_adm", null); tombol(); placeholder(); }
+  function nyalakan(pin) { A.pin = pin; A.aktif = true; ss("sctk_tanya_adm", pin); tombol(); placeholder(); sapa(); rkMulai(); }
+  function matikan() { A.aktif = false; A.pin = ""; ss("sctk_tanya_adm", null); tombol(); placeholder(); RK = null; if (RK_TIMER) { clearInterval(RK_TIMER); RK_TIMER = null; } }
   /** T135: pemeriksaan admin dimulai bersamaan dengan pemuatan data (dipanggil tanya.js di awal), jadi tidak menambah waktu tunggu. */
   var AWAL = null;
   function awal(kode) { if (kode && T().api) AWAL = {kode: kode, p: api({action: "adminBotCek", kode: kode}).catch(function () { return null; })}; }
@@ -248,5 +339,5 @@
     if (!cand) { if (salamPegawai) salamPegawai(); return; }
     cekPenuh(cand, kode, salamPegawai);
   }
-  window.TGA = {awal: awal, pasang: pasang, tanya: tanya, get aktif() { return A.aktif; }, get menunggu() { return MENUNGGU; }, matikan: matikan, _A: A};
+  window.TGA = {_rk: function () { return RK; }, awal: awal, pasang: pasang, tanya: tanya, get aktif() { return A.aktif; }, get menunggu() { return MENUNGGU; }, matikan: matikan, _A: A};
 })();

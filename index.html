@@ -52,6 +52,7 @@ td.c{text-align:center}td.c input{text-align:center}
 .stinfo{font-size:6.6pt;line-height:1.25;padding:.5mm 1.2mm;color:#1f3a4d}
 .stinfo .z{opacity:.55}.stinfo .stw{color:#7a4f00;font-weight:600}.stinfo .stbad{display:block;color:#a01f1f;font-weight:700}.stinfo .stok{display:block;color:#14602f;font-weight:600}
 td.stk{background:#f7fbfd!important}
+#rows tr.meter td{height:auto;vertical-align:middle}#rows tr.meter td:nth-child(3){vertical-align:top}#rows tr.meter .nama{display:block;height:5.4mm}#rows tr.meter .seriwrap{display:block;background:#fffaf0;border-top:.2mm dashed #e0c070}
 #pegbar{background:var(--bar);border-bottom:1px solid var(--line);padding:8px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
 #pegbar input{font:inherit;font-size:13px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--bar-ink);width:150px}
 #pegbar .ok{color:var(--grn,#14602f);font-weight:600}#pegbar .bad{color:var(--red,#a82424);font-weight:600}
@@ -120,7 +121,7 @@ body.cetak .scan-fab{display:none}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
 <link rel="stylesheet" href="lembar.css">
-<script src="order-info.js?v=132"></script><script src="cari-pintar.js"></script><script src="seri-meter.js?v=124"></script><script src="nama-berkas.js"></script><script src="tema.js"></script>
+<script src="order-info.js?v=132"></script><script src="cari-pintar.js"></script><script src="seri-meter.js?v=125"></script><script src="nama-berkas.js"></script><script src="tema.js"></script>
 <link rel="stylesheet" href="gaya-baru.css"><link rel="stylesheet" href="form-baru.css"><link rel="stylesheet" href="form-hp.css"><link rel="stylesheet" href="form-wah.css?v=1"><script src="wah-init.js?v=1"></script>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="any">
@@ -653,9 +654,10 @@ function addRow(){
 function seriBaris(tr){
   if(!window.SERI)return;var w=tr.querySelector(".seriwrap");if(!w)return;
   var kd=tr.classList.contains("baru")?"":tr.querySelector(".kode").value,meter=SERI.isMeter(kd);
+  tr.classList.toggle("meter",!!meter);
   if(!meter){if(w.firstChild)w.innerHTML="";return;}
   if(document.body.classList.contains("cetak"))return;
-  if(!w.querySelector(".seribox"))w.innerHTML=SERI.kotak("seri","",false);
+  if(!w.querySelector(".seribox"))w.innerHTML=SERI.kotakRingkas("seri","","boleh menyusul, wajib sebelum diserahkan");
   SERI.hitung(w.querySelector(".seribox"),tr.querySelector(".jml").value);
 }
 function delRow(b){b.closest("tr").remove();number();}

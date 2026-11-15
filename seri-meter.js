@@ -33,6 +33,9 @@
       '.seribox textarea{width:100%;min-height:44px;font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line,#c8d2dc);border-radius:7px;background:var(--card,#fff);color:var(--ink,#111);resize:vertical;box-sizing:border-box;text-transform:uppercase}' +
       '.serin{font-weight:400;margin-left:4px}.serin.ok{color:var(--ok-t,#14612b)}.serin.kr{color:var(--warn-t,#8a5a00)}.serin.er{color:var(--bad-t,#a01c28)}' +
       '.seritag{display:inline-block;border-radius:20px;padding:1px 8px;font-size:11px;font-weight:700;background:#fff3cd;color:#7a5b00;margin-left:4px;white-space:nowrap}' +
+      '.seribox.rg{margin:0;padding:.6mm 1.5mm 1mm}.seribox.rg label{font-size:6.6pt;margin:0 0 .3mm;color:#3f5868}.seribox.rg .serin{font-weight:700;margin-left:3px}.seribox.rg .serin.ok{color:#14612b}.seribox.rg .serin.kr{color:#8a5a00}.seribox.rg .serin.er{color:#b3202e}' +
+      '.seribox.rg textarea{display:block;min-height:0;height:5.4mm;font-size:8pt;line-height:1.25;padding:.6mm 1.5mm;border:.3mm solid #9fb8c6;border-radius:1mm;resize:none;overflow:hidden;background:#fff;color:#0d1f2d}' +
+      'body.hp .seribox.rg{padding:6px 8px 8px}body.hp .seribox.rg label{font-size:12px}body.hp .seribox.rg textarea{font-size:16px;line-height:1.3;padding:9px 10px;height:44px;border-radius:10px}' +
       '.serilist{font-size:12px;color:var(--mut,#456);margin-top:2px;word-break:break-word}' +
       '.seriov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;display:flex;align-items:flex-start;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) 12px 16px;overflow:auto}' +
       '.serimd{background:var(--card,#fff);color:var(--ink,#111);border-radius:12px;max-width:560px;width:100%;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.35)}' +
@@ -48,9 +51,24 @@
     return '<div class="seribox"><label>No seri meter air' + (wajib ? ' (wajib)' : ' (boleh menyusul, wajib sebelum barang diserahkan)') + ' <span class="serin"></span></label>' +
       '<textarea class="' + cls + '" rows="2" autocomplete="off" spellcheck="false" placeholder="Satu nomor seri per baris">' + esc(nilai || '') + '</textarea></div>';
   }
+  /** T125: kotak ringkas untuk baris tabel form (di bawah nama barang): satu baris, membesar sendiri saat nomor bertambah. */
+  function kotakRingkas(cls, nilai, petunjuk) {
+    css();
+    return '<div class="seribox rg"><label>No seri meter air <span class="serin"></span></label>' +
+      '<textarea class="' + cls + '" rows="1" autocomplete="off" spellcheck="false" title="' + esc(petunjuk || '') + '" placeholder="Nomor seri (Enter = berikutnya)">' + esc(nilai || '') + '</textarea></div>';
+  }
+  function tinggi(ta) {
+    var min = document.body.classList.contains('hp') ? 44 : 20;
+    if (!ta.value) { ta.style.height = min + 'px'; return; }
+    ta.style.height = 'auto'; ta.style.height = Math.max(ta.scrollHeight + 2, min) + 'px';
+  }
   /** Memperbarui penghitung di dalam satu kotak. */
   function hitung(box, qty) {
     if (!box) return null; var ta = box.querySelector('textarea'), sp = box.querySelector('.serin'); if (!ta || !sp) return null;
+    if (box.classList.contains('rg')) {
+      if (/[,;]/.test(ta.value)) { ta.value = ta.value.replace(/[,;]\s*/g, '\n'); try { ta.selectionStart = ta.selectionEnd = ta.value.length; } catch (e) { /* abaikan */ } }
+      tinggi(ta);
+    }
     var x = info(ta.value, qty); sp.textContent = x.teks; sp.className = 'serin ' + (x.pas ? 'ok' : (x.lebih || x.dobel ? 'er' : 'kr')); return x;
   }
   function teks(list) { return (list && list.length) ? list.join(', ') : ''; }
@@ -191,5 +209,5 @@
     muatData();
   }
 
-  root.SERI = {norm: norm, parse: parse, muat: muat, isMeter: isMeter, info: info, kotak: kotak, hitung: hitung, teks: teks, baris: baris, edit: edit, tab: tab, css: css, esc: esc};
+  root.SERI = {norm: norm, parse: parse, muat: muat, isMeter: isMeter, info: info, kotak: kotak, kotakRingkas: kotakRingkas, hitung: hitung, teks: teks, baris: baris, edit: edit, tab: tab, css: css, esc: esc};
 })(window);

@@ -485,6 +485,7 @@ async function jawabSatu(teks,prev){
 }
 function tanya(teks){
   teks=String(teks||"").trim();if(!teks)return;
+  if(window.TGA&&TGA.menunggu){TGA.menunggu.then(function(){tanya(teks)});return}   // T139: tunggu pemeriksaan admin
   if(window.TGA&&TGA.aktif){TGA.tanya(teks);return}
   add("tq-u",esc(teks));
   var prev=terakhir,bagian=teks.split(/\s+(?:dan|sama|serta|plus)\s+|\s*&\s*|;|\n/).filter(function(x){return x.trim()});
@@ -574,10 +575,10 @@ function tampilChat(){
     if(!SR)return tolak();
     try{var r=new SR();r.lang="id-ID";r.interimResults=false;r.onresult=function(e){tanya(e.results[0][0].transcript)};r.onerror=tolak;r.onend=function(){mic.classList.remove("on")};mic.classList.add("on");r.start()}catch(e){tolak()}
   };
-  var a=add("tq-b","<p>Halo! Tanyakan stok barang, kebutuhan, paket pekerjaan, atau status BPB Anda. Tulis seperti biasa, salah ketik pun saya usahakan paham.</p>");
-  a.appendChild(chips([{label:"stok pipa pvc 3 inch"},{label:"butuh 30 elbow 3 inch"},{label:"barang yang stok bebasnya habis"},{label:"bpb saya sampai mana"}],function(x){tanya(x.label)}));
+  function salam(){var a=add("tq-b","<p>Halo! Tanyakan stok barang, kebutuhan, paket pekerjaan, atau status BPB Anda. Tulis seperti biasa, salah ketik pun saya usahakan paham.</p>");
+    a.appendChild(chips([{label:"stok pipa pvc 3 inch"},{label:"butuh 30 elbow 3 inch"},{label:"barang yang stok bebasnya habis"},{label:"bpb saya sampai mana"}],function(x){tanya(x.label)}))}
   document.getElementById("q").focus();
-  if(window.TGA)TGA.pasang(KODE);
+  if(window.TGA)TGA.pasang(KODE,salam);else salam();
 }
 window.__tanya={tanya:tanya,jawabSatu:jawabSatu,norm:norm,bersih:bersih,api:api,add:add,chips:chips,esc:esc};
 var k0=ls("sctk_kode");if(!k0){try{k0=sessionStorage.getItem("sctk_tanya_adm")}catch(e){}}

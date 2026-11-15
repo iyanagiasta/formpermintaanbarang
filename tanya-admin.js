@@ -212,18 +212,41 @@
     var pre = AWAL && AWAL.kode === kode ? AWAL.p : null; AWAL = pre ? null : AWAL;
     return (pre ? pre.then(function (r) { return r === null ? api({action: "adminBotCek", kode: kode}) : r; }) : api({action: "adminBotCek", kode: kode})).then(function (r) {
       if (r && r.ok && r.admin) { A.versi = r.versi || ""; nyalakan(kode); }
-      return r;
-    }).catch(function () { return {ok: false, msg: "Gagal terhubung ke server."}; });
+      return r || {ok: false, gagal: true};
+    }).catch(function () { return {ok: false, gagal: true, msg: "Gagal terhubung ke server."}; });
   }
-  /** Dipanggil tanya.js setelah chat tampil. kode = kode yang dipakai masuk. */
-  function pasang(kode) {
+  /** T139: selama pemeriksaan admin berjalan, pertanyaan MENUNGGU (tidak lari ke bot pegawai). Gagal terhubung: coba sekali lagi, lalu beri tahu dengan jelas. */
+  var MENUNGGU = null;
+  function cekPenuh(cand, kode, salamPegawai) {
+    var info = add("tq-b tga-cek", '<p class="tq-sm">Memeriksa akses admin…</p>');
+    function hapus() { if (info && info.parentNode) info.parentNode.removeChild(info); }
+    function tutup(r) { MENUNGGU = null; hapus(); return r; }
+    MENUNGGU = cek(cand).then(function (r) {
+      if (r && r.gagal) return cek(cand);   // coba sekali lagi
+      return r;
+    }).then(function (r) {
+      if (r && r.ok && r.admin) { if (cand === kode) { try { localStorage.removeItem("sctk_kode"); } catch (e) { /* abaikan */ } } return tutup(r); }   // password admin tidak disimpan permanen
+      if (r && r.gagal) {
+        tutup(r);
+        var w = add("tq-b tga-cek", '<p><b>Bot admin belum bisa dihubungi</b> (server lambat atau koneksi putus). Jawaban sementara memakai bot pegawai.</p>');
+        if (w) w.appendChild(chips([{label: "Coba lagi"}], function () { if (w.parentNode) w.parentNode.removeChild(w); cekPenuh(cand, kode, null); }));
+        if (salamPegawai) salamPegawai();
+        return r;
+      }
+      tutup(r);
+      if (ss("sctk_tanya_adm") && cand !== kode && kode) { ss("sctk_tanya_adm", null); return cekPenuh(kode, kode, salamPegawai); }
+      if (cand !== kode) ss("sctk_tanya_adm", null);
+      if (salamPegawai) salamPegawai();
+      return r;
+    });
+    return MENUNGGU;
+  }
+  /** Dipanggil tanya.js setelah chat tampil. kode = kode yang dipakai masuk; salamPegawai = sapaan bot pegawai (ditampilkan hanya bila bukan admin). */
+  function pasang(kode, salamPegawai) {
     tombol();
     var simpan = ss("sctk_tanya_adm"), cand = simpan || kode;
-    if (!cand) return;
-    cek(cand).then(function (r) {
-      if (r && r.ok && r.admin) { if (cand === kode) { try { localStorage.removeItem("sctk_kode"); } catch (e) { /* abaikan */ } } return; }   // password admin tidak disimpan permanen di perangkat
-      if (simpan) { ss("sctk_tanya_adm", null); if (kode && kode !== simpan) cek(kode); }
-    });
+    if (!cand) { if (salamPegawai) salamPegawai(); return; }
+    cekPenuh(cand, kode, salamPegawai);
   }
-  window.TGA = {awal: awal, pasang: pasang, tanya: tanya, get aktif() { return A.aktif; }, matikan: matikan, _A: A};
+  window.TGA = {awal: awal, pasang: pasang, tanya: tanya, get aktif() { return A.aktif; }, get menunggu() { return MENUNGGU; }, matikan: matikan, _A: A};
 })();

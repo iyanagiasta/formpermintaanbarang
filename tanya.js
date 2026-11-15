@@ -84,17 +84,31 @@ async function detail(b){
 }
 async function infoPo(b){
   if(INFO[b.key])return INFO[b.key];
-  var o={po:[],setara:[],rak:null,alok:[],tercadang:0,butuh:[],masuk:null,tahu:false};
+  var o={po:[],setara:[],rak:null,alok:[],tercadang:0,butuh:[],masuk:null,order:[],tahu:false};
   if(BOT_OK===false)return o;
   try{var r=await bot("info",{kodes:[b.kode]});
-    if(r&&r.ok){o={po:(r.po&&r.po[b.key])||[],setara:(r.setara&&r.setara[b.key])||[],rak:(r.rak&&r.rak[b.key])||null,alok:(r.alok&&r.alok[b.key])||[],tercadang:(r.tercadang&&r.tercadang[b.key])||0,butuh:(r.butuh&&r.butuh[b.key])||[],masuk:(r.masuk&&r.masuk[b.key])||null,tahu:true};if(r.net&&r.net[b.key]!==undefined){b.neto=r.net[b.key];b.bebas=Math.max(0,b.neto)}if(r.tanpaRab)TANPA=r.tanpaRab;INFO[b.key]=o}}catch(e){}
+    if(r&&r.ok){o={po:(r.po&&r.po[b.key])||[],setara:(r.setara&&r.setara[b.key])||[],rak:(r.rak&&r.rak[b.key])||null,alok:(r.alok&&r.alok[b.key])||[],tercadang:(r.tercadang&&r.tercadang[b.key])||0,butuh:(r.butuh&&r.butuh[b.key])||[],masuk:(r.masuk&&r.masuk[b.key])||null,order:(r.order&&r.order[b.key])||[],tahu:true};if(r.batasOrder)BATAS_ORD=Number(r.batasOrder)||14;if(r.net&&r.net[b.key]!==undefined){b.neto=r.net[b.key];b.bebas=Math.max(0,b.neto)}if(r.tanpaRab)TANPA=r.tanpaRab;INFO[b.key]=o}}catch(e){}
   return o;
 }
 function poBaris(p){
   return esc(p.po||"PO")+(p.supplier?" ("+esc(p.supplier)+")":"")+(p.tanggal?", tgl "+esc(p.tanggal):"")+": belum datang <b>"+fq(p.sisa)+"</b> dari "+fq(p.dipesan)+(p.ppbj?" · untuk "+esc(p.ppbj)+(p.proyek?" - "+esc(p.proyek):""):(p.proyek?" · untuk "+esc(p.proyek):""))+(p.estimasi?" · perkiraan datang "+esc(p.estimasi):"");
 }
-function poHtml(o){
-  if(o.po.length)return '<div class="tq-po"><b>Sudah dipesan, belum datang:</b><br>'+o.po.map(poBaris).join("<br>")+'</div>';
+/* T139: barang yang sudah diorder (PPBJ buffer stock dan PPBJ proyek terdaftar): No PPBJ, jumlah sesuai PPBJ, status PO */
+var BATAS_ORD=14;
+function tglId(t){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(t||""));return m?m[3]+"/"+m[2]+"/"+m[1]:String(t||"")}
+function ordSt(x){
+  if(x.st==="DIPESAN")return "PO sudah terbit"+(x.po?" ("+esc(x.po)+")":"")+(x.eta?" · perkiraan datang "+esc(tglId(x.eta)):"");
+  if(x.st==="SEBAGIAN")return "datang sebagian "+fq(x.diterima)+(x.rab?" dari "+fq(x.rab):"")+(x.po?" · PO "+esc(x.po):"")+(x.eta?" · perkiraan datang "+esc(tglId(x.eta)):"");
+  return "menunggu PO"+(x.umur>0?" (hari ke-"+x.umur+")":"")+((x.peringatan||x.umur>=BATAS_ORD)?' · <b class="tq-bad">perlu ditindaklanjuti</b>':"");
+}
+function ordBaris(x,sat){return "PPBJ "+esc(x.ppbj)+(x.ket?" - "+esc(x.ket):"")+": <b>"+fq(x.qty)+" "+esc(sat||"")+"</b> · "+ordSt(x)}
+function ordPpbj(order){var s={};(order||[]).forEach(function(x){s[String(x.ppbj||"").trim().toUpperCase()]=1});return s}
+function poSisa(po,order){var s=ordPpbj(order);return (po||[]).filter(function(p){return !(p.ppbj&&s[String(p.ppbj).trim().toUpperCase()])})}
+function poHtml(o,sat){
+  var od=o.order||[],pl=poSisa(o.po,od),h="";
+  if(od.length)h+='<div class="tq-po"><b>Sudah diorder:</b><br>'+od.map(function(x){return ordBaris(x,sat)}).join("<br>")+'</div>';
+  if(pl.length)h+='<div class="tq-po"><b>Sudah dipesan, belum datang:</b><br>'+pl.map(poBaris).join("<br>")+'</div>';
+  if(h)return h;
   return '<div class="tq-po"><b>Belum ada pesanan</b> yang menunggu datang untuk barang ini. Sampaikan ke Pengadaan bila dibutuhkan.</div>';
 }
 function masukHtml(m,sat){
@@ -113,19 +127,22 @@ function kartu(b,d,rak,sementara){
   else if(d.alok.length)d.alok.forEach(function(a){h+='<div class="tq-row"><span>Dikunci (alokasi): '+esc(a.ppbj)+(a.ket?" - "+esc(a.ket):"")+(a.status==="Ditunda Sebentar"?" (ditunda)":"")+'</span><b>'+fq(a.qty)+' '+esc(b.sat||"")+'</b></div>'});
   else h+='<div class="tq-row"><span>Dikunci (alokasi)</span><b>Tidak ada</b></div>';
   if(!sementara&&d.tercadang>0)h+='<div class="tq-row"><span>Sudah diminta</span><b>'+fq(d.tercadang)+' '+esc(b.sat||"")+'</b></div>';
-  if(!sementara&&d.po&&d.po.length){var tp=0;d.po.forEach(function(x){tp+=x.sisa});
-    h+='<div class="tq-row"><span>Sedang dipesan<br><span class="tq-sm">'+d.po.slice(0,3).map(function(x){return esc(x.po||"PO")+(x.supplier?" ("+esc(x.supplier)+")":"")+(x.ppbj?" · untuk "+esc(x.ppbj):"")+(x.estimasi?" · perkiraan datang "+esc(x.estimasi):"")}).join("<br>")+(d.po.length>3?"<br>dan "+(d.po.length-3)+" PO lain":"")+'</span></span><b>'+fq(tp)+' '+esc(b.sat||"")+'</b></div>'}
+  var dpo=sementara?[]:poSisa(d.po,d.order);
+  if(dpo.length){var tp=0;dpo.forEach(function(x){tp+=x.sisa});
+    h+='<div class="tq-row"><span>Sedang dipesan<br><span class="tq-sm">'+dpo.slice(0,3).map(function(x){return esc(x.po||"PO")+(x.supplier?" ("+esc(x.supplier)+")":"")+(x.ppbj?" · untuk "+esc(x.ppbj):"")+(x.estimasi?" · perkiraan datang "+esc(x.estimasi):"")}).join("<br>")+(dpo.length>3?"<br>dan "+(dpo.length-3)+" PO lain":"")+'</span></span><b>'+fq(tp)+' '+esc(b.sat||"")+'</b></div>'}
   if(!sementara&&d.masuk)h+='<div class="tq-row"><span>Terakhir masuk<br><span class="tq-sm">'+esc(d.masuk.tanggal)+(d.masuk.ref?" · "+esc(d.masuk.ref):"")+'</span></span><b>'+fq(d.masuk.qty)+' '+esc(b.sat||"")+'</b></div>';
   var bt=(d.butuh||[]).filter(function(x){return x.sisa>0});
   if(!sementara&&d.butuh){
     bt.forEach(function(x){h+='<div class="tq-row"><span>Butuh proyek: '+esc(x.ppbj)+(x.ket?" - "+esc(x.ket):"")+(x.status==="Ditunda Sebentar"?" (ditunda)":"")+'<br><span class="tq-sm">kebutuhan '+fq(x.rab)+' − diserahkan '+fq(x.serah)+' − dialokasi '+fq(x.alok)+(x.minta?' − sudah diminta '+fq(x.minta):'')+'</span></span><b>sisa '+fq(x.sisa)+' '+esc(b.sat||"")+'</b></div>'});
     if(!bt.length&&(d.butuh||[]).length)h+='<div class="tq-row"><span>Kebutuhan proyek</span><b>Sudah terpenuhi</b></div>';
   }
+  if(!sementara&&d.order&&d.order.length){var to=0;d.order.forEach(function(x){to+=x.qty});
+    h+='<div class="tq-row"><span>Sudah diorder<br><span class="tq-sm">'+d.order.map(function(x){return "PPBJ "+esc(x.ppbj)+(x.ket?" - "+esc(x.ket):"")+": "+fq(x.qty)+" · "+ordSt(x)}).join("<br>")+'</span></span><b>'+fq(Math.round(to*1000)/1000)+' '+esc(b.sat||"")+'</b></div>'}
   var nt=b.neto!==undefined?b.neto:d.bebas,ib=SUMB.indexOf("Bekas"),qb=ib>=0?(q[ib]||0):0;
   h+='<div class="tq-bebas"><span>Stok bebas</span><b class="tq-'+st[1]+'">'+(nt<0?'Kurang '+fq(-nt):fq(Math.max(0,d.bebas)))+' '+esc(b.sat||"")+'</b><span class="tq-tag tq-'+st[1]+'">'+st[0]+'</span></div>';
   if(nt<=0&&qb>0&&OTO.indexOf("Bekas")<0)h+='<p class="tq-sm" style="margin-top:4px"><b>Ada stok Bekas '+fq(qb)+' '+esc(b.sat||"")+'.</b> Bekas tidak dihitung sebagai stok bebas dan dipilih manual oleh gudang saat penyerahan.</p>';
   var oto=OTO.join(" + ");
-  h+='<p class="tq-sm" style="margin-top:4px">Stok bebas = '+esc(oto)+' dikurangi alokasi, yang sudah diminta, dan sisa kebutuhan proyek aktif (dari rincian material PPBJ)'+(SUMB.indexOf("Bekas")>=0&&OTO.indexOf("Bekas")<0&&q[SUMB.indexOf("Bekas")]?' (stok Bekas tidak dihitung)':'')+'.</p>';
+  h+='<p class="tq-sm" style="margin-top:4px">Stok bebas = '+esc(oto)+' dikurangi alokasi, yang sudah diminta, dan sisa kebutuhan proyek aktif (dari rincian material PPBJ; PPBJ buffer stock tidak dihitung karena itu pembelian)'+(SUMB.indexOf("Bekas")>=0&&OTO.indexOf("Bekas")<0&&q[SUMB.indexOf("Bekas")]?' (stok Bekas tidak dihitung)':'')+'.</p>';
   if(!sementara&&TANPA.length)h+='<p class="tq-sm" style="margin-top:4px">Belum ada rincian material PPBJ untuk: '+TANPA.slice(0,5).map(function(x){return esc(x.ppbj)+(x.ket?" - "+esc(x.ket):"")}).join("; ")+(TANPA.length>5?" dan "+(TANPA.length-5)+" lainnya":"")+'. Kebutuhan proyek itu belum terhitung.</p>';
   return h;
 }
@@ -135,7 +152,7 @@ async function tampil(b,qty){
   var el=add("tq-b",kartu(b,lokalD,RAKOK?b.rak:undefined,true)+'<p class="tq-sm" style="margin-top:6px">Memeriksa jatah proyek dan lokasi rak...</p>');
   try{await BOT_P}catch(e){}
   var info=await infoPo(b),d;
-  if(info.tahu)d={alok:info.alok,tercadang:info.tercadang,butuh:info.butuh,po:info.po,masuk:info.masuk,bebas:b.bebas,total:b.total,q:b.q};
+  if(info.tahu)d={alok:info.alok,tercadang:info.tercadang,butuh:info.butuh,po:info.po,order:info.order||[],masuk:info.masuk,bebas:b.bebas,total:b.total,q:b.q};
   else{d=await detail(b);info={po:[],setara:[],rak:undefined,tahu:false}}
   var st=status(b,d.bebas),bebas=Math.max(0,d.bebas),h="";
   var rakF=RAKOK?b.rak:(info.tahu?info.rak:undefined);
@@ -146,10 +163,10 @@ async function tampil(b,qty){
     var pl=Object.keys(pr).map(function(k){return pr[k]});
     h+='<p class="tq-nm">Untuk proyek apa saja</p>'+(pl.length?pl.map(function(x){return '<div class="tq-row"><span>'+esc(x.ppbj)+(x.ket?" - "+esc(x.ket):"")+'</span><b>'+(x.rab>0?'butuh '+fq(x.rab)+(x.sisa>0?', sisa '+fq(x.sisa):', terpenuhi'):'')+(x.alok?(x.rab>0?"; ":"")+'jatah '+fq(x.alok):'')+' '+esc(b.sat||"")+'</b></div>'}).join(""):'<p class="tq-sm">Belum ada proyek aktif yang membutuhkan atau menjatah barang ini.</p>')+'<hr class="tq-hr">';
   }
-  if(askPesan&&info.tahu)h+=poHtml(info);
+  if(askPesan&&info.tahu)h+=poHtml(info,b.sat);
   if(askMasuk&&info.tahu)h+=masukHtml(info.masuk,b.sat);
   h+=kartu(b,d,rakF);
-  if(info.tahu&&!askPesan&&!info.po.length&&(st[1]!=="ok"||(qty&&qty>bebas)))h+=poHtml(info);
+  if(info.tahu&&!askPesan&&!info.po.length&&!(info.order||[]).length&&(st[1]!=="ok"||(qty&&qty>bebas)))h+=poHtml(info);
   if(qty){var k=qty-bebas;h+=k<=0?'<div class="tq-verd tq-ok"><span>Butuh '+fq(qty)+' '+esc(b.sat||"")+'</span><b>Cukup</b><span class="tq-sm">sisa '+fq(bebas-qty)+'</span></div>':'<div class="tq-verd tq-bad"><span>Butuh '+fq(qty)+' '+esc(b.sat||"")+'</span><b>Kurang '+fq(k)+'</b></div>'}
   el.innerHTML=h;chat.scrollTop=chat.scrollHeight;
   if(info.tahu&&(st[1]==="bad"||(qty&&qty>bebas))){
@@ -184,7 +201,7 @@ function jawabPaket(pk,n){
     // kabar PO barang yang kurang (maks 5)
     var kk=kurang.filter(function(k){return k.b}).slice(0,5);
     if(kk.length)bot("info",{kodes:kk.map(function(k){return k.b.kode})}).then(function(r){
-      if(!r.ok)return;var s="";kk.forEach(function(k){var p=(r.po&&r.po[k.b.key])||[];s+='<p class="tq-sm" style="margin-top:6px">'+esc(k.nama)+": "+(p.length?"sudah dipesan "+esc(p[0].po||"PO")+", belum datang "+fq(p[0].sisa):"belum ada pesanan")+".</p>"});
+      if(!r.ok)return;var s="";kk.forEach(function(k){var p=(r.po&&r.po[k.b.key])||[],od=(r.order&&r.order[k.b.key])||[];s+='<p class="tq-sm" style="margin-top:6px">'+esc(k.nama)+": "+(od.length?"sudah diorder "+od.map(function(x){return "PPBJ "+esc(x.ppbj)+" "+fq(x.qty)+" ("+ordSt(x)+")"}).join("; "):p.length?"sudah dipesan "+esc(p[0].po||"PO")+", belum datang "+fq(p[0].sisa):"belum ada pesanan")+".</p>"});
       el.insertAdjacentHTML("beforeend",s);
     }).catch(function(){});
   }

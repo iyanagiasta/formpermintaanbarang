@@ -101,6 +101,7 @@
       if (o.tanya) { tanya(o.tanya); return; }
       if (o.kode) {
         api({action: "adminBotPilih", pin: A.pin, frasa: o.frasa, kode: o.kode}).catch(function () {});
+        if (pilihInstan(o.kode)) return;
         var p = {}; p[o.frasa] = o.kode; tanya(A.lastTeks, {pilih: p, label: "→ " + o.label});
       }
     }));
@@ -119,7 +120,7 @@
     });
     wadah.appendChild(d);
   }
-  var LABEL_ALAT = {stok: "Cek stok", jelaskan: "Penjelasan angka", cukup: "Cukup untuk berapa proyek", order: "Status pesanan", buffer: "Buffer menipis", proyek: "Sisa jatah proyek", risiko: "Proyek berisiko", simulasi: "Simulasi", mutasi: "Laporan keluar/masuk", kartu: "Riwayat barang", selisih: "Telusur selisih", sejenis: "Barang sejenis", seri: "Nomor seri", bpb: "Lacak dokumen", ambil: "Daftar ambil", beli: "Daftar beli", mati: "Barang tidur", stoksemua: "Semua stok", briefing: "Briefing", aneh: "Hal janggal", panduan: "Panduan", bantuan: "Bantuan"};
+  var LABEL_ALAT = {stok: "Cek stok", jelaskan: "Penjelasan angka", cukup: "Cukup untuk berapa proyek", order: "Status pesanan", buffer: "Buffer menipis", daftar: "Daftar cepat", proyek: "Sisa jatah proyek", risiko: "Proyek berisiko", simulasi: "Simulasi", mutasi: "Laporan keluar/masuk", kartu: "Riwayat barang", selisih: "Telusur selisih", sejenis: "Barang sejenis", seri: "Nomor seri", bpb: "Lacak dokumen", ambil: "Daftar ambil", beli: "Daftar beli", mati: "Barang tidur", stoksemua: "Semua stok", briefing: "Briefing", aneh: "Hal janggal", panduan: "Panduan", bantuan: "Bantuan"};
   function labelAlat(a) { return LABEL_ALAT[a] || a; }
   function pasangRinci(m) {
     m.querySelectorAll(".tga-rr").forEach(function (row) {
@@ -154,7 +155,7 @@
     api({action: "adminBotRingkas", pin: A.pin, t: RK && rkSegar() ? RK.t : 0}).then(function (r) {
       RK_SEDANG = false; if (!r || !r.ok) return;
       if (r.sama && RK) { RK.umur = r.umur || 0; RK.terima = Date.now(); RK.ttl = r.ttl || RK.ttl; return; }
-      if (r.kartu) RK = {t: r.t, umur: r.umur || 0, terima: Date.now(), ttl: r.ttl || 600000, kartu: r.kartu, siap: r.siap || {}};
+      if (r.kartu) RK = {t: r.t, umur: r.umur || 0, terima: Date.now(), ttl: r.ttl || 600000, kartu: r.kartu, siap: r.siap || {}, ring: r.ring || {}, rakIsi: r.rakIsi || {}, bel: r.bel || {}, proy: r.proy || {}};
       else if (r.kosong) RK = null;
     }).catch(function () { RK_SEDANG = false; });
   }
@@ -164,38 +165,157 @@
     RK_TIMER = setInterval(function () { if (A.aktif && document.visibilityState !== "hidden") ambilRk(); }, 180000);   // segarkan tiap 3 menit selama halaman terbuka
   }
   function rkJam() { var d = new Date(RK.t), z = function (n) { return (n < 10 ? "0" : "") + n; }; return z(d.getHours()) + ":" + z(d.getMinutes()); }
+  /* ---------- T141: kata kunci yang langsung dikenali (jawaban instan dari ringkasan) ---------- */
+  function nr(s) { return String(s || "").toLowerCase().replace(/[?!.,;]+$/g, "").replace(/\s+/g, " ").trim(); }
+  /** Sama dengan CARI.norm di server (BotAdmin memakainya sebagai kunci "bot belajar"). */
+  function frasaSrv(s) {
+    s = String(s == null ? "" : s).toLowerCase();
+    try { s = s.normalize("NFD").replace(/[̀-ͯ]/g, ""); } catch (e) { /* lanjut */ }
+    s = s.replace(/["“”″]/g, " inch ").replace(/(\d)\s*[x×*]\s*(?=\d)/g, "$1 ").replace(/(\d),(\d)/g, "$1.$2");
+    s = s.replace(/(\d)([a-z])/g, "$1 $2").replace(/([a-z])(\d)/g, "$1 $2");
+    return s.replace(/[^a-z0-9.]+/g, " ").replace(/(^|\s)\.+|\.+(\s|$)/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+  }
+  // Satu kata kunci = satu jawaban siap yang disiapkan server bersama ringkasan (urutan penting: yang khusus lebih dulu).
   var LK_SIAP = [
-    ["briefing", /^(briefing|brifing|briefing hari ini|ringkasan pagi|ringkasan hari ini|rangkuman hari ini)$/],
-    ["beli", /^(daftar beli|daftar belanja|daftar pembelian|apa saja yang (harus|perlu) dibeli|barang yang (harus|perlu) dibeli|perlu dibeli apa saja|yang (harus|perlu) dibeli)$/],
-    ["buffer", /^(buffer menipis|buffer kurang|buffer habis|stok buffer menipis|stok buffer kurang)$/],
-    ["aneh", /^(ada yang aneh|ada yang aneh hari ini|ada yang janggal|ada yang janggal hari ini|hal aneh hari ini)$/]];
-  // kata yang menandakan pertanyaan lebih dari sekadar cek stok: dijawab server
-  var LK_BUKAN = /\b(kenapa|mengapa|knp|napa|cukup|proyek|projek|ppbj|riwayat|mutasi|keluar|masuk|bulan|minggu|hari|kemarin|tanggal|simulasi|kalau|jika|andai|ubah|tandai|set|ganti|hapus|email|kirim|harga|rp|nilai|seri|bpb|lacak|bandingkan|banding|vs|selisih|ukuran|mirip|sejenis|pengganti|buat|tolong|semua|daftar|apa|yang|terlambat|telat|order|pesan|pesanan|datang|jelaskan|rinci|dimana|mana|rak|lokasi|untuk|buat|berapa proyek|jatah|alokasi|kurang|lebih|beli|po|supplier|vendor|bekas)\b/;
-  function lokal(teks) {
-    if (!rkSegar()) return null;
-    var low = String(teks).toLowerCase().replace(/[?!.]+$/g, "").replace(/\s+/g, " ").trim();
-    if (!low || low.length > 120) return null;
+    ["briefing", /^(briefing|brifing|briefing hari ini|ringkasan pagi|ringkasan hari ini|rangkuman hari ini|prioritas hari ini|kondisi gudang( hari ini)?|apa (saja )?yang (harus|perlu) (dikerjakan|diurus|diperhatikan) hari ini)$/],
+    ["beli", /^(daftar beli|daftar belanja|daftar pembelian|apa saja yang (harus|perlu) dibeli|barang yang (harus|perlu) dibeli|perlu dibeli apa saja|yang (harus|perlu) dibeli|(harus|perlu) beli apa|beli apa( saja)?)$/],
+    ["buffer", /^(buffer (menipis|kurang|habis|kritis)|stok buffer (menipis|kurang)|buffer yang (menipis|kurang))$/],
+    ["aneh", /^(ada yang aneh|ada yang aneh hari ini|ada yang janggal|ada yang janggal hari ini|hal aneh hari ini)$/],
+    ["telat", /^((pesanan|order|po|barang) (yang )?(telat|terlambat|molor|lewat eta|nyangkut)|(yang )?(telat|terlambat) datang|ada (yang )?(telat|terlambat)|barang nyangkut)$/],
+    ["belum", /^(((barang|material|yang)( yang)? )?belum (di ?order|dipesan|ada po)( apa saja)?)$/],
+    ["jalan", /^((order|pesanan|po)( yang)? (belum datang|berjalan|sedang jalan|masih ditunggu|sedang diorder)|(barang|apa) yang (masih )?ditunggu|daftar (order|pesanan))$/],
+    ["segera", /^(((order|pesanan|barang|kiriman)( yang)? )?(akan datang|segera datang|datang (minggu ini|besok|hari ini))( minggu ini| segera)?|kiriman minggu ini)$/],
+    ["bufsemua", /^((cek|lihat|tampilkan) )?((semua|seluruh|isi|material|daftar|barang|stok) )*buffer( sto(c)?k)?( (semua|lengkap|keseluruhan))?$/],
+    ["risiko", /^(((daftar )?proyek (aktif|berjalan|yang aktif|apa saja yang aktif))|proyek (mana )?(yang )?(paling )?(berisiko|beresiko|kritis|bermasalah|rawan)|proyek berisiko|proyek yang (berisiko|bermasalah))$/],
+    ["habis", /^((cek|lihat) )?((barang|stok|material) )?(yang )?(habis|nol|kosong)( semua)?$/],
+    ["minus", /^((cek|lihat) )?((barang|stok) )?(yang )?(stok )?(minus|negatif)$/],
+    ["tanparab", /^((proyek|ppbj) )?(yang )?(tanpa rab|rab (kosong|belum( ada| diisi)?)|belum (ada |diisi )?rab)( apa saja)?$/]];
+  // kata yang menandakan pertanyaan lebih dari sekadar cek barang: dijawab server
+  var LK_BUKAN = /\b(kenapa|mengapa|knp|napa|cukup|proyek|projek|ppbj|riwayat|mutasi|keluar|masuk|bulan|minggu|hari|kemarin|tanggal|simulasi|kalau|jika|andai|ubah|tandai|set|ganti|hapus|email|kirim|harga|rp|nilai|seri|bpb|lacak|bandingkan|banding|vs|selisih|ukuran|mirip|sejenis|pengganti|buat|tolong|semua|daftar|apa|yang|terlambat|telat|jelaskan|rinci|mana|untuk|berapa proyek|jatah|alokasi|kurang|lebih|beli|supplier|vendor|bekas|rekap|laporan|total|paling|terbanyak|ranking|top)\b/;
+  var PPBJ_RE = /\b\d{1,4}[a-z]?\s*\/\s*[a-z\-]{2,8}(?:\s*\/\s*[a-z]{2,6})?\s*\/\s*[ivx]{1,4}\s*\/\s*\d{4}[a-z]?\b/i;
+  function klon(o) { return JSON.parse(JSON.stringify(o)); }
+  function nKey(s) { return String(s || "").replace(/\s+/g, "").toUpperCase(); }
+  function siapLokal(low) {
     for (var i = 0; i < LK_SIAP.length; i++) if (LK_SIAP[i][1].test(low)) {
       var x = RK.siap[LK_SIAP[i][0]]; if (!x || !(x.blok || []).length) return null;
-      return {pahami: x.pahami, alat: x.alat, blok: JSON.parse(JSON.stringify(x.blok)), saran: x.saran || [], konteks: null, lokal: {jenis: "siap", kunci: LK_SIAP[i][0]}, simpul: !!x.simpul};
+      return {pahami: x.pahami, alat: x.alat, blok: klon(x.blok), saran: x.saran || [], konteks: null, lokal: {jenis: "siap", kunci: LK_SIAP[i][0]}, simpul: !!x.simpul};
     }
-    var isi = low.replace(/^(cek stok|cek stock|stok|stock|cek|sisa stok|sisa|berapa stok|stoknya|ada stok)\s+/, "");
-    if (isi === low && !/^[\w\s\/".,-]+$/.test(low)) return null;
-    if (LK_BUKAN.test(isi)) return null;
+    return null;
+  }
+  /** "cek material proyek X", "cek PPBJ 011/PB/XI/2026", "proyek SL Mawar": jawaban per proyek yang disiapkan server. */
+  function proyekLokal(low) {
+    var P = RK.proy; if (!P) return null;
+    var idx = {}, ada = false; Object.keys(P).forEach(function (k) { idx[nKey(P[k].ppbj)] = P[k]; ada = true; }); if (!ada) return null;
+    var m = PPBJ_RE.exec(low), e = null, cand = [];
+    if (m) {
+      var sisa = low.replace(m[0], " ").replace(/\b(cek|lihat|tampilkan|tolong|dong|material|materialnya|kebutuhan|jatah|sisa|rincian|isi|status|proyek|projek|ppbj|no|nomor|nomer|buffer|stock|stok)\b/g, " ").replace(/\s+/g, " ").trim();
+      if (sisa) return null;
+      e = idx[nKey(m[0])]; if (!e) return null;
+    } else {
+      var n = /^(?:(?:cek|lihat|tampilkan|tolong) )*(?:(?:material|sisa jatah|jatah|kebutuhan|status|isi) )*(?:proyek|projek|ppbj) (.+)$/.exec(low); if (!n) return null;
+      var q = n[1].replace(/\b(material|dong|ya|aja|saja|nya|ini|itu)\b/g, " ").replace(/\s+/g, " ").trim();
+      if (!q || /\b(kenapa|mengapa|rekap|laporan|keluar|masuk|bulan|minggu|hari|ubah|tandai|ganti|prioritas|status|riwayat|kurang|berisiko|aktif|tanpa|selesai|batal|ditunda|apa|yang|mana|paling|semua)\b/.test(q)) return null;
+      var qt = q.split(" ").filter(function (t) { return t.length >= 2; }); if (!qt.length) return null;
+      Object.keys(idx).forEach(function (k) {
+        var p = idx[k], tk = (nKey(p.ppbj) + " " + String(p.ket || "").toLowerCase() + (p.buffer ? " buffer stock" : "")).toLowerCase().split(/[^a-z0-9\/]+/).filter(Boolean);
+        if (qt.every(function (t) { return tk.some(function (x) { return x === t || (t.length >= 3 && x.indexOf(t) === 0); }); })) cand.push(p);
+      });
+      if (!cand.length) return null;
+      if (cand.length > 1) {
+        var persis = cand.filter(function (p) { return String(p.ket || "").toLowerCase().replace(/\s+/g, " ") === q; });
+        if (persis.length === 1) cand = persis;
+      }
+      if (cand.length > 1) {
+        cand.sort(function (a, b) { return String(a.ppbj).localeCompare(String(b.ppbj)); });
+        return {pahami: "Cek material proyek: " + q, alat: "proyek", konteks: null, saran: [], lokal: {jenis: "proy", kunci: "pilih"},
+          blok: [{t: "pilih", judul: "Ada " + cand.length + " proyek yang cocok dengan \"" + q + "\". Pilih satu:", opsi: cand.slice(0, 10).map(function (p) { return {label: p.ppbj + " · " + String(p.ket || "").slice(0, 50) + " (" + (p.status || "") + ")", tanya: "cek material proyek " + p.ppbj}; })}]};
+      }
+      e = cand[0];
+    }
+    return {pahami: e.pahami, alat: "proyek", blok: klon(e.blok), saran: e.saran || [], konteks: {kodes: [], nama: [], ppbj: e.ppbj}, lokal: {jenis: "proy", kunci: nKey(e.ppbj)}};
+  }
+  /** "isi rak A3": barang di satu rak. */
+  function rakLokal(low) {
+    var m = /^(?:(?:cek|lihat|tampilkan|tolong|isi|barang di) )*rak ([a-z0-9][a-z0-9 \-\/.]{0,12})$/.exec(low); if (!m || !RK.rakIsi || !RK.ring) return null;
+    var rn = m[1].replace(/[^a-z0-9]/g, ""), r = RK.rakIsi[rn]; if (!r) return null;
+    var baris = (r.k || []).map(function (k) { return RK.ring[k]; }).filter(Boolean).sort(function (a, b) { return String(a[1]).localeCompare(String(b[1])); }).map(function (x) { return [x[1], x[0], x[2], x[3], x[4], x[5]]; });
+    if (!baris.length) return null;
+    return {pahami: "Isi rak " + r.rak, alat: "stok", konteks: null, saran: [], lokal: {jenis: "rak", kunci: rn},
+      blok: [{t: "p", s: "**Rak " + r.rak + "**" + (r.gudang ? " (" + r.gudang + ")" : "") + " berisi " + baris.length + " barang."}, {t: "tabel", judul: "Isi rak " + r.rak, kolom: tabelBarang(), baris: baris, total: baris.length, tampil: 15, unduh: "Isi rak " + r.rak, catatan: ""}]};
+  }
+  function tabelBarang() { return [{n: "Barang", f: ""}, {n: "Kode", f: ""}, {n: "Satuan", f: ""}, {n: "Stok fisik", f: "n"}, {n: "Stok bebas", f: "n"}, {n: "Status", f: ""}]; }
+  /** Maksud (stok / lokasi rak / order) dan sisa kalimat yang berisi nama barang. */
+  function niatBarang(low) {
+    var m;
+    if ((m = /^(?:(?:cek|lihat|cari|tolong) )*(?:lokasi|letak|posisi|rak) (?:rak )?(.+)$/.exec(low)) || (m = /^(.+?) (?:ada )?(?:di ?mana|dimana|di rak (?:mana|berapa)|rak (?:mana|berapa)|lokasinya|lokasi|letaknya)$/.exec(low))) return {niat: "rak", isi: m[1]};
+    if ((m = /^(?:(?:cek|lihat|tolong) )*(?:status )?(?:order|pesanan|po|eta) (.+)$/.exec(low)) || (m = /^(.+?) (?:(?:sudah|udah|lagi|sedang) )?(?:di ?order|diorder|dipesan|di ?pesan|ada po|kapan (?:datang|tiba|sampai)|datang kapan|belum datang|sudah datang)(?: ya| belum| gak| nggak)?$/.exec(low))) return {niat: "order", isi: m[1]};
+    var isi = low.replace(/^(?:(?:tolong|cek|lihat|cari|info) )*(?:stok|stock|stk|sisa stok|sisa|berapa stok|stoknya|ada stok|berapa sisa)\s+/, "").replace(/^(?:tolong |cek |lihat |cari |info )+/, "").replace(/\s+(?:ada berapa|berapa|ada gak|ada nggak|ada ga|ada tidak|masih ada|sisa berapa|sisanya|stoknya|stok|sisa)$/, "");
+    return {niat: "stok", isi: isi, polos: isi === low};
+  }
+  /** Satu potongan nama → {satu:{key,kode,nama}} | {banyak:[hit]} | null (ragu: serahkan ke server). */
+  function lacakBarang(frag) {
+    var tj = T(); if (!tj.cari || !tj.norm || !tj.bersih) return null;
+    var fr = frasaSrv(frag), kb = RK.bel && RK.bel[fr];
+    if (kb && RK.ring && RK.ring[kb] && RK.kartu[kb]) return {satu: {key: kb, kode: RK.ring[kb][0], nama: RK.ring[kb][1]}};   // pilihan yang pernah dipelajari bot
+    var tok = tj.bersih(tj.norm(frag)); if (!tok.length) return null;
+    var h = tj.cari(tok); if (!h.length) return null;
+    var top = h[0];
+    if (top.cov >= 0.99 && !(h[1] && h[1].skor > top.skor - 0.08)) return RK.kartu[top.b.key] ? {satu: {key: top.b.key, kode: top.b.kode, nama: top.b.nama}} : null;
+    var kand = h.filter(function (x) { return x.cov >= 0.99 && RK.ring && RK.ring[x.b.key]; });
+    if (kand.length >= 2 && kand.length <= 40) return {banyak: kand, frag: frag};
+    return null;
+  }
+  function kartuSebagian(kt, label) {
+    var k = klon(kt), simpan = false; k.baris = (k.baris || []).filter(function (r) { if (r[0]) simpan = label.test(r[0]); return simpan; }); return k;
+  }
+  function barangLokal(low) {
+    if (!RK.ring) return null;
+    var ni = niatBarang(low), isi = ni.isi;
+    if (ni.niat === "stok" && ni.polos && !/^[\w\s\/".,-]+$/.test(low)) return null;
+    if (!isi || LK_BUKAN.test(isi)) return null;
     var bag = isi.split(/\s+(?:dan|sama|serta|&)\s+|\s*,\s*/).filter(function (x) { return x.trim(); });
     if (!bag.length || bag.length > 2) return null;
-    var tj = T(); if (!tj.cari || !tj.norm || !tj.bersih) return null;
-    var kartu = [], kodes = [], nama = [];
+    var item = [], banyak = null;
     for (var k = 0; k < bag.length; k++) {
-      var tok = tj.bersih(tj.norm(bag[k])); if (!tok.length) return null;
-      var h = tj.cari(tok); if (!h.length) return null;
-      var top = h[0]; if (top.cov < 0.99 || (h[1] && h[1].skor > top.skor - 0.08)) return null;   // hanya bila barangnya pasti; ragu → server (yang bisa menawarkan pilihan)
-      var kt = RK.kartu[top.b.key]; if (!kt || kodes.indexOf(top.b.kode) >= 0) return null;
-      kartu.push(JSON.parse(JSON.stringify(kt))); kodes.push(top.b.kode); nama.push(top.b.nama);
+      var h = lacakBarang(bag[k]); if (!h) return null;
+      if (h.banyak) { if (bag.length > 1) return null; banyak = h; break; }
+      if (item.some(function (x) { return x.key === h.satu.key; })) return null;
+      item.push(h.satu);
     }
-    var n1 = nama[0];
-    return {pahami: "Cek stok: " + nama.join(", "), alat: "stok", blok: kartu, konteks: {kodes: kodes, nama: nama, ppbj: ""}, lokal: {jenis: "stok", kodes: kodes},
-      saran: [{label: "Kenapa angkanya begitu?", tanya: "jelaskan " + n1}, {label: "Cukup untuk berapa proyek?", tanya: "cukup untuk berapa proyek " + n1}, {label: "Riwayat bulan ini", tanya: "riwayat " + n1 + " bulan ini"}, {label: "Ukuran lain", tanya: "ukuran lain " + n1}, {label: "Ringkas saja", tanya: teks, ulang: "ringkas"}, {label: "Jelaskan lebih rinci", tanya: teks, ulang: "rinci"}]};
+    if (banyak) return grupLokal(banyak, bag[0]);
+    var nama = item.map(function (x) { return x.nama; }), kodes = item.map(function (x) { return x.kode; }), n1 = nama[0], blok = [];
+    var saran = [{label: "Kenapa angkanya begitu?", tanya: "jelaskan " + n1}, {label: "Cukup untuk berapa proyek?", tanya: "cukup untuk berapa proyek " + n1}, {label: "Riwayat bulan ini", tanya: "riwayat " + n1 + " bulan ini"}, {label: "Ukuran lain", tanya: "ukuran lain " + n1}, {label: "Ringkas saja", tanya: low, ulang: "ringkas"}, {label: "Jelaskan lebih rinci", tanya: low, ulang: "rinci"}];
+    var pahami = "Cek stok: " + nama.join(", ");
+    item.forEach(function (it) {
+      var kt = RK.kartu[it.key];
+      if (ni.niat === "rak") {
+        var m = /(Rak [^·]+|rak belum tercatat)\s*$/.exec(kt.sub || "");
+        blok.push({t: "p", s: "**" + it.nama + "**: " + (m ? m[1].trim().replace(/^rak belum tercatat$/, "lokasi rak belum tercatat") : "lokasi rak belum tercatat") + "."});
+        blok.push(kartuSebagian(kt, /^(Stok fisik|Stok bebas|Status)/));
+      } else if (ni.niat === "order") {
+        var ks = kartuSebagian(kt, /^(Stok bebas|Akan datang|Sudah diorder|Belum diorder|Perlu dibeli|Status)/);
+        if (!ks.baris.some(function (r) { return /^(Akan datang|Sudah diorder|Belum diorder)/.test(r[0]); })) blok.push({t: "p", s: "**" + it.nama + "**: tidak ada order berjalan (tidak sedang diorder, atau pesanannya sudah datang)."});
+        blok.push(ks);
+      } else blok.push(klon(kt));
+    });
+    if (ni.niat === "rak") pahami = "Lokasi rak: " + nama.join(", ");
+    else if (ni.niat === "order") pahami = "Status order: " + nama.join(", ");
+    return {pahami: pahami, alat: ni.niat === "stok" ? "stok" : "order", blok: blok, konteks: {kodes: kodes, nama: nama, ppbj: ""}, lokal: {jenis: ni.niat === "stok" ? "stok" : "order", kodes: kodes}, saran: saran};
+  }
+  /** Beberapa barang cocok (mis. "cek elbow 3", "cek kimia"): tabel stok semuanya + pilihan (bot mengingat pilihan Anda). */
+  function grupLokal(h, frag) {
+    var baris = h.banyak.map(function (x) { var r = RK.ring[x.b.key]; return [r[1], r[0], r[2], r[3], r[4], r[5]]; });
+    var opsi = h.banyak.slice(0, 8).map(function (x) { return {label: x.b.nama + " (" + x.b.kode + ")", kode: x.b.kode, frasa: frag}; });
+    return {pahami: "Barang yang cocok dengan \"" + frag + "\"", alat: "stok", konteks: null, saran: [], lokal: {jenis: "grup", kodes: h.banyak.slice(0, 5).map(function (x) { return x.b.kode; })},
+      blok: [{t: "p", s: "Ada **" + baris.length + " barang** yang cocok dengan \"" + frag + "\". Stoknya ada di tabel; pilih salah satu untuk rincian lengkap (bot akan mengingat pilihan ini)."},
+        {t: "tabel", judul: "Barang yang cocok dengan " + frag, kolom: tabelBarang(), baris: baris, total: baris.length, tampil: 15, unduh: "Barang " + frag, catatan: ""},
+        {t: "pilih", judul: "Rincian yang mana?", opsi: opsi}]};
+  }
+  function lokal(teks) {
+    if (!rkSegar()) return null;
+    var low = nr(teks).replace(/\bstk\b/g, "stok").replace(/\bstock\b/g, "stok").replace(/\bproject\b/g, "proyek");
+    if (!low || low.length > 120) return null;
+    return siapLokal(low) || proyekLokal(low) || rakLokal(low) || barangLokal(low);
   }
   function idLokal() { return "L" + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); }
 
@@ -207,20 +327,12 @@
     var t0 = Date.now();
     if (!o.server && !o.pilih && !o.paksa && !o.mode && !o.segar) {
       var L = null; try { L = lokal(teks); } catch (eL) { L = null; }
-      if (L) {   // T140: jawaban instan dari ringkasan (tanpa menunggu server)
-        add("tq-u", esc(o.label || teks));
-        var ml = add("tq-b tga", "");
-        if (layar() === "hp") L.blok.forEach(function (b) { if (b.t === "tabel") b.tampil = Math.min(b.tampil || 15, 6); });
-        L.id = idLokal(); L.jalur = "instan"; L.ok = true;
-        tampilkan(ml, L, teks, o, t0);
-        api({action: "adminBotSusul", pin: A.pin, id: L.id, lokal: L.lokal, simpul: L.simpul ? 1 : 0, teks: teks, pahami: L.pahami, ms: Date.now() - t0}).then(function (s) { if (s && s.ok && s.simpul) sisipSimpul(ml, s.simpul); else hapusTunggu(ml); }).catch(function () { hapusTunggu(ml); });
-        return;
-      }
+      if (L) { instanKirim(teks, L, o, t0); return; }   // T140/T141: jawaban instan dari ringkasan (tanpa menunggu server)
     }
     add("tq-u", esc(o.label || teks));
-    var m = add("tq-b tga", '<p class="tq-sm tga-tunggu">Memahami dan menghitung dari data...</p>');
+    var m = add("tq-b tga", '<p class="tq-sm tga-tunggu">Memahami dan menghitung dari data...</p>'), henti = tungguBertahap(m);
     api({action: "adminBotTanya", pin: A.pin, teks: teks, konteks: A.K, pilih: o.pilih || null, segar: o.segar ? 1 : 0, riwayat: A.H.slice(-6), layar: layar(), mode: o.mode || "", paksa: o.paksa || "", bertahap: 1}).then(function (r) {
-      if (!m) return; m.innerHTML = "";
+      henti(); if (!m) return; m.innerHTML = "";
       if (!r || !r.ok) {
         var msg = (r && r.msg) || "Gagal.";
         if (/is not defined|tidak dikenal/i.test(msg)) msg = "Bot admin belum terpasang di server (BotAdmin.gs). Pasang dulu BotAdmin.gs dan baris route di Code.gs, lalu Deploy.";
@@ -231,7 +343,36 @@
       if (r.susul) {   // T140: log + kesimpulan AI menyusul, tidak menahan jawaban
         api({action: "adminBotSusul", pin: A.pin, id: r.id, ms: Date.now() - t0}).then(function (s) { if (s && s.ok && s.simpul) sisipSimpul(m, s.simpul); else hapusTunggu(m); }).catch(function () { hapusTunggu(m); });
       }
-    }).catch(function () { if (m) m.innerHTML = '<p class="err">Gagal terhubung ke server. Periksa internet lalu coba lagi.</p>'; });
+    }).catch(function () { henti(); if (m) m.innerHTML = '<p class="err">Gagal terhubung ke server. Periksa internet lalu coba lagi.</p>'; });
+  }
+  /** Jawaban instan: gambar dari ringkasan, lalu log + kesimpulan AI menyusul (tidak menahan jawaban). */
+  function instanKirim(teks, L, o, t0) {
+    add("tq-u", esc(o.label || teks));
+    var ml = add("tq-b tga", "");
+    if (layar() === "hp") L.blok.forEach(function (b) { if (b.t === "tabel") b.tampil = Math.min(b.tampil || 15, 6); });
+    L.id = idLokal(); L.jalur = "instan"; L.ok = true;
+    tampilkan(ml, L, teks, o, t0);
+    api({action: "adminBotSusul", pin: A.pin, id: L.id, lokal: L.lokal, simpul: L.simpul ? 1 : 0, teks: teks, pahami: L.pahami, ms: Date.now() - t0}).then(function (s) { if (s && s.ok && s.simpul) sisipSimpul(ml, s.simpul); else hapusTunggu(ml); }).catch(function () { hapusTunggu(ml); });
+  }
+  /** Tulisan tunggu yang bergerak: menampilkan detik berjalan (bukan tahap palsu) supaya terlihat tidak macet. Mengembalikan fungsi untuk berhenti. */
+  function tungguBertahap(m) {
+    var t0 = Date.now(), p = m && m.querySelector(".tga-tunggu"), iv = null;
+    function henti() { if (iv) { clearInterval(iv); iv = null; } }
+    if (!p) return henti;
+    iv = setInterval(function () {
+      if (!p.isConnected) { henti(); return; }
+      var dt = Math.floor((Date.now() - t0) / 1000);
+      p.textContent = "Memahami dan menghitung dari data... " + dt + " dtk" + (dt >= 20 ? " · server sedang sibuk, mohon tunggu" : dt >= 6 ? " · data besar, masih dihitung" : "");
+    }, 500);
+    return henti;
+  }
+  /** Memilih barang dari tabel kelompok: kartu langsung dari ringkasan bila ada. */
+  function pilihInstan(kode) {
+    if (!rkSegar() || !RK.ring) return false;
+    var key = String(kode || "").trim().toUpperCase(), kt = RK.kartu[key], r = RK.ring[key]; if (!kt || !r) return false;
+    var n = r[1], L = {pahami: "Cek stok: " + n, alat: "stok", blok: [klon(kt)], konteks: {kodes: [r[0]], nama: [n], ppbj: ""}, lokal: {jenis: "stok", kodes: [r[0]]},
+      saran: [{label: "Kenapa angkanya begitu?", tanya: "jelaskan " + n}, {label: "Cukup untuk berapa proyek?", tanya: "cukup untuk berapa proyek " + n}, {label: "Riwayat bulan ini", tanya: "riwayat " + n + " bulan ini"}, {label: "Ukuran lain", tanya: "ukuran lain " + n}]};
+    instanKirim("stok " + n, L, {label: "→ " + n}, Date.now()); return true;
   }
   function sisipSimpul(m, s) {
     var w = m.querySelector(".tga-simpul-tunggu"), d = document.createElement("div");
@@ -253,7 +394,7 @@
       if (/ $/.test(x.tanya)) { var q = document.getElementById("q"); if (q) { q.value = x.tanya; q.focus(); } } else tanya(x.tanya);
     }));
     var dtk = ((Date.now() - t0) / 1000).toFixed(1).replace(".", ",");
-    if (instan) m.insertAdjacentHTML("beforeend", '<p class="tq-sm tga-meta">jawaban instan dari ringkasan per ' + esc(rkJam()) + ' · <a href="#" class="tga-segar">hitung ulang dari data terbaru</a> · <a href="#" class="tga-salah">Bukan ini maksud saya</a></p>');
+    if (instan) m.insertAdjacentHTML("beforeend", '<p class="tq-sm tga-meta">jawaban instan dari ringkasan per ' + esc(rkJam()) + (r.lokal && r.lokal.jenis === "rak" ? "" : ' · <a href="#" class="tga-segar">hitung ulang dari data terbaru</a>') + ' · <a href="#" class="tga-salah">Bukan ini maksud saya</a></p>');
     else m.insertAdjacentHTML("beforeend", '<p class="tq-sm tga-meta">' + "dihitung dari data " + dtk + " dtk" + (r.dataJam ? ' · bacaan data per ' + esc(r.dataJam) + ' <a href="#" class="tga-segar">hitung ulang dari data terbaru</a>' : "") + (r.id && r.alat !== "tanya" ? ' · <a href="#" class="tga-salah">Bukan ini maksud saya</a>' : "") + "</p>");
     var sg = m.querySelector(".tga-segar"); if (sg) sg.onclick = function (ev) { ev.preventDefault(); tanya(teks, {segar: true, pilih: o.pilih, paksa: o.paksa, label: teks + " (data terbaru)"}); };
     var sl = m.querySelector(".tga-salah");
@@ -283,8 +424,8 @@
 
   /* ---------- mode ---------- */
   function sapa() {
-    var a = add("tq-b tga", "<p><b>Halo, admin.</b> Tanyakan apa saja: stok dan alasannya, pesanan, proyek, simulasi, laporan (bisa diunduh Excel), nomor seri, lacak BPB. Boleh beberapa permintaan sekaligus, bahasa sehari-hari, dan pertanyaan susulan (\"yang kedua?\", \"kalau 10 proyek?\"). Perintah yang mengubah data selalu minta konfirmasi dulu.</p>");
-    if (a) a.appendChild(chips([{label: "Briefing hari ini", t: "briefing"}, {label: "Ada yang aneh?", t: "ada yang aneh hari ini"}, {label: "Proyek berisiko", t: "proyek mana paling berisiko"}, {label: "Pesanan terlambat", t: "pesanan yang telat"}, {label: "Contoh pertanyaan", t: "bantuan"}, {label: "Usulan belajar", t: "usulan belajar"}], function (x) { tanya(x.t); }));
+    var a = add("tq-b tga", "<p><b>Halo, admin.</b> Tanyakan apa saja: stok dan alasannya, pesanan, proyek, simulasi, laporan (bisa diunduh Excel), nomor seri, lacak BPB. Jawaban instan untuk kata kunci seperti \"cek stok X\", \"cek material proyek X\", \"cek PPBJ 011/PB/XI/2026\", \"material buffer stock\", \"barang habis\", \"stok minus\", \"pesanan akan datang\", \"pesanan yang telat\", \"rak X\", \"isi rak A3\". Boleh beberapa permintaan sekaligus, bahasa sehari-hari, dan pertanyaan susulan (\"yang kedua?\", \"kalau 10 proyek?\"). Perintah yang mengubah data selalu minta konfirmasi dulu.</p>");
+    if (a) a.appendChild(chips([{label: "Briefing hari ini", t: "briefing"}, {label: "Ada yang aneh?", t: "ada yang aneh hari ini"}, {label: "Proyek berisiko", t: "proyek mana paling berisiko"}, {label: "Pesanan terlambat", t: "pesanan yang telat"}, {label: "Barang habis", t: "barang habis"}, {label: "Akan datang", t: "pesanan akan datang minggu ini"}, {label: "Material buffer stock", t: "cek material buffer stock"}, {label: "Contoh pertanyaan", t: "bantuan"}, {label: "Usulan belajar", t: "usulan belajar"}], function (x) { tanya(x.t); }));
   }
   /** Tidak ada tombol "Mode admin": admin dikenali dari kode masuk (password admin). Hanya lencana ADMIN kecil di judul. */
   function tombol() {

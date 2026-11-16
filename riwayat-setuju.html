@@ -60,7 +60,7 @@ function detail(e){var h='<b>Barang</b><ul>'+(e.items||[]).map(function(i){retur
   h+='<b>Riwayat persetujuan</b><ul>'+(e.tahap||[]).filter(function(t){return t.waktu||t.nama;}).map(function(t){return '<li>'+esc(t.label)+': '+esc(t.nama||"-")+(t.waktu?' ('+esc(t.waktu)+')':' (belum)')+(t.cat?' &mdash; "'+esc(t.cat)+'"':'')+'</li>';}).join("")+'</ul>';return h;}
 function aksiHtml(e,i,jenis){var h='';if(jenis==="menunggu"&&e.link)h+='<a href="'+esc(e.link)+'" target="_blank" rel="noopener"><button class="sm" type="button">Buka &amp; putuskan</button></a> ';
   if(jenis!=="menunggu"&&e.menunggu&&e.status==="berjalan")h+='<button class="sm gh" type="button" data-ing="'+jenis+'|'+i+'">Ingatkan</button> ';
-  if(e.cetak)h+='<a href="'+esc(e.cetak)+'" target="_blank" rel="noopener"><button class="sm gh" type="button">PDF bukti</button></a> ';
+  if(e.cetak&&e.cetak!=="minta")h+='<a href="'+esc(e.cetak)+'" target="_blank" rel="noopener"><button class="sm gh" type="button">PDF bukti</button></a> ';else if(e.cetak)h+='<button class="sm gh" type="button" data-pdf="'+jenis+'|'+i+'">PDF bukti</button> ';
   return h+'<button class="sm gh" type="button" data-det="'+jenis+'|'+i+'">Detail</button>';}
 function tabel(list,jenis){var sc=function(e){return jenis!=="semua"||SCP!=="saya"||e.mine;};var rows=list.filter(function(e){return sc(e)&&cocokFil(e)&&cocokQ(e);});if(!rows.length&&Q)rows=list.filter(function(e){return sc(e)&&cocokFil(e)&&cocokQ(e,true);});
   if(!rows.length)return '<div class="msg">'+(list.length?'Tidak ada yang cocok dengan penyaring.':jenis==="menunggu"?'Tidak ada permintaan yang menunggu keputusan Anda.':'Belum ada data pada rentang waktu ini.')+'</div>';
@@ -82,7 +82,8 @@ function pasang(){app.querySelectorAll("[data-tab]").forEach(function(b){b.oncli
   var q=document.getElementById("q");q.oninput=function(){Q=q.value.trim();var p=q.selectionStart;document.getElementById("isi").innerHTML=tabel(D[TAB],TAB);pasangIsi();};
   document.getElementById("scp").onchange=function(){SCP=this.value;gambar();};document.getElementById("fil").onchange=function(){FIL=this.value;gambar();};document.getElementById("hr").onchange=function(){HARI=Number(this.value);D=null;muat();};
   document.getElementById("seg").onclick=function(){muat();};document.getElementById("keluar").onclick=function(){KODE="";D=null;login();};pasangIsi();}
-function pasangIsi(){app.querySelectorAll("[data-det]").forEach(function(b){b.onclick=function(){var k=b.getAttribute("data-det").split("|");var r=document.getElementById("det-"+k[0]+"-"+k[1]);if(r)r.classList.toggle("b");};});
+function pasangIsi(){app.querySelectorAll("[data-pdf]").forEach(function(b){b.onclick=async function(){var k=b.getAttribute("data-pdf").split("|"),e=D[k[0]][Number(k[1])];b.disabled=true;var w=window.open("","_blank");try{var r=await api({action:"riwayatCetak",id:e.id});if(r.ok){e.cetak=r.url;if(w)w.location.href=r.url;else location.href=r.url;}else{if(w)w.close();toast(r.msg||"Gagal membuka bukti.");}}catch(x){if(w)w.close();toast("Gagal membuka bukti.");}b.disabled=false;};});
+  app.querySelectorAll("[data-det]").forEach(function(b){b.onclick=function(){var k=b.getAttribute("data-det").split("|");var r=document.getElementById("det-"+k[0]+"-"+k[1]);if(r)r.classList.toggle("b");};});
   app.querySelectorAll("[data-ing]").forEach(function(b){b.onclick=function(){var k=b.getAttribute("data-ing").split("|");salin(ingatTeks(D[k[0]][Number(k[1])]));};});}
 if(KODE)muat(false);else login();
 </script>

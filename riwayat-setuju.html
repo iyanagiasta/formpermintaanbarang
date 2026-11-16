@@ -38,7 +38,7 @@ th{position:sticky;top:0;z-index:3;background:var(--head);white-space:nowrap}tbo
 <script src="cari-pintar.js"></script>
 <script>
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
-var KODE="",D=null,TAB="menunggu",FIL="semua",Q="",HARI=30,BUSY=false,app=document.getElementById("app");
+var KODE="",D=null,TAB="menunggu",FIL="semua",SCP="saya",Q="",HARI=30,BUSY=false,app=document.getElementById("app");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function toast(m){var t=document.getElementById("toast");t.textContent=m;t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},3500);}
 async function api(b){b.kode=KODE;var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}
@@ -62,25 +62,25 @@ function aksiHtml(e,i,jenis){var h='';if(jenis==="menunggu"&&e.link)h+='<a href=
   if(jenis!=="menunggu"&&e.menunggu&&e.status==="berjalan")h+='<button class="sm gh" type="button" data-ing="'+jenis+'|'+i+'">Ingatkan</button> ';
   if(e.cetak)h+='<a href="'+esc(e.cetak)+'" target="_blank" rel="noopener"><button class="sm gh" type="button">PDF bukti</button></a> ';
   return h+'<button class="sm gh" type="button" data-det="'+jenis+'|'+i+'">Detail</button>';}
-function tabel(list,jenis){var rows=list.filter(function(e){return cocokFil(e)&&cocokQ(e);});if(!rows.length&&Q)rows=list.filter(function(e){return cocokFil(e)&&cocokQ(e,true);});
+function tabel(list,jenis){var sc=function(e){return jenis!=="semua"||SCP!=="saya"||e.mine;};var rows=list.filter(function(e){return sc(e)&&cocokFil(e)&&cocokQ(e);});if(!rows.length&&Q)rows=list.filter(function(e){return sc(e)&&cocokFil(e)&&cocokQ(e,true);});
   if(!rows.length)return '<div class="msg">'+(list.length?'Tidak ada yang cocok dengan penyaring.':jenis==="menunggu"?'Tidak ada permintaan yang menunggu keputusan Anda.':'Belum ada data pada rentang waktu ini.')+'</div>';
   var h='<div class="tw"><table><thead><tr><th>Dokumen</th><th>Pemohon</th><th>Barang</th><th>PPBJ</th>'+(jenis==="setuju"?'<th>Keputusan saya</th>':'<th>Diajukan</th>')+'<th>Posisi sekarang</th><th></th></tr></thead><tbody>';
   rows.forEach(function(e,i){var k=list.indexOf(e);h+='<tr class="r"><td data-l="Dokumen"><b>'+esc(e.doc)+'</b></td><td data-l="Pemohon">'+esc(e.pemohon)+'<div class="note">'+esc(e.dept)+'</div></td><td data-l="Barang">'+esc(e.barang)+'</td><td data-l="PPBJ">'+esc(e.ppbj||"-")+'</td>'+
    (jenis==="setuju"?'<td data-l="Keputusan saya"><span class="pil '+(e.keputusan==="Ditolak"?"no":"ok")+'">'+esc(e.keputusan)+'</span><div class="note">'+esc(e.tahapSaya)+' &middot; '+esc(e.waktuKeputusan)+'</div></td>':'<td data-l="Diajukan">'+esc(e.tgl)+'</td>')+
    '<td data-l="Posisi sekarang">'+pilStatus(e)+'</td><td data-l="">'+aksiHtml(e,k,jenis)+'</td></tr><tr class="det" id="det-'+jenis+'-'+k+'"><td colspan="7">'+detail(e)+'</td></tr>';});
   return h+'</tbody></table></div>';}
-function gambar(){var R=D.ringkas;var tabs=[["menunggu","Menunggu saya",D.menunggu.length],["setuju","Yang saya setujui",D.setuju.length],["ajukan","Yang saya ajukan",D.ajukan.length]];
+function gambar(){var R=D.ringkas;var tabs=[["menunggu","Menunggu saya",D.menunggu.length],["setuju","Yang saya setujui",D.setuju.length],["semua","Semua permintaan",(D.semua||[]).length],["ajukan","Yang saya ajukan",D.ajukan.length]];
   var h='<div class="card"><div class="note">Masuk sebagai <b>'+esc(D.nama)+'</b> ('+esc(D.peran)+') &middot; data per '+esc(D.now)+' &middot; hanya baca, tanpa nilai rupiah</div>'+
   '<div class="sum" style="margin-top:8px"><div><b>'+R.menunggu+'</b><span>Menunggu keputusan saya</span></div><div><b>'+R.setuju+'</b><span>Saya setujui ('+D.hari+' hari)</span></div><div><b>'+R.diserahkan+'</b><span>Sudah diserahkan</span></div><div><b>'+R.berjalan+'</b><span>Masih berjalan</span></div><div><b style="color:'+(R.macet?"#c0392b":"inherit")+'">'+R.macet+'</b><span>Tertahan 24 jam lebih</span></div><div><b>'+R.ditolak+'</b><span>Saya tolak</span></div></div></div>'+
   '<div class="card"><div class="tabs">'+tabs.map(function(t){return '<button type="button" data-tab="'+t[0]+'" class="'+(TAB===t[0]?"on":"")+'">'+t[1]+'<span class="bd" style="background:'+(t[0]==="menunggu"&&t[2]?"#d33":"#6a7f8f")+'">'+t[2]+'</span></button>';}).join("")+'</div>'+
   '<div class="bar"><input type="search" id="q" placeholder="Cari nomor, pemohon, barang, PPBJ..." value="'+esc(Q)+'">'+
-  '<select id="fil">'+[["semua","Semua"],["berjalan","Masih berjalan"],["macet","Tertahan"],["selesai","Sudah selesai"],["ditolak","Ditolak"]].map(function(o){return '<option value="'+o[0]+'"'+(FIL===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select>'+
+  '<select id="scp" style="'+(TAB==="semua"?"":"display:none")+'"><option value="saya"'+(SCP==="saya"?" selected":"")+'>Yang menunjuk saya</option><option value="dept"'+(SCP==="dept"?" selected":"")+'>'+(D.semuaDept?"Semua departemen":"Seluruh departemen"+(D.dept?" ("+esc(D.dept)+")":""))+'</option></select><select id="fil">'+[["semua","Semua"],["berjalan","Belum disetujui / masih proses"],["macet","Tertahan"],["selesai","Sudah selesai"],["ditolak","Ditolak"]].map(function(o){return '<option value="'+o[0]+'"'+(FIL===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select>'+
   '<select id="hr">'+[30,90,180,365].map(function(n){return '<option value="'+n+'"'+(HARI===n?" selected":"")+'>'+n+' hari</option>';}).join("")+'</select><button class="gh" type="button" id="seg">Segarkan</button><button class="gh" type="button" id="keluar">Ganti kode</button></div>'+
   '<div id="isi">'+tabel(D[TAB],TAB)+'</div></div>';
   app.innerHTML=h;pasang();}
 function pasang(){app.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){TAB=b.getAttribute("data-tab");gambar();};});
   var q=document.getElementById("q");q.oninput=function(){Q=q.value.trim();var p=q.selectionStart;document.getElementById("isi").innerHTML=tabel(D[TAB],TAB);pasangIsi();};
-  document.getElementById("fil").onchange=function(){FIL=this.value;gambar();};document.getElementById("hr").onchange=function(){HARI=Number(this.value);D=null;muat();};
+  document.getElementById("scp").onchange=function(){SCP=this.value;gambar();};document.getElementById("fil").onchange=function(){FIL=this.value;gambar();};document.getElementById("hr").onchange=function(){HARI=Number(this.value);D=null;muat();};
   document.getElementById("seg").onclick=function(){muat();};document.getElementById("keluar").onclick=function(){KODE="";D=null;login();};pasangIsi();}
 function pasangIsi(){app.querySelectorAll("[data-det]").forEach(function(b){b.onclick=function(){var k=b.getAttribute("data-det").split("|");var r=document.getElementById("det-"+k[0]+"-"+k[1]);if(r)r.classList.toggle("b");};});
   app.querySelectorAll("[data-ing]").forEach(function(b){b.onclick=function(){var k=b.getAttribute("data-ing").split("|");salin(ingatTeks(D[k[0]][Number(k[1])]));};});}

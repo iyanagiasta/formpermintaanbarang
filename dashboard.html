@@ -207,6 +207,7 @@ function kartu(){
    big("terimabarang","terima","Penerimaan Barang","Daftar pembelian/PO yang menunggu diterima. Pilih salah satu, catat Baik, Rusak, atau Salah kirim beserta foto surat jalan; stok bertambah dari barang Baik.","Staff Gudang atau admin")+
    big("pembelianku","terima","Pengadaan","Unggah PO dari Accurate, antrean kerja, UMO dan realisasi, klaim vendor, serta pembelian dan penerimaan barang. Staff Gudang mengonfirmasi barang diterima; Accounting mengesahkan pembelian darurat.","Pengadaan, Accounting, atau gudang")+
    '</div>'+'<div class="sec"><h3>Alat dan administrasi</h3></div><div class="menu">'+
+   big("riwayat","kebutuhan","Riwayat Persetujuan Saya","Lihat permintaan yang menunggu keputusan Anda, yang sudah Anda setujui atau tolak, dan yang Anda ajukan, lengkap dengan posisinya sekarang. Hanya baca, tanpa nilai rupiah.","kode pribadi penyetuju")+
    big("masterbarang","plus","Pengajuan Master Barang","Ajukan barang baru yang belum ada di daftar. Gudang menerima pengajuan lalu memasukkannya ke Accurate.","kode pegawai")+
    big("label","barcode","Cetak Label Barcode","Cetak label barcode dan label Tom & Jerry berisi nama barang, barcode, dan kotak Slow / Fast Moving.","PIC, atasan, atau gudang")+
    big("gabungpdf","gabung","Gabung jadi 1 PDF","Gabungkan foto kamera, gambar, PDF, dan Excel menjadi satu PDF. Bisa potong, putar, diperkecil, dan diberi nama sebelum diunduh. Diproses di perangkat ini.","Staff Gudang atau admin")+
@@ -286,7 +287,7 @@ async function ringkasAdmin(pin){
      (s.bufferAda?stat(s.bufferKurang||0,"Barang di bawah buffer paket"+((s.bufferMenipis||0)>0?" (+"+s.bufferMenipis+" menipis)":""),(s.bufferKurang||0)>0?"b":((s.bufferMenipis||0)>0?"w":"ok"),"admin.html#buffer","tumpuk"):"")+
      (s.kuota>=0?stat(s.kuota,"Sisa kuota email hari ini",s.kuota<20?"b":"ok","admin.html#sistem","surat"):"")+'</div>';
     var bs=document.getElementById("adm-stat");if(bs)bs.innerHTML=hs+'<div id="adm-graf"></div>';grafikAdmin(r.grafik);
-    var utama={"index.html":1,"gudang.html":1,"kebutuhan.html":1,"proyek.html":1,"pembelian.html":1,"admin.html":1,"pengembalian.html":1},lain=r.data.filter(function(m){return !utama[m.link]&&m.untuk!=="Admin";}),ad=r.data.filter(function(m){return m.untuk==="Admin";});
+    var utama={"riwayat-setuju.html":1,"index.html":1,"gudang.html":1,"kebutuhan.html":1,"proyek.html":1,"pembelian.html":1,"admin.html":1,"pengembalian.html":1},lain=r.data.filter(function(m){return !utama[m.link]&&m.untuk!=="Admin";}),ad=r.data.filter(function(m){return m.untuk==="Admin";});
     if(lain.length)h+='<div class="sec"><h3>Menu lainnya</h3></div>'+grid(lain);
     if(ad.length)h+='<div class="sec"><h3>Menu Admin</h3></div>'+grid(ad);
     var box=document.getElementById("adm-box");if(box)box.innerHTML=h;

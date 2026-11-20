@@ -159,7 +159,7 @@
     '.da-ch{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.da-ch button{border:1px solid transparent;border-radius:14px;padding:4px 10px;cursor:pointer;font-size:12.5px}.da-ch button.on{outline:2px solid var(--acc,#0a2a43)}' +
     '.da-s{display:inline-block;border-radius:10px;padding:1px 8px;font-size:12px;white-space:nowrap}' +
     '.da-belum{background:#fde2e2;color:#8a1c1c}.da-sebagian{background:#ffe9cc;color:#7a4300}.da-tunggu{background:#fff4c2;color:#6b5200}.da-datangSebagian{background:#e3f0ff;color:#0d4a8a}.da-ri{background:#e8eef3;color:#334}' +
-    '.da-faktur{background:#f3e1ff;color:#5b2382}.da-proses{background:#fff0e0;color:#7a4300;border:1px dashed #c98a3a}.da-stok{background:#e6f4f1;color:#0f5c4f}.da-langsung{background:#eef0f2;color:#4a5b68}.da-jasa{background:#eef0f2;color:#4a5b68}.da-lengkap{background:#dff3e4;color:#1d6b35}' +
+    '.da-faktur{background:#f3e1ff;color:#5b2382}.da-kurang{background:#fde3e3;color:#9b1c1c}.da-proses{background:#fff0e0;color:#7a4300;border:1px dashed #c98a3a}.da-stok{background:#e6f4f1;color:#0f5c4f}.da-langsung{background:#eef0f2;color:#4a5b68}.da-jasa{background:#eef0f2;color:#4a5b68}.da-lengkap{background:#dff3e4;color:#1d6b35}' +
     '.da-f{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:6px 0}.da-f label{display:flex;flex-direction:column;font-size:12.5px;gap:2px}.da-rinci td{background:var(--bg2,#f6f8fa)}.da-rinci table{margin:4px 0 8px}';
   function gaya() { if (document.getElementById('da-css')) return; var s = document.createElement('style'); s.id = 'da-css'; s.textContent = CSS; document.head.appendChild(s); }
   function nf(n) { return n == null || n === '' ? '-' : (Math.round(Number(n) * 1000) / 1000).toLocaleString('id-ID'); }
@@ -169,6 +169,7 @@
   D.stokKet = function (i) {
     if (!i || i.stokGudang == null) return '';
     var s = 'stok gudang ' + nf(i.stokGudang) + (i.cukup ? ' (cukup)' : ' (kurang dari ' + nf(i.qty) + ')');
+    if (i.st === 'kurang') s = 'Lewat ' + (i.batasStok == null ? 7 : i.batasStok) + ' hari tanpa PO dan ' + s + '. Tanyakan ke Purchasing.';
     if (i.st === 'proses') s = (i.umurPpbj == null ? 'PPBJ ' : i.umurPpbj === 0 ? 'PPBJ dibuat hari ini, ' : 'PPBJ ' + i.umurPpbj + ' hari, ') + 'belum ada PO. Dianggap pakai stok setelah ' + (i.batasStok == null ? 7 : i.batasStok) + ' hari. ' + s;
     return '<br><small>' + esc(s) + '</small>';
   };

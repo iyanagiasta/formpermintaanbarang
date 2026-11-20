@@ -60,7 +60,7 @@
     realisasi: "realisasi umo laporan uang muka", laporan: "laporan report rekap bulanan", lapatasan: "laporan atasan atasan manajemen direksi",
     telusur: "telusur lacak riwayat barang jejak ppbj bpb dokumen no seri banyak barang linimasa", analisa: "analisa analisis cukup kekurangan beli anggaran cukup proyek",
     arsip: "arsip bukti pdf bukti cetak bukti pengambilan", bast: "bast berita acara serah terima", pengganti: "bpb pengganti pengganti ganti",
-    mutasiacc: "mutasi accurate", masterbarang: "master barang barang baru kode barang katalog daftar barang", label: "label barcode stiker cetak label",
+    mutasiacc: "mutasi accurate", dataacc: "data accurate unggah laporan accurate item requisition purchase order detail purchase flow history penyesuaian stok ia excel pdf status order po belum datang diorder faktur penerimaan ri", masterbarang: "master barang barang baru kode barang katalog daftar barang", label: "label barcode stiker cetak label",
     pengumuman: "pengumuman info berita", sistem: "sistem pengaturan setting admin pin", kecepatan: "kecepatan lambat performa aplikasi",
     panduan: "panduan bantuan help cara pakai petunjuk"
   };
@@ -367,7 +367,7 @@
 
   /* ---------- penyimpanan yang mengubah data tab lain ---------- */
   var BACA_LAIN = {adminAnalisaBarang: 1, adminAnalisaPpbj: 1, adminMutasi: 1, adminKondisiTautan: 1, adminBastDataAwal: 1, adminBastDraf: 1, kimiaFotoGet: 1, seriDok: 1, seriKode: 1, bot: 1, adminCetakLink: 1};
-  var T_STOK = "stok mutasi telusur buffer analisa barangmati kerja pantau serah terima opname kpi komparasi seri kedaluwarsa accurate masterbarang lapatasan laporan baopname mutasiacc arsip bast pengganti".split(" ");
+  var T_STOK = "stok mutasi telusur buffer analisa barangmati kerja pantau serah terima opname kpi komparasi seri kedaluwarsa accurate masterbarang lapatasan laporan baopname mutasiacc dataacc arsip bast pengganti".split(" ");
   var T_PROYEK = "telusur buffer analisa proyek kerja pantau serah pengajuan lapatasan laporan".split(" ");
   var RX_TANPA = /^(adminPengumumanSimpan|adminKpiTarget|label|catatan|diskusi|perj|ven|tawar|adminPengingatPesan|adminRemind|adminPbRemind|adminPgjRemind|adminBufferEmail|adminLaporan|adminCetakLink|bot|kimia|pengAtur|tanda|berkasTandai|klaimSelesai|adminCadangan|adminKomparasiTandai|adminLapTautan|adminLapSegel|adminMutasiSegel|adminMutasiTautan|adminArsipTautan|adminPgtTautan|adminIdBarcodeIsi|eksp|revisiSelesai|adminMacRekonTandai)/;
   var RX_STOK = /terima|serah|kembali|keluar|koreksi|stok|opname|mutasi|seri|submit|decide|bpb|pgt|kdl|harga|jenis|^mb|adminMb|ubah|^adminIa|sinkron|tarikrak|impor|import/i;

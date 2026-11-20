@@ -321,20 +321,26 @@
       var o = MC.parse(rows); if (o.err) { info.textContent = ''; toast(o.err, true); return; }
       var msg = 'Periode ' + dmy(o.dari) + ' s/d ' + dmy(o.sampai) + ': ' + o.rows.length + ' transaksi, ' + o.saldo.length + ' saldo awal, gudang ' + o.gudang.join(', ') + '.' + (o.warn.length ? ' Catatan: ' + o.warn.join(' ') : '');
       if (!confirm(msg + '\n\nData Accurate pada periode ini akan diganti dengan isi file. Lanjutkan?')) { info.textContent = ''; return; }
-      var tok = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), N = 700, parts = [];
-      for (var i = 0; i < o.rows.length; i += N) parts.push(o.rows.slice(i, i + N)); if (!parts.length) parts.push([]);
-      var p = Promise.resolve({ok: true});
-      parts.forEach(function (rows2, j) {
-        p = p.then(function (r) {
-          if (!r.ok) return r; info.textContent = 'Menyimpan bagian ' + (j + 1) + ' dari ' + parts.length + '...' + (j === parts.length - 1 ? ' (lalu mencocokkan PPBJ)' : '');
-          var q = {action: 'adminMacImpor', token: tok, dari: o.dari, sampai: o.sampai, rows: rows2, mulai: j === 0, selesai: j === parts.length - 1};
-          if (j === 0) { q.gudang = o.gudang; q.saldo = o.saldo; q.saldoTgl = o.saldoTgl; }
-          return api(q);
-        });
-      });
-      return p.then(function (r) { toast(r.msg || (r.ok ? 'Tersimpan.' : 'Gagal.'), !r.ok); if (r.ok) { S.last = {}; muatRingkas(esc(r.msg || '')); } else info.textContent = r.msg || 'Gagal.'; });
+      return MC.simpan(o, api, function (m) { info.textContent = m; }).then(function (r) { toast(r.msg || (r.ok ? 'Tersimpan.' : 'Gagal.'), !r.ok); if (r.ok) { S.last = {}; muatRingkas(esc(r.msg || '')); } else info.textContent = r.msg || 'Gagal.'; });
     }).catch(function (e) { info.textContent = ''; toast('Excel gagal dibaca: ' + (e && e.message ? e.message : e), true); });
   }
+
+  /** T148: simpan hasil MC.parse ke server per 700 baris (dipakai tab Mutasi Accurate dan tab Data Accurate). kabar(teks) untuk kemajuan. */
+  MC.simpan = function (o, api, kabar) {
+    var tok = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), N = 700, parts = [];
+    for (var i = 0; i < o.rows.length; i += N) parts.push(o.rows.slice(i, i + N)); if (!parts.length) parts.push([]);
+    var p = Promise.resolve({ok: true});
+    parts.forEach(function (rows2, j) {
+      p = p.then(function (r) {
+        if (!r.ok) return r; if (kabar) kabar('Menyimpan bagian ' + (j + 1) + ' dari ' + parts.length + '...' + (j === parts.length - 1 ? ' (lalu mencocokkan PPBJ)' : ''));
+        var q = {action: 'adminMacImpor', token: tok, dari: o.dari, sampai: o.sampai, rows: rows2, mulai: j === 0, selesai: j === parts.length - 1};
+        if (j === 0) { q.gudang = o.gudang; q.saldo = o.saldo; q.saldoTgl = o.saldoTgl; }
+        return api(q);
+      });
+    });
+    return p;
+  };
+  MC.muatJSZip = function () { return muatJSZip(); };
 
   /* --- Cari --- */
   var KOL_CARI = [{t: 'Tanggal', k: 'tgl', f: 'tgl', w: 12}, {t: 'Nomor', k: 'no', w: 18}, {t: 'Tipe', k: 'tipe', w: 18}, {t: 'Kode', k: 'kode', w: 20}, {t: 'Nama barang', k: 'nama', w: 34}, {t: 'Masuk', k: 'masuk', f: '#,##0.###', w: 9}, {t: 'Keluar', k: 'keluar', f: '#,##0.###', w: 9}, {t: 'Harga satuan', k: 'harga', f: '#,##0', w: 13}, {t: 'Sumber harga', k: 'hs', w: 11}, {t: 'Nilai', k: 'nilai', f: '#,##0', w: 14}, {t: 'PPBJ', k: 'ppbj', w: 18}, {t: 'Status PPBJ', k: function (x) { return STL[x.status] || ''; }, w: 12}, {t: 'Cara cocok', k: function (x) { return SBL[x.sumber] || ''; }, w: 16}, {t: 'Deskripsi', k: 'desk', w: 30}, {t: 'Keterangan', k: 'ket', w: 50}];

@@ -15,7 +15,7 @@
   var BACA_EKSTRA = {adminTelusurBanyak: 1, adminIndeksBarang: 1, adminMutasi: 1, adminLapSegel: 1, adminLapTren: 1, adminLapKerapian: 1, adminLapRab: 1, adminKondisiTautan: 1, adminKartuStok: 1, adminKomparasi: 1, adminBarangMati: 1, adminTelusurBarang: 1, adminPaRincian: 1, adminAnalisaBarang: 1, adminOpnameDampak: 1, adminSerahSemuaCek: 1, seriKode: 1, seriDok: 1, adminOrderPetaBaca: 1, adminMenuRingkas: 1, notifDaftar: 1,
     // T147: aksi baca lain yang ternyata menghapus simpanan (dari data Kecepatan 5-20 Nov): Telusur PPBJ 47x, bukti, rincian BPB, dll.
     adminTelusurPpbj: 1, serahAda: 1, adminArsipBukti: 1, kbImporCek: 1, bpbDetail: 1, adminPaBukti: 1, adminPgtCalon: 1, adminBastKomparasi: 1, adminPanduan: 1, adminMacPpbj: 1, kimiaPeriode: 1,
-    adminTelusurSelisih: 1, adminTerimaFoto: 1, adminTelusurBpb: 1, adminMacKartu: 1, adminMacTanya: 1, adminPgtContoh: 1, adminBufAlasan: 1, adminHargaPoCek: 1, adminPgtPdf: 1, adminMacCek: 1, adminBufLampAmbil: 1, adminBastLampAmbil: 1};
+    adminTelusurSelisih: 1, adminTerimaFoto: 1, adminTelusurBpb: 1, adminMacKartu: 1, adminMacTanya: 1, adminPgtContoh: 1, adminBufAlasan: 1, adminHargaPoCek: 1, adminPgtPdf: 1, adminMacCek: 1, adminBufLampAmbil: 1, adminBastLampAmbil: 1, adminAccOrder: 1, adminAccPerlu: 1, adminAccIaCocok: 1, adminAccBarang: 1};
   var BACA = /(List|Get|Rinci|Daftar|Ringkas|Info|Cari|Indeks|Pintar|Kurang|Pratinjau|Periksa|Riwayat|Analisis|Analisa|Kpi|Pada|Laporan|Dugaan|Simulasi|Telusur|Lihat|Baca|Cek|Unduh|Tren|Kerapian|Mati|Komparasi|Panduan)$/;   // T147: akhiran baca server ikut
   try { if (localStorage.getItem("sctk_swr_off") === "1") return; } catch (e) { return; }
   var asli = W.api, jalan = {}, tahanSampai = 0, baru = {};

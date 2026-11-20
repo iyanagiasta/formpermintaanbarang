@@ -94,6 +94,7 @@
           '<td data-l="PO">' + esc(o.po || '-') + (o.supplier ? '<br><small>' + esc(o.supplier) + '</small>' : '') + '</td><td data-l="Tiba">' + esc(o.eta ? tgl(o.eta) + ' ' + String(o.eta).slice(0, 4) : '-') + '</td></tr>';
       }).join('') + '</tbody></table><div class="note" style="margin-top:8px">Order proyek = barang bertanda ORDER atau dipesan untuk PPBJ proyek. Order buffer = PPBJ berketerangan "buffer stock". Status order bisa diubah di tab Proyek (Status order) atau Monitor ORDER. Data diperbarui otomatis tiap 10 menit' + (OL.waktu ? ' (terakhir ' + new Date(OL.waktu).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}) + ')' : '') + '. <a href="#" data-olr="1">Perbarui sekarang</a></div></div>';
     document.body.appendChild(bg);
+    accIsi(bg, kode);
     function tutup() { bg.remove(); document.removeEventListener('keydown', esk); }
     function esk(e) { if (e.key === 'Escape') tutup(); }
     document.addEventListener('keydown', esk);
@@ -104,6 +105,22 @@
     });
     var b = bg.querySelector('[data-olx]'); if (b) b.focus();
   };
+  /* T148: status order menurut laporan Accurate (Item Requisition + PO + alur RI + Mutasi), di bawah tabel pesanan sistem. */
+  function accIsi(bg, kode) {
+    if (!OL.api) return; var md = bg.querySelector('.ol-md'); if (!md) return;
+    var box = document.createElement('div'); box.className = 'note'; box.style.marginTop = '10px'; box.textContent = 'Memuat status order dari data Accurate...'; md.appendChild(box);
+    Promise.resolve(OL.api({action: 'adminAccBarang', kode: kode})).then(function (r) {
+      if (!r || !r.ok || !r.ada) { box.remove(); return; }
+      if (!r.rows.length) { box.innerHTML = '<b>Data Accurate:</b> barang ini tidak ada di PPBJ Accurate yang diunggah.'; return; }
+      box.className = ''; box.innerHTML = '<b>Menurut data Accurate</b> <small>(' + r.n + ' PPBJ' + (r.info && !r.info.mutasi ? '; qty datang belum terbaca, unggah Mutasi per Gudang' : '') + ')</small>' +
+        '<table style="margin-top:4px"><thead><tr><th>PPBJ / proyek</th><th>Status Accurate</th><th class="n">Di PPBJ</th><th class="n">Dipesan</th><th class="n">Datang</th><th>PO / supplier</th></tr></thead><tbody>' +
+        r.rows.map(function (o) {
+          return '<tr><td data-l="PPBJ"><b>' + esc(o.ppbj) + '</b>' + (o.proyek ? '<br><small>' + esc(o.proyek) + '</small>' : '') + '</td><td data-l="Status">' + esc(o.label) + (o.hari != null ? '<br><small>' + o.hari + ' hari sejak PO</small>' : '') + '</td>' +
+            '<td class="n" data-l="Di PPBJ">' + nf(o.qty) + '</td><td class="n" data-l="Dipesan">' + nf(o.dipesan) + '</td><td class="n" data-l="Datang">' + (o.datang == null ? '-' : nf(o.datang)) + '</td>' +
+            '<td data-l="PO">' + esc(o.po.join(', ') || '-') + (o.supplier ? '<br><small>' + esc(o.supplier) + '</small>' : '') + '</td></tr>';
+        }).join('') + '</tbody></table>' + (r.n > r.rows.length ? '<small>' + (r.n - r.rows.length) + ' PPBJ lain tidak ditampilkan. Lihat tab Data Accurate.</small>' : '');
+    }, function () { box.remove(); });
+  }
   // Klik lencana di mana pun: buka rincian. Ambil nama barang dari baris terdekat bila ada.
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-olb]'); if (!b) return;

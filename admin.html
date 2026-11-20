@@ -30,7 +30,7 @@
 <script src="xlsx-tulis.js"></script>
 <script src="bast-logo.js"></script>
 <script src="bast.js?v=144"></script>
-<script src="mutasi-acc.js?v=132"></script>
+<script src="mutasi-acc.js?v=145"></script>
 <script src="pengganti.js?v=111"></script><script src="telusur-selisih.js?v=132"></script><script src="order-lencana.js?v=132"></script>
 <script src="order-monitor.js"></script>
 <script src="analisa-barang.js?v=138"></script>
@@ -1102,6 +1102,75 @@ function bfTersaring(){
     return !q||cocokQ(x.nama+" "+x.kode+" "+x.paket.map(function(p){return p.nama;}).join(" "),q);
   });
 }
+/* T145: alasan order buffer: PDF otomatis + lampiran PDF yang diunggah sendiri */
+function bfAlasanCard(){
+  return '<div class="card" id="bfAls"><b>Alasan order buffer (lampiran email atasan)</b><div class="note">Unduh PDF berisi daftar barang buffer yang perlu diorder beserta alasannya (stok bebas, batas buffer, kebutuhan proyek, yang sudah dipesan, pemakaian 30 dan 90 hari). Anda juga bisa mengunggah PDF alasan sendiri lalu mengunduhnya lagi saat melampirkan email.</div>'+
+   '<div class="bar"><button class="primary" id="bfAlsPdf">Unduh PDF alasan order</button><input type="file" id="bfAlsF" accept=".pdf,application/pdf" style="display:none"><button id="bfAlsUp">Unggah PDF alasan sendiri</button></div><div id="bfAlsL" class="note">Memuat lampiran...</div></div>';
+}
+function bfLampMuat(){
+  var box=document.getElementById("bfAlsL");if(!box)return;
+  api({action:"adminBufAlasan",kode:["-"]}).then(function(r){
+    if(!r.ok){box.textContent=r.msg||"Gagal memuat lampiran.";return;}
+    var L=r.lampiran||[];
+    box.innerHTML=L.length?'<div class="tw"><table><thead><tr><th>File</th><th>Catatan</th><th>Diunggah</th><th></th></tr></thead><tbody>'+L.map(function(x){return '<tr><td data-l="File"><b>'+esc(x.nama)+'</b><small>'+fmtN(Math.round((x.ukuran||0)/1024))+' KB</small></td><td data-l="Catatan">'+esc(x.cat||"-")+'</td><td data-l="Diunggah">'+esc(x.waktu)+'<small>'+esc(x.oleh)+'</small></td><td><button data-bfaU="'+esc(x.id)+'">Unduh</button> <button data-bfaH="'+esc(x.id)+'">Hapus</button></td></tr>';}).join("")+'</tbody></table></div>':'Belum ada PDF alasan yang diunggah.';
+    box.querySelectorAll("[data-bfaU]").forEach(function(b){b.onclick=function(){b.disabled=true;api({action:"adminBufLampAmbil",id:b.getAttribute("data-bfaU")}).then(function(x){b.disabled=false;if(!x.ok){toast(x.msg||"Gagal.",true);return;}var s0=atob(x.b64),u=new Uint8Array(s0.length);for(var i=0;i<s0.length;i++)u[i]=s0.charCodeAt(i);bfUnduh(u,x.nama,x.mime||"application/pdf");});};});
+    box.querySelectorAll("[data-bfaH]").forEach(function(b){b.onclick=function(){if(!confirm("Hapus lampiran ini?"))return;b.disabled=true;api({action:"adminBufLampHapus",id:b.getAttribute("data-bfaH")}).then(function(x){toast(x.msg||(x.ok?"Dihapus.":"Gagal."),!x.ok);bfLampMuat();});};});
+  }).catch(function(){box.textContent="Gagal memuat lampiran.";});
+}
+function bfUnduh(bytes,nama,mime){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([bytes],{type:mime||"application/pdf"}));a.download=nama;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);}
+function bfUnggahAlasan(f){
+  if(!f)return;if(f.size>15*1024*1024){toast("File terlalu besar (maksimal 15 MB).",true);return;}
+  var cat=prompt("Catatan untuk PDF ini (opsional), mis. order buffer SL November:","")||"";
+  var rd=new FileReader();rd.onload=function(){var b64=String(rd.result).split(",")[1]||"";toast("Mengunggah "+f.name+"...");api({action:"adminBufLampUnggah",nama:f.name,mime:f.type||"application/pdf",b64:b64,catatan:cat}).then(function(r){toast(r.msg||(r.ok?"Tersimpan.":"Gagal."),!r.ok);bfLampMuat();});};rd.readAsDataURL(f);
+}
+function bfMuatPdfLib(){if(window.PDFLib)return Promise.resolve(window.PDFLib);return new Promise(function(ok,no){var s0=document.createElement("script");s0.src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js";s0.onload=function(){ok(window.PDFLib);};s0.onerror=function(){no(new Error("pdf-lib gagal dimuat. Periksa internet."));};document.head.appendChild(s0);});}
+function bfAman(t){return String(t==null?"":t).replace(/[–—]/g,"-").replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/×/g,"x").replace(/[^\x20-\x7e -ÿ]/g,"");}
+function bfAlasanBaris(x,pk){
+  var a=[];
+  if(x.bebas<x.buffer)a.push("Stok bebas "+fmtN(x.bebas)+" di bawah buffer "+fmtN(x.buffer)+" ("+(x.paket||[]).map(function(p){return p.nama+" "+fmtN(p.qty)+"x"+fmtN(p.set)+" set";}).join(", ")+")");
+  if(x.kebutuhan>0)a.push("Kebutuhan proyek aktif "+fmtN(x.kebutuhan)+((x.proyek||[]).filter(function(q){return q.sisa>0;}).length?" ("+(x.proyek||[]).filter(function(q){return q.sisa>0;}).slice(0,4).map(function(q){return q.ppbj+" sisa "+fmtN(q.sisa);}).join(", ")+")":""));
+  if(pk&&pk.p90>0)a.push("Keluar "+fmtN(pk.p90)+" dalam 90 hari ("+fmtN(pk.p30)+" dalam 30 hari), terakhir "+pk.akhir);
+  else a.push("Tidak ada barang keluar dalam 90 hari terakhir");
+  if(x.akan>0)a.push("Sudah dipesan/akan datang "+fmtN(x.akan)+(x.ppbjBuf?" (PPBJ "+x.ppbjBuf+")":""));
+  return a.join(". ")+".";
+}
+function bfPdfAlasan(btn){
+  var q=BF.q.toLowerCase(),L=BF.d.barang.filter(function(x){return bfSisa(x)>0&&(!q||cocokQ(x.nama+" "+x.kode+" "+x.paket.map(function(p){return p.nama;}).join(" "),q));});
+  if(!L.length){toast("Tidak ada barang buffer yang perlu diorder"+(q?" untuk pencarian ini":"")+".",true);return;}
+  btn.disabled=true;toast("Menyusun PDF alasan order...");
+  Promise.all([api({action:"adminBufAlasan",kode:L.map(function(x){return x.kode;})}),bfMuatPdfLib()]).then(function(res){
+    var r=res[0],Lb=res[1];if(!r.ok)throw new Error(r.msg||"Gagal membaca pemakaian.");
+    return Lb.PDFDocument.create().then(function(doc){return Promise.all([doc.embedFont(Lb.StandardFonts.Helvetica),doc.embedFont(Lb.StandardFonts.HelveticaBold)]).then(function(F){
+      var f=F[0],fb=F[1],W=841.89,H=595.28,M=32,page,y,tot=0;
+      function baru(){page=doc.addPage([W,H]);y=H-M;}
+      function tx(t,x,yy,font,sz,col){page.drawText(bfAman(t),{x:x,y:yy,size:sz,font:font,color:col||Lb.rgb(0,0,0)});}
+      function bungkus(t,font,sz,w){var out=[],cur="";bfAman(t).split(/\s+/).forEach(function(k){var c=cur?cur+" "+k:k;if(font.widthOfTextAtSize(c,sz)>w&&cur){out.push(cur);cur=k;}else cur=c;});if(cur)out.push(cur);return out.length?out:[""];}
+      var cols=[["Barang",150],["Buffer",42],["Stok bebas",48],["Keb. proyek",50],["Sudah dipesan",60],["Keluar 90 hr",56],["Usul order",48],["Perkiraan nilai",62],["Alasan",262]],X=[M];cols.forEach(function(c,i){X.push(X[i]+c[1]);});
+      function kepala(){page.drawRectangle({x:M,y:y-16,width:X[X.length-1]-M,height:16,color:Lb.rgb(0.85,0.89,0.95)});cols.forEach(function(c,i){tx(c[0],X[i]+3,y-11,fb,7.5);});y-=18;}
+      baru();
+      tx("ALASAN ORDER BARANG BUFFER",M,y-4,fb,14);tx("PT Sarana Catur Tirta Kelola - Gudang",M,y-18,f,9);
+      var tg=new Date();tx("Dibuat "+tg.toLocaleDateString("id-ID",{day:"2-digit",month:"long",year:"numeric"})+" "+tg.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}),W-M-190,y-4,f,9);
+      y-=34;
+      bungkus("Buffer adalah stok minimal yang harus selalu ada di Gudang agar pekerjaan rutin (paket seperti Sambungan Langsung) tidak tertunda. Barang di bawah ini diusulkan diorder karena stok bebasnya (stok fisik dikurangi alokasi proyek dan permintaan berjalan) tidak cukup untuk buffer dan kebutuhan proyek aktif, setelah dikurangi yang sudah dipesan. Usul order = buffer + kebutuhan proyek - stok bebas - yang sudah dipesan.",f,9,W-2*M).forEach(function(l){tx(l,M,y,f,9);y-=12;});
+      y-=6;kepala();
+      L.forEach(function(x){
+        var pk=(r.pakai||{})[String(x.kode).toUpperCase()]||(r.pakai||{})[x.kode]||null,sisa=bfSisa(x),nilai=x.harga!=null?Math.round(sisa*x.harga):null;if(nilai)tot+=nilai;
+        var nm=bungkus((x.nama||x.kode)+" ("+x.kode+")",f,7.5,cols[0][1]-6),al=bungkus(bfAlasanBaris(x,pk),f,7,cols[8][1]-6),h=Math.max(nm.length,al.length)*9+6;
+        if(y-h<M+30){baru();kepala();}
+        nm.forEach(function(l,i){tx(l,X[0]+3,y-9-i*9,f,7.5);});
+        [fmtN(x.buffer),fmtN(x.bebas),fmtN(x.kebutuhan||0),fmtN(x.akan||0),pk?fmtN(pk.p90):"0",fmtN(sisa),nilai!=null?Math.round(nilai).toLocaleString("id-ID"):"-"].forEach(function(v,i){var c=i+1,w=f.widthOfTextAtSize(bfAman(v),7.5);tx(v,X[c+1]-4-w,y-9,i===5?fb:f,7.5);});
+        al.forEach(function(l,i){tx(l,X[8]+3,y-9-i*9,f,7);});
+        page.drawLine({start:{x:M,y:y-h},end:{x:X[X.length-1],y:y-h},thickness:0.4,color:Lb.rgb(0.7,0.7,0.7)});y-=h;
+      });
+      if(y<M+60){baru();}
+      y-=14;tx("Jumlah barang diusulkan: "+L.length+"     Perkiraan nilai total: Rp "+Math.round(tot).toLocaleString("id-ID")+" (harga stok terakhir; barang tanpa harga tidak dihitung)",M,y,fb,9);
+      y-=14;tx("Perkiraan nilai memakai harga di sistem Gudang, bukan harga penawaran vendor.",M,y,f,8);
+      y-=34;tx("Dibuat oleh,",M,y,f,9);tx("Mengetahui,",W/2,y,f,9);y-=46;tx("Staff Gudang",M,y,fb,9);tx("Atasan",W/2,y,fb,9);
+      return doc.save();
+    });});
+  }).then(function(u){var d=new Date(),nm="Alasan Order Buffer "+d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)+".pdf";bfUnduh(u,nm,"application/pdf");toast("PDF alasan order diunduh ("+L.length+" barang).");})
+  .catch(function(e){toast("PDF gagal dibuat: "+(e&&e.message?e.message:e),true);}).then(function(){btn.disabled=false;});
+}
 function drawBF(){
   var D=BF.d,R=D.ringkas,P=D.paket;
   var head='<div class="card"><b>Buffer Paket: stok minimal yang harus ada di Gudang</b><div class="note"><b>Buffer</b> tiap barang = qty per set &times; set buffer, dijumlahkan dari <b>semua paket aktif</b> (barang yang dipakai beberapa paket dihitung gabungan). <b>Kebutuhan proyek</b> diambil otomatis dari <b>RAB proyek</b> (diisi PIC di halaman Proyek) untuk barang yang ada di paket; hanya proyek Aktif / Ditunda Sebentar, dikurangi yang sudah diserahkan dan dialokasikan. <b>Total order = kebutuhan proyek + buffer &minus; stok bebas</b> (minimal 0). Stok yang dibandingkan adalah <b>stok bebas Moka + Accurate</b> (dikurangi alokasi proyek dan permintaan yang masih berjalan). Stok Bekas tidak dihitung. Status <b>Menipis</b> bila stok bebas di bawah '+D.pct+'% buffer.<br><b>Sudah dipesan</b> = barang di PPBJ yang keterangan proyeknya memuat <b>buffer stock</b>, dikurangi yang sudah datang. <b>Sisa beli = total order &minus; sudah dipesan.</b> RAB PPBJ buffer tidak dihitung sebagai kebutuhan proyek.</div>'+
@@ -1120,13 +1189,17 @@ function drawBF(){
   var tb=L.length?'<div class="tw"><table><thead><tr><th>Barang</th><th class="nm">Buffer</th><th class="nm">Stok bebas</th><th class="nm">Stok fisik</th><th class="nm">Kurang dari buffer</th><th>Status</th><th class="nm">Kebutuhan proyek</th><th class="nm">Order</th><th class="nm">Total order</th>'+(D.order?'<th class="nm">Sudah dipesan (PPBJ buffer)</th><th class="nm">Sisa beli</th>':'')+'<th class="nm">Nilai total order</th><th>Dipakai paket / proyek</th></tr></thead><tbody>'+L.slice(0,500).map(function(x){
     return '<tr><td data-l="Barang"><b>'+esc(x.nama||x.kode)+'</b>'+OLH(x.kode)+'<small>'+esc(x.kode)+' &middot; <a href="#" data-anl="'+esc(x.kode)+'" data-ann="'+esc(x.nama||x.kode)+'">Analisa</a>'+(x.tidakAda?' &middot; <span style="color:var(--red,#c0392b)">tidak ada di sheet Barang</span>':'')+'</small></td><td class="nm" data-l="Buffer">'+fmtN(x.buffer)+'</td><td class="nm" data-l="Stok bebas">'+fmtN(x.bebas)+'</td><td class="nm" data-l="Stok fisik">'+fmtN(x.fisik)+'</td><td class="nm" data-l="Kurang">'+(x.kurang?'<b style="color:var(--red,#c0392b)">'+fmtN(x.kurang)+'</b>':'0')+'</td><td data-l="Status">'+bfBd(x.status)+(D.order&&x.akan>0&&x.statusBeli?'<small style="display:block">'+esc(x.statusBeli)+'</small>':'')+'</td><td class="nm" data-l="Kebutuhan proyek">'+(x.kebutuhan?fmtN(x.kebutuhan):"")+'</td><td class="nm" data-l="Order">'+(x.order?fmtN(x.order):"")+'</td><td class="nm" data-l="Total order">'+(x.totalOrder?'<b style="color:var(--red,#c0392b)">'+fmtN(x.totalOrder)+'</b>':"0")+'</td>'+(D.order?'<td class="nm" data-l="Sudah dipesan">'+bfOrdHtml(x)+'</td><td class="nm" data-l="Sisa beli">'+(x.totalOrder>0?(bfSisa(x)>0?'<b style="color:var(--red,#c0392b)">'+fmtN(bfSisa(x))+'</b>':'<span class="bd d">0, tertutup pesanan</span>'):'')+'</td>':'')+'<td class="nm" data-l="Nilai">'+(x.totalOrder?(x.nilaiOrder==null?"-":rp(x.nilaiOrder)):"")+'</td>'+'<td data-l="Paket" style="font-size:12px;min-width:200px;max-width:280px">'+bfPaketHtml(x)+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="card msg">Tidak ada barang sesuai filter.</div>';
   var logh=D.log&&D.log.length?'<details class="card"><summary><b>Riwayat perubahan paket ('+D.log.length+' terakhir)</b></summary><div class="tw"><table><thead><tr><th>Waktu</th><th>Oleh</th><th>Paket</th><th>Aksi</th><th>Rincian</th></tr></thead><tbody>'+D.log.map(function(l){return '<tr><td>'+esc(l.waktu)+'</td><td>'+esc(l.oleh)+'</td><td>'+esc(l.paket)+'</td><td>'+esc(l.aksi)+'</td><td>'+esc(l.rincian)+'</td></tr>';}).join("")+'</tbody></table></div></details>':'';
-  pane().innerHTML=head+warn+(BF.edit?bfEditHtml():"")+ring+ordr+pk+
+  pane().innerHTML=head+warn+(BF.edit?bfEditHtml():"")+ring+ordr+bfAlasanCard()+pk+
    '<div class="bar" style="margin-top:12px"><input id="bfq" placeholder="Cari kode, nama barang, atau paket..." value="'+esc(BF.q)+'"><button id="bfxls">Unduh Excel</button><button id="bfbeli">Unduh daftar beli</button><button id="bfsem" title="Kebutuhan semua proyek + buffer - stok bebas, satu daftar tanpa hitung ganda">Daftar beli keseluruhan (proyek + buffer)</button></div>'+
    '<div class="tabs">'+F.map(function(t){return '<button data-bff="'+t[0]+'" class="'+(BF.f===t[0]?"on":"")+'">'+esc(t[1])+'</button>';}).join("")+'</div><div class="note">Menampilkan '+Math.min(L.length,500)+' dari '+L.length+' barang.</div>'+tb+logh;
   bfBind();
 }
 function bfBind(){
   var $=function(i){return document.getElementById(i);};
+  if($("bfAlsPdf"))$("bfAlsPdf").onclick=function(){bfPdfAlasan(this);};
+  if($("bfAlsUp"))$("bfAlsUp").onclick=function(){$("bfAlsF").click();};
+  if($("bfAlsF"))$("bfAlsF").onchange=function(){var f=this.files[0];this.value="";bfUnggahAlasan(f);};
+  bfLampMuat();
   if($("bfnew"))$("bfnew").onclick=function(){BF.edit={lama:"",nama:"",set:1,aktif:true,items:[{kode:"",nama:"",qty:1}]};drawBF();$("bfen").scrollIntoView({behavior:"smooth",block:"center"});};
   if($("bfmail"))$("bfmail").onclick=function(){kirimAdmin($("bfmail"),{action:"adminBufferEmail"},null);};
   if($("bfwx"))$("bfwx").onclick=function(){BF.warn=[];drawBF();};

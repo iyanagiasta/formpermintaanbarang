@@ -605,6 +605,7 @@
     st.textContent = '.bst-sum{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.bst-sum div{border:1px solid var(--line,#ccd);border-radius:8px;padding:6px 10px;min-width:110px}.bst-sum b{display:block;font-size:18px}.bst-sum span{font-size:12px;opacity:.8}' +
       '.bst-ed{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.bst-ed label{display:flex;flex-direction:column;font-size:12px;gap:2px}.bst-ed label.lebar{grid-column:1/-1}.bst-ed input,.bst-ed select,.bst-ed textarea{width:100%;box-sizing:border-box}' +
       '.bst-tb{width:100%;border-collapse:collapse;font-size:13px}.bst-tb td,.bst-tb th{border-bottom:1px solid var(--line,#dde);padding:4px;vertical-align:top}.bst-tb input,.bst-tb select{width:100%;box-sizing:border-box;min-width:70px}' +
+      '.bst-aju{display:inline-block;font-size:11px;padding:2px 7px;border-radius:9px;background:rgba(30,140,70,.16);color:#14632f;font-weight:600;white-space:nowrap}.bst-ajub{white-space:nowrap}.bst-warn{background:rgba(214,137,16,.15);border-left:4px solid #d68910;padding:8px 10px;border-radius:6px;margin:6px 0}' +
       '.bst-ub{background:rgba(214,137,16,.15);border-left:3px solid #d68910}.bst-tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:9px;background:rgba(214,137,16,.18);margin:1px}.bst-wrap{overflow-x:auto}.bst-ia{border:1px solid var(--line,#ccd);border-radius:8px;padding:6px;margin-top:6px;max-height:260px;overflow:auto}' +
       '@media (max-width:700px){.bst-tb{min-width:0!important;width:100%!important;max-width:100%}.bst-tb,.bst-tb tbody,.bst-tb tfoot,.bst-tb tr,.bst-tb td{display:block;width:100%;box-sizing:border-box}.bst-tb thead{display:none}.bst-tb tr{border:1px solid var(--line,#ccd);border-radius:8px;margin:6px 0;padding:4px}.bst-tb td{border:0}.bst-tb tfoot td{text-align:left!important}}';
     document.head.appendChild(st);
@@ -616,18 +617,20 @@
   }
   function gambarDaftar() {
     var st = S.st, h = '<div class="card"><h3 style="margin:0">BAST (Berita Acara Serah Terima Pekerjaan)</h3>' +
-      '<div class="note">Unggah laporan Accurate <b>Penyesuaian Stok Barang</b> (PDF, banyak IA). IA baru disimpan, IA lama diperbarui ke nilai terbaru (BAST yang memuatnya ikut berubah dan diberi tanda). Lalu buat draf BAST otomatis dan periksa satu per satu.</div>' +
-      '<div class="bst-sum"><div><b>' + S.rows.length + '</b><span>BAST</span></div><div><b>' + (st.nIa || 0) + '</b><span>IA tersimpan</span></div><div><b>' + (st.belum || 0) + '</b><span>IA keluar belum ber-BAST</span></div><div><b>' + S.rows.filter(function (x) { return x.ubah; }).length + '</b><span>BAST nilai IA berubah</span></div></div>' +
+      '<div class="note">Unggah laporan Accurate <b>Penyesuaian Stok Barang</b> (PDF, banyak IA). <b>Satu PPBJ satu BAST</b>: IA baru milik PPBJ yang sudah punya BAST ditambahkan ke BAST itu (nomor tetap, isian manual tidak ditimpa, tanggal ikut IA terakhir). IA tanpa PPBJ tidak dibuatkan BAST otomatis.</div>' +
+      '<div class="bst-sum"><div><b>' + S.rows.length + '</b><span>BAST</span></div><div><b>' + S.rows.filter(function (x) { return !x.aju; }).length + '</b><span>Belum diajukan</span></div><div><b>' + S.rows.filter(function (x) { return x.aju; }).length + '</b><span>Sudah diajukan</span></div><div><b style="color:' + (S.rows.some(function (x) { return x.ajuTambah && x.ajuTambah.length; }) ? '#b7791f' : 'inherit') + '">' + S.rows.filter(function (x) { return x.ajuTambah && x.ajuTambah.length; }).length + '</b><span>Ada tambahan IA setelah diajukan</span></div><div><b>' + (st.nIa || 0) + '</b><span>IA tersimpan</span></div><div><b>' + (st.belum || 0) + '</b><span>IA keluar belum ber-BAST</span></div><div><b>' + S.rows.filter(function (x) { return x.ubah; }).length + '</b><span>BAST nilai IA berubah</span></div></div>' +
       '<div class="fr" style="gap:6px;flex-wrap:wrap"><input type="file" id="bstF" accept=".pdf,application/pdf" hidden><button class="sv" id="bstUp">Unggah laporan IA (PDF)</button>' +
       '<input type="file" id="bstFC" accept=".pdf,application/pdf" multiple hidden><button id="bstUpC">Unggah cetakan IA (banyak PDF)</button>' +
       '<input type="file" id="bstFP" accept=".pdf,application/pdf" hidden><button id="bstUpP">Unggah laporan PPBJ (Item Requisition)</button>' +
-      (st.belum ? '<button class="sv" id="bstDraf">Buat draf BAST otomatis (' + st.belum + ' IA)</button>' : '') +
+      (st.belum - (st.nTanpaPpbj || 0) > 0 ? '<button class="sv" id="bstDraf">Buat / lengkapi BAST otomatis (' + (st.belum - (st.nTanpaPpbj || 0)) + ' IA)</button>' : '') +
+      '<button id="bstGabung">Gabungkan BAST ganda (1 PPBJ 1 BAST)</button>' +
       (st.awal ? '<button id="bstAwal">Masukkan data awal BAST 031-' + (30 + (st.nAwal || 0)) + '</button>' : '') +
-      '<button id="bstBaru">BAST baru (manual)</button></div><div class="note" id="bstInfo"></div></div>';
+      '<button id="bstBaru">BAST baru (manual)</button></div><div class="note" id="bstInfo"></div>' +
+      (st.nTanpaPpbj ? '<details style="margin-top:8px"><summary><b>Perlu ditentukan PPBJ-nya (' + st.nTanpaPpbj + ' IA)</b></summary><div class="note">IA keluar ini tidak memuat nomor PPBJ, jadi tidak dibuatkan BAST otomatis. Tambahkan ke BAST yang benar lewat tombol "+ Tambah IA" di dalam BAST, atau isi PPBJ-nya di tab Accurate lalu klik Buat / lengkapi BAST.</div><div class="bst-wrap"><table class="bst-tb"><thead><tr><th>No IA</th><th>Tanggal</th><th>Keterangan</th><th class="nm">Nilai</th></tr></thead><tbody>' + (st.tanpaPpbj || []).map(function (x) { return '<tr><td data-l="No IA"><b>' + esc(x.no) + '</b></td><td data-l="Tanggal">' + esc(dmy(x.tgl)) + '</td><td data-l="Keterangan">' + esc(x.ket) + '</td><td class="nm" data-l="Nilai">' + esc(rpTeks(x.nilai)) + '</td></tr>'; }).join('') + '</tbody></table></div></details>' : '') + '</div>';
     h += '<div class="card"><div class="fr" style="gap:6px;flex-wrap:wrap"><input id="bstQ" placeholder="Saring nomor, PPBJ, pekerjaan, proyek" value="' + esc(S.q) + '" style="min-width:220px;flex:1">' +
-      '<select id="bstFl"><option value="">Semua</option><option value="cek"' + (S.f === 'cek' ? ' selected' : '') + '>Perlu dicek</option><option value="ubah"' + (S.f === 'ubah' ? ' selected' : '') + '>Nilai IA berubah</option></select>' +
+      '<select id="bstFl"><option value="">Semua</option><option value="belum"' + (S.f === 'belum' ? ' selected' : '') + '>Belum diajukan</option><option value="aju"' + (S.f === 'aju' ? ' selected' : '') + '>Sudah diajukan</option><option value="tambah"' + (S.f === 'tambah' ? ' selected' : '') + '>Ada tambahan setelah diajukan</option><option value="cek"' + (S.f === 'cek' ? ' selected' : '') + '>Perlu dicek</option><option value="ubah"' + (S.f === 'ubah' ? ' selected' : '') + '>Nilai IA berubah</option></select>' +
       '<button id="bstXl">Unduh Excel terpilih</button><button id="bstPd">Unduh PDF terpilih</button><button id="bstPdL">Unduh PDF lengkap + lampiran</button></div>' +
-      '<div class="bst-wrap"><table class="bst-tb"><thead><tr><th><input type="checkbox" id="bstAll" aria-label="Pilih semua"></th><th>No BAST</th><th>Tanggal</th><th>Pekerjaan / Proyek</th><th>PPBJ</th><th class="nm">Total</th><th class="nm" title="Realisasi IA dibanding estimasi barang PPBJ">% barang</th><th>Catatan</th><th></th></tr></thead><tbody id="bstTb"></tbody></table></div></div>';
+      '<div class="bst-wrap"><table class="bst-tb"><thead><tr><th><input type="checkbox" id="bstAll" aria-label="Pilih semua"></th><th>No BAST</th><th>Tanggal</th><th>Pekerjaan / Proyek</th><th>PPBJ</th><th class="nm">Total</th><th class="nm" title="Realisasi IA dibanding estimasi barang PPBJ">% barang</th><th>Catatan</th><th>Diajukan</th><th></th></tr></thead><tbody id="bstTb"></tbody></table></div></div>';
     el.innerHTML = h; isiTabel();
     el.querySelector('#bstUp').onclick = function () { el.querySelector('#bstF').click(); };
     el.querySelector('#bstUpC').onclick = function () { el.querySelector('#bstFC').click(); };
@@ -636,7 +639,8 @@
     el.querySelector('#bstFC').onchange = function () { var fs = [].slice.call(this.files); this.value = ''; if (fs.length) unggahCetakan(fs, el.querySelector('#bstInfo'), function () { muatDaftarTetap(el.querySelector('#bstInfo').innerHTML); }); };
     el.querySelector('#bstPdL').onclick = function () { var ids = Object.keys(S.pil); if (!ids.length) { toast('Centang BAST yang mau diunduh.', true); return; } var b = this; b.disabled = true; unduhLengkap(ids, b).then(function () { b.disabled = false; }); };
     el.querySelector('#bstF').onchange = function () { var f = this.files[0]; this.value = ''; if (f) unggah(f); };
-    var dr = el.querySelector('#bstDraf'); if (dr) dr.onclick = function () { if (!confirm('Buat draf BAST otomatis untuk ' + st.belum + ' IA keluar yang belum punya BAST?')) return; dr.disabled = true; api({action: 'adminBastDraf'}).then(function (r) { toast(r.msg || (r.ok ? 'Selesai.' : 'Gagal.'), !r.ok); muatDaftar(); }); };
+    var gb = el.querySelector('#bstGabung'); if (gb) gb.onclick = function () { gabungGanda(gb); };
+    var dr = el.querySelector('#bstDraf'); if (dr) dr.onclick = function () { if (!confirm('Proses ' + (st.belum - (st.nTanpaPpbj || 0)) + ' IA keluar yang belum ber-BAST? IA milik PPBJ yang sudah punya BAST akan ditambahkan ke BAST itu; PPBJ yang belum punya dibuatkan BAST baru.')) return; dr.disabled = true; api({action: 'adminBastDraf'}).then(function (r) { toast(r.msg || (r.ok ? 'Selesai.' : 'Gagal.'), !r.ok); muatDaftar(); }); };
     var aw = el.querySelector('#bstAwal'); if (aw) aw.onclick = function () { if (!confirm('Masukkan ' + st.nAwal + ' BAST data awal (031-' + (30 + st.nAwal) + ')? IA-nya harus sudah diunggah.')) return; aw.disabled = true; api({action: 'adminBastDataAwal'}).then(function (r) { toast(r.msg || (r.ok ? 'Selesai.' : 'Gagal.'), !r.ok); muatDaftar(); }); };
     el.querySelector('#bstBaru').onclick = function () { var mx = S.rows.reduce(function (a, x) { return Math.max(a, x.noUrut || 0); }, 30), t = new Date(), iso = t.getFullYear() + '-' + ('0' + (t.getMonth() + 1)).slice(-2) + '-' + ('0' + t.getDate()).slice(-2); bukaEditor({id: '', noUrut: mx + 1, nomor: nomorAuto(mx + 1, iso), tgl: iso, nama: '', proyek: '', kat: 'Perbaikan', data: {divisi: 'TEKNIK', ttd: {teknik: 'AS', pengadaan: 'MI', legal: 'OR', gudang: 'MR', keuangan: 'NES + BR'}, baris: []}}, {}); };
     el.querySelector('#bstQ').oninput = function () { S.q = this.value; isiTabel(); };
@@ -648,16 +652,56 @@
   function terlihat() {
     var q = S.q.toLowerCase().split(/\s+/).filter(String);
     return S.rows.filter(function (x) {
-      if (S.f === 'cek' && !x.cek) return false; if (S.f === 'ubah' && !x.ubah) return false;
+      if (S.f === 'cek' && !x.cek) return false; if (S.f === 'ubah' && !x.ubah) return false; if (S.f === 'belum' && x.aju) return false; if (S.f === 'aju' && !x.aju) return false; if (S.f === 'tambah' && !(x.ajuTambah && x.ajuTambah.length)) return false;
       var t = (x.nomor + ' ' + x.nama + ' ' + x.proyek + ' ' + x.ppbj).toLowerCase(); return q.every(function (w) { return t.indexOf(w) >= 0; });
+    });
+  }
+  function ajuSel(x) {
+    if (!x.aju) return '<button class="bst-ajub" data-aju="' + esc(x.id) + '">Tandai sudah diajukan</button>';
+    var tb = x.ajuTambah && x.ajuTambah.length;
+    return '<span class="bst-aju">&#10003; Diajukan ' + esc(dmy(String(x.aju).slice(0, 10))) + '</span>' + (tb ? '<br><span class="bst-tag">+' + tb + ' IA sesudahnya: ajukan ulang</span><br><button class="bst-ajub" data-aju="' + esc(x.id) + '">Tandai diajukan ulang</button>' : '') + '<br><button class="bst-ajub" data-aju="' + esc(x.id) + '" data-batal="1" style="font-size:11px;padding:2px 6px">Batalkan tanda</button>';
+  }
+  function tandaiAju(id, batal, btn) {
+    if (batal && !confirm('Batalkan tanda "Sudah diajukan" untuk BAST ini?')) return;
+    if (btn) btn.disabled = true;
+    return api({action: 'adminBastAju', id: id, batal: batal ? 1 : 0}).then(function (r) {
+      toast(r.msg || (r.ok ? 'Tersimpan.' : 'Gagal.'), !r.ok);
+      if (r.ok) { var x = S.rows.filter(function (y) { return y.id === id; })[0]; if (x) { x.aju = r.aju ? r.aju.waktu : ''; x.ajuTambah = []; x.cek = String(x.cek || '').split('; ').filter(function (c) { return c && !/setelah diajukan/.test(c); }).join('; '); }
+        if (S.ed && S.ed.id === id) { S.ed.data.aju = r.aju || undefined; delete S.ed.data.ajuTambah; var bx = el.querySelector('#beAju'); if (bx) bx.outerHTML = ajuEditor(); pasangAjuEditor(); } else if (el.querySelector('#bstTb')) gambarDaftar(); }
+      else if (btn) btn.disabled = false;
+    });
+  }
+  function ajuEditor() {
+    var d = (S.ed && S.ed.data) || {}, a = d.aju, tb = (d.ajuTambah || []).length;
+    if (!S.ed || !S.ed.id) return '<div id="beAju"></div>';
+    if (!a) return '<div id="beAju" class="fr" style="gap:6px;align-items:center;margin:4px 0"><span class="note">Belum diajukan.</span><button id="beAjuB" class="sv">Tandai sudah diajukan</button></div>';
+    return '<div id="beAju" class="bst-warn"><b>BAST ini sudah diajukan</b> pada ' + esc(a.waktu) + (a.oleh ? ' oleh ' + esc(a.oleh) : '') + '. Perubahan tetap boleh, dan setiap perubahan dicatat di Riwayat perubahan.' +
+      (tb ? '<br><b>Ada ' + tb + ' IA baru setelah diajukan</b> (' + esc(d.ajuTambah.join(', ')) + '): ajukan ulang BAST ini.' : '') +
+      '<div style="margin-top:6px"><button id="beAjuB">' + (tb ? 'Tandai diajukan ulang' : 'Perbarui tanggal ajuan') + '</button> <button id="beAjuX">Batalkan tanda</button></div></div>';
+  }
+  function pasangAjuEditor() {
+    var b1 = el.querySelector('#beAjuB'), b2 = el.querySelector('#beAjuX');
+    if (b1) b1.onclick = function () { tandaiAju(S.ed.id, false, b1); };
+    if (b2) b2.onclick = function () { tandaiAju(S.ed.id, true, b2); };
+  }
+  function gabungGanda(btn) {
+    btn.disabled = true;
+    api({action: 'adminBastGabung'}).then(function (r) {
+      btn.disabled = false; if (!r.ok) { toast(r.msg || 'Gagal.', true); return; }
+      if (!r.grup.length) { toast(r.msg); return; }
+      var t = r.grup.slice(0, 15).map(function (g) { return 'PPBJ ' + g.ppbj + ': ' + g.gabung.map(function (b) { return b.nomor; }).join(', ') + ' -> ' + g.simpan.nomor; }).join('\n');
+      if (!confirm(r.msg + '\n\n' + t + (r.grup.length > 15 ? '\n... dan ' + (r.grup.length - 15) + ' PPBJ lain' : '') + '\n\nBAST dengan nomor terkecil dipertahankan. Isi BAST yang digabung dicadangkan di sheet BASTCadangan. Lanjutkan?')) return;
+      btn.disabled = true;
+      api({action: 'adminBastGabung', jalan: 1}).then(function (r2) { toast(r2.msg || (r2.ok ? 'Selesai.' : 'Gagal.'), !r2.ok); muatDaftarTetap(esc(r2.msg || '')); });
     });
   }
   function isiTabel() {
     var tb = el.querySelector('#bstTb'); if (!tb) return; var L = terlihat();
     tb.innerHTML = L.length ? L.map(function (x) {
-      return '<tr' + (x.ubah ? ' class="bst-ub"' : '') + '><td><input type="checkbox" data-p="' + esc(x.id) + '"' + (S.pil[x.id] ? ' checked' : '') + ' aria-label="Pilih ' + esc(x.nomor) + '"></td><td data-l="No BAST"><b>' + esc(x.nomor) + '</b></td><td data-l="Tanggal">' + esc(dmy(x.tgl)) + '</td><td data-l="Pekerjaan">' + esc(x.nama) + (x.proyek && x.proyek !== x.nama ? '<br><small>' + esc(x.proyek) + '</small>' : '') + '</td><td data-l="PPBJ"><small>' + esc(x.ppbj || '-') + '</small></td><td class="nm" data-l="Total">' + esc(rpTeks(x.total)) + '<br><small>' + x.nBaris + ' baris</small></td><td class="nm" data-l="% barang"' + (x.pct > 100 ? ' style="color:var(--red,#c0392b);font-weight:700"' : x.pct >= 90 ? ' style="color:#b7791f;font-weight:700"' : '') + '>' + pctTeks(x.pct) + '</td><td data-l="Catatan">' + (x.cek ? x.cek.split('; ').map(function (c) { return '<span class="bst-tag">' + esc(c) + '</span>'; }).join('') : '') + (x.nLamp ? '<br><small>' + x.nLamp + ' lampiran</small>' : '') + '</td><td><button data-b="' + esc(x.id) + '">Buka</button></td></tr>';
-    }).join('') : '<tr><td colspan="9">Belum ada BAST' + (S.q || S.f ? ' yang cocok.' : '. Unggah laporan IA lalu buat draf.') + '</td></tr>';
+      return '<tr' + (x.ubah ? ' class="bst-ub"' : '') + '><td><input type="checkbox" data-p="' + esc(x.id) + '"' + (S.pil[x.id] ? ' checked' : '') + ' aria-label="Pilih ' + esc(x.nomor) + '"></td><td data-l="No BAST"><b>' + esc(x.nomor) + '</b></td><td data-l="Tanggal">' + esc(dmy(x.tgl)) + '</td><td data-l="Pekerjaan">' + esc(x.nama) + (x.proyek && x.proyek !== x.nama ? '<br><small>' + esc(x.proyek) + '</small>' : '') + '</td><td data-l="PPBJ"><small>' + esc(x.ppbj || '-') + '</small></td><td class="nm" data-l="Total">' + esc(rpTeks(x.total)) + '<br><small>' + x.nBaris + ' baris</small></td><td class="nm" data-l="% barang"' + (x.pct > 100 ? ' style="color:var(--red,#c0392b);font-weight:700"' : x.pct >= 90 ? ' style="color:#b7791f;font-weight:700"' : '') + '>' + pctTeks(x.pct) + '</td><td data-l="Catatan">' + (x.cek ? x.cek.split('; ').map(function (c) { return '<span class="bst-tag">' + esc(c) + '</span>'; }).join('') : '') + (x.nLamp ? '<br><small>' + x.nLamp + ' lampiran</small>' : '') + '</td><td data-l="Diajukan">' + ajuSel(x) + '</td><td><button data-b="' + esc(x.id) + '">Buka</button></td></tr>';
+    }).join('') : '<tr><td colspan="10">Belum ada BAST' + (S.q || S.f ? ' yang cocok.' : '. Unggah laporan IA lalu buat draf.') + '</td></tr>';
     tb.onclick = function (e) {
+      var aj = e.target.closest('[data-aju]'); if (aj) { tandaiAju(aj.getAttribute('data-aju'), aj.getAttribute('data-batal') === '1', aj); return; }
       var b = e.target.closest('[data-b]'); if (b) { buka(b.getAttribute('data-b')); return; }
       var c = e.target.closest('[data-p]'); if (c) { var id = c.getAttribute('data-p'); if (c.checked) S.pil[id] = 1; else delete S.pil[id]; }
     };
@@ -747,7 +791,7 @@
       '<label>Nomor BAST<input id="beNomor" value="' + esc(S.ed.nomor) + '"></label><label>Kategori<select id="beKat"><option>Asset Konsesi</option><option>Perbaikan</option></select></label>' +
       '<label>Divisi (User)<input id="beDiv" value="' + esc(d.divisi || 'TEKNIK') + '"></label>' +
       '<label class="lebar">Nama pekerjaan<input id="beNama" value="' + esc(S.ed.nama) + '"></label><label class="lebar">Proyek<input id="beProyek" value="' + esc(S.ed.proyek) + '"></label></div>' +
-      '<div class="note" id="beKal">' + esc(kalimat(S.ed.tgl)) + '</div>' +
+      '<div class="note" id="beKal">' + esc(kalimat(S.ed.tgl)) + '</div>' + ajuEditor() +
       '<b>Penandatangan</b><div class="bst-ed">' + TTD.map(function (t) { return '<label>' + t[1] + '<input data-ttd="' + t[0] + '" value="' + esc(d.ttd[t[0]] || '') + '"></label>'; }).join('') + '</div></div>' +
       '<div class="card"><div class="fr" style="gap:6px;flex-wrap:wrap;justify-content:space-between"><b>Baris resume</b><span><button id="beRI">+ Baris RI / dokumen lain</button> <button id="beIA">+ Tambah IA</button> <button id="beSemua">Isi semua baris dari baris 1</button></span></div>' +
       '<div id="beCariIA" hidden><input id="beQ" placeholder="Ketik nomor IA, PPBJ, atau keterangan" style="width:100%;margin-top:6px"><div class="bst-ia" id="beHasil"></div></div>' +
@@ -758,6 +802,7 @@
       (S.ed.id ? '<div class="card"><details id="beJejak"><summary>Riwayat perubahan</summary><div class="note">Memuat...</div></details><div class="bar"><button id="beHapus" style="color:var(--red,#c0392b)">Hapus BAST ini</button></div></div>' : '');
     el.innerHTML = h;
     el.querySelector('#beKat').value = S.ed.kat === 'Asset Konsesi' ? 'Asset Konsesi' : 'Perbaikan';
+    pasangAjuEditor();
     gambarBaris();
     function ubah() { S.kotor = true; }
     var no = el.querySelector('#beNo'), tg = el.querySelector('#beTgl'), nmr = el.querySelector('#beNomor');

@@ -159,12 +159,19 @@
     '.da-ch{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.da-ch button{border:1px solid transparent;border-radius:14px;padding:4px 10px;cursor:pointer;font-size:12.5px}.da-ch button.on{outline:2px solid var(--acc,#0a2a43)}' +
     '.da-s{display:inline-block;border-radius:10px;padding:1px 8px;font-size:12px;white-space:nowrap}' +
     '.da-belum{background:#fde2e2;color:#8a1c1c}.da-sebagian{background:#ffe9cc;color:#7a4300}.da-tunggu{background:#fff4c2;color:#6b5200}.da-datangSebagian{background:#e3f0ff;color:#0d4a8a}.da-ri{background:#e8eef3;color:#334}' +
-    '.da-faktur{background:#f3e1ff;color:#5b2382}.da-jasa{background:#eef0f2;color:#4a5b68}.da-lengkap{background:#dff3e4;color:#1d6b35}' +
+    '.da-faktur{background:#f3e1ff;color:#5b2382}.da-proses{background:#fff0e0;color:#7a4300;border:1px dashed #c98a3a}.da-stok{background:#e6f4f1;color:#0f5c4f}.da-langsung{background:#eef0f2;color:#4a5b68}.da-jasa{background:#eef0f2;color:#4a5b68}.da-lengkap{background:#dff3e4;color:#1d6b35}' +
     '.da-f{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:6px 0}.da-f label{display:flex;flex-direction:column;font-size:12.5px;gap:2px}.da-rinci td{background:var(--bg2,#f6f8fa)}.da-rinci table{margin:4px 0 8px}';
   function gaya() { if (document.getElementById('da-css')) return; var s = document.createElement('style'); s.id = 'da-css'; s.textContent = CSS; document.head.appendChild(s); }
   function nf(n) { return n == null || n === '' ? '-' : (Math.round(Number(n) * 1000) / 1000).toLocaleString('id-ID'); }
   function rp(n) { return n == null ? '-' : 'Rp ' + Math.round(Number(n) || 0).toLocaleString('id-ID'); }
   function dmy(s) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? m[3] + '/' + m[2] + '/' + m[1] : (s || '-'); }
+  /* T149: keterangan stok untuk barang tanpa PO (Ordered Qty 0). */
+  D.stokKet = function (i) {
+    if (!i || i.stokGudang == null) return '';
+    var s = 'stok gudang ' + nf(i.stokGudang) + (i.cukup ? ' (cukup)' : ' (kurang dari ' + nf(i.qty) + ')');
+    if (i.st === 'proses') s = (i.umurPpbj == null ? 'PPBJ ' : i.umurPpbj === 0 ? 'PPBJ dibuat hari ini, ' : 'PPBJ ' + i.umurPpbj + ' hari, ') + 'belum ada PO. Dianggap pakai stok setelah ' + (i.batasStok == null ? 7 : i.batasStok) + ' hari. ' + s;
+    return '<br><small>' + esc(s) + '</small>';
+  };
   function lbl(st, L) { return '<span class="da-s da-' + esc(st) + '">' + esc((L && L[st]) || st) + '</span>'; }
   var JENIS_LOG = {ppbj: 'Item Requisition Detail', po: 'Purchase Order Detail', alur: 'Purchase Flow History', ia: 'Penyesuaian Stok Barang', mutasi: 'Mutasi per Gudang'};
   var GUNA = {ppbj: 'PPBJ, barang, PO, qty yang sudah diorder', po: 'Tanggal PO, vendor, harga beli', alur: 'PO sampai penerimaan (RI) dan faktur', ia: 'IA untuk BAST dan komparasi (nomor yang hilang dipulihkan)', mutasi: 'Qty datang (RI) dan keluar (IA) per barang'};
@@ -235,7 +242,7 @@
       }
       if (o.jenis === 'ppbj') { tulis('<p><b>' + nf(o.ppbj.length) + ' PPBJ</b>, ' + nf(o.nBaris) + ' baris barang: ' + nf(o.nPo) + ' sudah ada nomor PO, ' + nf(o.nBelum) + ' belum diorder. PPBJ yang ada di file diganti seluruh barisnya; PPBJ lain tetap.</p>', true); }
       else if (o.jenis === 'po') { var v = {}, nil = 0; o.rows.forEach(function (x) { v[x.supplier] = 1; nil += x.total || 0; }); tulis('<p><b>' + nf(o.nPo) + ' PO</b>, ' + nf(o.rows.length) + ' baris barang, ' + nf(Object.keys(v).length) + ' vendor, nilai ' + rp(nil) + '. Data PO pada periode ini diganti; periode lain tetap.</p>', true); }
-      else if (o.jenis === 'alur') { tulis('<p><b>' + nf(o.rows.length) + ' baris alur</b>: ' + nf(o.st.ri) + ' dengan penerimaan barang (RI), ' + nf(o.st.belumPo) + ' PPBJ belum ada PO. Data alur lama diganti seluruhnya (laporan ini tidak bertanggal; unggah dengan rentang tanggal panjang).</p>', true); }
+      else if (o.jenis === 'alur') { tulis('<p><b>' + nf(o.rows.length) + ' baris alur</b>: ' + nf(o.st.ri) + ' dengan penerimaan barang (RI), ' + nf(o.st.belumPo) + ' PPBJ belum ada PO. Digabung per PO: PO yang ada di file diperbarui (penerimaan, faktur, pembayaran terbaru), PO lain yang sudah tersimpan tetap. Boleh unggah rentang sebulan.</p>', true); }
       else if (o.jenis === 'mutasi') { tulis('<p><b>' + nf(o.mut.rows.length) + ' transaksi</b>, ' + nf(o.mut.saldo.length) + ' saldo awal, gudang ' + esc(o.mut.gudang.join(', ')) + '. Data Mutasi Accurate pada periode ini diganti.</p>', true); }
       else if (o.jenis === 'ia') {
         if (!o.tanpaNomor) tulis('<p><b>' + nf(o.ia.length) + ' IA</b>, semua bernomor.</p>', true);
@@ -319,7 +326,7 @@
         var x = r.data, L = r.label;
         r0.firstChild.innerHTML = '<div class="tw"><table><thead><tr><th>Barang</th><th class="n">Di PPBJ</th><th class="n">Dipesan</th><th class="n">Datang</th><th class="n">Sisa order</th><th>PO</th><th>Tgl PO</th><th>Vendor</th><th>Status</th></tr></thead><tbody>' +
           x.items.map(function (i) { return '<tr><td data-l="Barang"><b>' + esc(i.nama) + '</b><br><small>' + esc(i.kode) + (root.OLH ? ' ' + root.OLH(i.kode) : '') + '</small></td><td class="n" data-l="Di PPBJ">' + nf(i.qty) + '</td><td class="n" data-l="Dipesan">' + nf(i.dipesan) + '</td><td class="n" data-l="Datang">' + (i.datang == null ? '-' : nf(i.datang)) + '</td><td class="n" data-l="Sisa order">' + (i.sisaOrder ? '<b>' + nf(i.sisaOrder) + '</b>' : '0') + '</td>' +
-            '<td data-l="PO">' + esc(i.po.join(', ') || '-') + (i.bersama ? '<br><small>PO dipakai bersama PPBJ lain</small>' : '') + '</td><td data-l="Tgl PO">' + dmy(i.tglPo) + (i.hari != null ? '<br><small>' + i.hari + ' hari</small>' : '') + '</td><td data-l="Vendor">' + esc(i.supplier || '-') + '</td><td data-l="Status">' + lbl(i.st, L) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
+            '<td data-l="PO">' + esc(i.po.join(', ') || '-') + (i.bersama ? '<br><small>PO dipakai bersama PPBJ lain</small>' : '') + '</td><td data-l="Tgl PO">' + dmy(i.tglPo) + (i.hari != null ? '<br><small>' + i.hari + ' hari</small>' : '') + '</td><td data-l="Vendor">' + esc(i.supplier || '-') + '</td><td data-l="Status">' + lbl(i.st, L) + D.stokKet(i) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
           (x.poRinci.length ? '<b>PO untuk PPBJ ini</b><div class="tw"><table><thead><tr><th>PO</th><th>Tanggal</th><th>Vendor</th><th class="n">Nilai</th><th>Penerimaan (RI)</th><th>Faktur</th><th></th></tr></thead><tbody>' +
             x.poRinci.map(function (p) { return '<tr><td>' + esc(p.po) + '</td><td>' + dmy(p.tgl) + '</td><td>' + esc(p.supplier || '-') + '</td><td class="n">' + rp(p.nilai) + '</td><td>' + esc(p.ri.join(', ') || '-') + '</td><td>' + esc(p.faktur.join(', ') || '-') + '</td><td>' + (p.manual ? '<small>ditautkan manual</small>' : '') + (p.bersama.length ? '<small>juga untuk ' + esc(p.bersama.join(', ')) + '</small>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="note">Belum ada PO untuk PPBJ ini.</div>');
       });

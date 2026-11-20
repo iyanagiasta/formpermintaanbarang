@@ -186,18 +186,19 @@ var PX=(function(){
       if(c.lewati.length)m+="\n\nDILEWATI ("+c.lewati.length+", isi manual):\n"+c.lewati.slice(0,8).map(function(d){return "- "+d.doc+": "+d.alasan;}).join("\n");
       if(c.peringatan.length)m+="\n\nPERINGATAN: proyek ini kekurangan barang yang sama:\n"+c.peringatan.map(function(w){return "- "+w.ppbj+" (prioritas "+w.prio+"): "+w.barang.join(", ");}).join("\n")+"\n(Barang tetap boleh diserahkan.)";
       if(!confirm(m))return;
-      var tot=0,gagal=[],ids=c.layak.map(function(d){return d.id;});
-      for(var ronde=0;ronde<8&&ids.length;ronde++){
-        var r=await api({action:"adminSerahSemua",ids:ids});if(!r.ok){toast(r.msg||"Gagal.",true);break;}
-        tot+=r.selesai;gagal=gagal.concat(r.gagal);
-        var sudah={};(r.dok||[]).forEach(function(d){sudah[d]=1;});
-        if(!r.sisa)break;
-        ids=c.layak.filter(function(d){return !sudah[d.doc]&&ids.indexOf(d.id)>=0;}).map(function(d){return d.id;});
+      /* T147: diserahkan per 5 dokumen dengan kemajuan di tombol (sebelumnya 25 sekaligus, bisa 2 menit tanpa tanda) */
+      var tot=0,gagal=[],antre=c.layak.slice(),total=antre.length,teks0=btn.textContent;
+      while(antre.length){
+        var kel=antre.splice(0,5);btn.textContent="Menyerahkan "+(total-antre.length)+" / "+total+"...";
+        var r=await api({action:"adminSerahSemua",rencana:kel.map(function(d){return {id:d.id,doc:d.doc,items:d.items};}),batas:5});
+        if(!r.ok){toast(r.msg||"Gagal.",true);break;}
+        tot+=r.selesai;gagal=gagal.concat(r.gagal||[]);
       }
+      btn.textContent=teks0;
       toast(tot+" dokumen diserahkan"+(gagal.length?", "+gagal.length+" gagal: "+gagal.map(function(g){return g.doc+" ("+g.msg+")";}).join("; "):"")+".",gagal.length>0);
       loadSerah();
-    }catch(e){toast("Gagal terhubung ke server.",true);}
-    finally{btn.disabled=false;}
+    }catch(e){toast("Gagal terhubung ke server. Sebagian dokumen mungkin sudah diserahkan; daftar dimuat ulang.",true);try{loadSerah();}catch(e2){}}
+    finally{btn.disabled=false;if(typeof teks0==="string")btn.textContent=teks0;}
   }
   /* ---- Cari proyek SL: dugaan dari isi RAB (Tambahan 28) ---- */
   async function dugaan(){

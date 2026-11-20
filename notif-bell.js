@@ -35,9 +35,9 @@ var NTF=(function(){
   }
   function tandai(){var m=0;if(D)D.daftar.forEach(function(x){if(x.t>m)m=x.t;});seen=Math.max(seen,m,Date.now());ls("sctk_ntf_seen",String(seen));tombol();}
   /* Tambahan 102: hasil terakhir disimpan 2 menit di localStorage, jadi pindah halaman atau buka tab baru tidak memanggil server lagi. Membuka lonceng selalu mengambil yang terbaru. */
-  async function ambil(paksa){
+  async function ambil(paksa,umur){
     if(!adaPin())return false;
-    if(!paksa){try{var c=JSON.parse(localStorage.getItem("sctk_ntf_c")||"null");if(c&&c.r&&Date.now()-c.t<120000){D=c.r;tombol();return true;}}catch(e){}}
+    if(!paksa){try{var c=JSON.parse(localStorage.getItem("sctk_ntf_c")||"null");if(c&&c.r&&Date.now()-c.t<(umur||120000)){D=c.r;tombol();return true;}}catch(e){}}
     try{var r=await api({action:"notifDaftar"});if(r&&r.ok){D=r;tombol();try{localStorage.setItem("sctk_ntf_c",JSON.stringify({t:Date.now(),r:r}));}catch(e){}return true;}}catch(e){}
     return false;
   }
@@ -46,7 +46,7 @@ var NTF=(function(){
     if(mulai)return;mulai=true;seen=Number(ls("sctk_ntf_seen")||0)||0;
     var cek=setInterval(async function(){if(!adaPin())return;clearInterval(cek);var pertama=!ls("sctk_ntf_seen");
       if(await ambil()&&pertama){tandai();}
-      timer=setInterval(function(){if(!document.hidden)ambil(true);},5*60*1000);},1500);
+      /* T147: cek berkala tiap 10 menit (sebelumnya 5) dan memakai hasil yang baru diambil tab/halaman lain (<9 menit); membuka lonceng tetap mengambil yang terbaru. */timer=setInterval(function(){if(!document.hidden)ambil(false,9*60*1000);},10*60*1000);},1500);
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",jalan);else jalan();
   return {buka:buka,ambil:ambil};

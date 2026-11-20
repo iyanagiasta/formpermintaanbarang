@@ -78,11 +78,30 @@ function render(){
   app.innerHTML=h;
   var all=document.getElementById("all");if(all)all.onclick=function(){
     var n2=Math.min(D.items.length,D.maks);if(!confirm("Setujui "+n2+" permintaan sekaligus?"))return;
-    kirim({mode:"semua",cat:document.getElementById("ca").value});};
+    kirimSemua(n2,document.getElementById("ca").value);};
   app.querySelectorAll("button[data-a]").forEach(function(b){b.onclick=function(){
     var i=Number(b.getAttribute("data-i")),x=D.items[i],a=b.getAttribute("data-a"),c=app.querySelector('input[data-c="'+i+'"]').value;
     if(a==="reject"&&!confirm("Tolak "+x.doc+"? Pemohon akan diberi tahu."))return;
     kirim({mode:"satu",id:x.id,act:a,cat:c});};});
+}
+/* T147: setujui sekaligus diproses per 3 permintaan dengan kemajuan di layar (sebelumnya 15 sekaligus: 9-90 detik tanpa tanda, sering terputus). */
+async function kirimSemua(total,cat){
+  kunci(true);var ok=0,gagal=[],putus=false,el=document.getElementById("all");
+  try{
+    while(ok+gagal.length<total){
+      if(el)el.textContent="Menyetujui "+Math.min(total,ok+gagal.length+3)+" / "+total+"...";
+      var r=await api({action:"setujuGabAksi",t:T,mode:"semua",cat:cat,batas:3});
+      if(!r.ok){gagal.push({doc:"",msg:r.msg||"Gagal."});break;}
+      ok+=r.berhasil;(r.hasil||[]).forEach(function(h){if(!h.ok)gagal.push(h);});D.items=r.items;
+      if(!r.berhasil||!r.sisa)break;
+    }
+  }catch(e){putus=true;}
+  try{var i=await api({action:"setujuGabInfo",t:T});if(i.ok)D.items=i.items;}catch(e2){}
+  var s=ok+" permintaan disetujui."+(D.items.length?" "+D.items.length+" permintaan masih menunggu.":"");
+  if(putus)s+=" Koneksi terputus di tengah proses; daftar di bawah sudah diperbarui, yang sudah disetujui tidak tampil lagi.";
+  if(gagal.length)s+="\n"+gagal.map(function(h){return (h.doc?h.doc+": ":"")+h.msg;}).join("\n");
+  NOTE='<div class="hasil'+(gagal.length||putus?' g':'')+'">'+esc(s)+'</div>';
+  render();window.scrollTo({top:0,behavior:"smooth"});
 }
 async function kirim(p){
   kunci(true);p.action="setujuGabAksi";p.t=T;

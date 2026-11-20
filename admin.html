@@ -351,9 +351,9 @@ async function onAct(b){
 function pane(){return document.getElementById("pane")||app;}
 var MENU=[["Harian",[["kerja","Daftar Kerja"],["pantau","Pantauan BPB"],["serah","Serah Barang"],["terima","Terima Barang"],["mutasi","Mutasi"]]],
  ["Stok",[["stok","Stok & Harga"],["opname","Selisih Opname"],["kimia","Opname Kimia"],["seri","No Seri Meter"],["kpi","KPI Gudang"],["baopname","BA Opname"],["kedaluwarsa","Kedaluwarsa"],["buffer","Buffer Paket"],["barangmati","Barang Mati"],["accurate","Accurate"],["komparasi","Komparasi"]]],
- ["Proyek & Pembelian",[["proyek","Proyek"],["pengajuan","Pengajuan"],["pembelian","Pengadaan \u2197"],["realisasi","Realisasi \u2197"]]],
+ ["Proyek & Pembelian",[["proyek","Proyek"],["pengajuan","Pengajuan"],["pembelian","Pengadaan"],["realisasi","Realisasi"]]],
  ["Laporan",[["laporan","Laporan"],["lapatasan","Laporan Atasan"],["telusur","Telusur"],["analisa","Analisa Barang"],["arsip","Arsip Bukti"],["bast","BAST"],["pengganti","BPB Pengganti"],["mutasiacc","Mutasi Accurate"]]],
- ["Data & Sistem",[["masterbarang","Master Barang"],["label","Label \u2197"],["pengumuman","Pengumuman"],["sistem","Sistem"],["kecepatan","Kecepatan"],["panduan","Panduan"]]]];
+ ["Data & Sistem",[["masterbarang","Master Barang"],["label","Label"],["pengumuman","Pengumuman"],["sistem","Sistem"],["kecepatan","Kecepatan"],["panduan","Panduan"]]]];
 function namaTab(t){var n=t;MENU.forEach(function(g){g[1].forEach(function(x){if(x[0]===t)n=x[1];});});return n;}
 function tabAda(h){var ok=false;MENU.forEach(function(g){g[1].forEach(function(x){if(x[0]===h&&h!=="pembelian"&&h!=="realisasi"&&h!=="label")ok=true;});});return ok;}
 function cepatCari(v){
@@ -2422,8 +2422,8 @@ function bindOs(){pane().querySelectorAll("[data-os]").forEach(function(b){b.onc
 </script>
 <script src="swr.js?v=129"></script>
 <script src="basi.js?v=116"></script>
-<script src="tampil.js?v=127"></script>
+<script src="tampil.js?v=146"></script>
 <script src="admin-hp.js?v=127"></script>
-<script src="admin-pintas.js?v=127"></script><script src="admin-nav.js?v=129"></script>
+<script src="admin-pintas.js?v=127"></script><script src="admin-nav.js?v=146"></script>
 </body>
 </html>

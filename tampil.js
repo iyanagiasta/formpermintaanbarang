@@ -51,13 +51,14 @@
   // ---------- cuplikan per tab ----------
   function cuplikan(t) {
     if (!t || !W.PIN) return "";
-    if (mem[t]) return mem[t];
-    try { var o = JSON.parse(localStorage.getItem(kunci(t)) || "null"); if (o && typeof o.t === "number" && Date.now() - o.t < UMUR && o.h) { mem[t] = o.h; return o.h; } } catch (e) { }
+    if (mem[t]) return /<iframe/i.test(mem[t]) ? "" : mem[t];
+    try { var o = JSON.parse(localStorage.getItem(kunci(t)) || "null"); if (o && typeof o.t === "number" && Date.now() - o.t < UMUR && o.h && !/<iframe/i.test(o.h)) { mem[t] = o.h; return o.h; } } catch (e) { }
     return "";
   }
   function simpanCuplikan(t) {
     var p = pane(); if (!p || !t || t !== liveTab || !W.PIN) return;
     if (p.querySelector(".tl-lama,.tl-kerangka") || p.classList.contains("tl-lama") || p.classList.contains("tl-kerangka")) return;   // masih ada bagian lama: jangan simpan campuran
+    if (p.classList.contains("nbk") || p.querySelector("iframe")) return;   // T146: tab dalam bingkai tidak disimpan cuplikannya
     var h = getH(p); if (!h || jenisHtml(h) !== "isi") return;
     if (h.length > MAKS_MEMORI) return;
     mem[t] = h;

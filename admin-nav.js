@@ -16,16 +16,31 @@
    Hanya tampilan; tidak menyentuh server. */
 (function () {
   "use strict";
-  var d = document, W = window, KT = "sctk_nav_tabs", KF = "sctk_nav_fav", KR = "sctk_nav_baru", MAKS = 8;
+  /* T146: admin.html?bingkai=1 = halaman admin yang tampil di dalam tab ganda halaman induk. Tanpa menu samping, judul, dan baris tab;
+     pintasan Alt dan Ctrl+K diteruskan ke halaman induk; pindah ke menu lain dikerjakan halaman induk. */
+  if (/[?&]bingkai=1/.test(location.search)) {
+    var dB = document, WB = window;
+    dB.documentElement.classList.add("bingkai");
+    var stB = dB.createElement("style");
+    stB.textContent = "html.bingkai .top,html.bingkai .side,html.bingkai #smbuka,html.bingkai #navtabs,html.bingkai #ntfbtn,html.bingkai #abar,html.bingkai #pdnq,html.bingkai #bacaBtn,html.bingkai .homebtn{display:none!important}" +
+      "html.bingkai .adm{display:block!important}html.bingkai body{padding-top:0!important;padding-bottom:0!important}html.bingkai .wrap{max-width:none!important;padding-top:4px!important}";
+    (dB.head || dB.documentElement).appendChild(stB);
+    WB.__navBingkai = true;
+    return;
+  }
+  var d = document, W = window, KT = "sctk_nav_tabs", KF = "sctk_nav_fav", KR = "sctk_nav_baru", MAKS = 12;
   var SEGAR_MNT = {kerja: 5, pantau: 5};
-  var MULTI = {stok: 1, mutasi: 1, telusur: 1};
+  var MULTI = new Proxy({}, {get: function () { return 1; }});   // T146: semua menu boleh dibuka lebih dari satu tab
+  var LUAR_URL = {pembelian: "pengadaan.html", realisasi: "realisasi.html", label: "label.html"};
   var INST = {}, AKTIF = null, PEMILIK = {}, KTX = null, ANTRI = [], RIW = [], kotor = {}, dariRiwayat = false, lewatHash = false;
-  var asliGo = null;
+  var asliGo = null, asliUIRef = null;
   function ls(k, def) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? def : v; } catch (e) { return def; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* abaikan */ } }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]; }); }
   function menuSemua() { var a = []; (W.MENU || []).forEach(function (g) { g[1].forEach(function (x) { a.push({t: x[0], nama: x[1], grup: g[0]}); }); }); return a; }
   function luar(t) { return t === "pembelian" || t === "realisasi" || t === "label"; }
+  /** T146: tab yang ditampilkan dalam bingkai (iframe) dengan ingatan sendiri: halaman luar, dan tab kedua dst. dari menu yang ingatannya belum bisa dipisah. */
+  function bingkaiId(id, t) { return luar(t) || (!STATE[t] && String(id).indexOf("~") > 0); }
   function nama(t) { try { return W.namaTab ? W.namaTab(t) : t; } catch (e) { return t; } }
   function ada(t) { return menuSemua().some(function (m) { return m.t === t; }); }
   function jam(ms) { var x = new Date(ms), p = function (n) { return String(n).padStart(2, "0"); }; return p(x.getHours()) + "." + p(x.getMinutes()); }
@@ -74,12 +89,12 @@
   }
 
   /* ---------- daftar tab (diingat di browser) ---------- */
-  function idSah(x) { return x && x.t && ada(x.t) && !luar(x.t) && (x.id === x.t || String(x.id).indexOf(x.t + "~") === 0); }
+  function idSah(x) { return x && x.t && ada(x.t) && (x.id === x.t || String(x.id).indexOf(x.t + "~") === 0); }
   function daftar() { return ls(KT, []).map(function (x) { return x && {id: x.id || x.t, t: x.t, w: x.w || 0}; }).filter(idSah); }
   function simpanDaftar(a) { lsSet(KT, a.map(function (x) { return {id: x.id, t: x.t, w: x.w}; })); }
   function diDaftar(id) { return daftar().some(function (x) { return x.id === id; }); }
   function catat(id, t) {
-    if (!id || luar(t) || !ada(t)) return;
+    if (!id || !ada(t)) return;
     var a = daftar(), now = Date.now(), x = a.filter(function (y) { return y.id === id; })[0];
     if (x) x.w = now; else a.push({id: id, t: t, w: now});
     while (a.length > MAKS) {
@@ -98,6 +113,7 @@
   }
   /** Tab untuk menu t: yang terakhir dipakai (untuk klik menu), atau pemegang data saat ini (untuk perintah dari kode). */
   function idUntuk(t, pemilikDulu) {
+    if (pemilikDulu && !STATE[t] && !luar(t)) return t;   // perintah dari kode halaman ini: tab asli (bukan bingkai)
     if (pemilikDulu && PEMILIK[t] && INST[PEMILIK[t]]) return PEMILIK[t];
     var a = daftar().filter(function (x) { return x.t === t; }).sort(function (p, q) { return q.w - p.w; });
     if (a.length) return a[0].id;
@@ -109,7 +125,7 @@
   function inst(id, t) { return INST[id] || (INST[id] = {id: id, t: t, el: null, dimuat: 0, basi: false, y: 0, st: null}); }
   function hapusInst(id) {
     var x = INST[id]; if (!x) return;
-    if (x.el && x.el.parentNode && id !== AKTIF) x.el.parentNode.removeChild(x.el);
+    if (x.el && x.el.parentNode && (id !== AKTIF || x.bingkai)) x.el.parentNode.removeChild(x.el);
     delete INST[id]; delete kotor[id];
     if (PEMILIK[x.t] === id) delete PEMILIK[x.t];
     RIW = RIW.filter(function (y) { return y !== id; });
@@ -154,8 +170,21 @@
       if (x.t === "stok") { var q = x.el && x.el.querySelector("#sq"); s = q ? q.value : ""; }
       else if (x.t === "mutasi") { var mf = milik ? W.MF : (st && st.MF); s = mf ? (mf.q || mf.proyek || "") : ""; }
       else if (x.t === "telusur") { var tl = milik ? W.TL : (st && st.TL); if (tl) s = tl.mode === "ppbj" ? tl.ppbj : tl.mode === "bpb" ? tl.bpb : tl.mode === "banyak" ? (tl.banyak && tl.banyak.length ? tl.banyak.length + " barang" : "") : tl.q; }
+      else s = labelUmum(x);
     } catch (e) { s = ""; }
     s = String(s || "").trim(); return s.length > 16 ? s.slice(0, 15) + "…" : s;
+  }
+  /** T146: nama tab dari isi tab: judul dokumen yang dibuka (BAST ..., PPBJ ...) atau isi kotak cari yang terisi. */
+  function labelUmum(x) {
+    var root = null;
+    try { root = x.bingkai && x.frame ? x.frame.contentDocument && x.frame.contentDocument.body : x.el; } catch (e) { root = null; }
+    if (!root) return "";
+    var h = root.querySelector("h3"), ht = h ? String(h.textContent || "").trim() : "";
+    var m = ht.match(/^BAST\s+(\d{2,4})\b/i); if (m) return m[1];
+    var pp = root.querySelector("#mpOut b, .pdj, [data-judul-tab]"); if (pp && pp.getAttribute && pp.getAttribute("data-judul-tab")) return pp.getAttribute("data-judul-tab");
+    var ins = root.querySelectorAll("input"), v = "";
+    for (var i = 0; i < ins.length && !v; i++) { var el = ins[i]; if (el.offsetParent !== null && seperti_cari(el) && String(el.value || "").trim()) v = String(el.value).trim(); }
+    return v;
   }
   function judulTab(x, semua) {
     var n = nama(x.t), lbl = labelDari(INST[x.id] || x);
@@ -179,13 +208,15 @@
     }
     if (!sama && lama) {
       lama.y = W.scrollY || 0; simpanState(lama);
-      try { if (W.TAMPIL && W.TAMPIL.lepas) W.TAMPIL.lepas(); } catch (e) { /* abaikan */ }
-      if (lama.el && lama.el.parentNode) lama.el.parentNode.removeChild(lama.el);
+      try { if (!lama.bingkai && W.TAMPIL && W.TAMPIL.lepas) W.TAMPIL.lepas(); } catch (e) { /* abaikan */ }
+      if (lama.bingkai) { if (lama.el) lama.el.hidden = true; }
+      else if (lama.el && lama.el.parentNode) lama.el.parentNode.removeChild(lama.el);
       if (lama.el) lama.el.removeAttribute("id");
       try { if (W.BASI && W.BASI.hapus) W.BASI.hapus(); } catch (e) { /* abaikan */ }
       if (!diDaftar(lama.id)) hapusInst(lama.id);
     }
     AKTIF = id; RIW = RIW.filter(function (y) { return y !== id; }); RIW.push(id); if (RIW.length > 20) RIW.shift();
+    if (bingkaiId(id, t)) { pindahBingkai(x, t, mode, sama); return; }
     if (mode === "program") ambilAlihState(x); else pakaiState(x);
     W.TAB = t;
     if (!x.el) x.el = d.createElement("div");
@@ -213,23 +244,88 @@
     try { history.replaceState({navId: id}, "", "#" + t); } catch (e) { /* abaikan */ }
     gambarBar();
   }
+  /* ---------- T146: tab dalam bingkai ---------- */
+  function urlBingkai(t) { return (LUAR_URL[t] || "admin.html") + "?bingkai=1" + (LUAR_URL[t] ? "" : "#" + t); }
+  function buatBingkai(x, t) {
+    var el = x.el || (x.el = d.createElement("div")); el.className = "nbk"; el.innerHTML = "";
+    var f = d.createElement("iframe"); f.title = nama(t); f.src = urlBingkai(t); f.setAttribute("loading", "eager");
+    el.appendChild(f); x.frame = f; x.bingkai = true; x.dimuat = Date.now(); x.basi = false; kotor[x.id] = [];
+    f.addEventListener("load", function () { pasangBingkai(x, f); });
+  }
+  function pasangBingkai(x, f) {
+    var w, dc; try { w = f.contentWindow; dc = f.contentDocument; } catch (e) { return; }
+    if (!w || !dc) return;
+    x.dimuat = Date.now(); kotor[x.id] = [];
+    try { if (LUAR_URL[x.t]) { var sl = dc.createElement("style"); sl.textContent = "a[href*='dashboard.html'],a[href*='admin.html']{display:none!important}"; dc.head.appendChild(sl); } } catch (e0) { /* abaikan */ }
+    /* isian belum disimpan di dalam bingkai */
+    dc.addEventListener("input", function (e) {
+      var el = e.target; if (!el) return;
+      if (el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && /^(text|number|date|tel|email|)$/.test(el.type || "text") && !seperti_cari(el))) { var a = kotor[x.id] || (kotor[x.id] = []); if (a.indexOf(el) < 0) a.push(el); }
+    }, true);
+    /* pintasan tab diteruskan ke halaman induk */
+    dc.addEventListener("keydown", function (e) {
+      var k = (e.key || "").toLowerCase();
+      if (((e.ctrlKey || e.metaKey) && !e.altKey && k === "k") || (e.altKey && !e.ctrlKey && !e.metaKey && /^(Digit[1-9]|KeyW|KeyQ|KeyT|KeyR|BracketLeft|BracketRight)$/.test(e.code || ""))) {
+        e.preventDefault(); e.stopPropagation();
+        d.dispatchEvent(new KeyboardEvent("keydown", {key: e.key, code: e.code, altKey: e.altKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey, bubbles: true, cancelable: true}));
+      }
+    }, true);
+    /* penyimpanan di dalam bingkai menandai tab lain perlu dimuat ulang */
+    try {
+      var asliApi = w.api;
+      if (typeof asliApi === "function" && !asliApi.__navB) {
+        w.api = function (b) { var p = asliApi.apply(this, arguments); if (p && typeof p.then === "function") p.then(function (j) { try { tandaiTulis(b, j, x.id); } catch (e1) { /* abaikan */ } }, function () {}); return p; };
+        w.api.__navB = true;
+      }
+    } catch (e2) { /* abaikan */ }
+    /* pindah ke menu lain dari dalam bingkai: dibuka halaman induk (data pencarian yang disiapkan ikut dibawa) */
+    try {
+      var asliGoB = w.goTab;
+      if (typeof asliGoB === "function" && !asliGoB.__navB && !LUAR_URL[x.t]) {
+        w.goTab = function (t2) {
+          if (t2 === x.t) return asliGoB.apply(this, arguments);
+          if (STATE[t2]) { STATE[t2].v.forEach(function (k) { try { if (k in w) W[k] = w[k]; } catch (e3) { /* abaikan */ } }); setTimeout(function () { W.goTab(t2); }, 0); }
+          else setTimeout(function () { bukaMenu(t2); }, 0);
+        };
+        w.goTab.__navB = true;
+        if (typeof w.cepatCari === "function") w.cepatCari = function (v) { setTimeout(function () { try { W.cepatCari(v); } catch (e4) { /* abaikan */ } }, 0); };
+      }
+    } catch (e5) { /* abaikan */ }
+    gambarBar();
+  }
+  function pindahBingkai(x, t, mode, sama) {
+    W.TAB = t; x.bingkai = true;
+    var baru = !x.el || !x.frame;
+    if (baru) buatBingkai(x, t);
+    x.el.id = "pane"; x.el.hidden = false; if (x.el.parentNode !== kolom()) kolom().appendChild(x.el);
+    catat(x.id, t);
+    var muat = !baru && (mode === "muat" || mode === "program" || (x.basi && !adaKotor(x.id)));
+    if (muat) { try { x.frame.contentWindow.location.reload(); x.dimuat = Date.now(); x.basi = false; kotor[x.id] = []; } catch (e) { buatBingkai(x, t); } }
+    try { if (!dariRiwayat && !sama) history.pushState({navId: x.id}, "", "#" + t); } catch (e1) { /* abaikan */ }
+    try { var tb = d.querySelector('.tl-bar'); if (tb) tb.remove(); var bb = d.querySelector('.basi-bar'); if (bb) bb.remove(); } catch (e2) { /* abaikan */ }
+    try { W.scrollTo(0, 0); } catch (e3) { /* abaikan */ }
+    try { W.tabsUI(); } catch (e4) { /* abaikan */ }
+    try { history.replaceState({navId: x.id}, "", "#" + t); } catch (e5) { /* abaikan */ }
+    gambarBar();
+  }
   function pulih(id, y) {
     [60, 300, 800, 1600].forEach(function (ms) { setTimeout(function () { if (AKTIF === id && Math.abs(W.scrollY - y) > 20 && d.documentElement.scrollHeight - W.innerHeight >= y - 5) W.scrollTo(0, y); }, ms); });
   }
   function bukaMenu(t) {
-    if (luar(t)) return asliGo(t);
+    if (!kolom()) { if (luar(t)) return asliGo(t); }
     var a = INST[AKTIF];
     if (a && a.t === t) { if (adaKotor(a.id) && !konfirmasi(a.id, "dimuat ulang")) return; return pindah(a.id, t, "muat"); }
     pindah(idUntuk(t, false), t, "menu");
   }
   function bukaBaru(t) {
     if (!t) return;
-    if (!MULTI[t]) { bukaMenu(t); if (ada(t) && !luar(t)) toast('"' + nama(t) + '" hanya bisa dibuka satu tab. Tab baru tersedia untuk Stok & Harga, Mutasi, dan Telusur.'); return; }
+    if (!kolom()) return bukaMenu(t);
     pindah(idBaru(t), t, "baru");
   }
   function muatUlang(id) {
     var x = INST[id] || daftar().filter(function (y) { return y.id === id; })[0]; if (!x) return;
     if (id === AKTIF && adaKotor(id) && !konfirmasi(id, "dimuat ulang")) return;
+    if (x.bingkai && x.frame && id !== AKTIF) { x.basi = true; }
     pindah(id, x.t, "muat");
   }
   function tutup(id) {
@@ -314,14 +410,15 @@
     if (x && x.dimuat) {
       var k = adaKotor(x.id) && x.basi;
       info = '<div class="nti"><span class="ntj' + (k ? " ntbasi" : "") + '" data-tip="' + esc(k ? "Ada penyimpanan yang mengubah data tab ini, tetapi ada isian yang belum disimpan, jadi tab tidak dimuat ulang otomatis.\nSimpan isian lalu tekan ↻." : "Dimuat jam " + jam(x.dimuat) + ".\nTekan ↻ bila ada perubahan dari HP pegawai.") + '">' + (k ? "⚠ data berubah" : "data " + jam(x.dimuat)) + '</span>' +
-        '<button type="button" class="ntr" data-ntr="1" aria-label="Muat ulang tab ini" data-tip="Muat ulang tab ini (Alt+R)">&#8635;</button></div>';
+        '<button type="button" class="ntr" data-ntr="1" aria-label="Muat ulang tab ini" data-tip="Muat ulang tab ini (Alt+R)">&#8635;</button>' + (x.bingkai ? '<button type="button" class="ntr" data-ntbr="1" aria-label="Buka di tab browser baru" data-tip="Buka halaman ini di tab browser baru (mis. untuk mencetak)">&#8599;</button>' : '') + '</div>';
     }
     bar.innerHTML = '<div class="ntw" role="tablist" aria-label="Tab yang terbuka">' + a.map(function (y, i) {
       var on = y.id === AKTIF, z = INST[y.id], basi = z && z.basi && !on, jd = judulTab(y, a);
       var tip = (i < 8 ? "Alt+" + (i + 1) + " · " : "") + "klik tengah: tutup · klik 2x: muat ulang · seret: atur urutan\nAlt+Q: tab terakhir · Alt+[ / Alt+]: tab kiri / kanan" + (basi ? "\nAda penyimpanan terkait; dimuat ulang saat dibuka." : "");
       return '<div class="nt' + (on ? " on" : "") + '" draggable="true" data-ntd="' + esc(y.id) + '"><button type="button" role="tab" aria-selected="' + on + '" data-nt="' + esc(y.id) + '" aria-label="' + esc(jd) + '" data-tip="' + esc(tip) + '">' + (basi ? '<i class="ntdot" aria-hidden="true"></i>' : "") + esc(jd) + '</button><button type="button" class="ntx" data-ntx="' + esc(y.id) + '" aria-label="Tutup tab ' + esc(jd) + '" data-tip="' + (on ? "Tutup tab (Alt+W)" : "Tutup tab") + '">&times;</button></div>';
-    }).join("") + '</div>' + info;
+    }).join("") + '</div><button type="button" class="ntplus" data-ntplus="1" aria-label="Tab baru" data-tip="Tab baru: pilih menu (Alt+T membuka menu yang sama)">+</button>' + info;
     var w = bar.querySelector(".ntw");
+    var pb = bar.querySelector("[data-ntplus]"); if (pb) pb.onclick = function (e) { e.stopPropagation(); pilihMenuBaru(pb); };
     bar.querySelectorAll("[data-nt]").forEach(function (b) {
       var id = b.getAttribute("data-nt");
       b.onclick = function () { if (id !== AKTIF) { var y = a.filter(function (q) { return q.id === id; })[0]; if (y) pindah(id, y.t, "menu"); } };
@@ -342,8 +439,34 @@
       });
     });
     var rb = bar.querySelector("[data-ntr]"); if (rb) rb.onclick = function () { muatUlang(AKTIF); };
+    var br = bar.querySelector("[data-ntbr]"); if (br) br.onclick = function () { var z = INST[AKTIF]; if (z) W.open(LUAR_URL[z.t] || ('admin.html#' + z.t), '_blank'); };
     if (w) w.addEventListener("wheel", function (e) { if (w.scrollWidth > w.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { w.scrollLeft += e.deltaY; e.preventDefault(); } }, {passive: false});
     var on = bar.querySelector(".nt.on"); if (on && w && w.scrollWidth > w.clientWidth) { var r1 = on.offsetLeft, r2 = r1 + on.offsetWidth; if (r1 < w.scrollLeft) w.scrollLeft = r1 - 8; else if (r2 > w.scrollLeft + w.clientWidth) w.scrollLeft = r2 - w.clientWidth + 8; }
+  }
+  /** T146: tombol + di ujung baris tab: daftar menu dengan kotak cari, pilih = buka di tab baru. */
+  function pilihMenuBaru(btn) {
+    var lama = d.getElementById("ntpilih"); if (lama) { lama.remove(); return; }
+    var bx = d.createElement("div"); bx.id = "ntpilih"; bx.setAttribute("role", "dialog"); bx.setAttribute("aria-label", "Pilih menu untuk tab baru");
+    bx.innerHTML = '<input id="ntpq" placeholder="Cari menu, mis. bast, proyek, stok..." autocomplete="off"><div id="ntpl" role="listbox"></div>';
+    d.body.appendChild(bx);
+    var r = btn.getBoundingClientRect(); bx.style.top = (r.bottom + 4) + "px"; bx.style.left = Math.max(8, Math.min(r.left, W.innerWidth - 320)) + "px";
+    var q = bx.querySelector("#ntpq"), L = bx.querySelector("#ntpl"), sel = 0, list = [];
+    function gambar() {
+      var v = q.value.trim();
+      if (v) { list = cariMenu(v); L.innerHTML = list.length ? list.map(function (m, i) { return '<div class="nsi' + (i === sel ? " on" : "") + '" data-pm="' + esc(m.t) + '">' + esc(m.nama) + '<small>' + esc(m.grup) + '</small></div>'; }).join("") : '<div class="nsi">Tidak ada menu yang cocok.</div>'; }
+      else { list = menuSemua(); var g = ""; L.innerHTML = list.map(function (m, i) { var h = m.grup !== g ? '<div class="nsj">' + esc(m.grup) + '</div>' : ""; g = m.grup; return h + '<div class="nsi' + (i === sel ? " on" : "") + '" data-pm="' + esc(m.t) + '">' + esc(m.nama) + '</div>'; }).join(""); }
+      L.querySelectorAll("[data-pm]").forEach(function (el) { el.onclick = function () { tutupP(); bukaBaru(el.getAttribute("data-pm")); }; });
+    }
+    function tutupP() { bx.remove(); d.removeEventListener("mousedown", luarKlik, true); }
+    function luarKlik(e) { if (!bx.contains(e.target) && e.target !== btn) tutupP(); }
+    q.oninput = function () { sel = 0; gambar(); };
+    q.onkeydown = function (e) {
+      if (e.key === "Escape") { tutupP(); return; }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(0, Math.min(list.length - 1, sel + (e.key === "ArrowDown" ? 1 : -1))); gambar(); var on = L.querySelector(".nsi.on"); if (on) on.scrollIntoView({block: "nearest"}); return; }
+      if (e.key === "Enter" && list[sel]) { e.preventDefault(); var t = list[sel].t; tutupP(); bukaBaru(t); }
+    };
+    d.addEventListener("mousedown", luarKlik, true);
+    gambar(); setTimeout(function () { q.focus(); }, 20);
   }
   function geser(dari, ke, kiri) {
     if (!dari || dari === ke) return;
@@ -372,7 +495,7 @@
      Setelah disimpan, tab biasanya digambar ulang sehingga elemen lama hilang dan tanda ini ikut hilang. */
   function adaKotor(id) {
     var x = INST[id]; if (!x || !x.el) return false;
-    var a = (kotor[id] || []).filter(function (el) { return x.el.contains(el); }); kotor[id] = a;
+    var a = (kotor[id] || []).filter(function (el) { return x.bingkai ? el.isConnected : x.el.contains(el); }); kotor[id] = a;
     return a.some(function (el) { var v = String(el.value == null ? "" : el.value); return v.trim() !== "" && v !== String(el.defaultValue == null ? "" : el.defaultValue); });
   }
 
@@ -412,7 +535,7 @@
       var klik = function (e) { e.preventDefault(); e.stopPropagation(); var a = fav(), i = a.indexOf(t); if (i >= 0) a.splice(i, 1); else a.push(t); lsSet(KF, a); W.tabsUI(); };
       s.onclick = klik; s.onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") klik(e); };
       b.appendChild(s);
-      if (MULTI[t] && !b.hasAttribute("data-fv")) {
+      if (!b.hasAttribute("data-fv")) {
         var p = d.createElement("span"); p.className = "npl"; p.setAttribute("role", "button"); p.setAttribute("tabindex", "0");
         p.setAttribute("aria-label", "Buka " + nama(t) + " di tab baru"); p.setAttribute("data-tip", "Buka tab baru (Ctrl+klik / Alt+T)"); p.textContent = "+";
         p.onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); tutupSamping(); bukaBaru(t); } };
@@ -519,13 +642,13 @@
   function pasang() {
     if (typeof W.goTab !== "function" || typeof W.tabsUI !== "function") return setTimeout(pasang, 50);
     if (W.goTab.__nav) return;
-    asliGo = W.goTab; var asliUI = W.tabsUI;
+    asliGo = W.goTab; var asliUI = W.tabsUI; asliUIRef = asliUI;
     bungkusApi();
     W.goTab = function (t) {
       if (KTX) { if (KTX.x) KTX.x.basi = true; return; }   // kode lanjutan tab yang sedang di belakang ingin memuat ulang: tandai saja
-      if (luar(t)) return asliGo(t);
+      if (luar(t)) return kolom() ? bukaMenu(t) : asliGo(t);
       var a = INST[AKTIF];
-      if (a && a.t === t) return pindah(a.id, t, "muat");
+      if (a && a.t === t && !a.bingkai) return pindah(a.id, t, "muat");
       return pindah(idUntuk(t, true), t, "program");
     };
     W.goTab.__nav = true;
@@ -608,7 +731,10 @@
     ".nsj{font-size:11px;font-weight:700;opacity:.7;padding:7px 10px 3px;letter-spacing:.03em}.nsi{padding:8px 10px;cursor:pointer;border-top:1px solid var(--line);font-size:13px}.nsi small{display:block;opacity:.65;font-size:11px}" +
     ".nsi.on,.nsi:hover{background:rgba(43,179,192,.16)}.nsb{font-size:12.5px}" +
     "#navtip{position:fixed;z-index:10000;max-width:320px;padding:6px 9px;border-radius:6px;background:#1d2733;color:#f2f5f8;font-size:12px;line-height:1.45;white-space:pre-line;box-shadow:0 4px 14px rgba(0,0,0,.3);pointer-events:none}" +
-    "@media print{#navtabs,#navtip{display:none}}";
+    ".ntplus{flex:none;align-self:center;background:none;border:1px dashed var(--line);border-radius:7px;color:inherit;font-size:17px;font-weight:700;line-height:1;padding:4px 10px;margin-left:4px;cursor:pointer;min-height:30px}.ntplus:hover,.ntplus:focus-visible{background:rgba(43,179,192,.18);border-style:solid}" +
+    "#ntpilih{position:fixed;z-index:60;width:300px;max-height:70vh;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.4);padding:8px}#ntpilih input{width:100%;box-sizing:border-box;margin-bottom:6px}#ntpl{overflow:auto}" +
+    ".nbk iframe{display:block;width:100%;height:calc(100vh - 64px);min-height:420px;border:0;border-radius:8px;background:var(--bg,#0b1626)}" +
+    "@media print{#navtabs,#navtip,#ntpilih{display:none}}";
   d.head.appendChild(st);
   pasang();
 })();

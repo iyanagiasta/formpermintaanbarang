@@ -6,7 +6,7 @@
     ["Stok", [["stok", "Stok & Harga"], ["opname", "Selisih Opname"], ["kimia", "Opname Kimia"], ["kpi", "KPI Gudang"], ["baopname", "BA Opname"], ["kedaluwarsa", "Kedaluwarsa"], ["buffer", "Buffer Paket"], ["barangmati", "Barang Mati"], ["accurate", "Accurate"], ["komparasi", "Komparasi"]]],
     ["Proyek & Pembelian", [["proyek", "Proyek"], ["pengajuan", "Pengajuan"], ["pembelian", "Pengadaan"], ["realisasi", "Realisasi"]]],
     ["Laporan", [["laporan", "Laporan"], ["rekapppbj", "Rekap PPBJ"], ["lapatasan", "Laporan Atasan"], ["telusur", "Telusur"], ["analisa", "Analisa Barang"], ["arsip", "Arsip Bukti"]]],
-    ["Data & Sistem", [["masterbarang", "Master Barang"], ["label", "Label"], ["pengumuman", "Pengumuman"], ["sistem", "Sistem"], ["kecepatan", "Kecepatan"], ["panduan", "Panduan"]]]];
+    ["Data & Sistem", [["masterbarang", "Master Barang"], ["padanan", "Padanan Kode"], ["label", "Label"], ["pengumuman", "Pengumuman"], ["sistem", "Sistem"], ["kecepatan", "Kecepatan"], ["panduan", "Panduan"]]]];
   var HALAMAN = {"pengadaan.html": "pembelian", "realisasi.html": "realisasi", "label.html": "label", "pembelian.html": "pembelian"};
   var LANGSUNG = {pembelian: "pengadaan.html", realisasi: "realisasi.html", label: "label.html"};
   function sembunyiSerah() { try { return sessionStorage.getItem("sctk_serah_ada") === "0"; } catch (e) { return false; } }

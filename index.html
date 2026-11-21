@@ -826,7 +826,8 @@ function renderStok(tr){
     if(x.kurang>0){var bk=SUMB.indexOf("Bekas")>=0&&OTO.indexOf("Bekas")<0?(x.s[SUMB.indexOf("Bekas")]||0):0;extra='<span class="stbad">'+(x.bebas<=0?"Stok barang tidak tersedia":"Stok tersedia hanya "+fmtQ(x.bebas)+", diminta "+fmtQ(q))+(bk>0?" (ada Bekas "+fmtQ(bk)+", dipilih manual oleh gudang)":"")+". Hubungi Staff Gudang. Permintaan tetap bisa dikirim.</span>";}
     else extra='<span class="stok">Ambil: '+x.take.map(function(t){return t.s+" "+fmtQ(t.q);}).join(" + ")+'</span>';
   }else if(r.bebas<OTO.reduce(function(a,nm){return a+(r.s[SUMB.indexOf(nm)]||0);},0)){extra='<span class="stw">Bebas '+fmtQ(r.bebas)+' (sisanya untuk proyek lain / permintaan berjalan)</span>';}
-  box.innerHTML=line+extra+(window.OIH?OIH(kode):"");
+  var ak=window.ACCK&&ACCK[kode.toUpperCase()];
+  box.innerHTML=line+extra+(window.OIH?OIH(kode):"")+(ak?'<span class="z" title="Kode barang ini di Accurate berbeda. Permintaan tetap bisa dikirim seperti biasa.">Kode di Accurate: '+String(ak).replace(/[&<>"]/g,"")+'</span>':"");
 }
 function renderAllStok(){document.querySelectorAll("#rows tr").forEach(renderStok);}
 function gateUI(ok,msg){
@@ -1241,6 +1242,7 @@ function loadNomor(){
   }).catch(function(e){el.placeholder="Nomor belum bisa dimuat: gagal terhubung ke backend";});
 }
 function applyBarang(items,label){
+  try{var m={};items.forEach(function(i){if(i.acc&&i.kode)m[String(i.kode).toUpperCase()]=i.acc;});window.ACCK=m;}catch(e){}
   try{window.scanBangunPeta(items);}catch(e){}
   loadDB(toRows(items.map(function(i){return [i.nama,i.kode,i.satuan,i.jenis||""];})),label);
 }

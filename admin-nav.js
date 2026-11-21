@@ -57,7 +57,7 @@
     barangmati: "barang mati tidak bergerak slow moving dead stock", accurate: "accurate input accurate ia item adjustment",
     komparasi: "komparasi bandingkan selisih accurate moka", proyek: "proyek projek ppbj rab cek material kebutuhan monitor order",
     pengajuan: "pengajuan umo ajukan uang muka", pembelian: "pengadaan vendor po pembelian supplier beli",
-    realisasi: "realisasi umo laporan uang muka", laporan: "laporan report rekap bulanan", lapatasan: "laporan atasan atasan manajemen direksi", rekapppbj: "rekap ppbj rekap lengkap laporan lengkap permintaan barang keluar po spk vendor harga estimasi harga stok ia bpb pengganti selisih harga total proyek",
+    realisasi: "realisasi umo laporan uang muka", laporan: "laporan report rekap bulanan", lapatasan: "laporan atasan atasan manajemen direksi", padanan: "padanan kode kode beda kode accurate kode gudang samakan kode dobel nama ganda alias kode barang", rekapppbj: "rekap ppbj rekap lengkap laporan lengkap permintaan barang keluar po spk vendor harga estimasi harga stok ia bpb pengganti selisih harga total proyek",
     telusur: "telusur lacak riwayat barang jejak ppbj bpb dokumen no seri banyak barang linimasa", analisa: "analisa analisis cukup kekurangan beli anggaran cukup proyek",
     arsip: "arsip bukti pdf bukti cetak bukti pengambilan", bast: "bast berita acara serah terima", pengganti: "bpb pengganti pengganti ganti",
     mutasiacc: "mutasi accurate", dataacc: "data accurate unggah laporan accurate item requisition purchase order detail purchase flow history penyesuaian stok ia excel pdf status order po belum datang diorder faktur penerimaan ri", masterbarang: "master barang barang baru kode barang katalog daftar barang", label: "label barcode stiker cetak label",
@@ -367,7 +367,7 @@
 
   /* ---------- penyimpanan yang mengubah data tab lain ---------- */
   var BACA_LAIN = {adminAnalisaBarang: 1, adminAnalisaPpbj: 1, adminMutasi: 1, adminKondisiTautan: 1, adminBastDataAwal: 1, adminBastDraf: 1, kimiaFotoGet: 1, seriDok: 1, seriKode: 1, bot: 1, adminCetakLink: 1};
-  var T_STOK = "stok rekapppbj mutasi telusur buffer analisa barangmati kerja pantau serah terima opname kpi komparasi seri kedaluwarsa accurate masterbarang lapatasan laporan baopname mutasiacc dataacc arsip bast pengganti".split(" ");
+  var T_STOK = "stok padanan rekapppbj mutasi telusur buffer analisa barangmati kerja pantau serah terima opname kpi komparasi seri kedaluwarsa accurate masterbarang lapatasan laporan baopname mutasiacc dataacc arsip bast pengganti".split(" ");
   var T_PROYEK = "telusur rekapppbj buffer analisa proyek kerja pantau serah pengajuan lapatasan laporan".split(" ");
   var RX_TANPA = /^(adminPengumumanSimpan|adminKpiTarget|label|catatan|diskusi|perj|ven|tawar|adminPengingatPesan|adminRemind|adminPbRemind|adminPgjRemind|adminBufferEmail|adminLaporan|adminCetakLink|bot|kimia|pengAtur|tanda|berkasTandai|klaimSelesai|adminCadangan|adminKomparasiTandai|adminLapTautan|adminLapSegel|adminMutasiSegel|adminMutasiTautan|adminArsipTautan|adminPgtTautan|adminIdBarcodeIsi|eksp|revisiSelesai|adminMacRekonTandai)/;
   var RX_STOK = /terima|serah|kembali|keluar|koreksi|stok|opname|mutasi|seri|submit|decide|bpb|pgt|kdl|harga|jenis|^mb|adminMb|ubah|^adminIa|sinkron|tarikrak|impor|import/i;

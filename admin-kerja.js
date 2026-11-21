@@ -39,6 +39,18 @@ async function kotakPengingat(){
   if(!r.ok){el.innerHTML="";return;}
   PW=r;drawKotakPengingat();
 }
+async function rkhJalan(mode,btn){
+  var o=document.getElementById("rkh_o");btn.disabled=true;o.innerHTML='<span class="note">'+(mode==="kirim"?"Mengirim rekap...":"Menghitung penerima...")+'</span>';
+  var r;try{r=await api({action:"adminRekapHarian",mode:mode});}catch(e){r={ok:false,msg:"Gagal terhubung ke server."};}
+  btn.disabled=false;
+  if(!r.ok){o.innerHTML='<p class="err">'+esc(r.msg||"Gagal.")+'</p>';return;}
+  if(mode==="kirim"){o.innerHTML='<div class="note" style="color:var(--grn,#1b8a3a)"><b>'+esc(r.msg)+'</b></div>';toast(r.msg);return;}
+  var tb=function(head,rows){return rows.length?'<div style="overflow-x:auto"><table><thead><tr>'+head.map(function(x){return '<th>'+x+'</th>';}).join("")+'</tr></thead><tbody>'+rows.join("")+'</tbody></table></div>':'';};
+  o.innerHTML='<div class="note" style="margin:0 0 4px">'+r.nS+' persetujuan dan '+r.nP+' No PPBJ jatuh tempo'+(r.tanpa?', '+r.tanpa+' tanpa email (masuk laporan Gudang)':'')+'. Laporan pagi ke: '+esc(r.gudang||"-")+'.</div>'+
+    tb(["Penerima","Persetujuan","PPBJ","Terlama","Status"],r.orang.map(function(x){return '<tr><td><b>'+esc(x.nama)+'</b><small>'+esc(x.email)+'</small></td><td class="nm">'+x.persetujuan+'</td><td class="nm">'+x.ppbj+'</td><td class="nm">'+x.terlama+' hari</td><td>'+esc(x.status)+'</td></tr>';}))+
+    tb(["Eskalasi ke","Dokumen","Status"],r.eskalasi.map(function(x){return '<tr><td><b>'+esc(x.nama)+'</b><small>'+esc(x.peran)+'</small></td><td class="nm">'+x.dokumen+'</td><td>'+esc(x.status)+'</td></tr>';}))+
+    (!r.orang.length&&!r.eskalasi.length?'<div class="msg">Tidak ada yang jatuh tempo hari ini; tidak ada email yang dikirim.</div>':'');
+}
 function pwJeda(jam){return jam!==null&&jam!==undefined&&PW&&jam<PW.jedaJam;}
 function pwJamTeks(j){return j<1?"kurang dari 1 jam":j<24?Math.round(j)+" jam":Math.round(j/24)+" hari";}
 function drawKotakPengingat(){
@@ -54,7 +66,11 @@ function drawKotakPengingat(){
   if(r.ppbj.length){
     h+='<div style="padding:9px 0;border-top:1px solid var(--line)"><b>No PPBJ belum diisi ('+r.ppbj.length+')</b>'+r.ppbj.map(function(x,k){return '<div class="fr" style="align-items:center;gap:8px;padding:3px 0"><span style="flex:1;min-width:150px"><b>'+esc(x.doc)+'</b> <small>'+esc(x.dept)+' &middot; '+esc(x.pemohon)+' &middot; '+x.hari+' hari &middot; ke '+esc(x.nama)+(x.terakhir?' &middot; terakhir diingatkan '+esc(x.terakhir):'')+'</small></span><button class="gh" data-pp="'+k+'">Salin pesan PPBJ</button></div>';}).join("")+'</div>';
   }
+  h+='<div style="padding:9px 0;border-top:1px solid var(--line)"><b>Email rekap harian</b> <span class="note" style="margin:0">Senin-Sabtu 08.00: satu email per orang berisi semua persetujuan dan No PPBJ yang menunggunya, eskalasi bertahap, dan laporan pagi untuk Staff Gudang.</span>'+
+   '<div class="fr" style="gap:8px;flex-wrap:wrap;margin-top:6px"><button class="gh" id="rkh_l">Pratinjau penerima</button><button class="sv" id="rkh_k">Kirim rekap sekarang</button></div><div id="rkh_o" style="margin-top:6px"></div></div>';
   el.innerHTML=h+'</div>';
+  document.getElementById("rkh_l").onclick=function(){rkhJalan("lihat",this);};
+  document.getElementById("rkh_k").onclick=function(){if(confirm("Kirim email rekap harian sekarang ke semua yang sedang ditunggu? Aturan Minggu dan isi sama diabaikan."))rkhJalan("kirim",this);};
   el.querySelectorAll("[data-pt]").forEach(function(b){b.onclick=function(){PWT=b.getAttribute("data-pt");try{localStorage.setItem("sctk_pw_tingkat",PWT);}catch(e){}drawKotakPengingat();};});
   document.getElementById("pw_rekap").onclick=function(){pwPesan({jenis:"rekap"},this);};
   el.querySelectorAll("[data-pg]").forEach(function(b){b.onclick=function(){var o=r.orang[Number(b.getAttribute("data-pg"))];

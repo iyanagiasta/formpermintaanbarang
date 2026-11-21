@@ -34,6 +34,10 @@ input.cat{width:100%;font:14px "Segoe UI",Roboto,Arial,sans-serif;padding:9px;bo
 button{flex:1;font:700 15px "Segoe UI",Roboto,Arial,sans-serif;padding:13px;border:0;border-radius:10px;color:#fff;cursor:pointer}
 button.ok{background:#1b8a3a}button.no{background:#c0392b}button:disabled{opacity:.5;cursor:default}
 .all{border-left:6px solid #1b8a3a}
+.pil{display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;margin-bottom:6px}
+.pil input{width:22px;height:22px;accent-color:#1b8a3a}
+.card.on{outline:2px solid #1b8a3a}
+.cat.req{border-color:#c0392b}
 .msg{text-align:center;font-size:17px;padding:26px 10px}
 .msg.err{color:var(--red,#a82424)}.msg.good{color:var(--grn,#14602f)}
 .hasil{background:#e3f4e8;color:#14602f;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:14px;white-space:pre-wrap}
@@ -52,7 +56,7 @@ button.ok{background:#1b8a3a}button.no{background:#c0392b}button:disabled{opacit
 <div class="wrap" id="app"><div class="msg">Memuat daftar persetujuan...</div></div>
 <script>
 var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1M6-Pc6vv3IUFMpa8jZx9bZmfGhzf_IFjKe3ZuYOMVw/exec";
-var q=new URLSearchParams(location.search),T=(q.get("t")||"").trim(),app=document.getElementById("app"),D=null,NOTE="";
+var q=new URLSearchParams(location.search),T=(q.get("t")||"").trim(),app=document.getElementById("app"),D=null,NOTE="",SEL={};
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function fq(n){return String(Math.round(Number(n)*100)/100).replace(".",",");}
 async function api(b){var maks=/Info$|^info$/i.test(b.action)?3:1,gal=null;for(var i=0;i<maks;i++){try{var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});return await r.json();}catch(e){gal=e;if(i<maks-1)await new Promise(function(ok){setTimeout(ok,700*(i+1));});}}throw gal;}
@@ -62,42 +66,50 @@ function render(){
   if(NOTE)h+=NOTE;
   if(!n){app.innerHTML=h+'<div class="card msg good">Tidak ada lagi permintaan yang menunggu '+esc(D.sapaan)+' '+esc(D.nama)+'.<br>Terima kasih.</div>';return;}
   h+='<div class="card"><b>Yth. '+esc(D.sapaan)+' '+esc(D.nama)+'</b><div class="mut">'+esc(D.peran)+' &middot; '+n+' permintaan menunggu persetujuan &middot; tautan berlaku sampai '+esc(D.berlaku)+'</div></div>';
-  if(n>1){
-    var bt=Math.min(n,D.maks);
-    h+='<div class="card all"><b>Setujui sekaligus</b><div class="mut">'+(n>D.maks?'Diproses '+D.maks+' permintaan teratas setiap kali ditekan; sisanya tetap menunggu. ':'')+'Hanya permintaan yang masih menunggu Anda yang diproses. Untuk menolak atau memeriksa satu per satu, gunakan tombol di tiap permintaan di bawah.</div>'+
-     '<input class="cat" id="ca" maxlength="300" placeholder="Catatan untuk semua (opsional)"><div class="btns"><button class="ok" id="all">Setujui semua ('+bt+')</button></div></div>';
-  }
+  Object.keys(SEL).forEach(function(id){if(!D.items.some(function(x){return x.id===id;}))delete SEL[id];});
+  var k=Object.keys(SEL).length;
+  h+='<div class="card all"><label class="pil"><input type="checkbox" id="semua"'+(k===n?' checked':'')+'> Pilih semua ('+n+')</label>'+
+   '<div class="mut">Centang dokumen yang mau disetujui, lalu tekan tombol di bawah. Menolak dilakukan per dokumen dengan alasan.</div>'+
+   '<input class="cat" id="ca" maxlength="300" placeholder="Catatan untuk yang dipilih (opsional)"><div class="btns"><button class="ok" id="all"'+(k?'':' disabled')+'>Setujui yang dipilih ('+k+')</button></div></div>';
   D.items.forEach(function(x,i){
     var rows=x.items.map(function(b,k){return '<tr><td>'+(k+1)+'</td><td>'+esc(b.kode)+'</td><td>'+esc(b.nama)+'</td><td>'+esc(b.sat)+'</td><td>'+fq(b.jml)+'</td></tr>';}).join("");
-    h+='<div class="card" data-i="'+i+'"><div><span class="tag">'+esc(x.jenis)+'</span><span class="tag w">menunggu '+esc(x.lama)+'</span></div>'+
+    h+='<div class="card'+(SEL[x.id]?' on':'')+'" data-i="'+i+'"><label class="pil"><input type="checkbox" data-p="'+i+'"'+(SEL[x.id]?' checked':'')+'> Pilih</label><div><span class="tag">'+esc(x.jenis)+'</span><span class="tag w">menunggu '+esc(x.lama)+'</span></div>'+
      '<div class="row"><b>Dokumen</b><span><strong>'+esc(x.doc)+'</strong></span></div><div class="row"><b>Pemohon</b><span>'+esc(x.pemohon)+'</span></div><div class="row"><b>Departemen</b><span>'+esc(x.dept)+'</span></div>'+
      '<div class="row"><b>No PPBJ</b><span>'+esc(x.ppbj||"-")+'</span></div><div class="row"><b>Alasan</b><span>'+esc(x.alasan||"-")+'</span></div><div class="row"><b>Dikirim</b><span>'+esc(x.kirim)+'</span></div>'+
      '<details><summary>Lihat barang ('+x.items.length+')</summary><div style="overflow-x:auto"><table><tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Sat</th><th>Jml</th></tr>'+rows+'</table></div></details>'+
-     '<input class="cat" maxlength="300" placeholder="Catatan (opsional)" data-c="'+i+'"><div class="btns"><button class="ok" data-a="approve" data-i="'+i+'">Setujui</button><button class="no" data-a="reject" data-i="'+i+'">Tolak</button></div></div>';
+     '<input class="cat" maxlength="300" placeholder="Catatan (wajib diisi bila menolak)" data-c="'+i+'"><div class="btns"><button class="ok" data-a="approve" data-i="'+i+'">Setujui</button><button class="no" data-a="reject" data-i="'+i+'">Tolak</button></div></div>';
   });
   app.innerHTML=h;
+  function upd(){var k2=Object.keys(SEL).length,bt=document.getElementById("all");bt.textContent="Setujui yang dipilih ("+k2+")";bt.disabled=!k2;document.getElementById("semua").checked=k2===D.items.length;
+    app.querySelectorAll("input[data-p]").forEach(function(c){var x=D.items[Number(c.getAttribute("data-p"))];c.checked=!!SEL[x.id];c.closest(".card").classList.toggle("on",!!SEL[x.id]);});}
+  document.getElementById("semua").onchange=function(){var on=this.checked;SEL={};if(on)D.items.forEach(function(x){SEL[x.id]=1;});upd();};
+  app.querySelectorAll("input[data-p]").forEach(function(c){c.onchange=function(){var x=D.items[Number(c.getAttribute("data-p"))];if(c.checked)SEL[x.id]=1;else delete SEL[x.id];upd();};});
   var all=document.getElementById("all");if(all)all.onclick=function(){
-    var n2=Math.min(D.items.length,D.maks);if(!confirm("Setujui "+n2+" permintaan sekaligus?"))return;
-    kirimSemua(n2,document.getElementById("ca").value);};
+    var ids=Object.keys(SEL);if(!ids.length)return;
+    var docs=D.items.filter(function(x){return SEL[x.id];}).map(function(x){return x.doc;});
+    if(!confirm("Setujui "+ids.length+" dokumen?\n"+docs.slice(0,10).join("\n")+(docs.length>10?"\n+"+(docs.length-10)+" lainnya":"")))return;
+    kirimPilih(ids,document.getElementById("ca").value);};
   app.querySelectorAll("button[data-a]").forEach(function(b){b.onclick=function(){
     var i=Number(b.getAttribute("data-i")),x=D.items[i],a=b.getAttribute("data-a"),c=app.querySelector('input[data-c="'+i+'"]').value;
-    if(a==="reject"&&!confirm("Tolak "+x.doc+"? Pemohon akan diberi tahu."))return;
+    if(a==="reject"){var ci=app.querySelector('input[data-c="'+i+'"]');if(c.replace(/\s+/g,"").length<3){ci.classList.add("req");ci.focus();alert("Isi alasan penolakan dulu di kolom catatan. Pemohon akan membacanya.");return;}
+      if(!confirm("Tolak "+x.doc+"? Pemohon akan diberi tahu."))return;}
     kirim({mode:"satu",id:x.id,act:a,cat:c});};});
 }
-/* T147: setujui sekaligus diproses per 3 permintaan dengan kemajuan di layar (sebelumnya 15 sekaligus: 9-90 detik tanpa tanda, sering terputus). */
-async function kirimSemua(total,cat){
-  kunci(true);var ok=0,gagal=[],putus=false,el=document.getElementById("all");
+/* T154: setujui yang dipilih, diproses per 3 dokumen dengan kemajuan di layar. */
+async function kirimPilih(ids,cat){
+  kunci(true);var ok=0,gagal=[],putus=false,el=document.getElementById("all"),total=ids.length,sisa=ids.slice();
   try{
-    while(ok+gagal.length<total){
-      if(el)el.textContent="Menyetujui "+Math.min(total,ok+gagal.length+3)+" / "+total+"...";
-      var r=await api({action:"setujuGabAksi",t:T,mode:"semua",cat:cat,batas:3});
-      if(!r.ok){gagal.push({doc:"",msg:r.msg||"Gagal."});break;}
+    while(sisa.length){
+      var ambil=sisa.splice(0,3);
+      if(el)el.textContent="Menyetujui "+Math.min(total,ok+gagal.length+ambil.length)+" / "+total+"...";
+      var r=await api({action:"setujuGabAksi",t:T,mode:"pilih",ids:ambil,cat:cat,batas:3});
+      if(!r.ok){gagal.push({doc:"",msg:r.msg||"Gagal."});continue;}
       ok+=r.berhasil;(r.hasil||[]).forEach(function(h){if(!h.ok)gagal.push(h);});D.items=r.items;
-      if(!r.berhasil||!r.sisa)break;
     }
   }catch(e){putus=true;}
   try{var i=await api({action:"setujuGabInfo",t:T});if(i.ok)D.items=i.items;}catch(e2){}
-  var s=ok+" permintaan disetujui."+(D.items.length?" "+D.items.length+" permintaan masih menunggu.":"");
+  SEL={};
+  var s=ok+" dokumen disetujui."+(D.items.length?" "+D.items.length+" dokumen masih menunggu.":"");
   if(putus)s+=" Koneksi terputus di tengah proses; daftar di bawah sudah diperbarui, yang sudah disetujui tidak tampil lagi.";
   if(gagal.length)s+="\n"+gagal.map(function(h){return (h.doc?h.doc+": ":"")+h.msg;}).join("\n");
   NOTE='<div class="hasil'+(gagal.length||putus?' g':'')+'">'+esc(s)+'</div>';

@@ -20,7 +20,7 @@
   function bt() { return (RK.res && RK.res.batas) || {k: 5, m: 15}; }
   function warnaSel(v) { if (v == null) return ''; var b = bt(); return v >= b.m ? 'rk-r' : v >= b.k ? 'rk-y' : ''; }
   function arr(x) { return Array.isArray(x) ? x : []; }
-  var INFO = {perkiraan: 1, hargaKosong: 1};   // penanda informasi, bukan masalah
+  var INFO = {perkiraan: 1, hargaKosong: 1, kodeBeda: 1};   // penanda informasi, bukan masalah
   function bermasalah(b) { return arr(b.ms).some(function (m) { return !INFO[m]; }); }
   function gaya() {
     if (document.getElementById('rkGaya')) return;

@@ -170,7 +170,8 @@
     if (!i || i.stokGudang == null) return '';
     var s = 'stok gudang ' + nf(i.stokGudang) + (i.cukup ? ' (cukup)' : ' (kurang dari ' + nf(i.qty) + ')');
     if (i.st === 'kurang') s = 'Lewat ' + (i.batasStok == null ? 7 : i.batasStok) + ' hari tanpa PO dan ' + s + '. Tanyakan ke Purchasing.';
-    if (i.st === 'proses') s = (i.umurPpbj == null ? 'PPBJ ' : i.umurPpbj === 0 ? 'PPBJ dibuat hari ini, ' : 'PPBJ ' + i.umurPpbj + ' hari, ') + 'belum ada PO. Dianggap pakai stok setelah ' + (i.batasStok == null ? 7 : i.batasStok) + ' hari. ' + s;
+    if (i.st === 'stok') s = 'Tanpa PO (Ordered Qty 0) dan ' + s + ': dipakai dari stok.';
+    if (i.st === 'proses') s = (i.umurPpbj == null ? 'PPBJ ' : i.umurPpbj === 0 ? 'PPBJ dibuat hari ini, ' : 'PPBJ ' + i.umurPpbj + ' hari, ') + 'belum ada PO, ' + s + '. Bila lewat ' + (i.batasStok == null ? 7 : i.batasStok) + ' hari tetap tanpa PO, jadi Stok kurang, belum diorder.';
     return '<br><small>' + esc(s) + '</small>';
   };
   function lbl(st, L) { return '<span class="da-s da-' + esc(st) + '">' + esc((L && L[st]) || st) + '</span>'; }

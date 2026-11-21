@@ -1,7 +1,7 @@
 /* Grafik SVG sederhana untuk dashboard Perjalanan Kerja (tanpa pustaka luar). Semua ukuran dirancang untuk kanvas 1280x720. */
 (function (g) {
   "use strict";
-  var W = {biru: "#1a6cab", biruTua: "#0d3b66", biruMuda: "#cfe6f7", biruPucat: "#eaf4fb", abu: "#5b7080", garis: "#c3d3df", ok: "#14602f", kuning: "#b86e00", merah: "#a82424", teks: "#10283c"};
+  var W = {biru: "#3d97dc", biruTua: "#123a63", biruMuda: "#d7ecfb", biruPucat: "#EAF5FD", abu: "#5B6B78", garis: "#d6e6f2", ok: "#14602f", kuning: "#b86e00", merah: "#a82424", teks: "#10283c"};
   function esc(x) { return String(x == null ? "" : x).replace(/[&<>"]/g, function (c) { return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]; }); }
   function fmt(n, d) { if (n == null || isNaN(n)) return "-"; return Number(n).toLocaleString("id-ID", {maximumFractionDigits: d == null ? 1 : d}); }
   function pendek(s, n) { s = String(s == null ? "" : s); return s.length > n ? s.slice(0, n - 1) + "…" : s; }

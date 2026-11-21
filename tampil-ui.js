@@ -30,7 +30,7 @@
     order.forEach(function (n) { if (kartu.length >= 5) return; var l = urut(nm[n], function (x) { return x.tanggal; }), z = l[l.length - 1]; kartu.push('<div class="kartu"><div class="angka">' + fmt(z.nilai) + "<small>" + esc(z.satuan) + '</small></div><div class="lbl">' + esc(n) + "<br>" + bd(z.penanda) + "</div></div>"); });
     if (D.sistem && kartu.length < 5) kartu.push('<div class="kartu"><div class="angka">' + fmt(D.sistem.permintaan, 0) + '</div><div class="lbl">Permintaan barang tercatat digital<br>' + bd("Terukur otomatis") + "</div></div>");
     var per = tgl(A.mulai) + " – " + tgl((D.now || "").split(" ")[0].split("/").reverse().join("-")) ;
-    var html = '<div style="display:grid;grid-template-columns:1fr;gap:12px"><div><div class="jd" style="font-size:46px;margin-bottom:6px">' + esc(A.judul) + '</div><div class="sub" style="margin-bottom:6px">' + esc(per) + (A.penyaji ? " · " + esc(A.penyaji) : "") + "</div>" +
+    var html = '<div style="display:grid;grid-template-columns:1fr;gap:12px"><div><div class="eyebrow">Ringkasan</div><div class="jd" style="margin-bottom:6px">Ringkasan 30 detik</div><div class="sub" style="margin-bottom:6px;font-size:19px">Periode ' + esc(tglPanjang(A.mulai) + " – " + akhirPercobaan(A.mulai)) + "</div>" +
       (A.ringkasan ? '<div style="font-size:26px;line-height:1.35;color:var(--teks);max-width:1150px">' + esc(A.ringkasan) + "</div>" : "") + "</div>" +
       (kartu.length ? '<div class="grid" style="grid-template-columns:repeat(' + Math.min(kartu.length, 5) + ',1fr);margin-top:14px">' + kartu.join("") + "</div>" : '<div class="kos" style="padding-top:60px">Belum ada angka kunci yang ditampilkan.</div>') + "</div>";
     return {bagian: "Ringkasan", judul: "Ringkasan", html: html};
@@ -156,16 +156,81 @@
     }
     return out;
   }
+  /* ---------- T155: sampul, Ringkasan Dampak, biaya, penutup (tema biru langit) ---------- */
+  var BLN_PANJANG = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+  function tglPanjang(s) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || "")); return m ? Number(m[3]) + " " + BLN_PANJANG[Number(m[2]) - 1] + " " + m[1] : ""; }
+  function akhirPercobaan(s) { var m = /^(\d{4})-(\d{2})/.exec(String(s || "")); if (!m) return ""; var y = Number(m[1]), b = Number(m[2]) - 1 + 6; y += Math.floor(b / 12); b = b % 12; return BLN_PANJANG[b] + " " + y; }
+  function ombak() {
+    return '<svg class="ombak" viewBox="0 0 1280 240" preserveAspectRatio="none" aria-hidden="true"><path d="M0,150 C200,110 380,190 640,150 C900,110 1080,180 1280,140 L1280,240 L0,240 Z" fill="#4BA3E3" opacity=".10"/><path d="M0,180 C220,150 420,215 660,182 C900,150 1090,205 1280,175 L1280,240 L0,240 Z" fill="#4BA3E3" opacity=".14"/><path d="M0,212 C240,190 440,236 680,212 C920,190 1100,232 1280,208 L1280,240 L0,240 Z" fill="#0B4F8A" opacity=".10"/></svg>';
+  }
+  function identitas() {
+    var A = D.atur; if (!A.penyaji) return "";
+    return '<div class="garis"></div><div class="nama">' + esc(A.penyaji) + '</div><div class="jab">' + (A.jabatan ? esc(A.jabatan) + " · " : "") + "PT Sarana Catur Tirta Kelola</div>";
+  }
+  function slSampul() {
+    var A = D.atur, j = String(A.judul || "Perjalanan Kerja Gudang").replace(/\s*SCTK\s*$/i, ""), w = j.split(" "), akhir = w.length > 1 ? w.pop() : "";
+    var html = '<div class="sampul"><div class="ptb"><img src="logo-transparan.png" style="width:30px;height:30px" alt="" onerror="this.remove()">PT SARANA CATUR TIRTA KELOLA</div><div class="kiri"><div class="label">Laporan Evaluasi Masa Percobaan</div>' +
+      "<h1>" + esc(w.join(" ")) + (akhir ? "<br><span>" + esc(akhir) + "</span>" : "") + '</h1><p class="tag">Dari gudang yang dikelola manual menjadi gudang yang terdata, tertata, dan terkendali.</p>' + identitas() +
+      '<div class="per">Periode ' + esc(tglPanjang(A.mulai)) + " – " + esc(akhirPercobaan(A.mulai)) + '</div></div><div class="logo"><img src="logo.png" alt="Logo PT Sarana Catur Tirta Kelola" onerror="this.remove()"></div>' + ombak() + "</div>";
+    return {bagian: "Sampul", judul: "Sampul", html: html, penuh: true};
+  }
+  var IKON = {
+    kecepatan: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B4F8A" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>',
+    akurasi: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B4F8A" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="#0B4F8A"/></svg>',
+    biaya: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B4F8A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg>'
+  };
+  var SUMBER = {oto: '<span class="bd oto">Otomatis</span>', excel: '<span class="bd man">Excel opname</span>', man: '<span class="bd man">Diisi manual</span>', kir: '<span class="bd kir">Perkiraan manual</span>'};
+  function nilaiM(m) {
+    if (m.nilai == null) return "—" + (m.satuan && m.satuan !== "Rp" ? " <small>" + esc(m.satuan) + "</small>" : "");
+    if (m.satuan === "Rp") return "<small>Rp</small> " + Math.round(m.nilai).toLocaleString("id-ID");
+    return fmt(m.nilai) + (m.satuan ? " <small>" + esc(m.satuan) + "</small>" : "");
+  }
+  function slDampak() {
+    var d = D.dampak; if (!d) return [];
+    var ada = d.kecepatan.length + d.akurasi.length + d.biaya.length; if (!ada) return [];
+    function kol(k, judul, ket) {
+      var L = d[k].slice(0, 3), lebih = d[k].length - L.length;
+      return '<div class="kol"><div class="hk"><div class="ik">' + IKON[k] + "</div><h3>" + judul + '</h3></div><div class="ket">' + ket + "</div>" +
+        (L.length ? L.map(function (m) { return '<div class="m"><div class="v">' + nilaiM(m) + '</div><div class="l">' + esc(m.label) + "</div>" + (m.ket ? '<div class="k2">' + esc(pot(m.ket, 70)) + "</div>" : "") + (SUMBER[m.sumber] || "") + "</div>"; }).join("") : '<div class="kosong">Belum ada data.</div>') + (lebih > 0 ? '<div class="k2" style="font-size:13px;color:var(--abu);padding-top:4px">+' + lebih + " ukuran lain di slide Ukuran keberhasilan</div>" : "") + "</div>";
+    }
+    var html = '<div class="eyebrow">Ringkasan dampak</div><div class="jd">Lebih cepat, lebih akurat, lebih hemat</div><div class="sub" style="font-size:19px;margin:0">Tiga ukuran yang dipantau sejak sistem gudang berjalan. Setiap angka diberi tanda sumbernya.</div>' +
+      '<div class="tiga">' + kol("kecepatan", "Kecepatan", "Waktu proses dari pengajuan sampai selesai") + kol("akurasi", "Akurasi", "Kesesuaian catatan dengan fisik gudang") + kol("biaya", "Biaya", "Nilai stok yang dipakai sebelum membeli baru") + "</div>";
+    return [{bagian: "Ringkasan Dampak", judul: "Ringkasan dampak", html: html}];
+  }
+  function slBiaya() {
+    var b = D.biaya, t = D.temuan, out = []; if (!b || !(b.moka.baris || b.accurate.baris)) return out;
+    var kartuB = function (angka, lbl, kecil) { return '<div class="kartu"><div class="angka" style="font-size:40px">' + angka + '</div><div class="lbl" style="font-size:18px">' + lbl + (kecil ? '<br><span style="font-size:14px">' + kecil + "</span>" : "") + "</div></div>"; };
+    var rpS = function (v) { return '<small style="font-size:20px;margin:0 4px 0 0">Rp</small>' + Math.round(v || 0).toLocaleString("id-ID"); };
+    var h = '<div class="eyebrow">Biaya</div><div class="jd">' + (b.persenMoka != null ? fmt(b.persenMoka) + "% nilai stok dipakai berasal dari Moka" : "Nilai stok gudang yang dipakai") + '</div><div class="sub" style="font-size:19px">Stok Moka (sumber prioritas) dihabiskan lebih dulu sebelum stok Accurate. Periode ' + esc(tgl(b.dari)) + " – " + esc(tgl(b.sampai)) + ".</div>" +
+      '<div class="grid" style="grid-template-columns:repeat(4,1fr);gap:14px;margin-top:6px">' +
+      kartuB(rpS(b.moka.nilai), "Stok Moka dipakai " + SUMBER.oto, fmt(b.moka.qty) + " qty · " + b.moka.dokumen + " dokumen" + (b.moka.tanpaHarga ? " · " + b.moka.tanpaHarga + " baris tanpa harga" : "")) +
+      kartuB(rpS(b.accurate.nilai), "Stok Accurate dipakai", fmt(b.accurate.qty) + " qty · " + b.accurate.dokumen + " dokumen") +
+      kartuB(fmt(b.proyekMemakai, 0), "Proyek memakai stok gudang", b.proyekRab + " proyek punya RAB") +
+      kartuB(rpS(b.dihindari), "Pembelian dihindari", "kebutuhan RAB dipenuhi dari stok") + "</div>";
+    if (b.perBulan.length >= 2) h += '<div style="margin-top:14px">' + PG.garis([{nama: "Moka", warna: "#3d97dc", titik: b.perBulan.map(function (q) { return {x: q.bulan.slice(5) + "/" + q.bulan.slice(2, 4), y: Math.round(q.moka / 1e3)}; })}, {nama: "Accurate", warna: "#a8741a", titik: b.perBulan.map(function (q) { return {x: q.bulan.slice(5) + "/" + q.bulan.slice(2, 4), y: Math.round(q.accurate / 1e3)}; })}], {lebar: 1180, tinggi: 200, min: 0, satuan: "rb", label: "Nilai stok dipakai per bulan (ribu rupiah)"}) + "</div>";
+    h += '<div class="cat" style="font-size:15px">Harga = harga satuan saat penyerahan' + (b.hargaTerkini ? " (" + b.hargaTerkini + " baris memakai harga terkini)" : "") + ". Barang tanpa harga tidak dihitung dan tidak ditebak. Sumber: sistem gudang (sheet Serah) sejak " + esc(tgl(b.dari)) + ".</div>";
+    out.push({bagian: "Biaya", judul: "Nilai stok dipakai", html: h});
+    if (b.proyek.length || (t && t.n)) {
+      var tb = b.proyek.length ? '<table><tr><th>Proyek</th><th class="n">Moka</th><th class="n">Accurate</th><th class="n">Nilai RAB</th><th class="n">Dihindari</th><th class="n">% dari stok</th></tr>' + b.proyek.slice(0, 6).map(function (p) {
+        return '<tr><td style="font-size:16px"><b>' + esc(p.ppbj) + '</b><br><span style="color:var(--abu);font-size:14px">' + esc(pot(p.nama, 46)) + '</span></td>' + (!p.stok && p.tanpaHarga ? '<td class="n" colspan="2" style="font-size:15px;color:var(--abu)">belum ada harga</td>' : '<td class="n" style="font-size:17px">' + Math.round(p.moka).toLocaleString("id-ID") + '</td><td class="n" style="font-size:17px">' + Math.round(p.accurate).toLocaleString("id-ID") + "</td>") + '<td class="n" style="font-size:17px">' + (p.nilaiRab == null ? "-" : Math.round(p.nilaiRab).toLocaleString("id-ID")) + '</td><td class="n" style="font-size:17px">' + (p.dihindari == null ? "-" : Math.round(p.dihindari).toLocaleString("id-ID")) + '</td><td class="n" style="font-size:17px">' + (p.persen == null ? "-" : fmt(p.persen) + "%") + "</td></tr>";
+      }).join("") + "</table>" : "";
+      var tm = t && t.n ? '<div class="kartu" style="margin-top:14px;display:flex;gap:22px;align-items:center"><div class="angka" style="font-size:38px">' + (t.berharga ? rpS(t.nilai) : "—") + '</div><div class="lbl" style="font-size:17px;margin:0">Nilai ' + t.n + " barang temuan opname " + SUMBER.kir + "<br>" + t.berharga + " dari " + t.n + " barang sudah diberi harga manual (dasar harga tercatat)" + (t.menunggu ? "; " + t.menunggu + " barang menunggu keputusan manajemen, belum dihitung sebagai penghematan" : "") + ".</div></div>" : "";
+      out.push({bagian: "Biaya", judul: "Efisiensi proyek", html: '<div class="eyebrow">Efisiensi proyek</div><div class="jd">' + (b.dihindari ? "Rp " + Math.round(b.dihindari).toLocaleString("id-ID") + " kebutuhan proyek dipenuhi dari stok" : "Proyek yang memakai stok gudang") + "</div>" + tb + tm +
+        '<div class="cat" style="font-size:14px">Dihindari = kebutuhan RAB yang dipenuhi dari stok gudang (bersih dari pengembalian) × harga, sehingga tidak perlu dibeli baru. Rupiah dalam tabel tanpa desimal.</div>'});
+    }
+    return out;
+  }
   function slPenutup() {
     var r = D.items.filter(function (x) { return x.tipe === "rencana"; }).slice(0, 3);
-    return [{bagian: "Penutup", judul: "Penutup", html: '<div style="text-align:center;padding-top:60px"><div class="jd" style="font-size:52px">Terima kasih</div><div class="sub" style="font-size:28px">Setiap hal yang saya sampaikan dapat dibuktikan dengan lampiran.</div>' +
-      (r.length ? '<div style="margin:34px auto 0;max-width:900px;text-align:left;font-size:26px;line-height:1.5"><b style="color:var(--tua)">Langkah berikutnya</b><br>' + r.map(function (x) { return "• " + esc(pot(x.judul, 90)); }).join("<br>") + "</div>" : "") +
-      (D.atur.penyaji ? '<div class="sub" style="margin-top:36px">' + esc(D.atur.penyaji) + "</div>" : "") + "</div>"}];
+    var html = '<div class="sampul tutup"><div class="ptb"><img src="logo-transparan.png" style="width:30px;height:30px" alt="" onerror="this.remove()">PT SARANA CATUR TIRTA KELOLA</div><div class="kiri"><div class="label">Penutup</div><h1>Terima <span>kasih</span></h1><p class="tag">Setiap hal yang saya sampaikan dapat dibuktikan dengan lampiran.</p>' +
+      (r.length ? '<div style="margin-top:22px;font-size:19px;line-height:1.55;color:var(--teks)"><b style="color:var(--tua)">Langkah berikutnya</b><br>' + r.map(function (x) { return "• " + esc(pot(x.judul, 70)); }).join("<br>") + "</div>" : "") + identitas() +
+      '</div><div class="logo"><img src="logo.png" alt="Logo PT Sarana Catur Tirta Kelola" onerror="this.remove()"></div>' + ombak() + "</div>";
+    return [{bagian: "Penutup", judul: "Penutup", html: html, penuh: true}];
   }
   T.susun = function (data) {
     D = data;
-    var s = [slPembuka()];
-    [slKartu, slPerjalanan, slSebelum, slOpname, slUkuran, slSistem].forEach(function (f) { f().forEach(function (x) { s.push(x); }); });
+    var s = [slSampul(), slPembuka()];
+    [slDampak, slKartu, slPerjalanan, slSebelum, slOpname, slBiaya, slUkuran, slSistem].forEach(function (f) { f().forEach(function (x) { s.push(x); }); });
     slDaftar("minta", "Menunggu keputusan", "Yang menunggu keputusan", {kiri: "isi2"}).forEach(function (x) { s.push(x); });
     slDaftar("rencana", "Rencana berikutnya", "Rencana berikutnya", {kiri: "isi2"}).forEach(function (x) { s.push(x); });
     slBukti().forEach(function (x) { s.push(x); });
@@ -174,7 +239,10 @@
   };
   /* ---------- tampilan ---------- */
   function slideHtml(s, i, n) {
-    return '<div class="hd"><div class="lg"><img src="logo.png" alt="" onerror="this.remove()"></div><div class="nm">PT Sarana Catur Tirta Kelola</div><div class="bg">' + esc(s.bagian) + '</div></div><div class="isi">' + s.html + '</div><div class="ft"><b>' + (i + 1) + " dari " + n + "</b><span>" + esc(s.judul) + '</span><span class="sp">Diperbarui ' + esc(D.now || "") + "</span></div>";
+    if (s.penuh) return s.html;
+    var A = D.atur, p2 = function (x) { return (x < 10 ? "0" : "") + x; };
+    return '<div class="hd"><div class="lg"><img src="logo-transparan.png" alt="" onerror="this.remove()"></div><div class="nm">PT SCTK</div><div class="bg">' + esc(s.bagian) + '</div><div class="no">' + p2(i + 1) + " / " + p2(n) + '</div></div><div class="isi">' + s.html + '</div><img class="wm" src="logo-transparan.png" alt="" onerror="this.remove()">' +
+      '<div class="ft"><span>' + (A.penyaji ? "<b>" + esc(A.penyaji) + "</b>" + (A.jabatan ? " · " + esc(A.jabatan) : "") + " · " : "") + "PT Sarana Catur Tirta Kelola</span>" + '<span class="sp">' + esc(s.judul) + "</span></div>";
   }
   function fit() {
     var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720); el("kanvas").style.transform = "scale(" + s + ")";

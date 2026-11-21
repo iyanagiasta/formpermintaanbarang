@@ -10,7 +10,7 @@
 <script src="pdfbukti.js?v=124"></script><script src="seri-meter.js?v=125"></script>
 <script src="mb-excel.js?v=38"></script>
 <script src="laporan.js"></script>
-<script src="admin-kerja.js?v=154"></script>
+<script src="admin-kerja.js?v=154"></script><script src="nilai-stok.js?v=155"></script>
 <script src="admin-mutasi.js?v=132"></script>
 <script src="admin-laporan2.js?v=127"></script>
 <script src="admin-proyek2.js?v=153"></script>
@@ -533,6 +533,7 @@ function drawStok(total,q,hs){
   pane().insertAdjacentHTML("afterbegin",'<div class="bar"><button class="rm" id="sgo">&#8595; Ke daftar stok &amp; nilai persediaan</button><span class="note" style="margin:0">Daftar stok Moka, Accurate, total, dan nilai ada di bagian bawah halaman ini.</span></div>');
   document.getElementById("sgo").onclick=function(){var e=document.getElementById("sq");if(e){e.scrollIntoView({block:"center"});e.focus();}};
   pane().querySelectorAll("[data-sanl]").forEach(function(b){b.onclick=function(){var d=STOK[Number(b.getAttribute("data-sanl"))];if(d)AB.bukaDengan([{kode:d.kode,nama:d.nama}]);};});
+  if(window.NS){var nsAnch=document.getElementById("jnsCard");if(nsAnch)nsAnch.insertAdjacentHTML("beforebegin",NS.kartu());NS.pasang(api,toast);}
   var U=null,H=null;
   jenisBind();
   (function(){

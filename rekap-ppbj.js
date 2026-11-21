@@ -20,7 +20,7 @@
   function bt() { return (RK.res && RK.res.batas) || {k: 5, m: 15}; }
   function warnaSel(v) { if (v == null) return ''; var b = bt(); return v >= b.m ? 'rk-r' : v >= b.k ? 'rk-y' : ''; }
   function arr(x) { return Array.isArray(x) ? x : []; }
-  var INFO = {perkiraan: 1, hargaKosong: 1, kodeBeda: 1};   // penanda informasi, bukan masalah
+  var INFO = {perkiraan: 1, hargaKosong: 1, kodeBeda: 1, iaUnggah: 1};   // penanda informasi, bukan masalah
   function bermasalah(b) { return arr(b.ms).some(function (m) { return !INFO[m]; }); }
   function gaya() {
     if (document.getElementById('rkGaya')) return;
@@ -172,13 +172,15 @@
     if (!H.length && RK.v !== 'tindak') { v.innerHTML = '<div class="card msg">Tidak ada yang cocok dengan saringan ini.</div>'; return; }
     ({barang: hp() ? vKartu : vBarang, ppbj: vPpbj, vendor: vVendor, tindak: vTindak})[RK.v](v, H, tind);
   }
-  function chipMs(b) { return arr(b.ms).filter(function (m) { return m !== 'hargaKosong'; }).map(function (m) { var c = /Merah|iaBelum|bpbBelum|bpbTak|belumOrder|lebih|iaBeda/.test(m) ? 'r' : /Kuning|iaLebih|poDetail|luarIr/.test(m) ? 'y' : 'l'; return '<span class="rk-chip rk-c-' + c + '">' + esc(MS(m)) + '</span>'; }).join(''); }
+  function chipMs(b) { return arr(b.ms).filter(function (m) { return m !== 'hargaKosong'; }).map(function (m) { var c = /Merah|iaBelum|iaNomor|bpbBelum|bpbTak|belumOrder|lebih|iaBeda/.test(m) ? 'r' : /Kuning|iaLebih|poDetail|luarIr/.test(m) ? 'y' : 'l'; return '<span class="rk-chip rk-c-' + c + '">' + esc(MS(m)) + '</span>'; }).join(''); }
   function chipKel(e) {
     var c = '', t = JENIS[e.j] || '';
     if (e.j === 'PGT') c = 'b'; else if (e.j === 'IA') { c = e.ms ? 'r' : 'l'; t = e.ms === 'bpbBelum' ? 'BPB belum ada' : e.ms === 'bpbTak' ? 'BPB tidak ditemukan' : 'Bukan barang'; } else if (e.j === 'IAX') c = e.ms ? 'y' : 'l'; else if (e.j === 'PK' || e.j === 'IAM') c = 'g';
     var s = t ? '<span class="rk-chip rk-c-' + (c || 'l') + '">' + esc(t) + '</span>' : '';
     if (e.cara === 'perkiraan') s += '<span class="rk-chip rk-c-y" title="' + esc(e.ket || '') + '">IA perkiraan</span>';
     if (e.ms === 'iaBelum') s += '<span class="rk-chip rk-c-r">IA belum ada</span>';
+    if (e.ms === 'iaNomor') s += '<span class="rk-chip rk-c-r" title="' + esc(e.ket || '') + '">Nomor IA belum diisi</span>';
+    if (e.ms === 'iaUnggah') s += '<span class="rk-chip rk-c-y" title="' + esc(e.ket || '') + '">IA dicatat, belum diunggah</span>';
     return s;
   }
   function refPo(g, b) { return arr(b.po).length ? arr(b.po).map(function (x) { return x.no; }).join(', ') : g.no; }
@@ -282,6 +284,8 @@
         if (e.ms === 'bpbBelum') L.push({j: 'IA lama belum ada BPB (buat BPB Pengganti)', no: e.no, tgl: e.tgl, g: g, b: b, qty: e.qty, nilai: e.total, ket: e.ket});
         else if (e.ms === 'bpbTak') L.push({j: 'IA tanpa BPB', no: e.no, tgl: e.tgl, g: g, b: b, qty: e.qty, nilai: e.total, ket: e.ket});
         else if (e.ms === 'iaBelum') L.push({j: 'BPB belum ada IA', no: e.no, tgl: e.tgl, g: g, b: b, qty: e.qty, nilai: null, ket: e.ket});
+        else if (e.ms === 'iaNomor') L.push({j: 'Sudah di tab Accurate, nomor IA belum diisi', no: e.no, tgl: e.tgl, g: g, b: b, qty: e.qty, nilai: null, ket: e.ket});
+        else if (e.ms === 'iaUnggah') L.push({j: 'IA dicatat, unggah ulang Penyesuaian Stok', no: e.no, tgl: e.tgl, g: g, b: b, qty: e.qty, nilai: null, ket: e.ket});
         else if (e.ms === 'iaLebih') L.push({j: 'Ada di IA, tidak ada di BPB', no: e.no, tgl: e.tgl, g: g, b: b, qty: e.qty, nilai: e.total, ket: e.ket});
         else if (e.ms === 'iaBeda') L.push({j: 'IA tertaut tidak memuat barang ini', no: e.no, tgl: e.tgl, g: g, b: b, qty: e.qty, nilai: null, ket: e.ket});
       });

@@ -135,3 +135,13 @@ html[data-tema=gelap] .tga-t th{background:#0B1530;color:#EAF2FF}
 html[data-tema=terang] .tga-t th{background:#E6EEF9;color:#0B1B33}
 .tga-sc::-webkit-scrollbar{width:12px;height:12px}.tga-sc::-webkit-scrollbar-thumb{background:#7a93bd;border-radius:8px;border:2px solid transparent;background-clip:content-box}
 @media (max-width:700px){.tga-sc{max-height:60vh}}
+/* T156: panel pertanyaan cepat bot admin */
+.tga-cepat{margin:8px 0 6px}
+.tga-cepat-t{padding:7px 12px;font-size:13px}
+.tga-cepat-isi{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-top:6px;max-height:46vh;overflow:auto}
+.tga-cepat-g{margin:4px 0 8px}
+.tga-cepat-h{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.75;margin-bottom:2px}
+.tga-fav-w{display:inline-flex;align-items:center;gap:0}
+.tga-fav{border-top-right-radius:0;border-bottom-right-radius:0}
+.tga-fav-x{min-height:38px;padding:0 10px;border-radius:0 99px 99px 0;border:1px solid var(--line);border-left:0;background:transparent;color:inherit;font-size:16px}
+.tga-fav-tambah{border-style:dashed}

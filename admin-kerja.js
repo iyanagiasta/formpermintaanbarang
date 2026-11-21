@@ -350,17 +350,34 @@ function tlSoSel(so){
   var c=so.kode==="DATANG"?"g":(so.kode==="BELUM"?(so.peringatan?"r":"y"):(so.kode==="BATAL"?"l":"b"));
   return '<span class="tag '+c+'">'+esc(so.label)+'</span>'+(so.po?'<small>PO '+esc(so.po)+'</small>':'')+(so.eta?'<small>perkiraan tiba '+esc(so.eta)+'</small>':'');
 }
+function tlAccSel(r,kode){
+  var A=r.accOrder;if(!A||!A.data)return '';if(!A.ada)return '<small class="note">PPBJ belum ada di Accurate</small>';
+  var x=(A.items||{})[String(kode).trim().toUpperCase()];if(!x)return '<small class="note">Tidak ada di IR</small>';
+  var c=(r.accWarna||{})[x.st]||"l",ex=[];
+  if(x.dipesan>0)ex.push("dipesan "+LPR.nf(x.dipesan)+(x.datang!=null?", datang "+LPR.nf(x.datang):""));
+  if(x.po&&x.po.length)ex.push("PO "+x.po.join(", "));
+  if(x.hari!=null)ex.push(x.hari+" hari sejak PO");
+  return '<span class="tag '+c+'">'+esc(x.label)+'</span>'+ex.map(function(e){return '<small>'+esc(e)+'</small>';}).join("");
+}
+function tlAccRingkas(r){
+  var A=r.accOrder;if(!A||!A.data)return {teks:"",n:0,perlu:0};
+  if(!A.ada)return {teks:"PPBJ ini belum ada di data Item Requisition Accurate yang diunggah.",n:0,perlu:0};
+  var L=A.label||{},per=A.per||{},urut=["belum","kurang","proses","sebagian","tunggu","datangSebagian","faktur","ri","langsung","stok","jasa","lengkap"],ps=[];
+  urut.forEach(function(k){if(per[k])ps.push(per[k]+" "+String(L[k]||k).toLowerCase());});
+  var n=0;Object.keys(per).forEach(function(k){n+=per[k];});
+  return {teks:ps.join(", "),n:n,perlu:(per.belum||0)+(per.kurang||0)+(per.faktur||0)};
+}
 function tlBaris(r){
   var c=r.cek,rows=c.rows||[],stok=r.stok||{},so=r.so||{};
   var bermasalah=rows.filter(function(w){return w.flag;}).length;
   var pakai=TL.saring?rows.filter(function(w){return w.flag;}):rows;
   var h='<div class="bar noprint" style="margin:0 0 6px"><button id="tl_sr" class="gh" aria-pressed="'+(TL.saring?"true":"false")+'">'+(TL.saring?"Tampilkan semua barang":"Hanya yang bermasalah ("+bermasalah+")")+'</button></div>';
   if(!pakai.length)return h+'<div class="kosong">'+(rows.length?"Tidak ada barang yang bermasalah.":"Belum ada data material.")+'</div>';
-  h+='<div class="tw"><table class="tlm"><thead><tr>'+["Kode","Barang","Sat","RAB","Keluar","Kembali","Bersih","Terpakai","Siap","Proses","Sisa","Stok gudang","Pesanan","Nilai bersih","Catatan"].map(function(x,i){return '<th'+((i>=3&&i<=11)||i===13?' class="n"':'')+(x==="Stok gudang"?' title="Stok fisik di gudang saat ini, hanya untuk barang yang jatahnya belum habis diambil"':'')+'>'+x+'</th>';}).join("")+'</tr></thead><tbody>';
+  h+='<div class="tw"><table class="tlm"><thead><tr>'+["Kode","Barang","Sat","RAB","Keluar","Kembali","Bersih","Terpakai","Siap","Proses","Sisa","Stok gudang","Pesanan","Order Accurate","Nilai bersih","Catatan"].map(function(x,i){return '<th'+((i>=3&&i<=11)||i===14?' class="n"':'')+(x==="Stok gudang"?' title="Stok fisik di gudang saat ini, hanya untuk barang yang jatahnya belum habis diambil"':'')+'>'+x+'</th>';}).join("")+'</tr></thead><tbody>';
   pakai.forEach(function(w){
     var kl=w.flag==="Di luar RAB"?"tlr-luar":(w.flag==="Melebihi RAB"?"tlr-lebih":"");
     var op=TL.buka===w.kode;
-    h+='<tr class="tlrow '+kl+'" tabindex="0" role="button" aria-expanded="'+(op?"true":"false")+'" data-kr="'+esc(w.kode)+'" title="Klik untuk melihat riwayat barang ini di proyek"><td>'+esc(w.kode)+'</td><td>'+esc(w.nama)+'</td><td>'+esc(w.satuan)+'</td><td class="n">'+LPR.nf(w.rab)+'</td><td class="n">'+LPR.nf(w.keluar)+'</td><td class="n">'+LPR.nf(w.kembali)+'</td><td class="n">'+LPR.nf(w.bersih)+'</td><td class="n">'+tlPersen(w)+'</td><td class="n">'+LPR.nf(w.siap)+'</td><td class="n">'+LPR.nf(w.proses)+'</td><td class="n">'+LPR.nf(w.sisa)+'</td><td class="n">'+tlStokSel(w,stok)+'</td><td class="tlso">'+tlSoSel(so[String(w.kode).trim().toUpperCase()])+'</td><td class="n">'+LPR.rp(w.nilaiBersih)+'</td><td>'+(w.flag?'<span class="tag '+(w.flag==="Di luar RAB"?"r":"y")+'">'+esc(w.flag)+'</span>':'')+'</td></tr>';
+    h+='<tr class="tlrow '+kl+'" tabindex="0" role="button" aria-expanded="'+(op?"true":"false")+'" data-kr="'+esc(w.kode)+'" title="Klik untuk melihat riwayat barang ini di proyek"><td>'+esc(w.kode)+'</td><td>'+esc(w.nama)+'</td><td>'+esc(w.satuan)+'</td><td class="n">'+LPR.nf(w.rab)+'</td><td class="n">'+LPR.nf(w.keluar)+'</td><td class="n">'+LPR.nf(w.kembali)+'</td><td class="n">'+LPR.nf(w.bersih)+'</td><td class="n">'+tlPersen(w)+'</td><td class="n">'+LPR.nf(w.siap)+'</td><td class="n">'+LPR.nf(w.proses)+'</td><td class="n">'+LPR.nf(w.sisa)+'</td><td class="n">'+tlStokSel(w,stok)+'</td><td class="tlso">'+tlSoSel(so[String(w.kode).trim().toUpperCase()])+'</td><td class="tlso">'+tlAccSel(r,w.kode)+'</td><td class="n">'+LPR.rp(w.nilaiBersih)+'</td><td>'+(w.flag?'<span class="tag '+(w.flag==="Di luar RAB"?"r":"y")+'">'+esc(w.flag)+'</span>':'')+'</td></tr>';
     if(op)h+='<tr class="tl-det"><td colspan="15">'+tlRiwayatBaris(r,w)+'</td></tr>';
   });
   return h+'</tbody></table></div>';
@@ -403,6 +420,7 @@ function tlTeksWa(r){
   else L.push("Semua barang RAB sudah diambil.");
   if(R.masalah.length){L.push("Perlu dicek ("+R.masalah.length+"):");R.masalah.slice(0,10).forEach(function(w){L.push("- "+w.nama+": "+w.flag);});}
   var sc=R.sc,ps=[];if(sc.BELUM)ps.push(sc.BELUM+" belum dipesan");if(sc.DIPESAN)ps.push(sc.DIPESAN+" sudah dipesan");if(sc.SEBAGIAN)ps.push(sc.SEBAGIAN+" datang sebagian");if(sc.DATANG)ps.push(sc.DATANG+" sudah datang");
+  (function(){var AR=tlAccRingkas(r);if(AR.teks)L.push("Order Accurate: "+AR.teks);})();
   if(ps.length)L.push("Pesanan barang: "+ps.join(", "));
   if(R.nSeri)L.push("Meter air bernomor seri: "+R.nSeri+" catatan");
   L.push("");L.push("(dari Sistem Gudang SCTK, "+new Date().toLocaleString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})+")");
@@ -425,6 +443,7 @@ function drawTLPpbj(){
     '<div><b>'+R.nProses+'</b><span>BPB masih berjalan</span></div>'+
     ((R.sc.BELUM+R.sc.DIPESAN+R.sc.SEBAGIAN+R.sc.DATANG)?'<div><b>'+(R.sc.BELUM+R.sc.DIPESAN+R.sc.SEBAGIAN)+'</b><span>Pesanan belum lengkap ('+R.sc.BELUM+' belum dipesan, '+R.sc.DIPESAN+' dipesan, '+R.sc.SEBAGIAN+' sebagian)</span></div>':'')+
     (R.nSeri?'<div><b>'+R.nSeri+'</b><span>Catatan nomor seri meter</span></div>':'')+
+    (function(){var AR=tlAccRingkas(r);if(!AR.teks)return '';return '<div><b'+(AR.perlu?' style="color:var(--red,#a82424)"':'')+'>'+(AR.n?AR.perlu:'-')+'</b><span>Order Accurate perlu dicek'+(AR.n?' ('+esc(AR.teks)+')':': '+esc(AR.teks))+'</span></div>';})()+
    '</div>'+
    '<div class="bar noprint"><button id="tl_wa" class="gh">Salin ringkasan (WhatsApp)</button><button id="tl_px" class="gh">Unduh (Excel)</button><button id="tl_bb" class="gh">Telusur semua barangnya sekaligus</button><button id="tl_an2" class="gh">Analisa semua barang PPBJ ini</button><button id="tl_pp" class="gh">Cetak / PDF</button></div><div id="tl_wabox"></div></div>';
   x+='<div class="card"><h3 style="margin-top:0">Material: RAB vs keluar</h3><div id="tl_mat">'+tlBaris(r)+'</div></div>';
@@ -453,7 +472,7 @@ function drawTLPpbj(){
     var st=r.stok||{},so=r.so||{};
     unduhBanyak("ppbj_"+String(c.ppbj).replace(/[^\w-]+/g,"_")+"_"+tglIso(new Date())+".xlsx",[
      {n:"Ringkas",rows:[["No PPBJ",c.ppbj],["Proyek",c.nama],["Departemen",c.dept],["Status",r.status],["Prioritas",r.prio||""],["Nilai RAB",t.nilaiRab],["Nilai keluar bersih",t.nilaiBersih],["Terpakai %",R.pakai==null?"":R.pakai],["BPB diserahkan",R.nBpb],["Pengembalian",R.nKem],["Barang masih ada jatah",R.sisa.length],["Barang melebihi RAB",t.melebihi||0],["Barang di luar RAB",t.diluar||0]].concat((r.nomorLama||[]).map(function(n){return ["Nomor sebelumnya",n.lama+" (diganti "+n.waktu+")"];})),w:[24,40]},
-     {n:"Material",rows:[["Kode","Barang","Satuan","RAB","Keluar","Kembali","Bersih","Terpakai %","Siap","Proses","Sisa","Stok gudang","Status pesanan","No PO","Perkiraan tiba","Nilai bersih","Catatan"]].concat((c.rows||[]).map(function(w){var k=String(w.kode).trim().toUpperCase(),s=st[k],o=so[k];return [w.kode,w.nama,w.satuan,w.rab,w.keluar,w.kembali,w.bersih,w.rab>0?Math.round(w.bersih/w.rab*100):"",w.siap,w.proses,w.sisa,s?s.fisik:"",o?o.label:"",o?o.po:"",o?o.eta:"",w.nilaiBersih,w.flag];})),w:[14,34,8,9,9,9,9,10,8,8,9,11,20,16,13,14,14]},
+     {n:"Material",rows:[["Kode","Barang","Satuan","RAB","Keluar","Kembali","Bersih","Terpakai %","Siap","Proses","Sisa","Stok gudang","Status pesanan","No PO","Perkiraan tiba","Order Accurate","Accurate dipesan","Accurate datang","PO Accurate","Supplier","Nilai bersih","Catatan"]].concat((c.rows||[]).map(function(w){var k=String(w.kode).trim().toUpperCase(),s=st[k],o=so[k],ax=r.accOrder&&r.accOrder.items?r.accOrder.items[k]:null;return [w.kode,w.nama,w.satuan,w.rab,w.keluar,w.kembali,w.bersih,w.rab>0?Math.round(w.bersih/w.rab*100):"",w.siap,w.proses,w.sisa,s?s.fisik:"",o?o.label:"",o?o.po:"",o?o.eta:"",ax?ax.label:(r.accOrder&&r.accOrder.data&&!r.accOrder.ada?"PPBJ belum ada di Accurate":""),ax?ax.dipesan:"",ax&&ax.datang!=null?ax.datang:"",ax?(ax.po||[]).join(", "):"",ax?ax.supplier:"",w.nilaiBersih,w.flag];})),w:[14,34,8,9,9,9,9,10,8,8,9,11,20,16,13,24,10,10,18,20,14,14]},
      {n:"Linimasa",rows:[["Tanggal","Jenis","Kejadian","Keterangan"]].concat((r.linimasa||[]).map(function(e){return [e.tgl,e.jenis,e.judul,e.ket];})),w:[12,14,34,60]},
      {n:"Dokumen",rows:[["Jenis","Dokumen","Tanggal","Pemohon","Oleh","Isi","Accurate"]].concat((c.docs||[]).map(function(d){var a=acc[String(d.doc).trim().toUpperCase()];return [d.jenis,d.doc,d.tgl,d.pemohon,d.oleh,(d.items||[]).map(function(i){return i.nama+" x"+i.qty;}).join("; "),a?a.status:""];})),w:[12,18,12,16,14,60,10]},
      {n:"No seri",rows:[["No seri","Kode","Barang","Arah","Dokumen","Waktu"]].concat((r.seri||[]).map(function(s){return [s.seri,s.kode,s.nama,s.arah,s.dok,s.waktu];})),w:[18,14,30,10,18,16]},

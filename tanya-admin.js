@@ -189,7 +189,11 @@
     ["risiko", /^(((daftar )?proyek (aktif|berjalan|yang aktif|apa saja yang aktif))|proyek (mana )?(yang )?(paling )?(berisiko|beresiko|kritis|bermasalah|rawan)|proyek berisiko|proyek yang (berisiko|bermasalah))$/],
     ["habis", /^((cek|lihat) )?((barang|stok|material) )?(yang )?(habis|nol|kosong)( semua)?$/],
     ["minus", /^((cek|lihat) )?((barang|stok) )?(yang )?(stok )?(minus|negatif)$/],
-    ["tanparab", /^((proyek|ppbj) )?(yang )?(tanpa rab|rab (kosong|belum( ada| diisi)?)|belum (ada |diisi )?rab)( apa saja)?$/]];
+    ["tanparab", /^((proyek|ppbj) )?(yang )?(tanpa rab|rab (kosong|belum( ada| diisi)?)|belum (ada |diisi )?rab)( apa saja)?$/],
+    // T156: kata kunci baru
+    ["bpbjalan", /^((cek|lihat|daftar) )?((bpb|permintaan|dokumen)( yang)? )?(belum (selesai|diserahkan|disetujui|di ?acc|diproses)|berjalan|tertunda|menggantung|nyangkut|menunggu persetujuan)( apa saja)?$|^antrean (bpb|permintaan|persetujuan)$/],
+    ["hariini", /^((cek|lihat) )?(transaksi|mutasi|keluar masuk|masuk keluar|keluar dan masuk|masuk dan keluar|barang masuk keluar|barang keluar masuk|pergerakan( barang)?|aktivitas gudang)( barang)? hari ini$/],
+    ["tidur", /^((cek|lihat|daftar) )?(barang|stok) (tidur|mati)$|^((barang )?(yang )?tidak (pernah )?bergerak)$|^dead sto(c)?k$/]];
   // kata yang menandakan pertanyaan lebih dari sekadar cek barang: dijawab server
   var LK_BUKAN = /\b(kenapa|mengapa|knp|napa|cukup|proyek|projek|ppbj|riwayat|mutasi|keluar|masuk|bulan|minggu|hari|kemarin|tanggal|simulasi|kalau|jika|andai|ubah|tandai|set|ganti|hapus|email|kirim|harga|rp|nilai|seri|bpb|lacak|bandingkan|banding|vs|selisih|ukuran|mirip|sejenis|pengganti|buat|tolong|semua|daftar|apa|yang|terlambat|telat|jelaskan|rinci|mana|untuk|berapa proyek|jatah|alokasi|kurang|lebih|beli|supplier|vendor|bekas|rekap|laporan|total|paling|terbanyak|ranking|top)\b/;
   var PPBJ_RE = /\b\d{1,4}[a-z]?\s*\/\s*[a-z\-]{2,8}(?:\s*\/\s*[a-z]{2,6})?\s*\/\s*[ivx]{1,4}\s*\/\s*\d{4}[a-z]?\b/i;
@@ -427,6 +431,56 @@
     var a = add("tq-b tga", "<p><b>Halo, admin.</b> Tanyakan apa saja: stok dan alasannya, pesanan, proyek, simulasi, laporan (bisa diunduh Excel), nomor seri, lacak BPB. Jawaban instan untuk kata kunci seperti \"cek stok X\", \"cek material proyek X\", \"cek PPBJ 011/PB/XI/2026\", \"material buffer stock\", \"barang habis\", \"stok minus\", \"pesanan akan datang\", \"pesanan yang telat\", \"rak X\", \"isi rak A3\". Boleh beberapa permintaan sekaligus, bahasa sehari-hari, dan pertanyaan susulan (\"yang kedua?\", \"kalau 10 proyek?\"). Perintah yang mengubah data selalu minta konfirmasi dulu.</p>");
     if (a) a.appendChild(chips([{label: "Briefing hari ini", t: "briefing"}, {label: "Ada yang aneh?", t: "ada yang aneh hari ini"}, {label: "Proyek berisiko", t: "proyek mana paling berisiko"}, {label: "Pesanan terlambat", t: "pesanan yang telat"}, {label: "Barang habis", t: "barang habis"}, {label: "Akan datang", t: "pesanan akan datang minggu ini"}, {label: "Material buffer stock", t: "cek material buffer stock"}, {label: "Contoh pertanyaan", t: "bantuan"}, {label: "Usulan belajar", t: "usulan belajar"}], function (x) { tanya(x.t); }));
   }
+  /* ---------- T156: panel pertanyaan cepat (selalu bisa dibuka) + tombol buatan sendiri ---------- */
+  var CEPAT = [
+    ["Hari ini", [["Briefing", "briefing"], ["Transaksi hari ini", "transaksi hari ini"], ["Transaksi kemarin", "transaksi kemarin"], ["BPB belum selesai", "bpb belum selesai"], ["BPB lebih dari 3 hari", "bpb belum selesai 3 hari"], ["Ada yang aneh?", "ada yang aneh hari ini"]]],
+    ["Stok", [["Barang habis", "barang habis"], ["Stok minus", "stok minus"], ["Barang tidur", "barang tidur"], ["Buffer menipis", "buffer menipis"], ["Material buffer stock", "cek material buffer stock"], ["Nilai stok", "nilai persediaan"]]],
+    ["Order", [["Daftar beli", "daftar beli"], ["Belum diorder", "barang yang belum diorder"], ["Order belum datang", "order belum datang"], ["Pesanan terlambat", "pesanan yang telat"], ["Akan datang minggu ini", "pesanan akan datang minggu ini"]]],
+    ["Proyek", [["Proyek berisiko", "proyek mana paling berisiko"], ["Proyek tanpa RAB", "proyek tanpa rab"], ["Rekap keluar bulan ini per proyek", "rekap keluar bulan ini per proyek"]]],
+    ["Bantuan", [["Contoh pertanyaan", "bantuan"], ["Usulan belajar", "usulan belajar"]]]];
+  var K_FAV = "sctk_tga_fav", K_BUKA = "sctk_tga_cepat";
+  function lsG(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsS(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* abaikan */ } }
+  function favBaca() { try { var a = JSON.parse(lsG(K_FAV) || "[]"); return Array.isArray(a) ? a.filter(function (x) { return x && x.t; }).slice(0, 12) : []; } catch (e) { return []; } }
+  function favSimpan(a) { lsS(K_FAV, JSON.stringify(a.slice(0, 12))); }
+  function cepatPasang() {
+    var old = document.getElementById("tga-cepat"); if (old) old.remove();
+    var f = document.getElementById("f"); if (!A.aktif || !f) return;
+    var w = document.createElement("div"); w.id = "tga-cepat"; w.className = "tga-cepat";
+    var buka = lsG(K_BUKA) === "1";
+    w.innerHTML = '<button type="button" class="gh tga-cepat-t" aria-expanded="' + (buka ? "true" : "false") + '" aria-controls="tga-cepat-isi">Pertanyaan cepat ' + (buka ? "&#9650;" : "&#9660;") + '</button><div id="tga-cepat-isi" class="tga-cepat-isi"' + (buka ? "" : " hidden") + "></div>";
+    f.parentNode.insertBefore(w, f);
+    var tb = w.querySelector(".tga-cepat-t"), isi = w.querySelector(".tga-cepat-isi");
+    tb.onclick = function () { var b = isi.hasAttribute("hidden"); if (b) isi.removeAttribute("hidden"); else isi.setAttribute("hidden", ""); lsS(K_BUKA, b ? "1" : "0"); tb.setAttribute("aria-expanded", b ? "true" : "false"); tb.innerHTML = "Pertanyaan cepat " + (b ? "&#9650;" : "&#9660;"); };
+    cepatIsi(isi);
+  }
+  function cepatIsi(isi) {
+    isi.innerHTML = "";
+    var fav = favBaca(), g = document.createElement("div"); g.className = "tga-cepat-g";
+    g.innerHTML = '<div class="tga-cepat-h">Tombol saya</div>';
+    var row = document.createElement("div"); row.className = "tq-chips";
+    fav.forEach(function (x, ix) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "tq-chip tga-fav"; b.textContent = x.l || x.t; b.title = x.t; b.onclick = function () { tanya(x.t); };
+      var h = document.createElement("button"); h.type = "button"; h.className = "tga-fav-x"; h.setAttribute("aria-label", "Hapus tombol " + (x.l || x.t)); h.textContent = "\u00d7";
+      h.onclick = function (ev) { ev.stopPropagation(); var a = favBaca(); a.splice(ix, 1); favSimpan(a); cepatIsi(isi); };
+      var sp = document.createElement("span"); sp.className = "tga-fav-w"; sp.appendChild(b); sp.appendChild(h); row.appendChild(sp);
+    });
+    var tam = document.createElement("button"); tam.type = "button"; tam.className = "tq-chip gh tga-fav-tambah"; tam.textContent = "+ Simpan pertanyaan terakhir";
+    tam.onclick = function () {
+      var t = String(A.lastTeks || "").trim(); if (!t) { tam.textContent = "Belum ada pertanyaan untuk disimpan"; return; }
+      var a = favBaca(); if (a.some(function (x) { return x.t.toLowerCase() === t.toLowerCase(); })) { tam.textContent = "Sudah tersimpan"; return; }
+      if (a.length >= 12) { tam.textContent = "Maksimal 12 tombol"; return; }
+      var l = t.length > 40 ? t.slice(0, 38) + "\u2026" : t; a.push({t: t, l: l}); favSimpan(a); cepatIsi(isi);
+    };
+    row.appendChild(tam);
+    if (!fav.length) { var n = document.createElement("div"); n.className = "tq-sm"; n.textContent = "Tanyakan sesuatu, lalu tekan \"Simpan pertanyaan terakhir\" agar jadi tombol. Tersimpan di peramban ini."; g.appendChild(row); g.appendChild(n); } else g.appendChild(row);
+    isi.appendChild(g);
+    CEPAT.forEach(function (k) {
+      var d = document.createElement("div"); d.className = "tga-cepat-g"; d.innerHTML = '<div class="tga-cepat-h">' + esc(k[0]) + "</div>";
+      d.appendChild(chips(k[1].map(function (x) { return {label: x[0], t: x[1]}; }), function (x) { tanya(x.t); }));
+      isi.appendChild(d);
+    });
+  }
   /** Tidak ada tombol "Mode admin": admin dikenali dari kode masuk (password admin). Hanya lencana ADMIN kecil di judul. */
   function tombol() {
     var old = document.getElementById("tga-mode"); if (old) old.remove();
@@ -435,8 +489,8 @@
     if (!A.aktif && badge) badge.remove();
   }
   function placeholder() { var q = document.getElementById("q"); if (q) q.placeholder = A.aktif ? "Contoh: kenapa pipa pvc 3 inch kurang? / rekap keluar bulan ini per proyek" : "Contoh: stok pipa pvc 3 inch"; }
-  function nyalakan(pin) { A.pin = pin; A.aktif = true; ss("sctk_tanya_adm", pin); tombol(); placeholder(); sapa(); rkMulai(); }
-  function matikan() { A.aktif = false; A.pin = ""; ss("sctk_tanya_adm", null); tombol(); placeholder(); RK = null; if (RK_TIMER) { clearInterval(RK_TIMER); RK_TIMER = null; } }
+  function nyalakan(pin) { A.pin = pin; A.aktif = true; ss("sctk_tanya_adm", pin); tombol(); placeholder(); sapa(); try { cepatPasang(); } catch (eC) { /* panel tidak wajib */ } rkMulai(); }
+  function matikan() { A.aktif = false; A.pin = ""; ss("sctk_tanya_adm", null); tombol(); placeholder(); var cp = document.getElementById("tga-cepat"); if (cp) cp.remove(); RK = null; if (RK_TIMER) { clearInterval(RK_TIMER); RK_TIMER = null; } }
   /** T135: pemeriksaan admin dimulai bersamaan dengan pemuatan data (dipanggil tanya.js di awal), jadi tidak menambah waktu tunggu. */
   var AWAL = null;
   function awal(kode) { if (kode && T().api) AWAL = {kode: kode, p: api({action: "adminBotCek", kode: kode}).catch(function () { return null; })}; }

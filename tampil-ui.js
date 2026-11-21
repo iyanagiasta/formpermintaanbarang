@@ -49,6 +49,32 @@
     }
     return out;
   }
+  /* T156: Janji vs Bukti dan Bukti adopsi */
+  var JW = {"Terbukti": "otomatis", "Sebagian": "perkiraan", "Belum terbukti": "manual", "Lewat tenggat": "tunggu"};
+  function slJanji() {
+    var J = D.janji; if (!J || !J.data || !J.data.length) return [];
+    var out = [], per = 6, n = Math.ceil(J.data.length / per), N = J.n || {};
+    for (var p = 0; p < n; p++) {
+      var rows = J.data.slice(p * per, p * per + per).map(function (j) {
+        var bukti = j.ukuran ? esc(pot(j.ukuran.nama, 34)) + ": <b>" + fmt(j.ukuran.nilai) + " " + esc(j.ukuran.satuan) + "</b>" + (j.ukuran.target != null ? '<br><span style="color:var(--abu);font-size:15px">target ' + fmt(j.ukuran.target) + " · awal " + fmt(j.ukuran.awal) + "</span>" : "") : (j.bukti ? esc(pot(j.bukti, 70)) : '<span style="color:var(--abu)">belum ada</span>') + (j.foto ? ' <span style="color:var(--abu);font-size:15px">· ' + j.foto + " foto</span>" : "");
+        var pr = j.progres != null ? '<div style="height:12px;background:var(--muda);border-radius:6px;overflow:hidden;min-width:120px"><i style="display:block;height:100%;width:' + j.progres + '%;background:var(--langit,#4BA3E3)"></i></div><span style="font-size:15px;color:var(--abu)">' + j.progres + "%</span>" : "";
+        return '<tr><td style="font-size:18px"><b>' + esc(pot(j.janji, 60)) + "</b>" + (j.ukuranTeks ? '<br><span style="color:var(--abu);font-size:15px">' + esc(pot(j.ukuranTeks, 60)) + "</span>" : "") + '</td><td style="font-size:17px;white-space:nowrap">' + esc(tglPendek(j.tenggat)) + '</td><td style="font-size:17px">' + bukti + "</td><td>" + pr + '</td><td><span class="bd ' + (JW[j.status] || "manual") + '">' + esc(j.status) + "</span>" + (j.sumber === "oto" ? '<br><span style="font-size:13px;color:var(--abu)">dinilai dari ukuran</span>' : "") + "</td></tr>";
+      }).join("");
+      var ring = ["Terbukti", "Sebagian", "Belum terbukti", "Lewat tenggat"].filter(function (k) { return N[k]; }).map(function (k) { return fmt(N[k], 0) + " " + k.toLowerCase(); }).join(" · ");
+      out.push({bagian: "Janji vs Bukti", judul: "Janji vs bukti" + (p ? " (lanjutan)" : ""), html: '<div class="eyebrow">Janji vs bukti</div><div class="jd">' + (p ? "Janji vs bukti (lanjutan)" : fmt(N["Terbukti"] || 0, 0) + " dari " + fmt(J.total, 0) + " janji sudah terbukti") + '</div><div class="sub" style="font-size:19px;margin-bottom:8px">' + esc(ring) + '</div><table><tr><th>Janji / target</th><th>Tenggat</th><th>Bukti</th><th>Progres</th><th>Status</th></tr>' + rows + '</table><div class="cat" style="font-size:15px">Janji yang ditautkan ke ukuran dinilai otomatis dari pengukuran terakhir terhadap target. Lainnya dinilai dari bukti manual atau foto.</div>'});
+    }
+    return out;
+  }
+  function slAdopsi() {
+    var A = D.adopsi; if (!A || !A.total || !A.total.bpb) return [];
+    var T = A.total, k = function (a, l, s) { return '<div class="kartu"><div class="angka" style="font-size:44px">' + fmt(a, 0) + '</div><div class="lbl" style="font-size:17px">' + l + (s ? '<br><span style="font-size:14px">' + s + "</span>" : "") + "</div></div>"; };
+    var pb = A.perBulan.slice(-8);
+    var h = '<div class="eyebrow">Adopsi</div><div class="jd">Sistem dipakai ' + fmt(T.pemohon, 0) + " pemohon dari " + fmt(T.dept, 0) + ' departemen</div><div class="grid" style="grid-template-columns:repeat(4,1fr);gap:14px">' +
+      k(T.bpb, "BPB lewat sistem " + bd("Terukur otomatis")) + k(T.setuju, "Persetujuan di sistem", fmt(T.penyetuju, 0) + " penyetuju") + k(T.terima, "Penerimaan barang dicatat") + k(T.kembali, "Pengembalian sisa proyek") + "</div>" +
+      (pb.length >= 2 ? '<div class="duaKol" style="margin-top:12px"><div><div class="sub">Pemohon per bulan</div>' + PG.batang(pb.map(function (q) { return {label: q.bulan.slice(5) + "/" + q.bulan.slice(2, 4), nilai: q.pemohon}; }), {lebar: 560, tinggi: 215}) + '</div><div><div class="sub">BPB per bulan</div>' + PG.batang(pb.map(function (q) { return {label: q.bulan.slice(5) + "/" + q.bulan.slice(2, 4), nilai: q.bpb, warna: W.ok}; }), {lebar: 560, tinggi: 215}) + "</div></div>" : "") +
+      '<div class="cat" style="font-size:14px">Sumber: ' + esc(A.sumber) + "</div>";
+    return [{bagian: "Adopsi", judul: "Bukti adopsi pengguna", html: h}];
+  }
   function slPerjalanan() {
     var l = urut(D.items.filter(function (x) { return x.tipe === "jurnal"; }), function (x) { return x.tanggal; }); if (!l.length) return [];
     var out = [], n = Math.ceil(l.length / 5);
@@ -230,7 +256,7 @@
   T.susun = function (data) {
     D = data;
     var s = [slSampul(), slPembuka()];
-    [slDampak, slKartu, slPerjalanan, slSebelum, slOpname, slBiaya, slUkuran, slSistem].forEach(function (f) { f().forEach(function (x) { s.push(x); }); });
+    [slDampak, slKartu, slJanji, slAdopsi, slPerjalanan, slSebelum, slOpname, slBiaya, slUkuran, slSistem].forEach(function (f) { f().forEach(function (x) { s.push(x); }); });
     slDaftar("minta", "Menunggu keputusan", "Yang menunggu keputusan", {kiri: "isi2"}).forEach(function (x) { s.push(x); });
     slDaftar("rencana", "Rencana berikutnya", "Rencana berikutnya", {kiri: "isi2"}).forEach(function (x) { s.push(x); });
     slBukti().forEach(function (x) { s.push(x); });

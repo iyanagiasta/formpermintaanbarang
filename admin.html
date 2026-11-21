@@ -10,7 +10,7 @@
 <script src="pdfbukti.js?v=124"></script><script src="seri-meter.js?v=125"></script>
 <script src="mb-excel.js?v=38"></script>
 <script src="laporan.js"></script>
-<script src="admin-kerja.js?v=156"></script><script src="nilai-stok.js?v=155"></script>
+<script src="admin-kerja.js?v=157"></script><script src="nilai-stok.js?v=155"></script>
 <script src="admin-mutasi.js?v=132"></script>
 <script src="admin-laporan2.js?v=127"></script>
 <script src="admin-proyek2.js?v=156"></script>
@@ -27,13 +27,13 @@
 <script src="proyek-order.js?v=47"></script>
 <script src="harga-acc.js"></script>
 <script src="harga-po.js"></script>
-<script src="xlsx-tulis.js"></script>
+<script src="xlsx-tulis.js?v=157"></script>
 <script src="bast-logo.js"></script>
 <script src="bast.js?v=144"></script>
 <script src="mutasi-acc.js?v=148"></script><script src="data-acc.js?v=151"></script>
 <script src="pengganti.js?v=111"></script><script src="telusur-selisih.js?v=150"></script><script src="order-lencana.js?v=150"></script>
 <script src="order-monitor.js"></script>
-<script src="analisa-barang.js?v=138"></script>
+<script src="analisa-barang.js?v=138"></script><script src="rekap-ppbj.js?v=157"></script>
 <script src="kimia.js?v=122"></script>
 <script src="kpi.js"></script>
 <script src="tanda.js"></script>
@@ -352,7 +352,7 @@ function pane(){return document.getElementById("pane")||app;}
 var MENU=[["Harian",[["kerja","Daftar Kerja"],["pantau","Pantauan BPB"],["serah","Serah Barang"],["terima","Terima Barang"],["mutasi","Mutasi"]]],
  ["Stok",[["stok","Stok & Harga"],["opname","Selisih Opname"],["kimia","Opname Kimia"],["seri","No Seri Meter"],["kpi","KPI Gudang"],["baopname","BA Opname"],["kedaluwarsa","Kedaluwarsa"],["buffer","Buffer Paket"],["barangmati","Barang Mati"],["accurate","Accurate"],["komparasi","Komparasi"]]],
  ["Proyek & Pembelian",[["proyek","Proyek"],["pengajuan","Pengajuan"],["pembelian","Pengadaan"],["realisasi","Realisasi"]]],
- ["Laporan",[["laporan","Laporan"],["lapatasan","Laporan Atasan"],["telusur","Telusur"],["analisa","Analisa Barang"],["arsip","Arsip Bukti"],["bast","BAST"],["pengganti","BPB Pengganti"],["mutasiacc","Mutasi Accurate"],["dataacc","Data Accurate"]]],
+ ["Laporan",[["laporan","Laporan"],["rekapppbj","Rekap PPBJ"],["lapatasan","Laporan Atasan"],["telusur","Telusur"],["analisa","Analisa Barang"],["arsip","Arsip Bukti"],["bast","BAST"],["pengganti","BPB Pengganti"],["mutasiacc","Mutasi Accurate"],["dataacc","Data Accurate"]]],
  ["Data & Sistem",[["masterbarang","Master Barang"],["label","Label"],["pengumuman","Pengumuman"],["sistem","Sistem"],["kecepatan","Kecepatan"],["panduan","Panduan"]]]];
 function namaTab(t){var n=t;MENU.forEach(function(g){g[1].forEach(function(x){if(x[0]===t)n=x[1];});});return n;}
 function tabAda(h){var ok=false;MENU.forEach(function(g){g[1].forEach(function(x){if(x[0]===h&&h!=="pembelian"&&h!=="realisasi"&&h!=="label")ok=true;});});return ok;}
@@ -388,7 +388,7 @@ function goTab(t){try{if(window.OL&&PIN)OL.muat(api);}catch(e){}
   try{if(window.IDX&&PIN)IDX.mulai(api);}catch(e){}
   if(t==="pantau"){load(false);return;}
   tabsUI();
-  if(t==="pengganti")PGT.mount(pane(),api,toast);else if(t==="seri")SERI.tab(pane(),api,toast);else if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="baopname")loadBA();else if(t==="buffer")loadBF();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="kimia")KM.mount(pane());else if(t==="kpi")KPI.mount(pane());else if(t==="panduan")PDN.mount(pane());else if(t==="laporan")loadLaporan();else if(t==="kerja")loadKerja();else if(t==="lapatasan")loadLapAtasan();else if(t==="telusur")loadTelusur();else if(t==="analisa")AB.mount(pane(),api,toast);else if(t==="arsip")ARB.mount(pane(),api,toast);else if(t==="bast")BASTM.mount(pane(),api,toast);else if(t==="mutasiacc")MACM.mount(pane(),api,toast);else if(t==="dataacc")DACC.mount(pane(),api,toast);else if(t==="kecepatan")KPF.mount(pane(),api,toast);else if(t==="kedaluwarsa")loadKdl();else if(t==="accurate"){PAF.status="Belum";if(window.PAT)PAT.mulai();loadAccurate(true);}else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
+  if(t==="pengganti")PGT.mount(pane(),api,toast);else if(t==="seri")SERI.tab(pane(),api,toast);else if(t==="masterbarang")loadMB();else if(t==="komparasi")drawKP();else if(t==="baopname")loadBA();else if(t==="buffer")loadBF();else if(t==="stok")loadStok();else if(t==="proyek")loadProyek();else if(t==="serah")loadSerah();else if(t==="mutasi")loadMutasi();else if(t==="barangmati")loadMati();else if(t==="opname")loadOpname();else if(t==="kimia")KM.mount(pane());else if(t==="kpi")KPI.mount(pane());else if(t==="panduan")PDN.mount(pane());else if(t==="laporan")loadLaporan();else if(t==="kerja")loadKerja();else if(t==="lapatasan")loadLapAtasan();else if(t==="telusur")loadTelusur();else if(t==="analisa")AB.mount(pane(),api,toast);else if(t==="rekapppbj")RKP.mount(pane(),api,toast);else if(t==="arsip")ARB.mount(pane(),api,toast);else if(t==="bast")BASTM.mount(pane(),api,toast);else if(t==="mutasiacc")MACM.mount(pane(),api,toast);else if(t==="dataacc")DACC.mount(pane(),api,toast);else if(t==="kecepatan")KPF.mount(pane(),api,toast);else if(t==="kedaluwarsa")loadKdl();else if(t==="accurate"){PAF.status="Belum";if(window.PAT)PAT.mulai();loadAccurate(true);}else if(t==="sistem")loadSistem();else if(t==="pengumuman")loadPengumuman();else if(t==="terima")loadTerima();else if(t==="pengajuan")loadPengajuan();
   try{history.replaceState(null,"","#"+t);}catch(e){}
 }
 function fmtN(n){n=Number(n)||0;return (Math.round(n*100)/100).toString().replace(".",",");}
@@ -2425,6 +2425,6 @@ function bindOs(){pane().querySelectorAll("[data-os]").forEach(function(b){b.onc
 <script src="basi.js?v=116"></script>
 <script src="tampil.js?v=146"></script>
 <script src="admin-hp.js?v=127"></script>
-<script src="admin-pintas.js?v=127"></script><script src="admin-nav.js?v=148"></script>
+<script src="admin-pintas.js?v=127"></script><script src="admin-nav.js?v=157"></script>
 </body>
 </html>

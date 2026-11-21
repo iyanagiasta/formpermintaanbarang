@@ -445,7 +445,7 @@ function drawTLPpbj(){
     (R.nSeri?'<div><b>'+R.nSeri+'</b><span>Catatan nomor seri meter</span></div>':'')+
     (function(){var AR=tlAccRingkas(r);if(!AR.teks)return '';return '<div><b'+(AR.perlu?' style="color:var(--red,#a82424)"':'')+'>'+(AR.n?AR.perlu:'-')+'</b><span>Order Accurate perlu dicek'+(AR.n?' ('+esc(AR.teks)+')':': '+esc(AR.teks))+'</span></div>';})()+
    '</div>'+
-   '<div class="bar noprint"><button id="tl_wa" class="gh">Salin ringkasan (WhatsApp)</button><button id="tl_px" class="gh">Unduh (Excel)</button><button id="tl_bb" class="gh">Telusur semua barangnya sekaligus</button><button id="tl_an2" class="gh">Analisa semua barang PPBJ ini</button><button id="tl_pp" class="gh">Cetak / PDF</button></div><div id="tl_wabox"></div></div>';
+   '<div class="bar noprint"><button id="tl_wa" class="gh">Salin ringkasan (WhatsApp)</button><button id="tl_px" class="gh">Unduh (Excel)</button><button id="tl_rk" class="gh">Buka di Rekap PPBJ</button><button id="tl_bb" class="gh">Telusur semua barangnya sekaligus</button><button id="tl_an2" class="gh">Analisa semua barang PPBJ ini</button><button id="tl_pp" class="gh">Cetak / PDF</button></div><div id="tl_wabox"></div></div>';
   x+='<div class="card"><h3 style="margin-top:0">Material: RAB vs keluar</h3><div id="tl_mat">'+tlBaris(r)+'</div></div>';
   var lin=r.linimasa||[],linT=TL.linSemua?lin:lin.slice(0,12);
   x+='<div class="card"><h3 style="margin-top:0">Linimasa proyek</h3>'+(lin.length?'<ul class="tllin">'+linT.map(function(e){return '<li class="j-'+esc(String(e.jenis).replace(/\s+/g,""))+'"><span class="tlt">'+esc(e.tgl||"-")+'</span><b>'+esc(e.judul)+'</b><small>'+esc(e.ket||"")+'</small></li>';}).join("")+'</ul>'+(lin.length>12?'<button id="tl_lin" class="gh noprint">'+(TL.linSemua?"Ringkas":"Tampilkan semua ("+lin.length+")")+'</button>':''):'<div class="kosong">Belum ada kejadian.</div>')+'</div>';
@@ -468,6 +468,7 @@ function drawTLPpbj(){
   };
   document.getElementById("tl_bb").onclick=function(){var rw=((TL.cek||{}).cek||{}).rows||[];var it=rw.filter(function(w){return w.kode;}).map(function(w){return {kode:w.kode,nama:w.nama};});if(!it.length){toast("Tidak ada barang berkode di PPBJ ini.",true);return;}TL.banyak=[];tlBanyakTambah(it);TL.mode="banyak";TL.bHasil=null;drawTelusur();cariBanyakTL();};
   var an2=document.getElementById("tl_an2");if(an2)an2.onclick=function(){var rw=((TL.cek||{}).cek||{}).rows||[];var it=rw.filter(function(w){return w.kode;}).map(function(w){return {kode:w.kode,nama:w.nama};});if(!it.length){toast("Tidak ada barang berkode di PPBJ ini.",true);return;}if(window.AB)AB.bukaDengan(it.slice(0,80));};
+  var tlRk=document.getElementById("tl_rk");if(tlRk)tlRk.onclick=function(){if(window.RKP){RKP.cari(c.ppbj);goTab("rekapppbj");}else toast("Rekap PPBJ belum termuat. Muat ulang halaman.",true);};
   document.getElementById("tl_px").onclick=function(){
     var st=r.stok||{},so=r.so||{};
     unduhBanyak("ppbj_"+String(c.ppbj).replace(/[^\w-]+/g,"_")+"_"+tglIso(new Date())+".xlsx",[

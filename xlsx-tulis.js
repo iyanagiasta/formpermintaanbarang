@@ -24,7 +24,7 @@
     this.peta[k] = cari(this.xfs, x); return this.peta[k];
   };
   Buku.prototype.sheet = function (nama, opsi) { var s = new Lembar(this, nama, opsi || {}); this.sh.push(s); return s; };
-  function Lembar(b, nama, o) { this.b = b; this.nama = String(nama).slice(0, 31); this.o = o; this.sel = {}; this.gab = []; this.lebar = {}; this.tinggi = {}; this.dv = []; this.gbr = []; this.link = []; this.cetak = null; this.pecah = []; this.beku = null; }
+  function Lembar(b, nama, o) { this.b = b; this.nama = String(nama).slice(0, 31); this.o = o; this.sel = {}; this.gab = []; this.lebar = {}; this.tinggi = {}; this.dv = []; this.gbr = []; this.link = []; this.cetak = null; this.pecah = []; this.beku = null; this.filter = null; }
   /** nilai: angka | teks | Date | {f:'SUM(A1:A2)'} | null. */
   Lembar.prototype.set = function (r, c, v, g) { var k = r + ':' + c, s = this.b.gaya(g); this.sel[k] = {r: r, c: c, v: v, s: s}; return this; };
   Lembar.prototype.gaya = function (r, c, g) { var k = r + ':' + c, x = this.sel[k]; if (x) x.s = this.b.gaya(g); else this.sel[k] = {r: r, c: c, v: null, s: this.b.gaya(g)}; return this; };
@@ -37,6 +37,8 @@
   Lembar.prototype.atur = function (o) { this.cetak = o; return this; };
   Lembar.prototype.pindah = function (r) { this.pecah.push(r); return this; };
   Lembar.prototype.bekukan = function (r, c) { this.beku = [r, c]; return this; };
+  /** T157: tombol saring (AutoFilter) pada rentang, mis. 'A4:AD400'. */
+  Lembar.prototype.saring = function (rentang) { this.filter = String(rentang || ''); return this; };
   Lembar.prototype.xml = function (idx, drw) {
     var rows = {}, maxR = 1, maxC = 1;
     Object.keys(this.sel).forEach(function (k) { var x = this.sel[k]; (rows[x.r] = rows[x.r] || []).push(x); maxR = Math.max(maxR, x.r); maxC = Math.max(maxC, x.c); }, this);
@@ -59,7 +61,7 @@
     x += '<sheetPr>' + (this.o.warna ? '<tabColor rgb="FF' + this.o.warna + '"/>' : '') + (o.fitW ? '<pageSetUpPr fitToPage="1"/>' : '') + '</sheetPr>';
     x += '<dimension ref="A1:' + ref(maxR, maxC) + '"/><sheetViews><sheetView workbookViewId="0"' + (this.o.garis === false ? ' showGridLines="0"' : '') + (idx === 0 ? ' tabSelected="1"' : '') + '>';
     if (this.beku) x += '<pane' + (this.beku[1] > 1 ? ' xSplit="' + (this.beku[1] - 1) + '"' : '') + (this.beku[0] > 1 ? ' ySplit="' + (this.beku[0] - 1) + '"' : '') + ' topLeftCell="' + ref(this.beku[0], this.beku[1]) + '" activePane="bottomLeft" state="frozen"/>';
-    x += '</sheetView></sheetViews><sheetFormatPr defaultRowHeight="12.75"/>' + (cols ? '<cols>' + cols + '</cols>' : '') + '<sheetData>' + sd + '</sheetData>';
+    x += '</sheetView></sheetViews><sheetFormatPr defaultRowHeight="12.75"/>' + (cols ? '<cols>' + cols + '</cols>' : '') + '<sheetData>' + sd + '</sheetData>' + (this.filter ? '<autoFilter ref="' + this.filter + '"/>' : '');
     if (this.gab.length) x += '<mergeCells count="' + this.gab.length + '">' + this.gab.map(function (m) { return '<mergeCell ref="' + m + '"/>'; }).join('') + '</mergeCells>';
     if (this.dv.length) x += '<dataValidations count="' + this.dv.length + '">' + this.dv.map(function (d) { return '<dataValidation type="list" allowBlank="1" showErrorMessage="0" sqref="' + d[0] + '"><formula1>' + xe(d[1]) + '</formula1></dataValidation>'; }).join('') + '</dataValidations>';
     if (this.link.length) x += '<hyperlinks>' + this.link.map(function (l) { return '<hyperlink ref="' + l[0] + '" location="' + xe(l[1]) + '" display="' + xe(l[1]) + '"/>'; }).join('') + '</hyperlinks>';
@@ -81,6 +83,7 @@
       ct.push('<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>');
       rels.push('<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>');
       sheetsX.push('<sheet name="' + xe(s.nama) + '" sheetId="' + (i + 1) + '"' + (s.o.sembunyi ? ' state="hidden"' : '') + ' r:id="rId' + (i + 1) + '"/>');
+      if (s.filter) dn.push('<definedName name="_xlnm._FilterDatabase" localSheetId="' + i + '" hidden="1">\'' + xe(s.nama.replace(/'/g, "''")) + '\'!' + s.filter.replace(/([A-Z]+)(\d+)/g, '$$$1$$$2') + '</definedName>');
       if (s.cetak && s.cetak.area) dn.push('<definedName name="_xlnm.Print_Area" localSheetId="' + i + '">\'' + xe(s.nama.replace(/'/g, "''")) + '\'!' + s.cetak.area.replace(/([A-Z]+)(\d+)/g, '$$$1$$$2') + '</definedName>');
       if (drw) {
         nDrw++; var anc = '', dr = [];

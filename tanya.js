@@ -218,14 +218,14 @@ function periodeDari(low){
 function jawabProyek(p,label){
   var h='<p class="tq-nm">'+esc(p.ppbj)+(p.ket?" - "+esc(p.ket):"")+(p.status==="Ditunda Sebentar"?" (ditunda)":"")+'</p>';
   if(p.adaRab!==undefined){
-    var ringkas=p.adaRab?(p.nKurang?'<b class="tq-bad">'+p.nKurang+' barang stoknya kurang</b>':"")+(p.nRebutan?(p.nKurang?", ":"")+'<b class="tq-warn">'+p.nRebutan+' barang rebutan dengan proyek lain</b>':"")||'<b class="tq-ok">Semua kebutuhan tercukupi stok</b>':"";
+    var ringkas=p.adaRab?(p.nKurang?'<b class="tq-bad">'+p.nKurang+' barang stoknya kurang</b>':"")+(p.nRebutan?(p.nKurang?", ":"")+'<b class="tq-warn">'+p.nRebutan+' barang stoknya terbatas (dibagi dengan proyek lain)</b>':"")||'<b class="tq-ok">Semua kebutuhan tercukupi stok</b>':"";
     h+='<p class="tq-sm">Material proyek (rincian material PPBJ). Keluar'+(label?" "+esc(label):" (semua waktu)")+':</p>'+(ringkas?'<p class="tq-sm">'+ringkas+'</p>':"");
     if(!p.adaRab)h+='<p class="tq-sm">Proyek ini belum punya rincian material PPBJ. Yang tampil hanya barang yang sudah keluar, dijatah, atau sudah diminta.</p>';
     var ib=SUMB.indexOf("Bekas");
     p.items.forEach(function(i){
       var sat=" "+esc(i.satuan||""),kls={Kurang:"bad",Rebutan:"warn",Cukup:"ok",Terpenuhi:"ok"}[i.status]||"";
       var kanan=i.rab>0?(i.status==="Terpenuhi"?"terpenuhi":"sisa "+fq(i.sisa)+sat):(i.diluar?"tidak ada di rincian PPBJ":(i.alok>0?"jatah "+fq(i.alok)+sat:"tidak ada jatah"));
-      var tag=i.status==="Kurang"?"Kurang "+fq(i.kurang)+sat:i.status==="Rebutan"?"Rebutan":i.status==="Cukup"?"Stok cukup":"";
+      var tag=i.status==="Kurang"?"Kurang "+fq(i.kurang)+sat:i.status==="Rebutan"?"Stok terbatas":i.status==="Cukup"?"Stok cukup":"";
       var bk=BYK[String(i.kode).trim().toUpperCase()],adaBk=i.status==="Kurang"&&bk&&ib>=0&&bk.q[ib]>0?'<br><span class="tq-sm">ada bekas '+fq(bk.q[ib])+sat+' (tidak dihitung)</span>':"";
       var sub=[];if(i.rab>0)sub.push("butuh "+fq(i.rab));
       sub.push("keluar "+fq(i.keluar)+(i.keluarBekas?" (termasuk "+fq(i.keluarBekas)+" dari stok Bekas)":"")+(i.tgl?", terakhir "+esc(i.tgl):""));

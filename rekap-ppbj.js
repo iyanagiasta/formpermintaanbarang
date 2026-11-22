@@ -259,7 +259,7 @@
     }
     if (k.stk) {
       if (!s0) h += '<td colspan="4"' + rs + '>' + kos(lk.rab === false ? 'dihitung bila ada RAB' : 'tidak dihitung (proyek tidak aktif, buffer, atau tidak di RAB)') + '</td>';
-      else h += '<td class="n"' + rs + '>' + n3(s0.bebas || 0) + '</td><td' + rs + '><span class="rk-chip rk-c-' + (s0.st === 'Kurang' ? 'r' : s0.st === 'Rebutan' ? 'y' : 'g') + '">' + esc(s0.st || '-') + '</span>' + (s0.kurang ? '<div class="note">kurang ' + n3(s0.kurang) + (s0.tutup ? ', sudah diorder' : '') + '</div>' : '') + '</td><td' + rs + '>' + esc(s0.order || '-') + (s0.eta ? '<div class="note">perkiraan tiba ' + tg(s0.eta) + '</div>' : '') + '</td><td' + rs + '>' + esc(arr(s0.lain).join(', ')) + '</td>';
+      else h += '<td class="n"' + rs + '>' + n3(s0.bebas || 0) + '</td><td' + rs + '><span class="rk-chip rk-c-' + (s0.st === 'Kurang' ? 'r' : s0.st === 'Rebutan' ? 'y' : 'g') + '">' + esc(s0.st === 'Rebutan' ? 'Stok terbatas' : (s0.st || '-')) + '</span>' + (s0.kurang ? '<div class="note">kurang ' + n3(s0.kurang) + (s0.tutup ? ', sudah diorder' : '') + '</div>' : '') + '</td><td' + rs + '>' + esc(s0.order || '-') + (s0.eta ? '<div class="note">perkiraan tiba ' + tg(s0.eta) + '</div>' : '') + '</td><td' + rs + '>' + esc(arr(s0.lain).join(', ')) + '</td>';
     }
     return h;
   }
@@ -317,7 +317,7 @@
     if (x) a.push('RAB ' + (x.rab > 0 ? n3(x.rab) : 'tidak ada') + ', sisa RAB ' + n3(x.sisaRab || 0) + (x.lebih ? ', lebih ' + n3(x.lebih) : ''));
     if (t) a.push('dipesan ' + n3(t.dipesan || 0) + ', datang ' + n3(t.datang || 0) + (t.sisa != null ? ', sisa ' + n3(t.sisa) : '') + (t.riBelum ? ' (RI belum terbaca)' : '') + (t.klaim ? ', ' + t.klaim + ' klaim terbuka' : '') + (t.tpl ? ' (dari template)' : ''));
     if (b.pyp) a.push('keterangan: ' + b.pyp.ket + (b.pyp.setuju ? ' (disetujui ' + b.pyp.setuju + ')' : ''));
-    if (s0) a.push('stok bebas ' + n3(s0.bebas || 0) + ' (' + (s0.st || '-') + ')' + (s0.order ? ', ' + s0.order : ''));
+    if (s0) a.push('stok bebas ' + n3(s0.bebas || 0) + ' (' + (s0.st === 'Rebutan' ? 'Stok terbatas' : (s0.st || '-')) + ')' + (s0.order ? ', ' + s0.order : ''));
     return (a.length ? '<div class="d">' + esc(a.join(' \u00b7 ')) + '</div>' : '') + (arr(b.ms2).length ? '<div>' + chipMs2(b.ms2) + '</div>' : '');
   }
   function vKartu(v, H) {
@@ -496,7 +496,7 @@
       var a = b.ang || {}, t = b.trm || {}, k = b.stk || {}, A0 = !!b.ang, T0 = !!b.trm, K0 = !!b.stk;
       return [A0 ? kosong(a.rab) : '', A0 ? kosong(a.bersih) : '', A0 ? kosong(a.alok) : '', A0 ? kosong(a.sisaRab) : '', A0 ? kosong(a.sisa) : '', A0 && a.lebih ? a.lebih : '',
         T0 ? kosong(t.dipesan) : '', T0 ? t.sumber || '' : '', T0 ? kosong(t.gudang) : '', T0 ? (t.riBelum ? 'belum terbaca' : kosong(t.ri)) : '', T0 ? kosong(t.sisa) : '', T0 ? tg(t.tgl) : '', T0 && t.rusak ? t.rusak : '', T0 && t.salah ? t.salah : '', T0 && t.klaim ? t.klaim : '', T0 ? arr(t.dok).join(', ') : '',
-        K0 ? kosong(k.bebas) : '', K0 ? k.st || '' : '', K0 && k.kurang ? k.kurang : '', K0 ? k.order || '' : '', K0 ? tg(k.eta) : '', K0 ? arr(k.lain).join(', ') : '', arr(b.ms2).map(MS2).join('; '), (g.r2 || {}).status || '',
+        K0 ? kosong(k.bebas) : '', K0 ? (k.st === 'Rebutan' ? 'Stok terbatas' : k.st || '') : '', K0 && k.kurang ? k.kurang : '', K0 ? k.order || '' : '', K0 ? tg(k.eta) : '', K0 ? arr(k.lain).join(', ') : '', arr(b.ms2).map(MS2).join('; '), (g.r2 || {}).status || '',
         A0 && a.harga != null ? a.harga : '', [A0 && a.hargaTpl ? 'harga dari template' : '', T0 && t.tpl ? 'penerimaan dari template (' + tg(t.tpl.tgl) + (t.tpl.ket ? ', ' + t.tpl.ket : '') + ')' : '', T0 && t.tplAbaikan ? 'template penerimaan diabaikan (ada catatan resmi)' : ''].filter(String).join('; '), b.pyp ? b.pyp.ket + (b.pyp.setuju ? ' (disetujui ' + b.pyp.setuju + ')' : '') : ''];
     };
     var blok = function (c) { return c <= 10 ? A : c <= 18 ? B : c <= 24 ? Cc : c <= 31 ? Dd : c <= 37 ? E5 : c <= 47 ? F5 : c <= 53 ? G5 : H5; };
@@ -596,7 +596,7 @@
       ['Jenis Baris', '"barang" = baris pertama barang, "lanjutan" = BPB atau PO berikutnya untuk barang yang sama, "TOTAL" = total per PPBJ. Saring kolom ini untuk membuang baris total.'],
       ['Blok Anggaran (RAB)', 'Dari Kebutuhan Proyek (tab Proyek). Keluar bersih gudang = diserahkan dikurangi pengembalian yang sudah diterima. Sisa RAB dan Sisa kebutuhan sama dengan Cek Material (sisa kebutuhan juga dikurangi alokasi dan permintaan berjalan). "Lebih dari RAB" = keluar bersih melebihi RAB. PPBJ tanpa RAB: blok ini kosong.'],
       ['Blok Penerimaan', 'Dipesan = qty PO Accurate (bagian PPBJ ini) atau qty pembelian di sistem bila tidak ada PO Accurate. Datang (catatan gudang) = Catat barang masuk yang tidak tertaut PO + penerimaan lewat Pembelian (catatan yang sudah tertaut PO tidak dihitung dua kali). RI Accurate dari Mutasi per Gudang; tertulis "belum terbaca" bila file itu belum diunggah. Sisa belum datang = dipesan - yang lebih besar dari catatan gudang dan RI. Rusak, salah kirim, dan klaim dari Klaim Vendor.'],
-      ['Blok Stok dan status', 'Dari Cek Material untuk proyek Aktif/Ditunda yang punya RAB: stok bebas, status (Cukup, Rebutan, Kurang, Terpenuhi), kekurangan, status order dan perkiraan tiba, serta proyek lain yang membutuhkan barang yang sama.'],
+      ['Blok Stok dan status', 'Dari Cek Material untuk proyek Aktif/Ditunda yang punya RAB: stok bebas, status (Cukup, Stok terbatas, Kurang, Terpenuhi), kekurangan, status order dan perkiraan tiba, serta proyek lain yang membutuhkan barang yang sama.'],
       ['Penyimpangan', 'Keluar melebihi RAB; keluar di luar RAB; stok kurang belum diorder; klaim vendor terbuka; pesanan belum lengkap datang lebih dari ' + (res.poLamaHari || 30) + ' hari sejak PO (hanya bila RI sudah terbaca atau pesanan dari Pembelian sistem); dicocokkan lewat Padanan/nama. Penanda ini terpisah dari kolom Masalah, sehingga angka "barang bermasalah" tidak berubah.'],
       ['Status Proyek', 'Berisiko = ada barang keluar melebihi RAB atau stok kurang yang belum diorder. Perlu perhatian = ada barang di luar RAB, klaim terbuka, atau pesanan lewat batas hari. Aman = tidak ada temuan tersebut. Kelengkapan data dinilai terpisah.'],
       ['Baris "hanya RAB"', 'Barang yang ada di RAB tetapi belum diminta, belum keluar, dan belum di-PO. Tidak ikut total estimasi, keluar, dan PO.'],

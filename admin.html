@@ -33,7 +33,7 @@
 <script src="mutasi-acc.js?v=148"></script><script src="data-acc.js?v=151"></script>
 <script src="pengganti.js?v=111"></script><script src="telusur-selisih.js?v=150"></script><script src="order-lencana.js?v=150"></script>
 <script src="order-monitor.js"></script>
-<script src="analisa-barang.js?v=138"></script><script src="rekap-susulan.js?v=162"></script><script src="cek-material.js?v=163"></script><script src="kesehatan.js?v=165"></script><script src="rekap-ppbj.js?v=163"></script><script src="padanan.js?v=159"></script>
+<script src="analisa-barang.js?v=138"></script><script src="rekap-susulan.js?v=162"></script><script src="cek-material.js?v=163"></script><script src="kesehatan.js?v=166"></script><script src="rekap-ppbj.js?v=163"></script><script src="padanan.js?v=159"></script>
 <script src="kimia.js?v=122"></script>
 <script src="kpi.js"></script>
 <script src="tanda.js"></script>
@@ -143,6 +143,9 @@ function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return
 function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none";},4500);}
 /* Tambahan 102: aksi BACA yang gagal karena jaringan dicoba ulang sekali otomatis (aksi tulis tidak pernah diulang supaya tidak tersimpan dua kali). */
 var API_BACA=/(List|Cari|Baca|Laporan|Rinci|Daftar|Ringkas|Analisa|Pintar|Cek|Unduh|Telusur|Indeks|Arsip|Periksa|Kpi|Kurang|Tren|Kerapian|Kerja|Mati|Komparasi|Pada|Panduan)$/i,API_BACA_SET={adminTelusurBanyak:1,notifDaftar:1,adminSistem:1,cariPic:1,adminArsipBukti:1,adminPaBukti:1,adminBastLampAmbil:1,adminBastKomparasi:1,boqJasa:1,pengumuman:1,info:1};
+/* T166: error JavaScript di halaman admin dicatat ke LogGalat (maks 3 per halaman dibuka) supaya Dokter sistem bisa menjelaskannya */
+(function(){var n=0;function lapor(msg,src){try{if(n>=3||typeof PIN==="undefined"||!PIN)return;msg=String(msg||"");if(!msg||/^Script error\.?$/.test(msg)||/Failed to fetch|NetworkError|Load failed|ResizeObserver/i.test(msg))return;if(src&&!/formpermintaanbarang|github\.io|^file:/.test(src)&&src.indexOf(location.origin)!==0)return;n++;api({action:"adminGalatWeb",pesan:msg.slice(0,300)+(src?" @ "+String(src).split("/").pop().split("?")[0]:""),aksi:"web:"+(window.TAB||""),hal:"admin"}).catch(function(){});}catch(e){}}
+window.addEventListener("error",function(e){lapor(e.message,e.filename);});window.addEventListener("unhandledrejection",function(e){var r=e.reason;lapor("Promise: "+(r&&r.message?r.message:String(r)),"");});})();
 async function api(b){
   b.pin=PIN;
   var baca=!!(b.action&&(API_BACA.test(b.action)||API_BACA_SET[b.action])),j;

@@ -120,7 +120,7 @@
     });
     wadah.appendChild(d);
   }
-  var LABEL_ALAT = {stok: "Cek stok", jelaskan: "Penjelasan angka", cukup: "Cukup untuk berapa proyek", order: "Status pesanan", buffer: "Buffer menipis", daftar: "Daftar cepat", proyek: "Sisa jatah proyek", risiko: "Proyek berisiko", simulasi: "Simulasi", mutasi: "Laporan keluar/masuk", kartu: "Riwayat barang", selisih: "Telusur selisih", sejenis: "Barang sejenis", seri: "Nomor seri", bpb: "Lacak dokumen", ambil: "Daftar ambil", beli: "Daftar beli", mati: "Barang tidur", stoksemua: "Semua stok", briefing: "Briefing", aneh: "Hal janggal", panduan: "Panduan", bantuan: "Bantuan"};
+  var LABEL_ALAT = {stok: "Cek stok", jelaskan: "Penjelasan angka", cukup: "Cukup untuk berapa proyek", order: "Status pesanan", buffer: "Buffer menipis", daftar: "Daftar cepat", proyek: "Sisa jatah proyek", risiko: "Proyek berisiko", simulasi: "Simulasi", mutasi: "Laporan keluar/masuk", kartu: "Riwayat barang", selisih: "Telusur selisih", sejenis: "Barang sejenis", seri: "Nomor seri", bpb: "Lacak dokumen", ambil: "Daftar ambil", beli: "Daftar beli", mati: "Barang tidur", stoksemua: "Semua stok", briefing: "Briefing", aneh: "Hal janggal", panduan: "Panduan", bantuan: "Bantuan", dokter: "Dokter sistem", antre: "Antrean stok", rekap: "Rekap PPBJ", simantre: "Simulasi antrean", catat: "Simpan catatan", catatan: "Catatan gudang"};
   function labelAlat(a) { return LABEL_ALAT[a] || a; }
   function pasangRinci(m) {
     m.querySelectorAll(".tga-rr").forEach(function (row) {
@@ -327,7 +327,7 @@
   function layar() { return (window.innerWidth || 1000) < 700 ? "hp" : "pc"; }
   function tanya(teks, o) {
     o = o || {}; teks = String(teks || "").trim(); if (!teks) return;
-    if (!o.pilih && !o.paksa && !o.mode) A.lastTeks = teks;
+    if (!o.pilih && !o.paksa && !o.mode && !o.otomatis) A.lastTeks = teks;   // T166: briefing otomatis tidak menjadi "pertanyaan terakhir"
     var t0 = Date.now();
     if (!o.server && !o.pilih && !o.paksa && !o.mode && !o.segar) {
       var L = null; try { L = lokal(teks); } catch (eL) { L = null; }
@@ -427,9 +427,15 @@
   }
 
   /* ---------- mode ---------- */
+  /* T166: briefing otomatis sekali sehari saat bot admin dibuka (bot menyapa duluan dengan hal terpenting hari ini) */
+  function briefOtomatis() {
+    var d = new Date(), k = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+    if (lsG("sctk_tga_brief") === k) return; lsS("sctk_tga_brief", k);
+    setTimeout(function () { try { if (!A.sibuk) tanya("briefing", {otomatis: true}); } catch (e) { /* abaikan */ } }, 600);
+  }
   function sapa() {
     var a = add("tq-b tga", "<p><b>Halo, admin.</b> Tanyakan apa saja: stok dan alasannya, pesanan, proyek, simulasi, laporan (bisa diunduh Excel), nomor seri, lacak BPB. Jawaban instan untuk kata kunci seperti \"cek stok X\", \"cek material proyek X\", \"cek PPBJ 011/PB/XI/2026\", \"material buffer stock\", \"barang habis\", \"stok minus\", \"pesanan akan datang\", \"pesanan yang telat\", \"rak X\", \"isi rak A3\". Boleh beberapa permintaan sekaligus, bahasa sehari-hari, dan pertanyaan susulan (\"yang kedua?\", \"kalau 10 proyek?\"). Perintah yang mengubah data selalu minta konfirmasi dulu.</p>");
-    if (a) a.appendChild(chips([{label: "Briefing hari ini", t: "briefing"}, {label: "Ada yang aneh?", t: "ada yang aneh hari ini"}, {label: "Proyek berisiko", t: "proyek mana paling berisiko"}, {label: "Pesanan terlambat", t: "pesanan yang telat"}, {label: "Barang habis", t: "barang habis"}, {label: "Akan datang", t: "pesanan akan datang minggu ini"}, {label: "Material buffer stock", t: "cek material buffer stock"}, {label: "Contoh pertanyaan", t: "bantuan"}, {label: "Usulan belajar", t: "usulan belajar"}], function (x) { tanya(x.t); }));
+    if (a) a.appendChild(chips([{label: "Briefing hari ini", t: "briefing"}, {label: "Kesehatan sistem", t: "kesehatan sistem"}, {label: "Catatan saya", t: "catatan saya"}, {label: "Ada yang aneh?", t: "ada yang aneh hari ini"}, {label: "Proyek berisiko", t: "proyek mana paling berisiko"}, {label: "Pesanan terlambat", t: "pesanan yang telat"}, {label: "Barang habis", t: "barang habis"}, {label: "Akan datang", t: "pesanan akan datang minggu ini"}, {label: "Material buffer stock", t: "cek material buffer stock"}, {label: "Contoh pertanyaan", t: "bantuan"}, {label: "Usulan belajar", t: "usulan belajar"}], function (x) { tanya(x.t); }));
   }
   /* ---------- T156: panel pertanyaan cepat (selalu bisa dibuka) + tombol buatan sendiri ---------- */
   var CEPAT = [
@@ -437,6 +443,7 @@
     ["Stok", [["Barang habis", "barang habis"], ["Stok minus", "stok minus"], ["Barang tidur", "barang tidur"], ["Buffer menipis", "buffer menipis"], ["Material buffer stock", "cek material buffer stock"], ["Nilai stok", "nilai persediaan"]]],
     ["Order", [["Daftar beli", "daftar beli"], ["Belum diorder", "barang yang belum diorder"], ["Order belum datang", "order belum datang"], ["Pesanan terlambat", "pesanan yang telat"], ["Akan datang minggu ini", "pesanan akan datang minggu ini"]]],
     ["Proyek", [["Proyek berisiko", "proyek mana paling berisiko"], ["Proyek tanpa RAB", "proyek tanpa rab"], ["Rekap keluar bulan ini per proyek", "rekap keluar bulan ini per proyek"]]],
+    ["Sistem", [["Kesehatan sistem", "kesehatan sistem"], ["Kenapa error?", "kenapa error tadi"], ["Catatan saya", "catatan saya"], ["Ujian bot", "ujian bot"]]],
     ["Bantuan", [["Contoh pertanyaan", "bantuan"], ["Usulan belajar", "usulan belajar"]]]];
   var K_FAV = "sctk_tga_fav", K_BUKA = "sctk_tga_cepat";
   function lsG(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -489,7 +496,7 @@
     if (!A.aktif && badge) badge.remove();
   }
   function placeholder() { var q = document.getElementById("q"); if (q) q.placeholder = A.aktif ? "Contoh: kenapa pipa pvc 3 inch kurang? / rekap keluar bulan ini per proyek" : "Contoh: stok pipa pvc 3 inch"; }
-  function nyalakan(pin) { A.pin = pin; A.aktif = true; ss("sctk_tanya_adm", pin); tombol(); placeholder(); sapa(); try { cepatPasang(); } catch (eC) { /* panel tidak wajib */ } rkMulai(); }
+  function nyalakan(pin) { A.pin = pin; A.aktif = true; ss("sctk_tanya_adm", pin); tombol(); placeholder(); sapa(); briefOtomatis(); try { cepatPasang(); } catch (eC) { /* panel tidak wajib */ } rkMulai(); }
   function matikan() { A.aktif = false; A.pin = ""; ss("sctk_tanya_adm", null); tombol(); placeholder(); var cp = document.getElementById("tga-cepat"); if (cp) cp.remove(); RK = null; if (RK_TIMER) { clearInterval(RK_TIMER); RK_TIMER = null; } }
   /** T135: pemeriksaan admin dimulai bersamaan dengan pemuatan data (dipanggil tanya.js di awal), jadi tidak menambah waktu tunggu. */
   var AWAL = null;

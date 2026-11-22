@@ -127,7 +127,7 @@
     el.innerHTML = '<div class="card"><h3 style="margin-top:0">Rekap PPBJ</h3><div class="note">Satu baris per BPB, tiga blok kiri ke kanan: <b>Permintaan PPBJ</b> (Item Requisition), <b>Barang gudang keluar</b> (BPB, BPB Pengganti, atau no IA bila BPB belum ada), dan <b>PO/SPK</b> (PO Detail), lalu blok tambahan <b>Anggaran (RAB)</b>, <b>Penerimaan</b>, <b>Stok &amp; status</b>, dan <b>Penyimpangan</b> yang bisa ditampilkan atau disembunyikan. Rekap mencakup seluruh masa proyek; Periode hanya menyaring tanggal PPBJ. Harga hanya dari data Accurate yang diunggah. Barang tanpa harga dibiarkan kosong dan dihitung terpisah, tidak dianggap nol. Klik nama barang untuk melihat ceritanya.</div>' +
       '<div class="rk-fl"><label>Periode PPBJ <select id="rkPer"><option value="semua">Semua</option><option value="3b">3 bulan terakhir</option><option value="6b">6 bulan terakhir</option><option value="tahun">Tahun ini</option><option value="pilih">Pilih tanggal</option></select></label>' +
       '<span id="rkTgl" style="display:none"><input type="date" id="rkDari"> s/d <input type="date" id="rkSampai"> <button class="gh" id="rkTerap">Terapkan</button></span>' +
-      '<button class="gh" id="rkMuat">Muat ulang</button><button class="sv" id="rkXls">Unduh Excel</button><span class="note" id="rkWaktu"></span></div>' +
+      '<button class="gh" id="rkMuat">Muat ulang</button><button class="sv" id="rkXls">Unduh Excel</button><button class="gh" id="rkSusul" title="Isi data yang belum ada di sistem lewat template Excel">Data susulan</button><span class="note" id="rkWaktu"></span></div>' +
       '<div class="rk-fl"><input id="rkQ" placeholder="Cari pintar: proyek, no PPBJ, barang, kode, no BPB, no IA, no PO, vendor" autocomplete="off">' +
       '<select id="rkDept"><option value="">Semua departemen</option></select><select id="rkSb"><option value="">Semua sumber</option></select><select id="rkMs"><option value="">Semua baris</option><option value="_ada">Hanya yang bermasalah</option></select><select id="rkSt"><option value="">Semua status proyek</option><option>Berisiko</option><option>Perlu perhatian</option><option>Aman</option></select></div></div>' +
       '<div id="rkIsi"></div>';
@@ -137,6 +137,7 @@
     $('#rkTerap').onclick = function () { RK.dari = $('#rkDari').value; RK.sampai = $('#rkSampai').value; if (!RK.dari && !RK.sampai) { toast('Isi tanggal dari atau sampai.', true); return; } muat(true); };
     $('#rkMuat').onclick = function () { muat(true); };
     $('#rkXls').onclick = unduh;
+    $('#rkSusul').onclick = bukaSusulan;
     var tm = null; $('#rkQ').oninput = function () { var v = this.value; clearTimeout(tm); tm = setTimeout(function () { RK.q = v.trim(); RK.lim = 40; isi(); }, 250); };
     $('#rkDept').onchange = function () { RK.dept = this.value; RK.lim = 40; isi(); };
     $('#rkSb').onchange = function () { RK.sb = this.value; RK.lim = 40; isi(); };
@@ -163,6 +164,28 @@
     $('#rkMs').value = RK.ms;
     isi();
   }
+  function bukaSusulan() {
+    if (!RK.res) { toast('Rekap belum dimuat.', true); return; }
+    if (!root.RKS) { toast('Modul data susulan belum termuat. Muat ulang halaman (Ctrl+F5).', true); return; }
+    root.RKS.buka({res: RK.res, api: api, toast: toast, muatJSZip: muatJSZip, selesai: function () { muat(true); }});
+  }
+  function keTab(t) { if (typeof root.goTab === 'function') root.goTab(t); }
+  function menunggu(r) {
+    if (!root.RKS) return '';
+    var P = root.RKS.perlu(r), n = P.n, i = r.info || {}, L = [];
+    if (!i.adaIr) L.push(['Item Requisition belum diunggah: blok Permintaan kosong.', 'dataacc', 'Buka Data Accurate']);
+    if (!i.adaPo) L.push(['PO Detail belum diunggah: harga dan jumlah PO kosong.', 'dataacc', 'Buka Data Accurate']);
+    if (!i.nIa) L.push(['Penyesuaian Stok (IA) belum diunggah: harga stok kosong.', 'dataacc', 'Buka Data Accurate']);
+    if (!i.adaMac) L.push(['Mutasi per Gudang (Excel) belum diunggah: RI dan tanggal barang datang belum terbaca, pesanan PO Accurate belum dinilai terlambat.', 'dataacc', 'Buka Data Accurate']);
+    if (n.tanpaRab) L.push([n.tanpaRab + ' PPBJ terdaftar di tab Proyek belum punya RAB (Kebutuhan Proyek): blok Anggaran dan Stok kosong.', 'proyek', 'Buka tab Proyek']);
+    if (n.harga) L.push([n.harga + ' barang RAB belum punya harga: nilai RAB dan nilai lebih RAB belum lengkap.', '_s', 'Isi lewat template']);
+    if (n.terima) L.push([n.terima + ' barang sudah dipesan tetapi belum ada catatan datang.', '_s', 'Isi lewat template']);
+    if (n.garis) L.push([n.garis + ' PPBJ terdaftar belum punya tanggal mulai atau rencana selesai.', '_s', 'Isi lewat template']);
+    if (n.pyp) L.push([n.pyp + ' barang melebihi atau di luar RAB belum berketerangan.', '_s', 'Isi lewat template']);
+    if (!L.length) return '<div class="note">Semua data yang dibutuhkan rekap sudah tersedia.</div>';
+    return '<details class="rk-kt" id="rkTunggu"><summary><b>Data yang menunggu (' + L.length + ')</b> <span class="note">angka yang bergantung pada data ini belum lengkap</span></summary>' +
+      L.map(function (x) { return '<div class="rk-kb" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>' + esc(x[0]) + '</span><button class="gh" data-rkt="' + x[1] + '" style="padding:2px 10px;font-size:12px">' + esc(x[2]) + '</button></div>'; }).join('') + '</details>';
+  }
   function peringatan(r) {
     var i = r.info || {}, w = [];
     if (!i.adaIr) w.push('Item Requisition belum diunggah: blok Permintaan kosong.');
@@ -174,7 +197,8 @@
     if (i.mulai) x.push('Sistem gudang digital mulai ' + tg(i.mulai) + ' (IA sebelum tanggal ini = IA lama).');
     if (i.nBpbTanpaPpbj) x.push(i.nBpbTanpaPpbj + ' baris BPB tanpa No PPBJ tidak ikut rekap ini.');
     if (i.nIaTanpaPpbj) x.push(i.nIaTanpaPpbj + ' baris IA tanpa PPBJ tidak ikut rekap ini.');
-    return (w.length ? '<div class="card msg err">' + w.map(esc).join('<br>') + '</div>' : '') + (x.length ? '<div class="note">' + x.map(esc).join(' ') + '</div>' : '');
+    if (root.RKS) w = [];   // T162: daftar data yang menunggu menggantikan peringatan unggahan
+    return (w.length ? '<div class="card msg err">' + w.map(esc).join('<br>') + '</div>' : '') + menunggu(r) + (x.length ? '<div class="note">' + x.map(esc).join(' ') + '</div>' : '');
   }
   function isi() {
     var box = el.querySelector('#rkIsi'), r = RK.res; if (!box || !r) return;
@@ -188,6 +212,7 @@
       '<div class="rk-v" role="group" aria-label="Tampilan">' + [['barang', 'Per barang'], ['ppbj', 'Per PPBJ'], ['vendor', 'Per vendor'], ['tindak', 'Perlu ditindak (' + tind.length + ')']].map(function (x) { return '<button class="gh" data-rv="' + x[0] + '" aria-pressed="' + (RK.v === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div><div id="rkV"></div>';
     box.innerHTML = h;
     box.querySelectorAll('[data-rv]').forEach(function (b) { b.onclick = function () { RK.v = b.getAttribute('data-rv'); RK.lim = 40; isi(); }; });
+    box.querySelectorAll('[data-rkt]').forEach(function (b) { b.onclick = function () { var t = b.getAttribute('data-rkt'); if (t === '_s') bukaSusulan(); else keTab(t); }; });
     var v = box.querySelector('#rkV');
     if (!H.length && RK.v !== 'tindak') { v.innerHTML = '<div class="card msg">Tidak ada yang cocok dengan saringan ini.</div>'; return; }
     ({barang: hp() ? vKartu : vBarang, ppbj: vPpbj, vendor: vVendor, tindak: vTindak})[RK.v](v, H, tind);
@@ -219,16 +244,17 @@
       (k.stk ? '<th class="bG n">Stok bebas</th><th class="bG">Status stok</th><th class="bG">Status order / perkiraan tiba</th><th class="bG">Bersaing dengan</th>' : '') +
       '<th class="bD n">Selisih PO vs estimasi</th><th class="bD n">Selisih stok vs PO</th><th class="bD">Sumber</th><th class="bD">Status order</th><th class="bD n">Keluar bersih</th><th class="bD">Keterangan</th><th class="bD">Masalah</th>' + (k.pyp ? '<th class="bH">RAB, penerimaan, stok</th>' : '') + '</tr></thead>';
   }
+  function pypTeks(b) { var p = b.pyp; return p ? '<div class="note" style="white-space:normal;min-width:180px">Keterangan: ' + esc(p.ket || '') + (p.setuju ? ' (disetujui ' + esc(p.setuju) + ')' : '') + '</div>' : ''; }
   function kos(t) { return '<span class="rk-kos">' + esc(t) + '</span>'; }
   function selBlok(g, b, n) {
     var k = RK.blok, h = '', rs = ' rowspan="' + n + '"', a = b.ang, t = b.trm, s0 = b.stk, lk = (g.r2 || {}).lk || {};
     if (k.ang) {
       if (!a) h += '<td colspan="5"' + rs + '>' + kos(lk.rab === false ? 'PPBJ ini belum punya RAB (Kebutuhan Proyek)' : (b.jasa ? 'jasa/biaya' : '-')) + '</td>';
-      else h += '<td class="n"' + rs + '>' + (a.rab > 0 ? n3(a.rab) : '<span class="rk-chip rk-c-y">tidak di RAB</span>') + '</td><td class="n' + (a.lebih ? ' rk-r' : '') + '"' + rs + '>' + n3(a.bersih || 0) + (a.lebih ? '<div class="note">lebih ' + n3(a.lebih) + '</div>' : '') + (a.kembali ? '<div class="note">kembali ' + n3(a.kembali) + '</div>' : '') + '</td><td class="n"' + rs + '>' + n3(a.alok || 0) + '</td><td class="n"' + rs + '>' + n3(a.sisaRab || 0) + '</td><td class="n"' + rs + '>' + n3(a.sisa || 0) + '</td>';
+      else h += '<td class="n"' + rs + '>' + (a.rab > 0 ? n3(a.rab) : '<span class="rk-chip rk-c-y">tidak di RAB</span>') + (a.hargaTpl ? '<div class="note" title="Harga perkiraan dari template data susulan">harga ' + rp(a.harga) + ' (template)</div>' : '') + '</td><td class="n' + (a.lebih ? ' rk-r' : '') + '"' + rs + '>' + n3(a.bersih || 0) + (a.lebih ? '<div class="note">lebih ' + n3(a.lebih) + '</div>' : '') + (a.kembali ? '<div class="note">kembali ' + n3(a.kembali) + '</div>' : '') + '</td><td class="n"' + rs + '>' + n3(a.alok || 0) + '</td><td class="n"' + rs + '>' + n3(a.sisaRab || 0) + '</td><td class="n"' + rs + '>' + n3(a.sisa || 0) + '</td>';
     }
     if (k.trm) {
       if (!t) h += '<td colspan="6"' + rs + '>' + kos(b.rabSaja ? '-' : arr(b.po).length ? 'jumlah PO belum terbaca' : 'tidak ada pesanan') + '</td>';
-      else h += '<td class="n"' + rs + '>' + (t.dipesan ? n3(t.dipesan) + (t.sumber ? '<div class="note">' + esc(t.sumber) + '</div>' : '') : '-') + '</td><td class="n"' + rs + '>' + n3(t.gudang || 0) + (arr(t.dok).length ? '<div class="note">' + esc(arr(t.dok).join(', ')) + '</div>' : '') + '</td><td class="n"' + rs + '>' + (t.riBelum ? kos('belum terbaca') : n3(t.ri || 0)) + '</td>' +
+      else h += '<td class="n"' + rs + '>' + (t.dipesan ? n3(t.dipesan) + (t.sumber ? '<div class="note">' + esc(t.sumber) + '</div>' : '') : '-') + '</td><td class="n"' + rs + '>' + n3(t.gudang || 0) + (arr(t.dok).length ? '<div class="note">' + esc(arr(t.dok).join(', ')) + '</div>' : '') + (t.tpl ? '<div><span class="rk-chip rk-c-b" title="' + esc(t.tpl.ket || '') + '">dari template</span></div>' : '') + (t.tplAbaikan ? '<div class="note">template diabaikan, ada catatan resmi</div>' : '') + '</td><td class="n"' + rs + '>' + (t.riBelum ? kos('belum terbaca') : n3(t.ri || 0)) + '</td>' +
         '<td class="n' + (t.umur ? ' rk-r' : '') + '"' + rs + '>' + (t.sisa != null ? n3(t.sisa) + (t.riBelum && t.sisa > 0 ? '<div class="note">RI belum terbaca</div>' : '') + (t.umur ? '<div class="note">PO ' + t.umur + ' hari</div>' : '') : '-') + '</td><td' + rs + '>' + tg(t.tgl) + '</td><td' + rs + '>' + ([t.rusak ? 'Rusak ' + n3(t.rusak) : '', t.salah ? 'Salah kirim ' + n3(t.salah) : ''].filter(String).map(esc).join(' &middot; ')) + (t.klaim ? ' <span class="rk-chip rk-c-r">' + t.klaim + ' klaim terbuka</span>' : '') + '</td>';
     }
     if (k.stk) {
@@ -261,7 +287,7 @@
         var mxp = sp.length ? Math.max.apply(null, sp) : null, mxi = si.length ? Math.max.apply(null, si) : null;
         var ket = kel.map(function (z) { return z.ket; }).filter(Boolean).concat(po.map(function (z) { return z.ket; }).filter(Boolean)).filter(function (v, k, a) { return a.indexOf(v) === k; });
         h += selBlok(g, b, n);
-        h += '<td class="n ' + warnaSel(mxp) + '" rowspan="' + n + '">' + pc(mxp) + '</td><td class="n ' + warnaSel(mxi) + '" rowspan="' + n + '">' + pc(mxi) + '</td><td rowspan="' + n + '">' + esc(b.sb) + '</td><td rowspan="' + n + '">' + esc(b.stL || '') + '</td><td class="n" rowspan="' + n + '">' + n3(b.bersih) + '</td><td rowspan="' + n + '" style="min-width:220px">' + esc(ket.join('; ')) + '</td><td rowspan="' + n + '">' + chipMs(b) + '</td>' + (RK.blok.pyp ? '<td rowspan="' + n + '">' + chipMs2(b.ms2) + '</td>' : '');
+        h += '<td class="n ' + warnaSel(mxp) + '" rowspan="' + n + '">' + pc(mxp) + '</td><td class="n ' + warnaSel(mxi) + '" rowspan="' + n + '">' + pc(mxi) + '</td><td rowspan="' + n + '">' + esc(b.sb) + '</td><td rowspan="' + n + '">' + esc(b.stL || '') + '</td><td class="n" rowspan="' + n + '">' + n3(b.bersih) + '</td><td rowspan="' + n + '" style="min-width:220px">' + esc(ket.join('; ')) + '</td><td rowspan="' + n + '">' + chipMs(b) + '</td>' + (RK.blok.pyp ? '<td rowspan="' + n + '">' + chipMs2(b.ms2) + pypTeks(b) + '</td>' : '');
       }
       h += '</tr>';
     }
@@ -270,7 +296,7 @@
   function totRab(g) { var t = (g.r2 || {}).t || {}, a = []; if (t.nRab) a.push('RAB ' + t.nRab + ' barang' + (t.nilaiRab ? ', perkiraan ' + rp(t.nilaiRab) : '') + (t.rabTanpaHarga ? ' (' + t.rabTanpaHarga + ' tanpa harga)' : '')); if (t.nLebihRab) a.push(t.nLebihRab + ' melebihi RAB' + (t.nilaiLebih ? ' (' + rp(t.nilaiLebih) + ')' : '')); if (t.nLuarRab) a.push(t.nLuarRab + ' di luar RAB'); if (t.nBelumDatang) a.push(t.nBelumDatang + ' belum lengkap datang'); if (t.nKlaim) a.push(t.nKlaim + ' klaim terbuka'); return a.length ? ' &middot; ' + a.join(' &middot; ') : ''; }
   function totGrup(g) { var t = g.tot || {}; return 'Estimasi ' + rp(t.est || 0) + (t.nEstK ? ' (' + t.nEstK + ' tanpa)' : '') + ' &middot; Keluar ' + rp(t.kel || 0) + (t.nKelK ? ' (' + t.nKelK + ' tanpa harga)' : '') + ' &middot; PO ' + rp(t.po || 0) + (t.nPoK ? ' (' + t.nPoK + ' tanpa harga)' : '') + (t.pctPo != null ? ' &middot; PO/estimasi ' + String(t.pctPo).replace('.', ',') + '%' : '') + (t.pctKel != null ? ' &middot; keluar/estimasi ' + String(t.pctKel).replace('.', ',') + '%' : ''); }
   function tombolBlok() { return '<div class="rk-bl" role="group" aria-label="Blok kolom"><span class="note" style="margin:0">Blok kolom:</span>' + BLOK.map(function (x) { return '<button class="gh" data-bl="' + x[0] + '" aria-pressed="' + (!!RK.blok[x[0]]) + '" style="padding:3px 10px;font-size:12px">' + esc(x[1]) + '</button>'; }).join('') + '</div>'; }
-  function garisTeks(g) { var w = (g.r2 || {}).garis || {}, a = []; if (w.lama != null) a.push('berjalan ' + w.lama + ' hari'); if (w.po1) a.push('PO pertama ' + tg(w.po1)); if (w.bpb1) a.push('BPB pertama ' + tg(w.bpb1)); if (w.bpbN && w.bpbN !== w.bpb1) a.push('BPB terakhir ' + tg(w.bpbN)); if (w.terimaN) a.push('tiba terakhir ' + tg(w.terimaN)); return a.join(' &middot; '); }
+  function garisTeks(g) { var w = (g.r2 || {}).garis || {}, a = []; if (w.lama != null) a.push('berjalan ' + w.lama + ' hari'); if (w.po1) a.push('PO pertama ' + tg(w.po1)); if (w.bpb1) a.push('BPB pertama ' + tg(w.bpb1)); if (w.bpbN && w.bpbN !== w.bpb1) a.push('BPB terakhir ' + tg(w.bpbN)); if (w.terimaN) a.push('tiba terakhir ' + tg(w.terimaN)); if (w.mulai) a.push('mulai ' + tg(w.mulai)); if (w.rencana) a.push('rencana selesai ' + tg(w.rencana) + (w.lewat ? ' <span style="color:#c0392b">(lewat ' + w.lewat + ' hari)</span>' : '')); return a.join(' &middot; '); }
   function vBarang(v, H) {
     var G = H.slice(0, RK.lim), KL = kol(), h = tombolBlok() + '<div class="rk-wrap"><table class="rk-tb" style="min-width:' + (1700 + (KL - KOL) * 85) + 'px">' + kepala() + '<tbody>';
     G.forEach(function (o, gi) {
@@ -289,7 +315,8 @@
   function kartuTambah(b) {
     var a = [], x = b.ang, t = b.trm, s0 = b.stk;
     if (x) a.push('RAB ' + (x.rab > 0 ? n3(x.rab) : 'tidak ada') + ', sisa RAB ' + n3(x.sisaRab || 0) + (x.lebih ? ', lebih ' + n3(x.lebih) : ''));
-    if (t) a.push('dipesan ' + n3(t.dipesan || 0) + ', datang ' + n3(t.datang || 0) + (t.sisa != null ? ', sisa ' + n3(t.sisa) : '') + (t.riBelum ? ' (RI belum terbaca)' : '') + (t.klaim ? ', ' + t.klaim + ' klaim terbuka' : ''));
+    if (t) a.push('dipesan ' + n3(t.dipesan || 0) + ', datang ' + n3(t.datang || 0) + (t.sisa != null ? ', sisa ' + n3(t.sisa) : '') + (t.riBelum ? ' (RI belum terbaca)' : '') + (t.klaim ? ', ' + t.klaim + ' klaim terbuka' : '') + (t.tpl ? ' (dari template)' : ''));
+    if (b.pyp) a.push('keterangan: ' + b.pyp.ket + (b.pyp.setuju ? ' (disetujui ' + b.pyp.setuju + ')' : ''));
     if (s0) a.push('stok bebas ' + n3(s0.bebas || 0) + ' (' + (s0.st || '-') + ')' + (s0.order ? ', ' + s0.order : ''));
     return (a.length ? '<div class="d">' + esc(a.join(' \u00b7 ')) + '</div>' : '') + (arr(b.ms2).length ? '<div>' + chipMs2(b.ms2) + '</div>' : '');
   }
@@ -460,25 +487,27 @@
       'Selisih PO vs Estimasi', 'Selisih Stok vs PO', 'Sumber', 'Status Order', 'Keterangan', 'Masalah', 'Jenis Baris',
       'RAB', 'Keluar Bersih Gudang', 'Dialokasikan', 'Sisa RAB', 'Sisa Kebutuhan', 'Lebih dari RAB',
       'Dipesan', 'Sumber Pesanan', 'Datang (catatan gudang)', 'RI Accurate', 'Sisa Belum Datang', 'Tiba Terakhir', 'Rusak', 'Salah Kirim', 'Klaim Terbuka', 'Dokumen Penerimaan',
-      'Stok Bebas', 'Status Stok', 'Kurang', 'Status Order (Cek Material)', 'Perkiraan Tiba', 'Bersaing Dengan', 'Penyimpangan', 'Status Proyek'];
-    var W = [18, 10, 30, 12, 34, 14, 8, 9, 14, 15, 18, 16, 10, 10, 18, 14, 15, 18, 18, 10, 24, 9, 14, 16, 10, 10, 14, 22, 40, 30, 9, 9, 11, 10, 9, 10, 9, 9, 14, 11, 9, 10, 10, 8, 8, 8, 20, 9, 10, 8, 22, 10, 22, 34, 14];
+      'Stok Bebas', 'Status Stok', 'Kurang', 'Status Order (Cek Material)', 'Perkiraan Tiba', 'Bersaing Dengan', 'Penyimpangan', 'Status Proyek',
+      'Harga Perkiraan RAB', 'Sumber Data Susulan', 'Keterangan Penyimpangan'];
+    var W = [18, 10, 30, 12, 34, 14, 8, 9, 14, 15, 18, 16, 10, 10, 18, 14, 15, 18, 18, 10, 24, 9, 14, 16, 10, 10, 14, 22, 40, 30, 9, 9, 11, 10, 9, 10, 9, 9, 14, 11, 9, 10, 10, 8, 8, 8, 20, 9, 10, 8, 22, 10, 22, 34, 14, 14, 26, 40];
     var E5 = 'E8DAEF', F5 = 'D1F2EB', G5 = 'FCF3CF', H5 = 'FADBD8';
-    var NUM2 = {32: 1, 33: 1, 34: 1, 35: 1, 36: 1, 37: 1, 38: 1, 40: 1, 41: 1, 42: 1, 44: 1, 45: 1, 46: 1, 48: 1, 50: 1};
+    var NUM2 = {32: 1, 33: 1, 34: 1, 35: 1, 36: 1, 37: 1, 38: 1, 40: 1, 41: 1, 42: 1, 44: 1, 45: 1, 46: 1, 48: 1, 50: 1, 56: 1};
     var ext = function (g, b) {
       var a = b.ang || {}, t = b.trm || {}, k = b.stk || {}, A0 = !!b.ang, T0 = !!b.trm, K0 = !!b.stk;
       return [A0 ? kosong(a.rab) : '', A0 ? kosong(a.bersih) : '', A0 ? kosong(a.alok) : '', A0 ? kosong(a.sisaRab) : '', A0 ? kosong(a.sisa) : '', A0 && a.lebih ? a.lebih : '',
         T0 ? kosong(t.dipesan) : '', T0 ? t.sumber || '' : '', T0 ? kosong(t.gudang) : '', T0 ? (t.riBelum ? 'belum terbaca' : kosong(t.ri)) : '', T0 ? kosong(t.sisa) : '', T0 ? tg(t.tgl) : '', T0 && t.rusak ? t.rusak : '', T0 && t.salah ? t.salah : '', T0 && t.klaim ? t.klaim : '', T0 ? arr(t.dok).join(', ') : '',
-        K0 ? kosong(k.bebas) : '', K0 ? k.st || '' : '', K0 && k.kurang ? k.kurang : '', K0 ? k.order || '' : '', K0 ? tg(k.eta) : '', K0 ? arr(k.lain).join(', ') : '', arr(b.ms2).map(MS2).join('; '), (g.r2 || {}).status || ''];
+        K0 ? kosong(k.bebas) : '', K0 ? k.st || '' : '', K0 && k.kurang ? k.kurang : '', K0 ? k.order || '' : '', K0 ? tg(k.eta) : '', K0 ? arr(k.lain).join(', ') : '', arr(b.ms2).map(MS2).join('; '), (g.r2 || {}).status || '',
+        A0 && a.harga != null ? a.harga : '', [A0 && a.hargaTpl ? 'harga dari template' : '', T0 && t.tpl ? 'penerimaan dari template (' + tg(t.tpl.tgl) + (t.tpl.ket ? ', ' + t.tpl.ket : '') + ')' : '', T0 && t.tplAbaikan ? 'template penerimaan diabaikan (ada catatan resmi)' : ''].filter(String).join('; '), b.pyp ? b.pyp.ket + (b.pyp.setuju ? ' (disetujui ' + b.pyp.setuju + ')' : '') : ''];
     };
     var blok = function (c) { return c <= 10 ? A : c <= 18 ? B : c <= 24 ? Cc : c <= 31 ? Dd : c <= 37 ? E5 : c <= 47 ? F5 : c <= 53 ? G5 : H5; };
     s.set(1, 1, 'REKAP PPBJ: PERMINTAAN, BARANG GUDANG KELUAR, DAN PO/SPK', {font: {b: true, sz: 13}}); s.gabung(1, 1, 1, 12);
     s.set(2, 1, 'Harga dari data Accurate yang diunggah (Item Requisition, Penyesuaian Stok/IA, PO Detail). Barang tanpa harga dibiarkan kosong, tidak dinolkan. ' + saringKet + ' Data per ' + res.waktu + '.', {font: {i: true, sz: 9}}); s.gabung(2, 1, 2, 24);
-    [[1, 10, 'PERMINTAAN PPBJ (Item Requisition)', A], [11, 18, 'BARANG GUDANG KELUAR', B], [19, 24, 'PO / SPK (PO Detail)', Cc], [25, 31, 'PEMERIKSAAN', Dd], [32, 37, 'ANGGARAN (RAB Kebutuhan Proyek)', E5], [38, 47, 'PENERIMAAN', F5], [48, 53, 'STOK DAN STATUS', G5], [54, 55, 'PENYIMPANGAN DAN STATUS', H5]].forEach(function (b) { s.set(3, b[0], b[2], gH(b[3])); for (var c = b[0] + 1; c <= b[1]; c++) s.gaya(3, c, gH(b[3])); s.gabung(3, b[0], 3, b[1]); });
+    [[1, 10, 'PERMINTAAN PPBJ (Item Requisition)', A], [11, 18, 'BARANG GUDANG KELUAR', B], [19, 24, 'PO / SPK (PO Detail)', Cc], [25, 31, 'PEMERIKSAAN', Dd], [32, 37, 'ANGGARAN (RAB Kebutuhan Proyek)', E5], [38, 47, 'PENERIMAAN', F5], [48, 53, 'STOK DAN STATUS', G5], [54, 58, 'PENYIMPANGAN, STATUS, DATA SUSULAN', H5]].forEach(function (b) { s.set(3, b[0], b[2], gH(b[3])); for (var c = b[0] + 1; c <= b[1]; c++) s.gaya(3, c, gH(b[3])); s.gabung(3, b[0], 3, b[1]); });
     COL.forEach(function (n, i) { s.set(4, i + 1, n, gH(blok(i + 1))); s.kolom(i + 1, W[i]); });
     s.baris(4, 30);
     var r = 5, Tall = jumlah(H);
     var num = function (c) { return [8, 9, 10, 14, 16, 17, 22, 23, 24, 25, 26].indexOf(c) >= 0 || !!NUM2[c]; };
-    var fmtC = function (c) { return [9, 10, 16, 17, 23, 24].indexOf(c) >= 0 ? RPF : (c === 25 || c === 26) ? PF : QF; };
+    var fmtC = function (c) { return [9, 10, 16, 17, 23, 24, 56].indexOf(c) >= 0 ? RPF : (c === 25 || c === 26) ? PF : QF; };
     H.forEach(function (o) {
       var g = o.g;
       o.b.forEach(function (b) {
@@ -523,13 +552,13 @@
     s.atur({lanskap: true, fitW: true, kertas: 9, margin: [0.3, 0.3, 0.4, 0.4]});
     // Per PPBJ
     var p = wb.sheet('Per PPBJ', {warna: '1E8449'}), PC = ['No PPBJ', 'Tgl PPBJ', 'Nama Proyek', 'Departemen', 'Status Proyek', 'Jumlah Barang', 'Total Estimasi', 'Barang tanpa Estimasi', 'Total Barang Keluar', 'Baris Keluar tanpa Harga', 'Total PO/SPK', 'Baris PO tanpa Harga', 'PO / Estimasi', 'Keluar / Estimasi', 'Barang Bermasalah',
-      'Status Proyek', 'Alasan Status', 'Terdaftar di tab Proyek', 'RAB (barang)', 'Nilai RAB (perkiraan)', 'RAB tanpa Harga', 'Melebihi RAB (barang)', 'Nilai Lebih RAB (perkiraan)', 'Di luar RAB (barang)', 'Kurang belum Diorder', 'Belum Lengkap Datang', 'Pesanan Lewat Batas Hari', 'Klaim Terbuka', 'PO Pertama', 'BPB Pertama', 'BPB Terakhir', 'Tiba Terakhir', 'Lama Berjalan (hari)', 'Kelengkapan Data'];
-    PC.forEach(function (n, i) { p.set(1, i + 1, n, gH(i < 6 ? A : i < 8 ? A : i < 10 ? B : i < 12 ? Cc : i < 15 ? Dd : i < 17 ? H5 : i < 21 ? E5 : i < 24 ? H5 : i < 28 ? F5 : A)); p.kolom(i + 1, [18, 10, 34, 12, 12, 9, 16, 10, 16, 10, 16, 10, 10, 10, 10, 14, 40, 10, 9, 15, 9, 9, 15, 9, 9, 9, 9, 9, 11, 11, 11, 11, 9, 40][i]); });
+      'Status Proyek', 'Alasan Status', 'Terdaftar di tab Proyek', 'RAB (barang)', 'Nilai RAB (perkiraan)', 'RAB tanpa Harga', 'Melebihi RAB (barang)', 'Nilai Lebih RAB (perkiraan)', 'Di luar RAB (barang)', 'Kurang belum Diorder', 'Belum Lengkap Datang', 'Pesanan Lewat Batas Hari', 'Klaim Terbuka', 'PO Pertama', 'BPB Pertama', 'BPB Terakhir', 'Tiba Terakhir', 'Lama Berjalan (hari)', 'Kelengkapan Data', 'Tanggal Mulai', 'Rencana Selesai', 'Lewat Rencana (hari)', 'Keterangan Garis Waktu'];
+    PC.forEach(function (n, i) { p.set(1, i + 1, n, gH(i < 6 ? A : i < 8 ? A : i < 10 ? B : i < 12 ? Cc : i < 15 ? Dd : i < 17 ? H5 : i < 21 ? E5 : i < 24 ? H5 : i < 28 ? F5 : A)); p.kolom(i + 1, [18, 10, 34, 12, 12, 9, 16, 10, 16, 10, 16, 10, 10, 10, 10, 14, 40, 10, 9, 15, 9, 9, 15, 9, 9, 9, 9, 9, 11, 11, 11, 11, 9, 40, 11, 11, 9, 30][i]); });
     p.baris(1, 30);
     var pr = 2;
     H.forEach(function (o) {
       var g = o.g, t = jumlah([o]);
-      [g.no, tg(g.tgl), g.proyek || '', g.dept || '', g.stProyek || '', t.nB, t.est, t.nEstK, t.kel, t.nKelK, t.po, t.nPoK, t.est > 0 ? Math.round(t.po / t.est * 1000) / 10 : '', t.est > 0 ? Math.round(t.kel / t.est * 1000) / 10 : '', t.nMs].concat((function () { var r2 = g.r2 || {}, u = r2.t || {}, w = r2.garis || {}, lk = r2.lk || {}; return [r2.status || '', arr(r2.alasan).join('; '), r2.terdaftar ? 'ya' : 'tidak', lk.rab === false ? 'belum ada' : (u.nRab || 0), u.nilaiRab || '', u.rabTanpaHarga || '', u.nLebihRab || '', u.nilaiLebih || '', u.nLuarRab || '', u.nKurangBelum || '', u.nBelumDatang || '', u.nPoLama || '', u.nKlaim || '', tg(w.po1), tg(w.bpb1), tg(w.bpbN), tg(w.terimaN), w.lama != null ? w.lama : '', lkTeks(g)]; })()).forEach(function (v, i) { var g3 = sel(i === 6 || i === 8 || i === 10 || i === 19 || i === 22 ? RPF : (i === 12 || i === 13) ? PF : null); if (i === 15 && v) g3.fill = v === 'Berisiko' ? 'FADBD8' : v === 'Perlu perhatian' ? 'FCF3CF' : 'D5F5E3'; p.set(pr, i + 1, v, g3); });
+      [g.no, tg(g.tgl), g.proyek || '', g.dept || '', g.stProyek || '', t.nB, t.est, t.nEstK, t.kel, t.nKelK, t.po, t.nPoK, t.est > 0 ? Math.round(t.po / t.est * 1000) / 10 : '', t.est > 0 ? Math.round(t.kel / t.est * 1000) / 10 : '', t.nMs].concat((function () { var r2 = g.r2 || {}, u = r2.t || {}, w = r2.garis || {}, lk = r2.lk || {}; return [r2.status || '', arr(r2.alasan).join('; '), r2.terdaftar ? 'ya' : 'tidak', lk.rab === false ? 'belum ada' : (u.nRab || 0), u.nilaiRab || '', u.rabTanpaHarga || '', u.nLebihRab || '', u.nilaiLebih || '', u.nLuarRab || '', u.nKurangBelum || '', u.nBelumDatang || '', u.nPoLama || '', u.nKlaim || '', tg(w.po1), tg(w.bpb1), tg(w.bpbN), tg(w.terimaN), w.lama != null ? w.lama : '', lkTeks(g), tg(w.mulai), tg(w.rencana), w.lewat || '', w.ket || '']; })()).forEach(function (v, i) { var g3 = sel(i === 6 || i === 8 || i === 10 || i === 19 || i === 22 ? RPF : (i === 12 || i === 13) ? PF : null); if (i === 15 && v) g3.fill = v === 'Berisiko' ? 'FADBD8' : v === 'Perlu perhatian' ? 'FCF3CF' : 'D5F5E3'; p.set(pr, i + 1, v, g3); });
       pr++;
     });
     [['TOTAL', 1], [Tall.nB, 6], [Tall.est, 7], [Tall.nEstK, 8], [Tall.kel, 9], [Tall.nKelK, 10], [Tall.po, 11], [Tall.nPoK, 12], [Tall.nMs, 15]].forEach(function (z) { p.set(pr, z[1], z[0], {font: {b: true, sz: 9}, fill: 'D6DBDF', fmt: z[1] === 7 || z[1] === 9 || z[1] === 11 ? RPF : undefined, border: {l: true, r: true, t: true, b: true}}); });
@@ -571,6 +600,7 @@
       ['Penyimpangan', 'Keluar melebihi RAB; keluar di luar RAB; stok kurang belum diorder; klaim vendor terbuka; pesanan belum lengkap datang lebih dari ' + (res.poLamaHari || 30) + ' hari sejak PO (hanya bila RI sudah terbaca atau pesanan dari Pembelian sistem); dicocokkan lewat Padanan/nama. Penanda ini terpisah dari kolom Masalah, sehingga angka "barang bermasalah" tidak berubah.'],
       ['Status Proyek', 'Berisiko = ada barang keluar melebihi RAB atau stok kurang yang belum diorder. Perlu perhatian = ada barang di luar RAB, klaim terbuka, atau pesanan lewat batas hari. Aman = tidak ada temuan tersebut. Kelengkapan data dinilai terpisah.'],
       ['Baris "hanya RAB"', 'Barang yang ada di RAB tetapi belum diminta, belum keluar, dan belum di-PO. Tidak ikut total estimasi, keluar, dan PO.'],
+      ['Data susulan (template)', 'Harga barang, penerimaan lama, garis waktu, dan keterangan penyimpangan yang diisi lewat tombol Data susulan. Data resmi selalu menang: harga template dipakai hanya bila tidak ada harga PO, estimasi, atau harga gudang; penerimaan template hanya bila belum ada catatan penerimaan resmi dan RI. Kolom "Sumber Data Susulan" menandai angka yang berasal dari template. Lama berjalan dihitung dari tanggal mulai bila diisi. Melebihi RAB yang sudah diisi "Disetujui Oleh" tidak lagi membuat proyek Berisiko.'],
       ['Nilai RAB (perkiraan)', 'Qty RAB x harga: harga PO rata-rata barang itu, bila tidak ada harga estimasi PPBJ, bila tidak ada harga referensi gudang. Barang tanpa harga tidak dihitung nol; jumlahnya ditulis terpisah.'],
       ['Tidak ikut', (res.info.nBpbTanpaPpbj || 0) + ' baris BPB tanpa No PPBJ dan ' + (res.info.nIaTanpaPpbj || 0) + ' baris IA tanpa PPBJ.']];
     K.forEach(function (z, i) { k.set(i + 1, 1, z[0], {font: {b: true, sz: 10}, al: {v: 'top'}}); k.set(i + 1, 2, z[1], {font: {sz: 10}, al: {v: 'top', wrap: true}}); });
@@ -606,6 +636,6 @@
   };
   /** Dipakai dari Telusur PPBJ: buka rekap dengan pencarian terisi. */
   RK.cari = function (q) { RK.q = String(q || ''); RK.v = 'barang'; RK.lim = 40; RK.ms = ''; RK.sb = ''; RK.dept = ''; };
-  RK._uji = {saring: saring, jumlah: jumlah, tindak: tindak, peristiwa: peristiwa, grupVendor: grupVendor, set: function (r) { RK.res = r; RK.idx = null; RK.t = Date.now(); }};
+  RK._uji = {menunggu: menunggu, saring: saring, jumlah: jumlah, tindak: tindak, peristiwa: peristiwa, grupVendor: grupVendor, set: function (r) { RK.res = r; RK.idx = null; RK.t = Date.now(); }};
   if (typeof module !== 'undefined' && module.exports) module.exports = RK; else root.RKP = RK;
 })(typeof window !== 'undefined' ? window : globalThis);

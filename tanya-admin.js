@@ -429,6 +429,8 @@
   /* ---------- mode ---------- */
   /* T166: briefing otomatis sekali sehari saat bot admin dibuka (bot menyapa duluan dengan hal terpenting hari ini) */
   function briefOtomatis() {
+    var mq = /[?&]tanya=([^&]+)/.exec(location.search || "");   // T167: dibuka dari tombol panel Kesehatan sistem (mis. "Tanya dokter sistem")
+    if (mq && !A._qJalan) { A._qJalan = 1; var tq = ""; try { tq = decodeURIComponent(mq[1].replace(/\+/g, " ")).slice(0, 200); } catch (eQ) { tq = ""; } if (tq) { setTimeout(function () { try { tanya(tq); } catch (e) { /* abaikan */ } }, 600); return; } }
     var d = new Date(), k = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
     if (lsG("sctk_tga_brief") === k) return; lsS("sctk_tga_brief", k);
     setTimeout(function () { try { if (!A.sibuk) tanya("briefing", {otomatis: true}); } catch (e) { /* abaikan */ } }, 600);

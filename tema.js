@@ -39,6 +39,7 @@
    ".tbox.tv thead th{position:sticky;top:0;z-index:3;box-shadow:0 1px 0 rgba(0,0,0,.25)}"+
    ".tbox td.kb,.tbox th.kb{position:sticky;left:var(--kl,0);z-index:2;box-shadow:1px 0 0 rgba(127,160,180,.45)}"+
    ".tbox td.kb{background:var(--card,#fff)}.tbox th.kb{z-index:4}.tbox.tv thead th.kb{z-index:5}"+
+   "body.tema .tbox tbody tr:nth-child(even):not(.sheet tr) td.kb{background:linear-gradient(var(--zebra,transparent),var(--zebra,transparent)),var(--card,#fff)}"+   /* T167: kolom beku ikut warna selang-seling baris (sebelumnya putih sendiri) */
    "@media (max-width:820px){.tbox{overflow:visible;max-height:none!important}.tbox.tv{overflow:visible}.tbox.tv thead th{position:static}.tbox td.kb,.tbox th.kb{position:static;box-shadow:none}}";
   (d.head||d.documentElement).appendChild(st);
   function boleh(t){return !t.closest(".sheet,#sheet,.nop,[data-tanpa-geser]");}

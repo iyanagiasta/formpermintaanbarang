@@ -143,5 +143,5 @@
     return [x.ant ? x.ant.u : '', x.ant ? x.ant.n : '', x.ant ? x.ant.d : '', x.kurangA != null ? x.kurangA : '', lb, x.belumPesan != null ? x.belumPesan : '',
       A && x.ant ? A.L.map(function (r, i) { return (i + 1) + '. ' + r[0] + ' ' + namaP(r[1]) + ' butuh ' + r[2] + ' dapat ' + r[3]; }).join('; ') : ''];
   }
-  root.CMK = {stLbl: stLbl, sel: sel, kalimat: function (x, K) { return kalimat(x, antre(K, x)); }, kebutuhan: kebutuhan, stok: stok, grup: grup, act: act, gaya: gaya, XH: XH, xBaris: xBaris, antre: antre};
+  root.CMK = {stLbl: stLbl, sel: sel, kalimat: function (x, K) { return kalimat(x, antre(K, x)); }, kebutuhan: kebutuhan, stok: stok, grup: grup, act: act, gaya: gaya, XH: XH, xBaris: xBaris, antre: antre, batang: batang, rincian: rincian};   // T167: batang dan rincian dipakai juga tab Buffer Paket
 })(typeof window !== 'undefined' ? window : this);

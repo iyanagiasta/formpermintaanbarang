@@ -13,7 +13,7 @@
 <script src="admin-kerja.js?v=157"></script><script src="nilai-stok.js?v=155"></script>
 <script src="admin-mutasi.js?v=132"></script>
 <script src="admin-laporan2.js?v=127"></script>
-<script src="admin-proyek2.js?v=163"></script>
+<script src="admin-proyek2.js?v=164"></script>
 <script src="ppbj-ganti.js?v=1"></script>
 <script src="kb-impor.js"></script>
 <script src="serah-edit.js"></script>
@@ -81,6 +81,7 @@ td small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
  td{border:0;padding:5px 10px}
  td[data-l]:before{content:attr(data-l);display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
  .act{flex-direction:row;flex-wrap:wrap}
+ table.pxtb,table.cmk-tb{min-width:0!important}   /* T164: tema.js memberi min-width untuk tabel lebar; di HP tabel jadi kartu */
 }
 .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .tabs button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:8px 16px}
@@ -1723,17 +1724,23 @@ function isiKurang(){
   }
   pane().querySelectorAll("tr.krgdet").forEach(function(r){r.parentNode.removeChild(r);});
   pane().querySelectorAll("[data-kbp]").forEach(function(td){
-    var P=krgP(td.getAttribute("data-kbp")),tr=td.parentNode,kf="";
+    var P=krgP(td.getAttribute("data-kbp")),tr=td.closest("tr")||td.parentNode,kf="";
     if(!P){td.innerHTML='<small class="note">-</small>';}
     else if(P.buffer){td.innerHTML='<span class="bd n">PPBJ buffer</span><small class="note" style="display:block">Pesanan stok buffer: '+(P.bufItems||[]).length+' barang'+(P.nBufAkan?', '+P.nBufAkan+' akan datang':'')+(P.nBufDatang?', '+P.nBufDatang+' sudah datang':'')+'. Tidak dihitung sebagai kebutuhan proyek.</small>'+((P.bufItems||[]).length?'<button class="gh" data-ck="'+esc(P.ppbj)+'">Lihat pesanan</button>':'');}
     else if(!P.mengikat){td.innerHTML='<small class="note">Tidak mengikat stok</small>'+(P.adaRab?' <button class="gh" data-ck="'+esc(P.ppbj)+'">Lihat kebutuhan</button>':'');}
     else if(!P.adaRab){td.innerHTML='<span class="bd l">Belum ada kebutuhan</span><small class="note" style="display:block">PIC belum mengisi RAB untuk PPBJ ini</small>';kf="tanpa";}
     else{
       var b=[],kB=P.nKurangBelum!=null?P.nKurangBelum:P.nKurang,kD=P.nKurangDipesan||0;
+      if(P.nActOrder!=null){   /* T164: tindakan per proyek, aturan sama dengan halaman Cek material */
+        var ta=[];if(P.nActOrder)ta.push('<b style="color:var(--red,#a82424)">Perlu order '+P.nActOrder+' barang</b>');if(P.nActTunggu)ta.push('<b style="color:var(--blu,#17588f)">Tunggu '+P.nActTunggu+'</b>');if(P.nActAman)ta.push('<span style="color:var(--grn,#14602f)">Aman '+P.nActAman+'</span>');if(P.nTerpenuhi)ta.push('<span class="note" style="margin:0">Terpenuhi '+P.nTerpenuhi+'</span>');
+        b.push('<div class="pxact">'+(ta.length?ta.join(' &middot; '):'<span class="note" style="margin:0">Belum ada barang</span>')+'</div>');
+        if(P.nRebutan)b.push('<span class="bd w" title="Stok bebas tidak cukup untuk semua proyek; dibagi menurut antrean">Stok terbatas '+P.nRebutan+(P.nTbKurang?', '+P.nTbKurang+' tidak kebagian':', semua kebagian')+'</span>');
+      }else{
       if(kB)b.push('<span class="bd b">Kurang '+kB+'</span>');if(kD)b.push('<span class="bd w">Kurang, sudah dipesan '+kD+'</span>');if(P.nRebutan)b.push('<span class="bd w">Stok terbatas '+P.nRebutan+'</span>');
       if(!P.nKurang&&!P.nRebutan)b.push(P.nSisa?'<span class="bd d">Cukup</span>':'<span class="bd d">Terpenuhi semua</span>');
+      }
       var od=[];if(P.nOrderBelum)od.push('menunggu PO '+P.nOrderBelum);if(P.nOrderDipesan)od.push('dipesan '+P.nOrderDipesan);if(P.nOrderDatang)od.push('sudah datang '+P.nOrderDatang);
-      td.innerHTML=b.join(" ")+'<small class="note" style="display:block">Sudah ada kebutuhan: '+P.nItem+' barang'+(P.nSisa?', sisa '+P.nSisa:'')+(P.nilaiKurang?' &middot; kurang '+rp(P.nilaiKurang):'')+'</small>'+(od.length?'<small class="note" style="display:block">Order: '+od.join(" &middot; ")+'</small>':'')+(P.nOrderPeringatan?'<small style="display:block;color:var(--red,#a82424);font-weight:700">&#9888; '+P.nOrderPeringatan+' barang ORDER belum ada PO</small>':'')+'<button class="gh" data-ck="'+esc(P.ppbj)+'">Cek material</button>';
+      td.innerHTML=b.join(" ")+'<small class="note" style="display:block">Kebutuhan: '+P.nItem+' barang'+(P.nSisa?', '+P.nSisa+' belum terpenuhi':'')+(P.nilaiKurang?' &middot; nilai kurang '+rp(P.nilaiKurang):'')+'</small>'+(od.length?'<small class="note" style="display:block">Order: '+od.join(" &middot; ")+'</small>':'')+(P.nOrderPeringatan?'<small style="display:block;color:var(--red,#a82424);font-weight:700">&#9888; '+P.nOrderPeringatan+' barang ORDER belum ada PO</small>':'')+'<button class="gh" data-ck="'+esc(P.ppbj)+'">Cek material</button>';
       if(P.nKurang||P.nRebutan)kf="kurang";
     }
     var cocok=KRGF==="semua"||(KRGF==="kurang"&&kf==="kurang")||(KRGF==="tanpa"&&kf==="tanpa")||(P&&P.mengikat&&P.adaRab&&((KRGF==="obelum"&&P.nOrderBelum>0)||(KRGF==="odipesan"&&P.nOrderDipesan>0)||(KRGF==="operingatan"&&P.nOrderPeringatan>0)));
@@ -1800,10 +1807,10 @@ function drawProyek(){
    '<div class="fr"><input type="text" id="pp" placeholder="No PPBJ" maxlength="60"><input type="text" id="pk" placeholder="Keterangan proyek" maxlength="300" style="flex:1;min-width:200px"><select id="pd"><option value="">Departemen: pilih</option>'+PDEPT.map(function(d){return '<option>'+esc(d)+'</option>';}).join("")+'</select>'+
    '<select id="ps">'+PST.map(function(s){return '<option>'+esc(s)+'</option>';}).join("")+'</select><select id="ppr" title="Prioritas: menentukan proyek mana yang dilayani lebih dulu bila stok tidak cukup untuk semua"><option>Tinggi</option><option selected>Biasa</option><option>Rendah</option></select><button class="sv" id="pgo">Simpan</button></div></div>'+
    '<div class="card"><b>Impor kebutuhan proyek (RAB)</b><div class="note">Dari file Excel atau PDF PPBJ. Tabel pratinjau tampil dulu: cocokkan barang, periksa total, baru simpan. Proyek yang belum terdaftar didaftarkan otomatis; departemen tidak diambil dari file.</div><div class="fr"><button class="gh" id="kbix">Impor Excel</button><button class="gh" id="kbip">Impor PDF PPBJ</button><a href="#" id="kbit">Unduh template Excel</a><a href="#" id="kbie">Ekspor RAB tersimpan (No PPBJ di kolom atas)</a></div></div>'+
-   '<div id="pxtop"></div><div id="krgbar"></div>'+(PRO.length?'<table><thead><tr><th>No PPBJ</th><th>Keterangan</th><th>Departemen</th><th>Status</th><th>Prioritas</th><th>Jenis</th><th>Kesiapan &amp; peringatan</th><th>Kebutuhan material</th><th>Ubah status</th></tr></thead><tbody>'+
+   '<div id="pxtop"></div><div id="krgbar"></div>'+(PRO.length?'<table class="pxtb"><thead><tr><th>No PPBJ</th><th>Keterangan</th><th>Departemen</th><th>Status</th><th>Prioritas</th><th>Jenis</th><th>Material</th><th>Ubah status</th></tr></thead><tbody>'+
    PRO.map(function(p,i){return '<tr data-pxr="'+esc(p.ppbj)+'"><td data-l="No PPBJ"><b>'+esc(p.ppbj)+'</b><small>'+esc(p.dibuat||"")+'</small></td><td data-l="Keterangan">'+esc(p.ket)+'</td><td data-l="Departemen">'+esc(p.dept)+'</td>'+
      '<td data-l="Status"><span class="bd '+stCls(p.status)+'">'+esc(p.status)+'</span></td>'+
-     '<td data-l="Prioritas" data-pxp="'+esc(p.ppbj)+'"><small class="note">...</small></td><td data-l="Jenis" data-pxj="'+esc(p.ppbj)+'"><small class="note">...</small></td><td data-l="Kesiapan &amp; peringatan" data-pxk="'+esc(p.ppbj)+'"><small class="note">memuat...</small></td><td data-l="Kebutuhan material" data-kbp="'+esc(p.ppbj)+'"><small class="note">memuat...</small></td>'+
+     '<td data-l="Prioritas" data-pxp="'+esc(p.ppbj)+'"><small class="note">...</small></td><td data-l="Jenis" data-pxj="'+esc(p.ppbj)+'"><small class="note">...</small></td><td data-l="Material" class="pxmat"><div data-pxk="'+esc(p.ppbj)+'"><small class="note">memuat...</small></div><div data-kbp="'+esc(p.ppbj)+'" style="margin-top:6px"><small class="note">memuat...</small></div><div data-pxk2="'+esc(p.ppbj)+'"></div></td>'+
      '<td data-l="Ubah status"><div class="fr" style="margin:0"><select data-ps="'+i+'">'+PST.map(function(s){return '<option'+(s===p.status?" selected":"")+'>'+esc(s)+'</option>';}).join("")+'</select><button class="gh" data-pu="'+i+'">Simpan</button></div><button class="gh" data-pn="'+i+'" style="margin-top:6px" title="Ubah nomor PPBJ saja, materialnya tidak berubah">Ubah no PPBJ</button></td></tr>';}).join("")+'</tbody></table>':'<div class="card msg">Belum ada proyek.</div>');
   document.getElementById("pgo").onclick=function(){
     var no=document.getElementById("pp").value.trim();if(!no){toast("Isi No PPBJ dulu.",true);return;}

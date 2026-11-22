@@ -156,21 +156,30 @@
   }
   /** Simulasi: kalau q unit datang. Urutan antrean sama dengan server (tidak bergantung jumlah stok). */
   function hitungSim(x, q) {
-    var A = x.ant, bebas2 = r3((x.bebas || 0) + q), sisa = bebas2, rows = [];
-    if (A) A.L.forEach(function (r) { var d = r3(Math.max(0, Math.min(r[2], sisa))); sisa = r3(sisa - d); rows.push({ppbj: r[0], nama: r[1], butuh: r[2], dulu: r[3], baru: d}); });
-    else sisa = r3(bebas2 - (x.kebutuhan || 0));
+    var A = x.ant, bebas2 = r3((x.bebas || 0) + q), sisa = bebas2, rows = [], tanpaUrut = false;
+    /* T168: bila urutan antrean dari server belum ada (mis. hasil simpanan versi lama), proyek yang masih butuh tetap ditampilkan menurut daftar */
+    var L = A ? A.L : (x.proyek || []).filter(function (p) { return p.sisa > 0; }).map(function (p) { return [p.ppbj, p.nama || p.ket, p.sisa, null]; });
+    if (!A && L.length) tanpaUrut = true;
+    var sisaDulu = x.bebas || 0;
+    L.forEach(function (r) {
+      var du = r[3] != null ? r[3] : r3(Math.max(0, Math.min(r[2], sisaDulu))); sisaDulu = r3(Math.max(0, sisaDulu - du));
+      var d = r3(Math.max(0, Math.min(r[2], sisa))); sisa = r3(sisa - d); rows.push({ppbj: r[0], nama: r[1], butuh: r[2], dulu: du, baru: d});
+    });
+    if (!L.length) sisa = r3(bebas2 - (x.kebutuhan || 0));
     var buf = Math.max(0, sisa);
     var paket = (x.paket || []).map(function (p) { return {nama: p.nama, set: p.set, dulu: p.cukup, baru: p.qty > 0 ? Math.floor(buf / p.qty + 1e-9) : 0}; });
-    return {q: q, bebas: x.bebas || 0, bebas2: bebas2, rows: rows, buf: buf, paket: paket, kurang2: Math.max(0, r3((x.kebutuhan || 0) + (x.buffer || 0) - bebas2))};
+    return {q: q, tanpaUrut: tanpaUrut, bebas: x.bebas || 0, bebas2: bebas2, rows: rows, buf: buf, paket: paket, kurang2: Math.max(0, r3((x.kebutuhan || 0) + (x.buffer || 0) - bebas2))};
   }
   function simHtml(x, q) {
     var S = hitungSim(x, q), sat = x.satuan ? ' ' + esc(x.satuan) : '';
     var h = '<div><b>Kalau ' + n(q) + sat + ' datang</b>: stok bebas ' + n(S.bebas) + ' &rarr; <b>' + n(S.bebas2) + '</b>.</div>';
-    if (S.rows.length) h += '<table data-tanpa-geser class="nop"><thead><tr><th>#</th><th>Proyek</th><th class="nm">Butuh</th><th class="nm">Dapat sekarang</th><th class="nm">Dapat sesudah</th></tr></thead><tbody>' + S.rows.map(function (r, i) {
+    if (S.rows.length) h += '<table data-tanpa-geser class="nop"><thead><tr><th>#</th><th>Proyek</th><th class="nm">Butuh</th><th class="nm" title="Jatah proyek dari stok bebas saat ini menurut antrean">Jatah dari stok sekarang</th><th class="nm" title="Jatah proyek kalau barang sejumlah di atas datang">Jatah kalau barang datang</th></tr></thead><tbody>' + S.rows.map(function (r, i) {
       var kr = r.butuh - r.baru > 1e-9;
       return '<tr><td>' + (i + 1) + '</td><td><b>' + esc(r.ppbj) + '</b> ' + esc(namaP(r.nama)) + '</td><td class="nm">' + n(r.butuh) + '</td><td class="nm">' + n(r.dulu) + '</td><td class="nm"><b style="color:' + (kr ? 'var(--red,#a82424)' : 'var(--grn,#14602f)') + '">' + n(r.baru) + '</b>' + (kr ? ' (kurang ' + n(r3(r.butuh - r.baru)) + ')' : '') + '</td></tr>';
     }).join('') + '</tbody></table>';
+    else if (x.kebutuhan > 0) h += '<div class="note">Kebutuhan proyek ' + n(x.kebutuhan) + ' diambil lebih dulu; rincian proyek belum tersedia. Tekan &#8635; untuk memuat ulang.</div>';
     else h += '<div class="note">Tidak ada proyek aktif yang masih butuh barang ini; semuanya untuk buffer.</div>';
+    if (S.tanpaUrut) h += '<div class="note">Urutan antrean belum tersedia dari server (data simpanan lama); proyek ditampilkan sesuai daftar. Tekan &#8635; untuk memuat ulang.</div>';
     h += '<div style="margin-top:6px">Sisa untuk buffer: <b>' + n(S.buf) + '</b>' + (S.paket.length ? ' &middot; ' + S.paket.map(function (p) { return esc(p.nama) + ' cukup untuk <b>' + n(Math.min(p.baru, 9999)) + '</b> dari ' + n(p.set) + ' proyek (sekarang ' + n(p.dulu) + ')'; }).join('; ') : '') + '</div>';
     h += '<div style="margin-top:4px">' + (S.kurang2 > 0 ? 'Setelah itu masih kurang <b>' + n(S.kurang2) + '</b> untuk proyek + buffer.' : '<b style="color:var(--grn,#14602f)">Setelah itu proyek dan buffer tercukupi.</b>') + '</div>';
     return h + '<div class="note" style="margin-top:4px">Hanya simulasi dengan urutan antrean yang sama (proyek Aktif dulu, prioritas Tinggi-Biasa-Rendah, PPBJ terlama; buffer mendapat sisanya). Data tidak berubah.</div>';

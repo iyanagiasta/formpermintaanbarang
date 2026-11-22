@@ -33,7 +33,7 @@
 <script src="mutasi-acc.js?v=148"></script><script src="data-acc.js?v=151"></script>
 <script src="pengganti.js?v=111"></script><script src="telusur-selisih.js?v=150"></script><script src="order-lencana.js?v=150"></script>
 <script src="order-monitor.js"></script>
-<script src="analisa-barang.js?v=138"></script><script src="rekap-susulan.js?v=162"></script><script src="cek-material.js?v=163"></script><script src="rekap-ppbj.js?v=163"></script><script src="padanan.js?v=159"></script>
+<script src="analisa-barang.js?v=138"></script><script src="rekap-susulan.js?v=162"></script><script src="cek-material.js?v=163"></script><script src="kesehatan.js?v=165"></script><script src="rekap-ppbj.js?v=163"></script><script src="padanan.js?v=159"></script>
 <script src="kimia.js?v=122"></script>
 <script src="kpi.js"></script>
 <script src="tanda.js"></script>
@@ -2122,8 +2122,10 @@ async function loadSistem(){
      '<p>Cadangan terakhir: <b style="color:'+(cadBuruk?"var(--red,#a82424)":"inherit")+'">'+esc(r.cadangan)+'</b><br><span style="color:var(--mut);font-size:12px">Pemicu cadangan harian: '+(r.pemicuCadangan?"terpasang":"BELUM terpasang (jalankan pasangPemicuCadangan di editor Apps Script)")+'</span></p>'+
      '<p>Sinkron terakhir ke Cari Barang: <b>'+esc(r.sinkron)+'</b></p>'+
      '<button id="cad">Cadangkan sekarang</button></div>'+
+     '<div class="card" style="margin-top:12px" id="ksPanel"></div>'+
      '<div class="card" style="margin-top:12px"><h3 style="margin-top:0">Admin</h3><ul style="margin:0 0 8px 18px;padding:0">'+adm+'</ul>'+
      '<p style="color:var(--mut);font-size:12px;margin:0">Tambah atau nonaktifkan admin langsung di sheet <b>Admin</b> (kolom Nama, PIN, Aktif). Nama admin tercatat di Mutasi.</p></div>';
+    if(window.KSH)KSH.muat(document.getElementById("ksPanel"),api,toast);   /* T165 */
     document.getElementById("cad").onclick=async function(){
       var b=this;b.disabled=true;
       try{var x=await api({action:"adminCadangan"});toast(x.msg||(x.ok?"Cadangan dibuat.":"Gagal."),!x.ok);if(x.ok)loadSistem();}

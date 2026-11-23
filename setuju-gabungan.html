@@ -43,6 +43,10 @@ button.ok{background:#1b8a3a}button.no{background:#c0392b}button:disabled{opacit
 .hasil{background:#e3f4e8;color:#14602f;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:14px;white-space:pre-wrap}
 .hasil.g{background:#fde8e8;color:#8a1c28}
 @media (prefers-color-scheme:dark){.hasil{background:#1d3a26;color:#a8e0b8}.hasil.g{background:#46191d;color:#ffb4b4}}
+/* T170: lebar untuk komputer; kartu dokumen dua kolom, kartu atas dan hasil selebar halaman */
+@media (min-width:900px){.wrap{max-width:1150px;padding:20px 24px}.row b{flex:0 0 130px}
+ #app{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;align-items:start}#app>*{margin-bottom:16px}#app>:not(.card[data-i]){grid-column:1/-1}
+ .all .btns button{max-width:360px}}
 </style>
 <link rel="stylesheet" href="tema-halaman.css">
 <script src="nama-berkas.js"></script><script src="tema.js"></script>

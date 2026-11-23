@@ -44,6 +44,10 @@ button.chip{flex:none;font:600 13px "Segoe UI",Roboto,Arial,sans-serif;padding:6
 .tag.ok{background:#e3f4e8;color:#14602f}
 .mas{display:flex;gap:8px;flex-wrap:wrap}.mas button{flex:1 1 160px;font-size:14px;padding:11px}
 button.gh2{background:#5a6b78}
+/* T170: lebar untuk komputer; daftar permintaan dua kolom */
+@media (min-width:900px){.wrap{max-width:1150px;padding:20px 24px}.row b{flex:0 0 150px}
+ #app.grp{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;align-items:start}#app.grp>.card{margin-bottom:16px}#app.grp>.card:not(.dok){grid-column:1/-1}
+ #app.grp .mas button{flex:0 1 240px}}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
@@ -61,7 +65,7 @@ var API_URL="https://script.google.com/macros/s/AKfycbyVPrhw3xmk8D-73kgZQlesBB_1
 var q=new URLSearchParams(location.search);
 var app=document.getElementById("app");
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
-function show(msg,cls){app.innerHTML='<div class="card msg '+(cls||"")+'">'+esc(msg)+'</div>';}
+function show(msg,cls){app.classList.remove("grp");app.innerHTML='<div class="card msg '+(cls||"")+'">'+esc(msg)+'</div>';}
 async function api(b){
   var r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)});
   return await r.json();
@@ -114,11 +118,12 @@ function pasangProyek(inp,getList,onPick,inline){
   cap();
 }
 function renderGrup(r){
+  app.classList.add("grp");
   /* T169: centang beberapa permintaan lalu isi satu nomor sekaligus; saran nomor dari Data Accurate; tanda barang sudah diserahkan */
   var rows=r.reqs.map(function(d,k){
     var it=d.items.map(function(i){return esc(i.nama)+" <small>("+esc(i.jumlah)+" "+esc(i.satuan)+")</small>";}).join("<br>");
     var sar=(d.saran||[]).length?'<div class="sar"><small>Saran dari Data Accurate (periksa dulu sebelum dipakai):</small>'+d.saran.map(function(x){return '<button type="button" class="chip" data-k="'+k+'" data-no="'+esc(x.no)+'">'+esc(x.no)+'</button><span>cocok '+x.cocok+' dari '+x.dari+' barang'+(x.proyek?' &middot; '+esc(x.proyek):'')+(x.tgl?' &middot; '+esc(x.tgl):'')+'</span><br>';}).join("")+'</div>':'';
-    return '<div class="card"><label class="pilih"><input type="checkbox" class="cek" data-k="'+k+'"> Pilih '+esc(d.doc)+'</label><div class="row"><b>'+(d.lama?"No. form manual":"No. BPB")+'</b><span>'+esc(d.doc)+' <span class="tag">'+d.hari+' hari</span>'+(d.serah?' <span class="tag ok">Barang sudah diserahkan</span>':'')+'</span></div><div class="row"><b>Peminta</b><span>'+esc(d.by)+' ('+esc(d.dept)+')</span></div><div class="row"><b>Tanggal</b><span>'+esc(d.tgl)+'</span></div><div class="row"><b>Alasan</b><span>'+esc(d.alasan)+'</span></div><div class="row"><b>Barang</b><span>'+it+'</span></div>'+
+    return '<div class="card dok"><label class="pilih"><input type="checkbox" class="cek" data-k="'+k+'"> Pilih '+esc(d.doc)+'</label><div class="row"><b>'+(d.lama?"No. form manual":"No. BPB")+'</b><span>'+esc(d.doc)+' <span class="tag">'+d.hari+' hari</span>'+(d.serah?' <span class="tag ok">Barang sudah diserahkan</span>':'')+'</span></div><div class="row"><b>Peminta</b><span>'+esc(d.by)+' ('+esc(d.dept)+')</span></div><div class="row"><b>Tanggal</b><span>'+esc(d.tgl)+'</span></div><div class="row"><b>Alasan</b><span>'+esc(d.alasan)+'</span></div><div class="row"><b>Barang</b><span>'+it+'</span></div>'+
       '<input class="no" data-k="'+k+'" data-id="'+esc(d.id)+'" maxlength="60" autocomplete="off" placeholder="Ketik atau pilih proyek untuk '+esc(d.doc)+'"><div class="ppcap"></div>'+sar+'</div>';
   }).join("");
   var ns=r.reqs.filter(function(d){return d.serah;}).length;

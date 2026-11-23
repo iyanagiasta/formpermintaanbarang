@@ -64,13 +64,14 @@
     else if (RK.per === 'pilih') { x = RK.dari; y = RK.sampai; }
     return {dari: x, sampai: y};
   }
-  function muat(paksa) {
+  function muat(paksa, segar) {
     if (RK.busy) return;
     if (!paksa && RK.res && Date.now() - RK.t < 5 * 60 * 1000) { gambar(); return; }
     RK.busy = true;
-    var box = el.querySelector('#rkIsi'); if (box) box.innerHTML = '<div class="card msg">Menyusun rekap PPBJ... (membaca Item Requisition, PO Detail, Penyesuaian Stok, BPB, dan BPB Pengganti)</div>';
+    var box = el.querySelector('#rkIsi'); if (box) box.innerHTML = '<div class="card msg">' + (segar ? 'Menghitung ulang rekap PPBJ dari data terbaru (bisa 20-40 detik)...' : 'Memuat rekap PPBJ...') + ' (Item Requisition, PO Detail, Penyesuaian Stok, BPB, dan BPB Pengganti)</div>';
     var p = periode();
-    api({action: 'adminRekapPpbj', dari: p.dari, sampai: p.sampai}).then(function (r) {
+    var rq = {action: 'adminRekapPpbj', dari: p.dari, sampai: p.sampai}; if (segar) rq.segar = 1;   // T170: Muat ulang = hitung ulang di server (selain itu hasil simpanan sampai 20 menit)
+    api(rq).then(function (r) {
       RK.busy = false;
       if (!r || !r.ok) { if (box) box.innerHTML = '<div class="card msg err">' + esc((r && r.msg) || 'Gagal memuat rekap.') + '</div>'; return; }
       RK.res = r; RK.t = Date.now(); RK.idx = null; RK.lim = 40; gambar();
@@ -127,7 +128,7 @@
     el.innerHTML = '<div class="card"><h3 style="margin-top:0">Rekap PPBJ</h3><div class="note">Satu baris per BPB, tiga blok kiri ke kanan: <b>Permintaan PPBJ</b> (Item Requisition), <b>Barang gudang keluar</b> (BPB, BPB Pengganti, atau no IA bila BPB belum ada), dan <b>PO/SPK</b> (PO Detail), lalu blok tambahan <b>Anggaran (RAB)</b>, <b>Penerimaan</b>, <b>Stok &amp; status</b>, dan <b>Penyimpangan</b> yang bisa ditampilkan atau disembunyikan. Rekap mencakup seluruh masa proyek; Periode hanya menyaring tanggal PPBJ. Harga hanya dari data Accurate yang diunggah. Barang tanpa harga dibiarkan kosong dan dihitung terpisah, tidak dianggap nol. Klik nama barang untuk melihat ceritanya.</div>' +
       '<div class="rk-fl"><label>Periode PPBJ <select id="rkPer"><option value="semua">Semua</option><option value="3b">3 bulan terakhir</option><option value="6b">6 bulan terakhir</option><option value="tahun">Tahun ini</option><option value="pilih">Pilih tanggal</option></select></label>' +
       '<span id="rkTgl" style="display:none"><input type="date" id="rkDari"> s/d <input type="date" id="rkSampai"> <button class="gh" id="rkTerap">Terapkan</button></span>' +
-      '<button class="gh" id="rkMuat">Muat ulang</button><button class="sv" id="rkXls">Unduh Excel</button><button class="gh" id="rkSusul" title="Isi data yang belum ada di sistem lewat template Excel">Data susulan</button><span class="note" id="rkWaktu"></span></div>' +
+      '<button class="gh" id="rkMuat" title="Hitung ulang dari data terbaru (20-40 detik). Tanpa ini rekap memakai hasil hitungan terakhir, paling lama 20 menit.">Hitung ulang</button><button class="sv" id="rkXls">Unduh Excel</button><button class="gh" id="rkSusul" title="Isi data yang belum ada di sistem lewat template Excel">Data susulan</button><span class="note" id="rkWaktu"></span></div>' +
       '<div class="rk-fl"><input id="rkQ" placeholder="Cari pintar: proyek, no PPBJ, barang, kode, no BPB, no IA, no PO, vendor" autocomplete="off">' +
       '<select id="rkDept"><option value="">Semua departemen</option></select><select id="rkSb"><option value="">Semua sumber</option></select><select id="rkMs"><option value="">Semua baris</option><option value="_ada">Hanya yang bermasalah</option></select><select id="rkSt"><option value="">Semua status proyek</option><option>Berisiko</option><option>Perlu perhatian</option><option>Aman</option></select></div></div>' +
       '<div id="rkIsi"></div>';
@@ -135,7 +136,7 @@
     $('#rkPer').value = RK.per; $('#rkTgl').style.display = RK.per === 'pilih' ? '' : 'none'; $('#rkDari').value = RK.dari; $('#rkSampai').value = RK.sampai; $('#rkQ').value = RK.q;
     $('#rkPer').onchange = function () { RK.per = this.value; $('#rkTgl').style.display = RK.per === 'pilih' ? '' : 'none'; if (RK.per !== 'pilih') muat(true); };
     $('#rkTerap').onclick = function () { RK.dari = $('#rkDari').value; RK.sampai = $('#rkSampai').value; if (!RK.dari && !RK.sampai) { toast('Isi tanggal dari atau sampai.', true); return; } muat(true); };
-    $('#rkMuat').onclick = function () { muat(true); };
+    $('#rkMuat').onclick = function () { muat(true, true); };
     $('#rkXls').onclick = unduh;
     $('#rkSusul').onclick = bukaSusulan;
     var tm = null; $('#rkQ').oninput = function () { var v = this.value; clearTimeout(tm); tm = setTimeout(function () { RK.q = v.trim(); RK.lim = 40; isi(); }, 250); };

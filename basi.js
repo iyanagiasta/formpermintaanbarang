@@ -8,7 +8,7 @@
 (function (W) {
   "use strict";
   if (W.BASI || typeof W.api !== "function") return;
-  var BERAT = {adminProyekPintar: 1, adminTelusurPpbj: 1, adminKpi: 1, adminKerja: 1, adminProyekKurang: 1, adminPaList: 1};
+  var BERAT = {adminProyekPintar: 1, adminTelusurPpbj: 1, adminKpi: 1, adminKerja: 1, adminProyekKurang: 1, adminPaList: 1, adminRekapPpbj: 1};   // T170: Rekap PPBJ
   var KT = "sctk_tulis_t", JENDELA = 25 * 60000, TAMPIL_MS = 90000;
   var asli = W.api, lokalT = 0, catat = {}, bar = null, barTab = "";
 
@@ -39,6 +39,7 @@
     } catch (e) { if (btn) { btn.disabled = false; btn.textContent = "Hitung ulang sekarang"; } if (typeof W.toast === "function") W.toast("Gagal terhubung ke server.", true); return; }
     try { if (W.SWR && W.SWR.bersih) W.SWR.bersih(); } catch (e) { }
     hapusBar();
+    try { if (W.RKP) { W.RKP.res = null; W.RKP.t = 0; } } catch (e) { }   // T170: Rekap PPBJ menyimpan hasil di browser 5 menit; buang supaya hasil baru tampil
     if (terakhir && terakhir.action === "adminTelusurPpbj" && typeof W.cariPpbjTL === "function") { W.cariPpbjTL(); return; }
     if (typeof W.goTab === "function") W.goTab(W.TAB || "kerja");
   }

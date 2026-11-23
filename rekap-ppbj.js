@@ -150,7 +150,8 @@
     if (!el.querySelector('#rkIsi')) kerangka();
     var r = RK.res; if (!r) return;
     var $ = function (s) { return el.querySelector(s); };
-    $('#rkWaktu').textContent = 'Data per ' + r.waktu;
+    var lw = (r.info || {}).lewat;   /* T171: blok tambahan dilewati karena hitungan terlalu lama */
+    $('#rkWaktu').innerHTML = esc('Data per ' + r.waktu) + (lw ? ' <b style="color:var(--red,#a82424)">&middot; ' + (lw === 'stok' ? 'kolom Stok dan status tidak dihitung' : 'blok tambahan (Anggaran RAB, Penerimaan, Stok dan status, Penyimpangan per barang) tidak dihitung') + ' karena hitungan melewati ' + Math.round((r.info.detik || 150) / 60 * 10) / 10 + ' menit; rekap utama tetap lengkap</b>' : '');
     var dp = {}, sb = {}, ms = {};
     var ms2 = {}, stc = {};
     (r.ppbj || []).forEach(function (g) { if (g.dept) dp[g.dept] = 1; if (g.r2 && g.r2.status) stc[g.r2.status] = (stc[g.r2.status] || 0) + 1; arr(g.ms).forEach(function (m) { ms[m] = (ms[m] || 0) + 1; }); arr(g.b).forEach(function (b) { sb[b.sb] = (sb[b.sb] || 0) + 1; arr(b.ms).forEach(function (m) { ms[m] = (ms[m] || 0) + 1; }); arr(b.ms2).forEach(function (m) { ms2[m] = (ms2[m] || 0) + 1; }); }); });

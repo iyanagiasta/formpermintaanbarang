@@ -53,17 +53,27 @@ async function rkhJalan(mode,btn){
 }
 function pwJeda(jam){return jam!==null&&jam!==undefined&&PW&&jam<PW.jedaJam;}
 function pwJamTeks(j){return j<1?"kurang dari 1 jam":j<24?Math.round(j)+" jam":Math.round(j/24)+" hari";}
+function pwBaru(){return !!(PW&&PW.v>=169&&typeof PWX!=="undefined");}
 function drawKotakPengingat(){
   var el=document.getElementById("pw_k");if(!el||!PW)return;
-  var r=PW,h='<div class="card noprint"><p style="margin:0 0 4px"><b>Kotak Pengingat WhatsApp</b> <span class="tag g">BARU</span></p><p class="note" style="margin:0 0 8px">Salin pesan formal beserta tautannya, lalu tempel dan kirim sendiri lewat WhatsApp. Pengingat email otomatis tidak berubah. <b>Tautan gabungan</b> memuat semua permintaan yang kini menunggu satu orang (berlaku '+r.hariTautan+' hari; membuat yang baru mencabut yang lama). <b>Satuan</b> memakai tautan yang sama dengan email.</p>'+
+  var r=PW,baru=pwBaru(),PP=baru?(r.ppbjPic||[]):[],h='<div class="card noprint"><p style="margin:0 0 4px"><b>Kotak Pengingat WhatsApp</b> <span class="tag g">BARU</span></p><p class="note" style="margin:0 0 8px">Salin pesan formal beserta tautannya, lalu tempel dan kirim sendiri lewat WhatsApp. Pengingat email otomatis tidak berubah. <b>Tautan gabungan</b> memuat semua permintaan yang kini menunggu satu orang (berlaku '+r.hariTautan+' hari; membuat yang baru mencabut yang lama). <b>Satuan</b> memakai tautan yang sama dengan email.'+(baru?' Pesan langsung tampil; tautannya menyusul beberapa detik. Data per '+esc(r.waktu||"")+'.':'')+'</p>'+
    '<div class="fr" style="align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span class="note" style="margin:0">Isi pesan:</span><button class="'+(PWT==="rinci"?"sv":"gh")+'" data-pt="rinci">Rinci</button><button class="'+(PWT==="ringkas"?"sv":"gh")+'" data-pt="ringkas">Ringkas</button><span style="flex:1"></span><button class="gh" id="pw_rekap">Salin rekap status (tanpa tautan, aman untuk grup)</button></div>';
-  if(!r.orang.length&&!r.ppbj.length)h+='<div class="msg">Tidak ada permintaan yang sedang menunggu persetujuan atau PPBJ.</div>';
+  if(!r.orang.length&&!r.ppbj.length&&!PP.length)h+='<div class="msg">Tidak ada permintaan yang sedang menunggu persetujuan atau PPBJ.</div>';
   r.orang.forEach(function(o,i){
     h+='<div style="padding:9px 0;border-top:1px solid var(--line)"><div class="fr" style="align-items:center;gap:8px;flex-wrap:wrap"><b>'+esc(o.sapaan)+' '+esc(o.nama)+'</b><span class="tag">'+esc(o.peran)+'</span><span class="note" style="margin:0">'+o.jumlah+' menunggu &middot; terlama '+esc(String(o.terlama))+' hari'+(o.lewat?' &middot; <b style="color:var(--red,#a82424)">'+o.lewat+' lewat batas</b>':'')+(o.terakhir?' &middot; terakhir diingatkan '+esc(o.terakhir):'')+'</span>'+
       (o.terdaftar?'<button class="sv" data-pg="'+i+'">Salin pesan gabungan</button>'+(o.eskalasi?'<button class="gh" data-pe="'+i+'" title="Pesan informasi ke atasan, tanpa tautan setuju">Salin eskalasi ke '+esc(o.eskalasi)+'</button>':''):'<span class="tag r">belum terdaftar di sheet Pengguna</span>')+'</div>'+
       (o.terdaftar?'<details style="margin-top:4px"><summary class="note" style="cursor:pointer">Per dokumen ('+o.jumlah+')</summary>'+o.items.map(function(x,k){return '<div class="fr" style="align-items:center;gap:8px;padding:3px 0"><span style="flex:1;min-width:150px"><b>'+esc(x.doc)+'</b> <small>'+esc(x.dept)+' &middot; '+esc(x.pemohon)+' &middot; menunggu '+esc(x.lama)+'</small></span><button class="gh" data-ps="'+i+':'+k+'">Salin satuan</button></div>';}).join("")+'</details>':'')+'</div>';
   });
-  if(r.ppbj.length){
+  if(PP.length){   /* T169: No PPBJ belum diisi, per PIC */
+    var tot=0,nS=0;PP.forEach(function(g){tot+=g.jumlah;nS+=g.nSerah;});
+    h+='<div style="padding:9px 0 4px;border-top:1px solid var(--line)"><b>No PPBJ belum diisi, per PIC ('+tot+' permintaan)</b> <span class="note" style="margin:0">'+(nS?nS+' di antaranya barangnya sudah diserahkan. ':'')+'Tautan di pesan membuka halaman isi PPBJ sekaligus milik PIC itu (sama dengan tautan email rekap PPBJ). Tombol eskalasi muncul '+Math.round((r.eskJam||48)/24)+' hari sesudah pesan disalin bila masih belum diisi.</span></div>';
+    PP.forEach(function(g,i){
+      var esk=g.terakhirJam!==null&&g.terakhirJam!==undefined&&g.terakhirJam>=(r.eskJam||48);
+      h+='<div style="padding:7px 0 7px 10px;border-top:1px dashed var(--line)"><div class="fr" style="align-items:center;gap:8px;flex-wrap:wrap"><b>'+esc(g.sapaan)+' '+esc(g.nama)+'</b><span class="tag">'+(g.tanpaPic?'tanpa PIC (ke pemohon)':'PIC')+'</span><span class="note" style="margin:0">'+g.jumlah+' permintaan &middot; terlama '+g.terlama+' hari'+(g.nSerah?' &middot; '+g.nSerah+' barang sudah diserahkan':'')+(g.terakhir?' &middot; disalin '+esc(g.terakhir):'')+(esk?' &middot; <b style="color:var(--red,#a82424)">disalin '+pwJamTeks(g.terakhirJam)+' lalu, masih belum diisi</b>':'')+'</span>'+
+        '<button class="sv" data-pk="'+i+'">Salin pesan PPBJ</button>'+(esk?g.esk.map(function(t,j){return '<button class="gh" data-pke="'+i+':'+j+'" title="Pesan informasi ke atasan PIC, tanpa tautan">Salin eskalasi ke '+esc(t.sapaan+' '+t.nama)+(g.esk.length>1?' ('+esc(t.dept)+')':'')+'</button>';}).join(""):'')+'</div>'+
+        '<details style="margin-top:4px"><summary class="note" style="cursor:pointer">Per dokumen ('+g.jumlah+')</summary>'+g.items.map(function(x,k){var px=!x.lama&&r.ppbj.filter(function(q){return q.id===x.id;})[0];return '<div class="fr" style="align-items:center;gap:8px;padding:3px 0"><span style="flex:1;min-width:150px"><b>'+esc(x.doc)+'</b> <small>'+esc(x.dept)+' &middot; '+esc(x.pemohon)+' &middot; '+x.hari+' hari'+(x.serah?' &middot; barang sudah diserahkan':'')+(x.lama?' &middot; form manual':'')+(x.terakhir?' &middot; terakhir diingatkan '+esc(x.terakhir):'')+'</small></span>'+(px?'<button class="gh" data-pq="'+i+':'+k+'">Salin satuan</button>':'')+'</div>';}).join("")+'</details></div>';
+    });
+  }else if(r.ppbj.length){
     h+='<div style="padding:9px 0;border-top:1px solid var(--line)"><b>No PPBJ belum diisi ('+r.ppbj.length+')</b>'+r.ppbj.map(function(x,k){return '<div class="fr" style="align-items:center;gap:8px;padding:3px 0"><span style="flex:1;min-width:150px"><b>'+esc(x.doc)+'</b> <small>'+esc(x.dept)+' &middot; '+esc(x.pemohon)+' &middot; '+x.hari+' hari &middot; ke '+esc(x.nama)+(x.terakhir?' &middot; terakhir diingatkan '+esc(x.terakhir):'')+'</small></span><button class="gh" data-pp="'+k+'">Salin pesan PPBJ</button></div>';}).join("")+'</div>';
   }
   h+='<div style="padding:9px 0;border-top:1px solid var(--line)"><b>Email rekap harian</b> <span class="note" style="margin:0">Senin-Sabtu 08.00: satu email per orang berisi semua persetujuan dan No PPBJ yang menunggunya, eskalasi bertahap, dan laporan pagi untuk Staff Gudang.</span>'+
@@ -72,17 +82,62 @@ function drawKotakPengingat(){
   document.getElementById("rkh_l").onclick=function(){rkhJalan("lihat",this);};
   document.getElementById("rkh_k").onclick=function(){if(confirm("Kirim email rekap harian sekarang ke semua yang sedang ditunggu? Aturan Minggu dan isi sama diabaikan."))rkhJalan("kirim",this);};
   el.querySelectorAll("[data-pt]").forEach(function(b){b.onclick=function(){PWT=b.getAttribute("data-pt");try{localStorage.setItem("sctk_pw_tingkat",PWT);}catch(e){}drawKotakPengingat();};});
-  document.getElementById("pw_rekap").onclick=function(){pwPesan({jenis:"rekap"},this);};
+  var tandai=function(o){return function(res){o.terakhir=res.w||"";o.terakhirJam=0;drawKotakPengingat();};};
+  document.getElementById("pw_rekap").onclick=function(){
+    if(!baru){pwPesan({jenis:"rekap"},this);return;}
+    var n=r.orang.reduce(function(s,o){return s+o.jumlah;},0);
+    pwBuat({teks:function(){return PWX.rekap(r,new Date());},req:{jenis:"rekap",n:n,dok:n+" dok"},catatan:"Rekap status tanpa tautan, aman ditempel di grup."});};
   el.querySelectorAll("[data-pg]").forEach(function(b){b.onclick=function(){var o=r.orang[Number(b.getAttribute("data-pg"))];
     if(pwJeda(o.terakhirJam)&&!confirm(o.nama+" baru diingatkan "+pwJamTeks(o.terakhirJam)+" lalu. Tetap buat pesan baru? (tautan gabungan yang lama akan dicabut)"))return;
-    pwPesan({jenis:"gabungan",key:o.key},b);};});
-  el.querySelectorAll("[data-pe]").forEach(function(b){b.onclick=function(){pwPesan({jenis:"eskalasi",key:r.orang[Number(b.getAttribute("data-pe"))].key},b);};});
-  el.querySelectorAll("[data-ps]").forEach(function(b){b.onclick=function(){var p=b.getAttribute("data-ps").split(":"),x=r.orang[Number(p[0])].items[Number(p[1])];
+    if(!baru){pwPesan({jenis:"gabungan",key:o.key},b);return;}
+    pwBuat({perluLink:true,teks:function(l){return PWX.gab(r,o,l,new Date(),PWT);},req:{jenis:"gabungan",nama:o.nama,peran:o.peran,docs:o.items.map(function(x){return x.doc;}),n:o.items.length},sesudah:tandai(o)});};});
+  el.querySelectorAll("[data-pe]").forEach(function(b){b.onclick=function(){var o=r.orang[Number(b.getAttribute("data-pe"))];
+    if(!baru||!o.esk){pwPesan({jenis:"eskalasi",key:o.key},b);return;}
+    var lw=o.items.filter(function(x){return PWX.nada(x.hari,r.batas)>=1;});
+    pwBuat({teks:function(){return PWX.esk(r,o,new Date());},req:{jenis:"eskalasi",nama:o.nama,peran:o.peran,docs:lw.map(function(x){return x.doc;}),n:o.items.length},catatan:"Pesan eskalasi untuk "+o.esk.sapaan+" "+o.esk.nama+" ("+o.esk.peran+"). Tidak memuat tautan persetujuan."});};});
+  el.querySelectorAll("[data-ps]").forEach(function(b){b.onclick=function(){var p=b.getAttribute("data-ps").split(":"),g=r.orang[Number(p[0])],x=g.items[Number(p[1])];
     if(pwJeda(x.terakhirJam)&&!confirm(x.doc+" baru diingatkan "+pwJamTeks(x.terakhirJam)+" lalu. Tetap salin pesan?"))return;
-    pwPesan({jenis:"satuan",id:x.id},b);};});
+    if(!baru){pwPesan({jenis:"satuan",id:x.id},b);return;}
+    pwBuat({perluLink:true,teks:function(l){return PWX.satu(r,g,x,l,new Date(),PWT);},req:{jenis:"satuan",id:x.id},sesudah:tandai(x)});};});
   el.querySelectorAll("[data-pp]").forEach(function(b){b.onclick=function(){var x=r.ppbj[Number(b.getAttribute("data-pp"))];
     if(pwJeda(x.terakhirJam)&&!confirm(x.doc+" baru diingatkan "+pwJamTeks(x.terakhirJam)+" lalu. Tetap salin pesan?"))return;
-    pwPesan({jenis:"ppbj",id:x.id},b);};});
+    if(!baru){pwPesan({jenis:"ppbj",id:x.id},b);return;}
+    pwBuat({perluLink:true,teks:function(l){return PWX.ppbj(r,x,l,new Date(),PWT);},req:{jenis:"ppbj",id:x.id,nama:x.nama,peran:x.peran},sesudah:tandai(x)});};});
+  el.querySelectorAll("[data-pk]").forEach(function(b){b.onclick=function(){var g=PP[Number(b.getAttribute("data-pk"))];
+    if(pwJeda(g.terakhirJam)&&!confirm(g.nama+" baru diingatkan "+pwJamTeks(g.terakhirJam)+" lalu. Tetap salin pesan?"))return;
+    pwBuat({teks:function(){return PWX.pic(r,g,new Date(),PWT);},req:{jenis:"ppbjpic",nama:g.pic||g.nama,docs:g.items.map(function(x){return x.doc;}),n:g.jumlah},catatan:"Tautan isi PPBJ sekaligus milik "+g.nama+" (sama dengan tautan email rekap PPBJ).",
+      sesudah:function(res){g.terakhir=res.w||"";g.terakhirJam=0;g.items.forEach(function(x){x.terakhir=res.w||"";x.terakhirJam=0;});drawKotakPengingat();}});};});
+  el.querySelectorAll("[data-pke]").forEach(function(b){b.onclick=function(){var p=b.getAttribute("data-pke").split(":"),g=PP[Number(p[0])],t=g.esk[Number(p[1])];
+    pwBuat({teks:function(){return PWX.picEsk(r,g,t,new Date());},req:{jenis:"ppbjesk",nama:t.nama,peran:t.peran,docs:g.items.filter(function(x){return x.dept===t.dept;}).map(function(x){return x.doc;}),n:g.jumlah},catatan:"Pesan informasi untuk "+t.sapaan+" "+t.nama+" (atasan "+t.dept+"), tanpa tautan."});};});
+  el.querySelectorAll("[data-pq]").forEach(function(b){b.onclick=function(){var p=b.getAttribute("data-pq").split(":"),x0=PP[Number(p[0])].items[Number(p[1])],x=r.ppbj.filter(function(q){return q.id===x0.id;})[0];if(!x)return;
+    if(pwJeda(x0.terakhirJam)&&!confirm(x0.doc+" baru diingatkan "+pwJamTeks(x0.terakhirJam)+" lalu. Tetap salin pesan?"))return;
+    pwBuat({perluLink:true,teks:function(l){return PWX.ppbj(r,x,l,new Date(),PWT);},req:{jenis:"ppbj",id:x.id,nama:x.nama,peran:x.peran},sesudah:tandai(x0)});};});
+}
+/* T169: panel pesan tampil seketika (teks disusun di browser); tautan diisi sesudah server membuatnya. Tidak memuat ulang Kotak Pengingat. */
+var PW_PH="[tautan sedang dibuat...]",PWSEQ=0;
+function pwSalin(ta){
+  var ok=false;try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value);ok=true;}}catch(e){}
+  if(!ok){ta.select();try{ok=document.execCommand("copy");}catch(e){}}
+  toast(ok?"Pesan disalin. Tempel di WhatsApp.":"Tidak bisa menyalin otomatis; blok teks lalu salin manual.",!ok);
+}
+async function pwBuat(o){
+  var out=document.getElementById("pw_o");if(!out)return;
+  var perlu=!!o.perluLink,seq=++PWSEQ;
+  out.innerHTML='<div class="card noprint"><p style="margin:0 0 6px"><b>Pesan siap salin</b> <span class="note" id="pw_n" style="margin:0 6px">'+esc(perlu?"Menyiapkan tautan (beberapa detik)...":(o.catatan||""))+' Pesan boleh Anda ubah dulu.</span></p><textarea id="pw_t" style="width:100%;min-height:280px;font:14px/1.45 inherit">'+esc(o.teks(perlu?PW_PH:""))+'</textarea><div class="fr" style="margin-top:8px"><button id="pw_s" class="sv"'+(perlu?' disabled':'')+'>'+(perlu?"Menyiapkan tautan...":"Salin pesan")+'</button><button id="pw_c" class="gh">Tutup</button></div></div>';
+  var ta=document.getElementById("pw_t"),bs=document.getElementById("pw_s"),nt=document.getElementById("pw_n");
+  bs.onclick=function(){pwSalin(ta);};
+  document.getElementById("pw_c").onclick=function(){PWSEQ++;out.innerHTML="";};
+  out.scrollIntoView({behavior:"smooth",block:"start"});
+  var req={action:"adminPengingatTautan",isi:o.teks("[tautan]").slice(0,4000)};Object.keys(o.req).forEach(function(k){req[k]=o.req[k];});
+  var r;try{r=await api(req);}catch(e){r={ok:false,msg:"Gagal terhubung ke server."};}
+  if(seq!==PWSEQ)return;
+  if(!r||!r.ok){
+    if(perlu){nt.innerHTML='<b style="color:var(--red,#a82424)">'+esc((r&&r.msg)||"Gagal membuat tautan.")+'</b> Pesan belum bisa disalin karena tautannya belum ada.';bs.textContent="Coba lagi";bs.disabled=false;bs.onclick=function(){pwBuat(o);};}
+    else toast("Pesan tetap bisa disalin, tetapi catatan pengingatnya gagal disimpan: "+((r&&r.msg)||""),true);
+    return;
+  }
+  if(perlu){var v=ta.value;ta.value=v.indexOf(PW_PH)>=0?v.split(PW_PH).join(r.link):v+"\n"+r.link;bs.disabled=false;bs.textContent="Salin pesan";nt.textContent=(r.msg||"")+(r.sampai?" Tautan berlaku sampai "+r.sampai+".":"")+" Pesan boleh Anda ubah dulu.";}
+  if(o.sesudah)o.sesudah(r);
 }
 async function pwPesan(req,btn){
   req.action="adminPengingatPesan";req.tingkat=PWT;if(btn)btn.disabled=true;

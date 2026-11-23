@@ -37,6 +37,13 @@ button.ok{background:#1b8a3a}button.no{background:#c0392b}button:disabled{opacit
 .ppdl{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:16px;max-width:560px;width:100%;max-height:92vh;overflow:auto}
 .ppdl label{display:block;font-weight:700;margin:12px 0 4px;font-size:13px}.ppdl input,.ppdl textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font:600 15px "Segoe UI",Roboto,Arial,sans-serif}
 .ppdl .ppb{display:flex;gap:8px;margin-top:14px}
+button.chip{flex:none;font:600 13px "Segoe UI",Roboto,Arial,sans-serif;padding:6px 11px;border-radius:20px;background:#e8f1f6;color:#17588f;border:1px solid #b9d3e4;margin:2px 4px 2px 0}
+@media (prefers-color-scheme:dark){button.chip{background:#23333c;color:#e6eef2;border-color:#3b5260}}
+.sar{font-size:12.5px;margin:-4px 0 4px;color:var(--mut,#4a5b68)}.sar small{display:block;margin:0 0 2px}
+.pilih{display:flex;align-items:center;gap:8px;font-weight:700;margin:0 0 6px;cursor:pointer}.pilih input{width:20px;height:20px}
+.tag.ok{background:#e3f4e8;color:#14602f}
+.mas{display:flex;gap:8px;flex-wrap:wrap}.mas button{flex:1 1 160px;font-size:14px;padding:11px}
+button.gh2{background:#5a6b78}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tema-halaman.css">
@@ -107,15 +114,32 @@ function pasangProyek(inp,getList,onPick,inline){
   cap();
 }
 function renderGrup(r){
+  /* T169: centang beberapa permintaan lalu isi satu nomor sekaligus; saran nomor dari Data Accurate; tanda barang sudah diserahkan */
   var rows=r.reqs.map(function(d,k){
     var it=d.items.map(function(i){return esc(i.nama)+" <small>("+esc(i.jumlah)+" "+esc(i.satuan)+")</small>";}).join("<br>");
-    return '<div class="card"><div class="row"><b>'+(d.lama?"No. form manual":"No. BPB")+'</b><span>'+esc(d.doc)+' <span class="tag">'+d.hari+' hari</span></span></div><div class="row"><b>Peminta</b><span>'+esc(d.by)+' ('+esc(d.dept)+')</span></div><div class="row"><b>Tanggal</b><span>'+esc(d.tgl)+'</span></div><div class="row"><b>Alasan</b><span>'+esc(d.alasan)+'</span></div><div class="row"><b>Barang</b><span>'+it+'</span></div>'+
-      '<input class="no" data-id="'+esc(d.id)+'" maxlength="60" autocomplete="off" placeholder="Ketik atau pilih proyek untuk '+esc(d.doc)+'"><div class="ppcap"></div></div>';
+    var sar=(d.saran||[]).length?'<div class="sar"><small>Saran dari Data Accurate (periksa dulu sebelum dipakai):</small>'+d.saran.map(function(x){return '<button type="button" class="chip" data-k="'+k+'" data-no="'+esc(x.no)+'">'+esc(x.no)+'</button><span>cocok '+x.cocok+' dari '+x.dari+' barang'+(x.proyek?' &middot; '+esc(x.proyek):'')+(x.tgl?' &middot; '+esc(x.tgl):'')+'</span><br>';}).join("")+'</div>':'';
+    return '<div class="card"><label class="pilih"><input type="checkbox" class="cek" data-k="'+k+'"> Pilih '+esc(d.doc)+'</label><div class="row"><b>'+(d.lama?"No. form manual":"No. BPB")+'</b><span>'+esc(d.doc)+' <span class="tag">'+d.hari+' hari</span>'+(d.serah?' <span class="tag ok">Barang sudah diserahkan</span>':'')+'</span></div><div class="row"><b>Peminta</b><span>'+esc(d.by)+' ('+esc(d.dept)+')</span></div><div class="row"><b>Tanggal</b><span>'+esc(d.tgl)+'</span></div><div class="row"><b>Alasan</b><span>'+esc(d.alasan)+'</span></div><div class="row"><b>Barang</b><span>'+it+'</span></div>'+
+      '<input class="no" data-k="'+k+'" data-id="'+esc(d.id)+'" maxlength="60" autocomplete="off" placeholder="Ketik atau pilih proyek untuk '+esc(d.doc)+'"><div class="ppcap"></div>'+sar+'</div>';
   }).join("");
-  app.innerHTML='<div class="card"><p style="margin:0">Yth. <b>'+esc(r.pic)+'</b>, ada <b>'+r.reqs.length+' permintaan</b> yang menunggu Nomor PPBJ. Isi yang sudah siap, yang belum boleh dikosongkan, lalu klik Simpan.</p></div>'+rows+'<div class="card"><button class="ok" id="go" style="width:100%">Simpan Semua Nomor PPBJ</button></div>';
+  var ns=r.reqs.filter(function(d){return d.serah;}).length;
+  app.innerHTML='<div class="card"><p style="margin:0">Yth. <b>'+esc(r.pic)+'</b>, ada <b>'+r.reqs.length+' permintaan</b> yang menunggu Nomor PPBJ'+(ns?' ('+ns+' di antaranya barangnya sudah diserahkan)':'')+'. Isi yang sudah siap, yang belum boleh dikosongkan, lalu klik Simpan.</p></div>'+
+    (r.reqs.length>1?'<div class="card"><b>Satu nomor untuk beberapa permintaan</b><p style="margin:4px 0 0;font-size:13.5px">Centang permintaannya, ketik atau pilih Nomor PPBJ di sini, lalu klik Terapkan. Nomor masuk ke semua yang dicentang (masih bisa diubah sebelum disimpan).</p><input class="no" id="massal" maxlength="60" autocomplete="off" placeholder="Nomor PPBJ untuk yang dicentang"><div class="ppcap"></div><div class="mas"><button type="button" class="gh2" id="cekSemua">Centang semua</button><button type="button" class="ok" id="terap">Terapkan ke yang dicentang</button></div></div>':'')+
+    rows+'<div class="card"><button class="ok" id="go" style="width:100%">Simpan Semua Nomor PPBJ</button></div>';
   document.querySelectorAll("input.no").forEach(function(i){pasangProyek(i,function(){return PROY;},null,true);});
+  var isiKe=function(inp,v){inp.value=v;inp.dispatchEvent(new Event("input"));if(inp.__ppHapus)inp.__ppHapus();};
+  document.querySelectorAll("button.chip").forEach(function(b){b.onclick=function(){var inp=document.querySelector('input.no[data-k="'+b.getAttribute("data-k")+'"]');if(inp)isiKe(inp,b.getAttribute("data-no"));};});
+  var cs=document.getElementById("cekSemua");
+  if(cs){
+    cs.onclick=function(){var L=document.querySelectorAll("input.cek"),semua=Array.prototype.every.call(L,function(c){return c.checked;});L.forEach(function(c){c.checked=!semua;});cs.textContent=semua?"Centang semua":"Hapus centang";};
+    document.getElementById("terap").onclick=function(){
+      var v=document.getElementById("massal").value.trim();if(!v){alert("Ketik atau pilih Nomor PPBJ dulu.");return;}
+      var n=0;document.querySelectorAll("input.cek").forEach(function(c){if(!c.checked)return;var inp=document.querySelector('input.no[data-k="'+c.getAttribute("data-k")+'"]');if(inp){isiKe(inp,v);n++;}});
+      if(!n){alert("Belum ada permintaan yang dicentang.");return;}
+      alert("Nomor "+v+" dimasukkan ke "+n+" permintaan. Periksa lagi, lalu klik Simpan Semua Nomor PPBJ di bawah.");
+    };
+  }
   document.getElementById("go").onclick=async function(){
-    var isi=[];document.querySelectorAll("input.no").forEach(function(i){if(i.value.trim())isi.push({id:i.getAttribute("data-id"),no:i.value.trim()});});
+    var isi=[];document.querySelectorAll("input.no[data-id]").forEach(function(i){if(i.value.trim())isi.push({id:i.getAttribute("data-id"),no:i.value.trim()});});
     if(!isi.length){alert("Belum ada nomor PPBJ yang diisi.");return;}
     this.disabled=true;
     try{var x=await api({action:"ppbjGrupSimpan",g:q.get("g"),t:q.get("t"),isi:isi});show(x.msg||"Selesai.",x.ok?"good":"err");}

@@ -9,6 +9,8 @@
   async function api(b) { var r = await fetch(API_URL, {method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify(b)}); return await r.json(); }
   function lsGet(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* abaikan */ } }
+  var TT = null;
+  function toast(t, bad) { var x = $("toast"); x.textContent = t; x.className = bad ? "bad" : ""; x.style.display = "block"; clearTimeout(TT); TT = setTimeout(function () { x.style.display = "none"; }, 4500); }
   function adminPin() { try { return sessionStorage.getItem("sctk_admin") || ""; } catch (e) { return ""; } }
   function setAdminPin(v) { try { if (v) sessionStorage.setItem("sctk_admin", v); else sessionStorage.removeItem("sctk_admin"); } catch (e) { /* abaikan */ } }
 
@@ -55,7 +57,7 @@
 
   /* ---------- pegawai: minta TTD ---------- */
   var INFO = {aktif: true, kataNama: "rosyihani", maksMB: 20}, BACA = null, FILE = null, SIBUK = false;
-  function status(t, err) { $("status").className = err ? "err" : "mut"; $("status").textContent = t || ""; }
+  function status(t, err) { $("status").className = err ? "note err" : "note"; $("status").textContent = t || ""; }
   function siap() { $("kirim").disabled = SIBUK || !INFO.aktif || !BACA || !BACA.ok || $("nama").value.trim().length < 2 || $("dept").value.trim().length < 2; }
   async function muatInfo() {
     try {
@@ -75,7 +77,7 @@
     try {
       var buf = await FILE.arrayBuffer(); BACA = await analisaPdf(buf, INFO.kataNama);
       if (!BACA.ok) { $("baca").innerHTML = '<span class="err">' + esc(BACA.msg) + '</span>'; }
-      else $("baca").innerHTML = '<dl><dt>No. PPBJ</dt><dd><b>' + esc(BACA.nomor) + '</b></dd><dt>Proyek</dt><dd>' + esc(BACA.proyek || "-") + '</dd><dt>Halaman</dt><dd>' + BACA.halaman + ' (kotak Bagian Gudang di halaman ' + BACA.hal + ')</dd></dl>';
+      else $("baca").innerHTML = '<dl class="dl"><dt>No. PPBJ</dt><dd><b>' + esc(BACA.nomor) + '</b></dd><dt>Proyek</dt><dd>' + esc(BACA.proyek || "-") + '</dd><dt>Halaman</dt><dd>' + BACA.halaman + ' (kotak Bagian Gudang di halaman ' + BACA.hal + ')</dd></dl>';
     } catch (e) { BACA = null; $("baca").innerHTML = '<span class="err">PDF tidak bisa dibaca: ' + esc(e && e.message ? e.message : e) + '</span>'; }
     siap();
   };
@@ -91,7 +93,8 @@
       if (r && r.ok) {
         status("");
         $("alasanBox").hidden = true;
-        $("hasil").innerHTML = '<div class="card"><b class="ok" style="font-size:17px">&#10003; Tanda tangan sudah dibubuhkan</b><dl><dt>No. PPBJ</dt><dd><b>' + esc(r.nomor) + '</b></dd><dt>Proyek</dt><dd>' + esc(r.proyek || "-") + '</dd><dt>Waktu</dt><dd>' + esc(r.waktu) + '</dd><dt>Kode verifikasi</dt><dd><span class="kode">' + esc(r.kode) + '</span></dd></dl><button id="unduh" type="button">Unduh PDF bertanda tangan</button> <a class="btn sek" href="' + esc(r.verUrl) + '" target="_blank" rel="noopener">Periksa kode</a><div class="mut" style="margin-top:8px">Simpan PDF ini. Kode verifikasi tercetak kecil di bawah tanda tangan.</div></div>';
+        $("hasil").innerHTML = '<div class="card"><b class="ok">Tanda tangan sudah dibubuhkan.</b><dl class="dl"><dt>No. PPBJ</dt><dd><b>' + esc(r.nomor) + '</b></dd><dt>Proyek</dt><dd>' + esc(r.proyek || "-") + '</dd><dt>Waktu</dt><dd>' + esc(r.waktu) + '</dd><dt>Kode verifikasi</dt><dd><span class="kode">' + esc(r.kode) + '</span></dd></dl><div class="act" style="flex-direction:row"><button id="unduh" type="button">Unduh PDF bertanda tangan</button><button type="button" class="gh" id="periksa">Periksa kode</button></div><div class="note">PDF terunduh otomatis. Simpan berkasnya; kode verifikasi tercetak kecil di bawah tanda tangan.</div></div>';
+        var vu = r.verUrl; $("periksa").onclick = function () { window.open(vu, "_blank", "noopener"); };
         var nf = r.namaFile; $("unduh").onclick = function () { unduhB64(r.pdf, nf); }; try { unduhB64(r.pdf, nf); } catch (e) { /* tombol tetap tersedia */ }
         $("berkas").value = ""; FILE = null; BACA = null; $("baca").textContent = "";
       } else if (r && r.perluAlasan) {
@@ -117,45 +120,48 @@
   $("btnKeluar").onclick = function () { setAdminPin(""); riwayatBuka(); };
   $("q").oninput = function () { clearTimeout(QT); QT = setTimeout(muatDaftar, 350); };
   async function muatDaftar() {
-    $("daftar").innerHTML = '<div class="mut">Memuat...</div>';
+    $("daftar").innerHTML = '<div class="msg">Memuat...</div>';
     try {
       var r = await api({action: "ttdPpbjDaftar", pin: adminPin(), q: $("q").value.trim()});
-      if (!r || !r.ok) { if (r && /PIN|kode|akses/i.test(r.msg || "")) { setAdminPin(""); riwayatBuka(); } $("daftar").innerHTML = '<div class="card err">' + esc((r && r.msg) || "Gagal memuat.") + '</div>'; return; }
+      if (!r || !r.ok) { if (r && /PIN|kode|akses/i.test(r.msg || "")) { setAdminPin(""); riwayatBuka(); } $("daftar").innerHTML = '<div class="msg err">' + esc((r && r.msg) || "Gagal memuat.") + '</div>'; return; }
       DATA = r; tampil(r);
-    } catch (e) { $("daftar").innerHTML = '<div class="card err">Gagal terhubung ke server.</div>'; }
+    } catch (e) { $("daftar").innerHTML = '<div class="msg err">Gagal terhubung ke server.</div>'; }
   }
   function tampil(r) {
-    $("ringkas").innerHTML = 'Status layanan: <b class="' + (r.aktif ? "ok" : "err") + '">' + (r.aktif ? "AKTIF" : "NONAKTIF") + '</b> &middot; hari ini ' + r.hariIni + ' dari batas ' + r.maksHari + ' &middot; total ' + r.total;
+    $("ringkas").innerHTML = 'Layanan: <b class="' + (r.aktif ? "ok" : "err") + '">' + (r.aktif ? "AKTIF" : "NONAKTIF") + '</b> &middot; hari ini ' + r.hariIni + ' dari batas ' + r.maksHari + ' &middot; total ' + r.total + ' catatan';
     $("btnSet").textContent = r.aktif ? "Nonaktifkan" : "Aktifkan";
-    var q = $("q").value.trim(), h = '<div class="mut" style="margin-bottom:8px">' + r.data.length + ' dari ' + r.total + ' catatan' + (q ? ' untuk &ldquo;' + esc(q) + '&rdquo;' : '') + (r.saring && r.saring.length ? ' (penyaring: ' + r.saring.map(esc).join(", ") + ')' : '') + '.</div>';
-    if (!r.data.length) h += '<div class="card mut">Belum ada catatan' + (q ? " yang cocok" : "") + '.</div>';
+    var q = $("q").value.trim(), h = '<div class="note">' + r.data.length + ' dari ' + r.total + ' catatan' + (q ? ' untuk &ldquo;' + esc(q) + '&rdquo;' : '') + (r.saring && r.saring.length ? ' (penyaring: ' + r.saring.map(esc).join(", ") + ')' : '') + '.</div>';
+    if (!r.data.length) { $("daftar").innerHTML = h + '<div class="msg">Belum ada catatan' + (q ? " yang cocok" : "") + '.</div>'; return; }
+    h += '<div class="tb"><table><thead><tr><th class="w1">Waktu</th><th>No. PPBJ / Proyek</th><th>Pemohon</th><th class="w1">Kode</th><th>Aksi</th></tr></thead><tbody>';
     r.data.forEach(function (o) {
-      h += '<div class="rw"><b class="n">' + esc(o.nomor) + '</b><small>' + esc(o.proyek || "-") + '</small><small>' + esc(o.waktu) + ' &middot; ' + esc(o.nama) + ' (' + esc(o.dept) + ') &middot; ' + o.kb + ' KB &middot; kode <b>' + esc(o.kode) + '</b></small>' +
-        (o.alasan ? '<div class="alas">Unggah ulang. Alasan: ' + esc(o.alasan) + '</div>' : '') +
-        '<div class="aks"><button type="button" data-u="hasil" data-id="' + esc(o.id) + '">Unduh bertanda tangan</button><button type="button" class="sek" data-u="asli" data-id="' + esc(o.id) + '">Unduh asli</button><a class="btn sek" href="' + esc(o.verUrl) + '" target="_blank" rel="noopener">Periksa kode</a></div></div>';
+      h += '<tr><td class="w1" data-l="Waktu">' + esc(o.waktu) + '</td><td data-l="No. PPBJ / Proyek"><b>' + esc(o.nomor) + '</b><small>' + esc(o.proyek || "-") + '</small></td>' +
+        '<td data-l="Pemohon">' + esc(o.nama) + '<small>' + esc(o.dept) + '</small>' + (o.alasan ? '<small><span class="bd w">Unggah ulang</span> ' + esc(o.alasan) + '</small>' : '') + '</td>' +
+        '<td class="w1" data-l="Kode"><span class="kode">' + esc(o.kode) + '</span><small>' + o.kb + ' KB</small></td>' +
+        '<td data-l="Aksi"><div class="act"><button type="button" data-u="hasil" data-id="' + esc(o.id) + '">Unduh hasil</button><button type="button" class="gh" data-u="asli" data-id="' + esc(o.id) + '">Unduh asli</button><button type="button" class="gh" data-ver="' + esc(o.verUrl) + '">Periksa kode</button></div></td></tr>';
     });
-    $("daftar").innerHTML = h;
+    $("daftar").innerHTML = h + '</tbody></table></div>';
   }
   $("daftar").onclick = async function (e) {
+    var v = e.target.closest("button[data-ver]"); if (v) { window.open(v.getAttribute("data-ver"), "_blank", "noopener"); return; }
     var b = e.target.closest("button[data-u]"); if (!b) return; var t = b.textContent; b.disabled = true; b.textContent = "Mengunduh...";
-    try { var r = await api({action: "ttdPpbjUnduh", pin: adminPin(), id: b.getAttribute("data-id"), jenis: b.getAttribute("data-u")}); if (r && r.ok) unduhB64(r.pdf, r.namaFile); else alert((r && r.msg) || "Gagal mengunduh."); }
-    catch (er) { alert("Gagal terhubung ke server."); }
+    try { var r = await api({action: "ttdPpbjUnduh", pin: adminPin(), id: b.getAttribute("data-id"), jenis: b.getAttribute("data-u")}); if (r && r.ok) unduhB64(r.pdf, r.namaFile); else toast((r && r.msg) || "Gagal mengunduh.", true); }
+    catch (er) { toast("Gagal terhubung ke server.", true); }
     b.disabled = false; b.textContent = t;
   };
   $("btnSet").onclick = async function () {
     if (!DATA) return; var aktif = !DATA.aktif;
     if (!aktif && !confirm("Nonaktifkan Minta TTD? Pegawai tidak bisa meminta tanda tangan sampai diaktifkan lagi.")) return;
     this.disabled = true;
-    try { var r = await api({action: "ttdPpbjSet", pin: adminPin(), aktif: aktif}); if (r && r.ok) muatDaftar(); else alert((r && r.msg) || "Gagal."); } catch (e) { alert("Gagal terhubung ke server."); }
+    try { var r = await api({action: "ttdPpbjSet", pin: adminPin(), aktif: aktif}); if (r && r.ok) muatDaftar(); else toast((r && r.msg) || "Gagal.", true); } catch (e) { toast("Gagal terhubung ke server.", true); }
     this.disabled = false;
   };
   $("btnUji").onclick = async function () {
-    this.disabled = true; $("ujiHasil").innerHTML = '<div class="mut" style="margin-top:8px">Menguji (pertama kali bisa beberapa detik)...</div>';
+    this.disabled = true; $("ujiHasil").innerHTML = '<div class="note">Menguji (pertama kali bisa beberapa detik)...</div>';
     try {
       var r = await api({action: "ttdPpbjUjiCek", pin: adminPin()});
-      if (!r || !r.tahap) $("ujiHasil").innerHTML = '<div class="err">' + esc((r && r.msg) || "Gagal.") + '</div>';
-      else $("ujiHasil").innerHTML = '<div class="note"><b class="' + (r.ok ? "ok" : "err") + '">' + (r.ok ? "Semua tahap berhasil." : "Ada tahap yang gagal.") + '</b><ol class="uji">' + r.tahap.map(function (t) { return '<li class="' + (t.ok ? "ok" : "err") + '">' + (t.ok ? "&#10003; " : "&#10007; ") + esc(t.n) + ' <span class="mut">(' + t.ms + ' md' + (t.ket ? "; " + esc(t.ket) : "") + ')</span></li>'; }).join("") + '</ol></div>';
-    } catch (e) { $("ujiHasil").innerHTML = '<div class="err">Gagal terhubung ke server.</div>'; }
+      if (!r || !r.tahap) $("ujiHasil").innerHTML = '<div class="ket err">' + esc((r && r.msg) || "Gagal.") + '</div>';
+      else $("ujiHasil").innerHTML = '<div class="ket"><b class="' + (r.ok ? "ok" : "err") + '">' + (r.ok ? "Semua tahap berhasil." : "Ada tahap yang gagal.") + '</b><ol style="margin:6px 0 0;padding-left:20px">' + r.tahap.map(function (t) { return '<li class="' + (t.ok ? "ok" : "err") + '">' + esc(t.n) + ': ' + (t.ok ? "berhasil" : "GAGAL") + ' <span style="color:var(--mut)">(' + t.ms + ' md' + (t.ket ? "; " + esc(t.ket) : "") + ')</span></li>'; }).join("") + '</ol></div>';
+    } catch (e) { $("ujiHasil").innerHTML = '<div class="ket err">Gagal terhubung ke server.</div>'; }
     this.disabled = false;
   };
 

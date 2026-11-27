@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Minta TTD Staff Gudang</title>
+<style>
+:root{--navy:#0a2a43;--gold:#b8975a;--bg:#eef3f6;--ink:#0d1f2d;--card:#fff;--line:#cfd8de;--mut:#5b7a8c;--red:#a82424;--green:#1b8a3a;--warn:#fff6e0;--warnl:#e3c98f}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171c;--ink:#e6eef2;--card:#1a252c;--line:#33444e;--mut:#9db0bc;--red:#f0a0a0;--green:#7fd89a;--warn:#2a2410;--warnl:#6b5a24}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:15px}
+.top{background:var(--navy);color:#fff;text-align:center;padding:14px 12px;border-bottom:4px solid var(--gold)}.top h1{margin:0;font-size:16px;letter-spacing:1.5px}.top div{font-size:11px;letter-spacing:2px;color:#e3c98f;margin-top:3px}
+.top a{color:#e3c98f;font-size:12px;text-decoration:none;display:inline-block;margin-top:6px}
+.wrap{max-width:760px;margin:0 auto;padding:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.mut{color:var(--mut);font-size:13px}.ok{color:var(--green)}.err{color:var(--red)}.note{background:var(--warn);border:1px solid var(--warnl);border-radius:8px;padding:10px 12px;font-size:13px;margin:10px 0}
+label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
+input,textarea{width:100%;padding:11px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+button,.btn{font:600 14px "Segoe UI",Roboto,Arial,sans-serif;padding:11px 18px;border:0;border-radius:8px;color:#fff;background:var(--navy);cursor:pointer;margin-top:10px;text-decoration:none;display:inline-block}button:disabled{opacity:.5;cursor:default}
+button.sek,.btn.sek{background:transparent;color:var(--navy);border:1px solid var(--line)}@media (prefers-color-scheme:dark){button.sek,.btn.sek{color:#e3c98f}}
+.tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button{flex:1;margin:0;background:transparent;color:var(--ink);border:1px solid var(--line)}.tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+dl{display:grid;grid-template-columns:120px 1fr;gap:6px 10px;margin:10px 0 0}dt{color:var(--mut)}dd{margin:0;word-break:break-word}
+.kode{font:700 20px ui-monospace,Consolas,monospace;letter-spacing:2px;color:var(--navy)}@media (prefers-color-scheme:dark){.kode{color:#e3c98f}}
+.rw{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--card)}.rw b.n{font-size:15px}.rw small{display:block;color:var(--mut);margin-top:2px}
+.rw .alas{background:var(--warn);border:1px solid var(--warnl);border-radius:6px;padding:6px 8px;margin-top:6px;font-size:13px}.rw .aks button,.rw .aks a{margin:8px 6px 0 0;padding:8px 12px;font-size:13px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}.bar button{margin:0}
+ol.uji{padding-left:20px;margin:8px 0}ol.uji li{margin:4px 0}
+[hidden]{display:none!important}
+</style>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head>
+<body>
+<div class="top"><h1>MINTA TTD STAFF GUDANG</h1><div>PT SARANA CATUR TIRTA KELOLA</div><a href="dashboard.html">&larr; Kembali ke halaman utama</a></div>
+<div class="wrap">
+ <div class="tabs"><button id="tabMinta" class="on" type="button">Minta TTD</button><button id="tabRiwayat" type="button">Riwayat (admin)</button></div>
+
+ <section id="pMinta">
+  <div id="nonaktif" class="card err" hidden></div>
+  <div class="card" id="fMinta">
+   <b>Unggah PPBJ, tanda tangan otomatis</b>
+   <div class="mut" style="margin-top:4px">Unggah PDF PPBJ asli dari sistem. Tanda tangan Staff Gudang dibubuhkan otomatis di kotak &ldquo;Bagian Gudang&rdquo;. Hanya halaman PPBJ yang ditandatangani, lampiran lain tidak.</div>
+   <label for="nama">Nama Anda</label><input id="nama" maxlength="60" autocomplete="name" placeholder="Nama lengkap">
+   <label for="dept">Departemen</label><input id="dept" maxlength="60" autocomplete="organization" placeholder="Contoh: Produksi, Distribusi">
+   <label for="berkas">PDF PPBJ</label><input id="berkas" type="file" accept="application/pdf,.pdf">
+   <div id="baca" class="mut" style="margin-top:10px"></div>
+   <div id="alasanBox" hidden><div class="note" id="alasanMsg"></div><label for="alasan">Alasan unggah ulang (wajib)</label><textarea id="alasan" rows="2" maxlength="300" placeholder="Contoh: revisi daftar barang, nomor PPBJ koreksi"></textarea></div>
+   <button id="kirim" type="button" disabled>Unggah dan minta TTD</button>
+   <div id="status" class="mut" style="margin-top:8px"></div>
+  </div>
+  <div id="hasil"></div>
+  <div class="mut">Tanda tangan berupa gambar tanda tangan elektronik dengan kode verifikasi; bukan tanda tangan digital bersertifikat. PDF yang berupa foto atau scan tidak bisa diproses: gunakan PDF asli yang diunduh dari sistem. Setiap permintaan tercatat dan Staff Gudang menerima pemberitahuan.</div>
+ </section>
+
+ <section id="pRiwayat" hidden>
+  <div class="card" id="masuk" hidden>
+   <b>Login admin</b><label for="pin">Kode admin</label><input id="pin" type="password" autocomplete="off" placeholder="Kode admin"><button id="btnMasuk" type="button">Masuk</button><div id="masukMsg" class="err" style="margin-top:8px"></div>
+  </div>
+  <div id="isiRiwayat" hidden>
+   <div class="card">
+    <div class="bar"><div id="ringkas" class="mut"></div><div><button id="btnSet" type="button" class="sek"></button> <button id="btnUji" type="button" class="sek">Uji pengolah PDF</button> <button id="btnKeluar" type="button" class="sek">Keluar</button></div></div>
+    <div id="ujiHasil"></div>
+    <label for="q">Cari (No PPBJ, proyek, nama, departemen, alasan, tanggal, kode; salah ketik tidak masalah)</label><input id="q" placeholder="Contoh: meter air, produksi, november 2026">
+   </div>
+   <div id="daftar"></div>
+  </div>
+ </section>
+</div>
+<script src="ttd-cari.js?v=174"></script>
+<script src="minta-ttd.js?v=174"></script>
+</body>
+</html>

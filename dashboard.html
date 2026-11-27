@@ -87,6 +87,7 @@ function st(k,v,sess){try{var s=sess?sessionStorage:localStorage;if(v===undefine
 var ICON={
  perjalanan:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
  ekspor:'<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v3h16v-3"/>',
+ ttd:'<path d="M4 20h16"/><path d="M5 16c2-6 4-9 6-9 1.5 0 .5 4-1 7 2-2 4-4 5-3 .8 1-1 3 1 3"/>',
  gabung:'<path d="M12 3 3 8l9 5 9-5z"/><path d="m3 13 9 5 9-5"/><path d="m3 17 9 5 9-5"/>',
  serahtanda:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="m9 11 2 2 4-4"/>',
  kimia:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M7.5 15h9"/>',
@@ -165,6 +166,7 @@ async function buka(aksi,btn){
     else if(aksi==="kembali"){if(await pastikanPegawai())location.href="pengembalian.html";}
     else if(aksi==="kebutuhan"){if(await pastikanPic())location.href="kebutuhan.html";}
     else if(aksi==="riwayat"){if(await pastikanPic())location.href="riwayat-setuju.html";}
+    else if(aksi==="mintattd"){location.href="minta-ttd.html";}
     else if(aksi==="boq"){if(await pastikanPegawai())location.href="boq.html";}
     else if(aksi==="proyek"){if(await pastikanPic())location.href="proyek.html";}
     else if(aksi==="beli"){if(await pastikanPic())location.href="pembelian.html";}
@@ -208,6 +210,7 @@ function kartu(){
    big("pembelianku","terima","Pengadaan","Unggah PO dari Accurate, antrean kerja, UMO dan realisasi, klaim vendor, serta pembelian dan penerimaan barang. Staff Gudang mengonfirmasi barang diterima; Accounting mengesahkan pembelian darurat.","Pengadaan, Accounting, atau gudang")+
    '</div>'+'<div class="sec"><h3>Alat dan administrasi</h3></div><div class="menu">'+
    big("riwayat","kebutuhan","Riwayat Persetujuan Saya","Lihat permintaan yang menunggu keputusan Anda, yang sudah Anda setujui atau tolak, dan yang Anda ajukan, lengkap dengan posisinya sekarang. Hanya baca, tanpa nilai rupiah.","kode pribadi penyetuju")+
+   big("mintattd","ttd","Minta TTD Staff Gudang","Unggah PDF PPBJ, tanda tangan Staff Gudang langsung dibubuhkan di kotak Bagian Gudang. Cukup isi nama dan departemen; tanpa kode akses.","tanpa kode")+
    big("masterbarang","plus","Pengajuan Master Barang","Ajukan barang baru yang belum ada di daftar. Gudang menerima pengajuan lalu memasukkannya ke Accurate.","kode pegawai")+
    big("label","barcode","Cetak Label Barcode","Cetak label barcode dan label Tom & Jerry berisi nama barang, barcode, dan kotak Slow / Fast Moving.","PIC, atasan, atau gudang")+
    big("gabungpdf","gabung","Gabung jadi 1 PDF","Gabungkan foto kamera, gambar, PDF, dan Excel menjadi satu PDF. Bisa potong, putar, diperkecil, dan diberi nama sebelum diunduh. Diproses di perangkat ini.","Staff Gudang atau admin")+

@@ -56,18 +56,19 @@
   $("tabRiwayat").onclick = function () { tab("riwayat"); history.replaceState(null, "", "#riwayat"); };
 
   /* ---------- pegawai: minta TTD ---------- */
-  var INFO = {aktif: true, kataNama: "rosyihani", maksMB: 20}, BACA = null, FILE = null, SIBUK = false;
+  var INFO = {kataNama: "rosyihani", maksMB: 20}, BACA = null, FILE = null, SIBUK = false;
   function status(t, err) { $("status").className = err ? "note err" : "note"; $("status").textContent = t || ""; }
-  function siap() { $("kirim").disabled = SIBUK || !INFO.aktif || !BACA || !BACA.ok || $("nama").value.trim().length < 2 || $("dept").value.trim().length < 2; }
+  function siap() { $("kirim").disabled = SIBUK || !BACA || !BACA.ok || $("nama").value.trim().length < 2 || $("dept").value.trim().length < 2 || !/^\d{3}$/.test($("kodeAkses").value.trim()); }
   async function muatInfo() {
     try {
       var r = await api({action: "ttdPpbjInfoCek"});
-      if (r && r.ok) { INFO = r; if (!r.aktif) { $("nonaktif").hidden = false; $("nonaktif").textContent = r.pesan; } }
-    } catch (e) { /* tetap pakai bawaan; server menolak bila nonaktif */ }
+      if (r && r.ok) INFO = r;
+    } catch (e) { /* tetap pakai bawaan */ }
     siap();
   }
   $("nama").value = lsGet("sctk_ttd_nama"); $("dept").value = lsGet("sctk_ttd_dept");
   $("nama").oninput = $("dept").oninput = siap;
+  $("kodeAkses").oninput = function () { this.value = this.value.replace(/\D/g, "").slice(0, 3); siap(); };
   $("berkas").onchange = async function () {
     BACA = null; FILE = this.files && this.files[0] || null; $("alasanBox").hidden = true; $("alasan").value = ""; $("hasil").innerHTML = ""; status(""); siap();
     if (!FILE) { $("baca").textContent = ""; return; }
@@ -89,14 +90,16 @@
     try {
       status("Menyiapkan berkas..."); var b64 = await b64Dari(FILE);
       status("Mengunggah " + (FILE.size / 1e6).toFixed(1) + " MB dan membubuhkan tanda tangan. Mohon tunggu, jangan tutup halaman...");
-      var r = await api({action: "ttdPpbjTanda", pdf: b64, nama: nama, dept: dept, nomor: BACA.nomor, proyek: BACA.proyek, kotak: BACA.pos, alasan: alasan});
+      var r = await api({action: "ttdPpbjTanda", pdf: b64, nama: nama, dept: dept, nomor: BACA.nomor, proyek: BACA.proyek, kotak: BACA.pos, alasan: alasan, kodeAkses: $("kodeAkses").value.trim()});
       if (r && r.ok) {
         status("");
         $("alasanBox").hidden = true;
         $("hasil").innerHTML = '<div class="card"><b class="ok">Tanda tangan sudah dibubuhkan.</b><dl class="dl"><dt>No. PPBJ</dt><dd><b>' + esc(r.nomor) + '</b></dd><dt>Proyek</dt><dd>' + esc(r.proyek || "-") + '</dd><dt>Waktu</dt><dd>' + esc(r.waktu) + '</dd><dt>Kode verifikasi</dt><dd><span class="kode">' + esc(r.kode) + '</span></dd></dl><div class="act" style="flex-direction:row"><button id="unduh" type="button">Unduh PDF bertanda tangan</button><button type="button" class="gh" id="periksa">Periksa kode</button></div><div class="note">PDF terunduh otomatis. Simpan berkasnya; kode verifikasi tercetak kecil di bawah tanda tangan.</div></div>';
         var vu = r.verUrl; $("periksa").onclick = function () { window.open(vu, "_blank", "noopener"); };
         var nf = r.namaFile; $("unduh").onclick = function () { unduhB64(r.pdf, nf); }; try { unduhB64(r.pdf, nf); } catch (e) { /* tombol tetap tersedia */ }
-        $("berkas").value = ""; FILE = null; BACA = null; $("baca").textContent = "";
+        $("berkas").value = ""; FILE = null; BACA = null; $("baca").textContent = ""; $("kodeAkses").value = "";   // kode lama sudah hangus
+      } else if (r && r.perluKode) {
+        $("kodeAkses").value = ""; status(r.msg, true); $("kodeAkses").focus();
       } else if (r && r.perluAlasan) {
         $("alasanBox").hidden = false; $("alasanMsg").textContent = r.msg; status(alasan ? r.msg : "", !!alasan); $("alasan").focus();
       } else status((r && r.msg) || "Gagal. Coba lagi.", true);
@@ -117,7 +120,7 @@
     this.disabled = false;
   };
   $("pin").onkeydown = function (e) { if (e.key === "Enter") $("btnMasuk").click(); };
-  $("btnKeluar").onclick = function () { setAdminPin(""); riwayatBuka(); };
+  $("btnKeluar").onclick = function () { setAdminPin(""); $("kodeBox").innerHTML = ""; riwayatBuka(); };
   $("q").oninput = function () { clearTimeout(QT); QT = setTimeout(muatDaftar, 350); };
   async function muatDaftar() {
     $("daftar").innerHTML = '<div class="msg">Memuat...</div>';
@@ -128,8 +131,7 @@
     } catch (e) { $("daftar").innerHTML = '<div class="msg err">Gagal terhubung ke server.</div>'; }
   }
   function tampil(r) {
-    $("ringkas").innerHTML = 'Layanan: <b class="' + (r.aktif ? "ok" : "err") + '">' + (r.aktif ? "AKTIF" : "NONAKTIF") + '</b> &middot; hari ini ' + r.hariIni + ' dari batas ' + r.maksHari + ' &middot; total ' + r.total + ' catatan';
-    $("btnSet").textContent = r.aktif ? "Nonaktifkan" : "Aktifkan";
+    $("ringkas").innerHTML = 'Hari ini ' + r.hariIni + ' dari batas ' + r.maksHari + ' &middot; total ' + r.total + ' catatan';
     var q = $("q").value.trim(), h = '<div class="note">' + r.data.length + ' dari ' + r.total + ' catatan' + (q ? ' untuk &ldquo;' + esc(q) + '&rdquo;' : '') + (r.saring && r.saring.length ? ' (penyaring: ' + r.saring.map(esc).join(", ") + ')' : '') + '.</div>';
     if (!r.data.length) { $("daftar").innerHTML = h + '<div class="msg">Belum ada catatan' + (q ? " yang cocok" : "") + '.</div>'; return; }
     h += '<div class="tb"><table><thead><tr><th class="w1">Waktu</th><th>No. PPBJ / Proyek</th><th>Pemohon</th><th class="w1">Kode</th><th>Aksi</th></tr></thead><tbody>';
@@ -148,11 +150,19 @@
     catch (er) { toast("Gagal terhubung ke server.", true); }
     b.disabled = false; b.textContent = t;
   };
-  $("btnSet").onclick = async function () {
-    if (!DATA) return; var aktif = !DATA.aktif;
-    if (!aktif && !confirm("Nonaktifkan Minta TTD? Pegawai tidak bisa meminta tanda tangan sampai diaktifkan lagi.")) return;
+  function tampilKode(r, ganti) {
+    $("kodeBox").innerHTML = '<div class="ket"><span class="note" style="margin:0">' + (ganti ? "Kode baru: " : "Kode TTD sekarang: ") + '</span> <b class="kode" style="font-size:22px;letter-spacing:6px">' + esc(r.kode) + '</b>' +
+      '<div class="note" style="margin:4px 0 0">Berikan kode ini ke pemohon. Kode hangus setelah satu TTD berhasil, lalu kode berikutnya dikirim ke email Anda.' + (r.awal ? " Ini kode awal (belum ada TTD yang berhasil)." : "") + (r.salah ? " Salah berturut-turut: " + r.salah + " dari " + r.maksSalah + "." : "") + '</div></div>';
+  }
+  $("btnKode").onclick = async function () {
     this.disabled = true;
-    try { var r = await api({action: "ttdPpbjSet", pin: adminPin(), aktif: aktif}); if (r && r.ok) muatDaftar(); else toast((r && r.msg) || "Gagal.", true); } catch (e) { toast("Gagal terhubung ke server.", true); }
+    try { var r = await api({action: "ttdPpbjKodeCek", pin: adminPin()}); if (r && r.ok) tampilKode(r, false); else toast((r && r.msg) || "Gagal.", true); } catch (e) { toast("Gagal terhubung ke server.", true); }
+    this.disabled = false;
+  };
+  $("btnKodeGanti").onclick = async function () {
+    if (!confirm("Ganti kode TTD sekarang? Kode lama langsung tidak berlaku.")) return;
+    this.disabled = true;
+    try { var r = await api({action: "ttdPpbjKodeGanti", pin: adminPin()}); if (r && r.ok) tampilKode(r, true); else toast((r && r.msg) || "Gagal.", true); } catch (e) { toast("Gagal terhubung ke server.", true); }
     this.disabled = false;
   };
   $("btnUji").onclick = async function () {

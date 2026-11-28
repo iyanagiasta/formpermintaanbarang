@@ -74,6 +74,7 @@ td small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 .fm input,.fm textarea{width:100%;padding:10px;font:inherit;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--ink)}
 .fm input[type=file]{padding:8px}
 .dl{display:grid;grid-template-columns:130px 1fr;gap:4px 12px;margin:8px 0}.dl dt{color:var(--mut)}.dl dd{margin:0;word-break:break-word}
+#kodeAkses::placeholder{letter-spacing:0;font-weight:400}
 .ok{color:var(--ok,#1b8a3a)}
 @media (prefers-color-scheme:dark){.ok{color:#7fd89a}.err{color:#f0a0a0}}
 [data-tema="gelap"] .ok{color:#7fd89a}[data-tema="gelap"] .err{color:#f0a0a0}[data-tema="terang"] .ok{color:#17703a}[data-tema="terang"] .err{color:#a82424}
@@ -99,12 +100,12 @@ th.w1,td.w1{white-space:nowrap}
  <div class="tabs"><button id="tabMinta" class="on" type="button">Minta TTD</button><button id="tabRiwayat" type="button">Riwayat (admin)</button></div>
 
  <section id="pMinta">
-  <div id="nonaktif" class="card err" hidden></div>
   <div class="card fm" id="fMinta">
    <b>Unggah PPBJ untuk ditandatangani</b>
    <div class="note" style="margin:4px 0 0">Unggah PDF PPBJ asli dari sistem. Tanda tangan Staff Gudang dibubuhkan otomatis di kotak Bagian Gudang. Lampiran lain tidak ditandatangani.</div>
    <label for="nama">Nama</label><input id="nama" maxlength="60" autocomplete="name">
    <label for="dept">Departemen</label><input id="dept" maxlength="60" autocomplete="organization">
+   <label for="kodeAkses">Kode dari Staff Gudang (3 angka)</label><input id="kodeAkses" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" placeholder="Kode 3 angka" style="max-width:220px;letter-spacing:4px;font-weight:700"><div class="note" style="margin:4px 0 0">Kode berganti setiap kali satu PPBJ selesai ditandatangani.</div>
    <label for="berkas">Berkas PDF PPBJ</label><input id="berkas" type="file" accept="application/pdf,.pdf">
    <div id="baca" class="note" style="margin-top:10px"></div>
    <div id="alasanBox" hidden><div class="ket" id="alasanMsg"></div><label for="alasan">Alasan unggah ulang (wajib)</label><textarea id="alasan" rows="2" maxlength="300"></textarea></div>
@@ -121,8 +122,8 @@ th.w1,td.w1{white-space:nowrap}
   </div>
   <div id="isiRiwayat" hidden>
    <div class="card fm">
-    <div class="bar" style="margin:0 0 8px"><div id="ringkas" style="flex:1;min-width:220px"></div><button id="btnSet" type="button" class="gh"></button><button id="btnUji" type="button" class="gh">Uji pengolah PDF</button><button id="btnKeluar" type="button" class="gh">Keluar</button></div>
-    <div id="ujiHasil"></div>
+    <div class="bar" style="margin:0 0 8px"><div id="ringkas" style="flex:1;min-width:220px"></div><button id="btnKode" type="button" class="gh">Lihat kode TTD sekarang</button><button id="btnKodeGanti" type="button" class="gh">Ganti kode</button><button id="btnUji" type="button" class="gh">Uji pengolah PDF</button><button id="btnKeluar" type="button" class="gh">Keluar</button></div>
+    <div id="kodeBox"></div><div id="ujiHasil"></div>
     <label for="q">Cari: No PPBJ, proyek, nama, departemen, alasan, tanggal, atau kode (salah ketik tidak masalah)</label><input id="q" placeholder="Contoh: meter air, produksi, november 2026">
    </div>
    <div id="daftar"></div>
@@ -131,6 +132,6 @@ th.w1,td.w1{white-space:nowrap}
 </div>
 <div id="toast"></div>
 <script src="ttd-cari.js?v=175"></script>
-<script src="minta-ttd.js?v=175"></script>
+<script src="minta-ttd.js?v=177"></script>
 </body>
 </html>
